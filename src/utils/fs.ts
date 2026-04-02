@@ -181,6 +181,35 @@ export async function planManagedFile(filePath: string, logicalName: string, con
   };
 }
 
+export async function planCreateOnlyFile(
+  filePath: string,
+  logicalName: string,
+  content: string,
+  options?: { managed?: boolean }
+): Promise<WritePlan> {
+  const wrapped = options?.managed === false ? `${content.trimEnd()}\n` : wrapManagedFile(logicalName, content);
+  if (!(await pathExists(filePath))) {
+    return {
+      path: filePath,
+      status: "created",
+      detail: "created seed file",
+      nextContent: wrapped,
+      ...diffLineCounts("", wrapped)
+    };
+  }
+
+  const existing = await readText(filePath);
+  return {
+    path: filePath,
+    status: "unchanged",
+    detail: "preserved existing seed file",
+    currentContent: existing,
+    nextContent: existing,
+    addedLines: 0,
+    removedLines: 0
+  };
+}
+
 export async function planManagedBlock(filePath: string, blockName: string, content: string): Promise<WritePlan> {
   const wrapped = wrapManagedBlock(blockName, content).trimEnd();
   if (!(await pathExists(filePath))) {

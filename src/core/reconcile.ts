@@ -1,9 +1,12 @@
+import path from "node:path";
 import type { CompiledContext } from "./context.js";
 import type { DispatchCollection, DispatchManifest, DispatchRole, DispatchRoleResult } from "./dispatch.js";
 import { ensureDispatchLayout, getDispatchPaths, listDispatchManifests } from "./dispatch.js";
+import { loadActiveRoleHints, updateActiveRoleHints } from "./state.js";
 import { pathExists, readJson, renderDisplayPath, writeText } from "../utils/fs.js";
 
 export interface ReconcileReport {
+  artifactType: "shrey-junior/reconcile-report";
   version: number;
   createdAt: string;
   dispatchId: string;
@@ -51,6 +54,7 @@ export function buildReconcileReport(manifest: DispatchManifest, collection: Dis
       : "Record a new checkpoint and hand off the next phase or run push-check if the repo is git-ready.";
 
   return {
+    artifactType: "shrey-junior/reconcile-report",
     version: 1,
     createdAt: new Date().toISOString(),
     dispatchId: manifest.dispatchId,
@@ -131,8 +135,25 @@ export async function writeReconcileArtifacts(targetRoot: string, dispatchId: st
   markdownPath: string;
 }> {
   const paths = await ensureDispatchLayout(targetRoot, dispatchId);
-  await writeText(paths.reconcileLatestJsonPath, `${JSON.stringify(report, null, 2)}\n`);
-  await writeText(paths.reconcileLatestMarkdownPath, renderReconcileMarkdown(targetRoot, report));
+  const reconcileDir = path.join(getDispatchPaths(targetRoot).root, "..", "reconcile");
+  const latestJsonPath = path.join(reconcileDir, "latest.json");
+  const latestMarkdownPath = path.join(reconcileDir, "latest.md");
+  const jsonPayload = `${JSON.stringify(report, null, 2)}\n`;
+  const markdown = renderReconcileMarkdown(targetRoot, report);
+  await writeText(paths.reconcileLatestJsonPath, jsonPayload);
+  await writeText(paths.reconcileLatestMarkdownPath, markdown);
+  await writeText(latestJsonPath, jsonPayload);
+  await writeText(latestMarkdownPath, markdown);
+  const activeRoleHints = await loadActiveRoleHints(targetRoot);
+  if (activeRoleHints) {
+    await updateActiveRoleHints(targetRoot, {
+      activeRole: activeRoleHints.activeRole,
+      authoritySource: activeRoleHints.authoritySource,
+      projectType: activeRoleHints.projectType,
+      supportingRoles: activeRoleHints.supportingRoles,
+      latestReconcile: renderDisplayPath(targetRoot, latestJsonPath)
+    });
+  }
   return {
     jsonPath: paths.reconcileLatestJsonPath,
     markdownPath: paths.reconcileLatestMarkdownPath
@@ -140,6 +161,10 @@ export async function writeReconcileArtifacts(targetRoot: string, dispatchId: st
 }
 
 export async function loadLatestReconcileReport(targetRoot: string, dispatchId?: string): Promise<ReconcileReport | null> {
+  const rootLatestPath = path.join(getDispatchPaths(targetRoot).root, "..", "reconcile", "latest.json");
+  if (!dispatchId && (await pathExists(rootLatestPath))) {
+    return normalizeReconcileReport(await readJson<Record<string, unknown>>(rootLatestPath));
+  }
   if (dispatchId) {
     const resolvedPath = getDispatchPaths(targetRoot, dispatchId).reconcileLatestJsonPath;
     if (!resolvedPath || !(await pathExists(resolvedPath))) {
@@ -207,6 +232,7 @@ function dedupeStrings(items: string[]): string[] {
 
 function normalizeReconcileReport(payload: Record<string, unknown>): ReconcileReport {
   return {
+    artifactType: payload.artifactType === "shrey-junior/reconcile-report" ? payload.artifactType : "shrey-junior/reconcile-report",
     version: typeof payload.version === "number" ? payload.version : 1,
     createdAt: typeof payload.createdAt === "string" ? payload.createdAt : new Date().toISOString(),
     dispatchId: typeof payload.dispatchId === "string" ? payload.dispatchId : "unknown-dispatch",

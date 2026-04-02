@@ -66,6 +66,7 @@ test("reconcile report blocks on explicit conflicts and missing required role ou
     } as never
   );
 
+  assert.equal(report.artifactType, "shrey-junior/reconcile-report");
   assert.equal(report.status, "blocked");
   assert.equal(report.analysisBasis, "mostly-structured");
   assert.equal(report.conflicts.length > 0, true);

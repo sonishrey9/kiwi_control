@@ -1,0 +1,27 @@
+{
+  "artifactType": "shrey-junior/current-phase",
+  "version": 2,
+  "timestamp": "{{generatedAt}}",
+  "phaseId": "bootstrap-initialized",
+  "label": "bootstrap initialized",
+  "goal": "Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+  "profile": "{{profileName}}",
+  "mode": "{{executionMode}}",
+  "status": "complete",
+  "routingSummary": {
+    "taskType": "planning",
+    "primaryTool": "claude",
+    "reviewTool": "codex",
+    "riskLevel": "low",
+    "fileArea": "context",
+    "changeSize": "small",
+    "requiredRoles": []
+  },
+  "authorityFiles": {{currentPhaseAuthorityFilesJson}},
+  "validationsRun": [
+    "portable repo contract installed"
+  ],
+  "warnings": [],
+  "openIssues": [],
+  "nextRecommendedStep": "{{bootstrapNextAction}}"
+}

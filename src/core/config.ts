@@ -77,6 +77,38 @@ export interface RoutingConfig {
       conventions: string;
       runbooks: string;
     };
+    roles: {
+      readme: string;
+      specialist_template: string;
+    };
+    templates: {
+      role_result: string;
+    };
+    state: {
+      current_phase: string;
+      active_role_hints: string;
+      handoff_readme: string;
+      dispatch_readme: string;
+      reconcile_readme: string;
+    };
+    scripts: {
+      verify_contract: string;
+    };
+    github: {
+      instructions: {
+        backend: string;
+        frontend: string;
+        docs: string;
+        data: string;
+      };
+      agents: {
+        shrey_junior: string;
+        specialist_template: string;
+      };
+      workflows: {
+        contract: string;
+      };
+    };
   };
   task_packets: {
     directory: string;

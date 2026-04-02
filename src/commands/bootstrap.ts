@@ -10,6 +10,7 @@ export interface BootstrapCommandOptions {
   profileName?: string;
   projectType?: string;
   dryRun?: boolean;
+  backup?: boolean;
   logger: Logger;
 }
 
@@ -29,6 +30,7 @@ export async function runBootstrap(options: BootstrapCommandOptions): Promise<nu
       ...(options.profileName ? { explicitProfileName: options.profileName } : {}),
       ...(options.projectType ? { explicitProjectType: options.projectType as ProjectType } : {}),
       ...(options.dryRun !== undefined ? { dryRun: options.dryRun } : {}),
+      ...(options.backup !== undefined ? { backup: options.backup } : {}),
       diffSummary: true
     },
     config

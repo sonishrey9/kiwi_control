@@ -1,9 +1,12 @@
 import { loadCanonicalConfig } from "../core/config.js";
 import { compileRepoContext } from "../core/context.js";
 import { collectDispatchOutputs, loadLatestDispatchCollection, loadLatestDispatchManifest, writeDispatchCollection } from "../core/dispatch.js";
+import { buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets } from "../core/guidance.js";
 import { buildReconcileReport, writeReconcileArtifacts } from "../core/reconcile.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "../core/profiles.js";
 import type { Logger } from "../core/logger.js";
+import { updateActiveRoleHints } from "../core/state.js";
+import { buildTemplateContext, selectPortableContract } from "../core/router.js";
 import { renderDisplayPath } from "../utils/fs.js";
 
 export interface ReconcileOptions {
@@ -43,6 +46,32 @@ export async function runReconcile(options: ReconcileOptions): Promise<number> {
   });
   const report = buildReconcileReport(manifest, collection, context);
   const artifacts = await writeReconcileArtifacts(options.targetRoot, manifest.dispatchId, report);
+  const contract = selectPortableContract(
+    config,
+    buildTemplateContext(options.targetRoot, config, {
+      profileName: selection.profileName,
+      executionMode,
+      projectType: overlay?.bootstrap?.project_type ?? "generic",
+      profileSource: selection.source
+    })
+  );
+  await updateActiveRoleHints(options.targetRoot, {
+    activeRole: contract.activeRole,
+    supportingRoles: contract.supportingRoles,
+    authoritySource: selection.source,
+    projectType: overlay?.bootstrap?.project_type ?? "generic",
+    checksToRun: buildChecksToRun(context.validationSteps),
+    writeTargets: buildWriteTargets(contract, [renderDisplayPath(options.targetRoot, artifacts.jsonPath)]),
+    stopConditions: buildStopConditions({
+      riskLevel: manifest.routingSummary.riskLevel,
+      taskType: manifest.routingSummary.taskType
+    }),
+    nextAction: report.recommendedNextStep,
+    searchGuidance: buildSearchGuidance({
+      taskType: manifest.routingSummary.taskType,
+      fileArea: manifest.routingSummary.fileArea
+    })
+  });
 
   options.logger.info(
     [

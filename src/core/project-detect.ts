@@ -97,19 +97,22 @@ function detectProjectTypeFromEntries(entries: Dirent[]): ProjectType {
 }
 
 async function findExistingAuthorityFiles(targetRoot: string, config: LoadedConfig): Promise<string[]> {
-  const candidates = new Set<string>([
-    ...config.global.defaults.authority_files,
+  const configuredAuthorityFiles = config.global.defaults.authority_files ?? [];
+  const candidates = [
     "AGENTS.md",
     "CLAUDE.md",
-    ".github/copilot-instructions.md"
-  ]);
+    ".github/copilot-instructions.md",
+    ...configuredAuthorityFiles.filter(
+      (relativePath) => !["AGENTS.md", "CLAUDE.md", ".github/copilot-instructions.md"].includes(relativePath)
+    )
+  ];
   const discovered: string[] = [];
   for (const relativePath of candidates) {
     if (await pathExists(path.join(targetRoot, relativePath))) {
       discovered.push(relativePath);
     }
   }
-  return discovered.sort();
+  return discovered;
 }
 
 async function detectAuthorityProfileHint(targetRoot: string, authorityFiles: string[], config: LoadedConfig): Promise<string | undefined> {

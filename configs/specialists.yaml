@@ -33,6 +33,28 @@ specialists:
     handoff_guidance:
       - surface stable contracts before implementation begins
       - hand off to qa-specialist or architecture-specialist for guarded review
+  data-platform-specialist:
+    id: data-platform-specialist
+    name: Data Platform Specialist
+    purpose: Safe work on pipelines, transforms, schemas, warehouse logic, and migration-sensitive data-platform repos.
+    preferred_tools: [claude, codex]
+    allowed_profiles: [strict-production, product-build, data-platform]
+    routing_bias:
+      roles: [planner, implementer, reviewer]
+      task_types: [planning, implementation, migration, review, release-readiness]
+      file_areas: [data, config, infra, tests]
+      preferred_primary_tool: claude
+      preferred_review_tool: codex
+    validation_expectations:
+      - verify schema and pipeline contract changes explicitly
+      - run the narrowest transform, migration, or data validation available
+      - document release-sensitive data risks before phase close
+    result_schema_expectations: [role, status, summary, agreements, conflicts, validations, risks, touched_files, next_steps]
+    mcp_eligibility: [context7, filesystem, github, docker]
+    risk_posture: conservative
+    handoff_guidance:
+      - surface data contracts and migration boundaries before edits begin
+      - prefer reviewer or qa coverage before push or release recommendations
   backend-specialist:
     id: backend-specialist
     name: Backend Specialist

@@ -5,7 +5,7 @@ import { assessPushReadiness, inspectGitState } from "../core/git.js";
 import { inspectBootstrapTarget } from "../core/project-detect.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "../core/profiles.js";
 import { loadLatestReconcileReport } from "../core/reconcile.js";
-import { listTaskPacketDirectories, loadContinuitySnapshot } from "../core/state.js";
+import { listTaskPacketDirectories, loadActiveRoleHints, loadContinuitySnapshot, loadLatestTaskPacketSet } from "../core/state.js";
 import type { Logger } from "../core/logger.js";
 import { renderDisplayPath } from "../utils/fs.js";
 
@@ -22,6 +22,7 @@ export async function runStatus(options: StatusOptions): Promise<number> {
   const selection = await resolveProfileSelection(options.targetRoot, config, options.profileName);
   const inspection = await inspectBootstrapTarget(options.targetRoot, config);
   const continuity = await loadContinuitySnapshot(options.targetRoot);
+  const activeRoleHints = await loadActiveRoleHints(options.targetRoot);
   const executionMode = resolveExecutionMode(config, selection, overlay, continuity.latestPhase?.mode);
   const context = await compileRepoContext({
     targetRoot: options.targetRoot,
@@ -36,6 +37,7 @@ export async function runStatus(options: StatusOptions): Promise<number> {
     riskLevel: continuity.latestPhase?.routingSummary.riskLevel ?? "medium"
   });
   const taskDirectories = await listTaskPacketDirectories(options.targetRoot);
+  const latestTaskPacketSet = await loadLatestTaskPacketSet(options.targetRoot);
   const gitState = await inspectGitState(options.targetRoot);
   const push = assessPushReadiness(gitState, continuity.latestPhase);
   const dispatches = await listDispatchManifests(options.targetRoot);
@@ -52,7 +54,18 @@ export async function runStatus(options: StatusOptions): Promise<number> {
 
   const lines = [
     `profile: ${selection.profileName} (${selection.source})`,
+    `project type: ${inspection.projectType} (${inspection.projectTypeSource})`,
     `execution mode: ${executionMode}`,
+    activeRoleHints
+      ? `active role hints: ${activeRoleHints.activeRole}${activeRoleHints.supportingRoles.length > 0 ? ` | supporting=${activeRoleHints.supportingRoles.join(", ")}` : ""}`
+      : "active role hints: none recorded",
+    activeRoleHints?.nextAction ? `next action: ${activeRoleHints.nextAction}` : "next action: none recorded",
+    activeRoleHints?.readNext?.length
+      ? `read next: ${activeRoleHints.readNext.slice(0, 5).join(" -> ")}`
+      : "read next: none recorded",
+    activeRoleHints?.checksToRun?.length
+      ? `checks to run: ${activeRoleHints.checksToRun.slice(0, 4).join(" | ")}`
+      : "checks to run: none recorded",
     continuity.latestPhase
       ? `current phase: ${continuity.latestPhase.label} [${continuity.latestPhase.status}]`
       : "current phase: none recorded",
@@ -76,6 +89,16 @@ export async function runStatus(options: StatusOptions): Promise<number> {
       ? `latest reconcile: ${latestReconcile.dispatchId} [${latestReconcile.status}, ${latestReconcile.analysisBasis}]`
       : "latest reconcile: none recorded",
     `task packet sets: ${taskDirectories.length}`,
+    latestTaskPacketSet
+      ? `latest task packet set: ${latestTaskPacketSet.packetSet} (${latestTaskPacketSet.files.length} files)`
+      : "latest task packet set: none recorded",
+    activeRoleHints?.latestTaskPacket ? `active latest task packet pointer: ${activeRoleHints.latestTaskPacket}` : "active latest task packet pointer: none recorded",
+    activeRoleHints?.latestHandoff ? `active latest handoff pointer: ${activeRoleHints.latestHandoff}` : "active latest handoff pointer: none recorded",
+    activeRoleHints?.latestDispatchManifest ? `active latest dispatch pointer: ${activeRoleHints.latestDispatchManifest}` : "active latest dispatch pointer: none recorded",
+    activeRoleHints?.latestReconcile ? `active latest reconcile pointer: ${activeRoleHints.latestReconcile}` : "active latest reconcile pointer: none recorded",
+    activeRoleHints?.writeTargets?.length
+      ? `write targets: ${activeRoleHints.writeTargets.slice(0, 4).join(" | ")}`
+      : "write targets: none recorded",
     ...taskDirectories.slice(0, 3).map((entry) => `- packet set: ${entry.name} (${entry.fileCount} files)`),
     inspection.authorityOptOut
       ? `authority precedence: repo-local authority requests repo-local-only behavior (${inspection.authorityOptOut})`

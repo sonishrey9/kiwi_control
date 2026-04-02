@@ -8,21 +8,23 @@ Read in this order before non-trivial work:
 
 1. existing trusted repo authority files already present in the repo
 2. promoted canonical docs explicitly referenced by those authority files
-3. `.agent/project.yaml`
-4. `.agent/checks.yaml`
-5. `.agent/state/current-phase.json` when present
-6. latest handoff and latest reconcile artifacts when present
-7. `.agent/context/architecture.md`
-8. `.agent/context/conventions.md`
-9. `.agent/context/runbooks.md`
-10. `.agent/tasks/` packets when present
+3. `.agent/state/active-role-hints.json`
+4. `.agent/state/current-phase.json`
+5. latest task packet, latest handoff, latest reconcile, and latest dispatch manifest when present
+6. relevant `.github/instructions/*.instructions.md`
+7. relevant `.github/agents/*.md`, `.agent/roles/*.md`, and `.agent/templates/role-result.md`
+8. `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
+9. `.agent/project.yaml`
+10. `.agent/context/architecture.md`, `.agent/context/conventions.md`, and `.agent/context/runbooks.md`
+11. `.agent/tasks/` packets when present
 
 Authority rules:
 
 - existing repo authority wins over generated overlays unless the repo explicitly delegates control
 - promoted canonical docs explicitly referenced by repo authority must be read early
 - generated repo artifacts are supporting control-plane outputs and may be regenerated
-- machine-local files and editor state are reference-only
+- repo-local files are the portable contract; machine-local files and editor state are accelerators only
+- cloud-hosted runtimes may not see `~/.codex`, `~/.claude`, or editor-local prompts, so do not treat those as portable truth
 
 Safety rules:
 
@@ -46,6 +48,7 @@ Use the control plane like this:
 - use `handoff` when Codex, Claude, Copilot, or another tool is continuing the next phase
 - use `push-check` before recommending push for non-trivial, guarded, contract-sensitive, or release-sensitive work
 - use `release-check` and `phase-close` when the phase is nearing review, release, or a clean handoff boundary
+- use `.agent/state/active-role-hints.json` as the fastest repo-local read for the current lead role, next file to open, and latest continuity pointers
 
 Escalate instead of proceeding directly when:
 
@@ -57,7 +60,7 @@ Escalate instead of proceeding directly when:
 
 Specialist guidance:
 
-- prefer specialist-aware routing over generic freeform work when the task clearly maps to `python-specialist`, `qa-specialist`, `push-specialist`, `security-specialist`, `refactor-specialist`, or `docs-specialist`
+- prefer specialist-aware routing over generic freeform work when the task clearly maps to `frontend-specialist`, `backend-specialist`, `fullstack-specialist`, `python-specialist`, `data-platform-specialist`, `qa-specialist`, `review-specialist`, `push-specialist`, `security-specialist`, `refactor-specialist`, `docs-specialist`, or `architecture-specialist`
 - specialists refine validation expectations, handoff guidance, risk posture, and MCP eligibility; they do not replace repo authority
 
 MCP guidance:

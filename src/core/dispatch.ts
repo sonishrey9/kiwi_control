@@ -2,9 +2,10 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import type { ExecutionMode, ToolName } from "./config.js";
 import type { CompiledContext } from "./context.js";
+import { buildChecksToRun, buildFirstReadContract, buildSearchGuidance } from "./guidance.js";
 import type { RoutingDecision } from "./router.js";
 import type { ContinuitySnapshot, PhaseRoutingSummary } from "./state.js";
-import { buildPhaseId, getStatePaths } from "./state.js";
+import { buildPhaseId, getStatePaths, loadActiveRoleHints, updateActiveRoleHints } from "./state.js";
 import { ensureDir, isIgnoredArtifactName, pathExists, readJson, readText, renderDisplayPath, writeText } from "../utils/fs.js";
 import { parseYaml } from "../utils/yaml.js";
 
@@ -26,6 +27,7 @@ export interface DispatchRoleAssignment {
 }
 
 export interface DispatchManifest {
+  artifactType: "shrey-junior/dispatch-manifest";
   version: number;
   createdAt: string;
   dispatchId: string;
@@ -36,6 +38,14 @@ export interface DispatchManifest {
   routingSummary: PhaseRoutingSummary;
   authorityFiles: string[];
   promotedDocs: string[];
+  readFirst: string[];
+  checksToRun: string[];
+  searchGuidance: {
+    inspectCodebaseFirst: boolean;
+    repoDocsFirst: boolean;
+    useExternalLookupWhen: string[];
+    avoidExternalLookupWhen: string[];
+  };
   packetSetDirectory: string;
   roleAssignments: DispatchRoleAssignment[];
   sourcePhaseId?: string;
@@ -60,6 +70,7 @@ export interface DispatchRoleResult {
 }
 
 export interface DispatchCollection {
+  artifactType: "shrey-junior/dispatch-collect";
   version: number;
   createdAt: string;
   dispatchId: string;
@@ -98,6 +109,9 @@ export function buildDispatchId(goal: string, timestamp: string): string {
 
 export function getDispatchPaths(targetRoot: string, dispatchId?: string): {
   root: string;
+  latestManifestPath?: string;
+  latestMarkdownPath?: string;
+  latestCollectionPath?: string;
   dispatchDir?: string;
   manifestPath?: string;
   markdownPath?: string;
@@ -110,11 +124,19 @@ export function getDispatchPaths(targetRoot: string, dispatchId?: string): {
 } {
   const root = path.join(getStatePaths(targetRoot).root, "dispatch");
   if (!dispatchId) {
-    return { root };
+    return {
+      root,
+      latestManifestPath: path.join(root, "latest-manifest.json"),
+      latestMarkdownPath: path.join(root, "latest.md"),
+      latestCollectionPath: path.join(root, "latest-collect.json")
+    };
   }
   const dispatchDir = path.join(root, dispatchId);
   return {
     root,
+    latestManifestPath: path.join(root, "latest-manifest.json"),
+    latestMarkdownPath: path.join(root, "latest.md"),
+    latestCollectionPath: path.join(root, "latest-collect.json"),
     dispatchDir,
     manifestPath: path.join(dispatchDir, "manifest.json"),
     markdownPath: path.join(dispatchDir, "dispatch.md"),
@@ -167,6 +189,7 @@ export function buildDispatchManifest(options: {
   }));
 
   return {
+    artifactType: "shrey-junior/dispatch-manifest",
     version: 1,
     createdAt: options.createdAt,
     dispatchId,
@@ -185,6 +208,23 @@ export function buildDispatchManifest(options: {
     },
     authorityFiles: options.context.authorityOrder,
     promotedDocs: options.context.promotedAuthorityDocs,
+    readFirst: buildFirstReadContract({
+      targetRoot: options.targetRoot,
+      authorityOrder: options.context.authorityOrder,
+      promotedAuthorityDocs: options.context.promotedAuthorityDocs,
+      contract: {
+        instructionSurfaces: options.context.stableContracts.filter((item) => item.includes(".github/instructions/")),
+        agentSurfaces: [".github/agents/shrey-junior.md"],
+        roleSurfaces: [],
+        activeRole: "planner",
+        supportingRoles: []
+      }
+    }),
+    checksToRun: buildChecksToRun(options.context.validationSteps),
+    searchGuidance: buildSearchGuidance({
+      taskType: options.decision.taskType,
+      fileArea: options.decision.fileArea
+    }),
     packetSetDirectory,
     roleAssignments,
     ...(options.continuity.latestPhase?.phaseId ? { sourcePhaseId: options.continuity.latestPhase.phaseId } : {}),
@@ -198,10 +238,24 @@ export async function writeDispatchManifest(targetRoot: string, manifest: Dispat
   markdownPath: string;
 }> {
   const paths = await ensureDispatchLayout(targetRoot, manifest.dispatchId);
-  await writeText(paths.manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-  await writeText(paths.markdownPath, renderDispatchMarkdown(targetRoot, manifest));
+  const manifestPayload = `${JSON.stringify(manifest, null, 2)}\n`;
+  const markdown = renderDispatchMarkdown(targetRoot, manifest);
+  await writeText(paths.manifestPath, manifestPayload);
+  await writeText(paths.markdownPath, markdown);
+  await writeText(paths.latestManifestPath, manifestPayload);
+  await writeText(paths.latestMarkdownPath, markdown);
   for (const assignment of manifest.roleAssignments) {
     await writeText(path.join(paths.rolesDir, `${assignment.role}.json`), `${JSON.stringify(assignment, null, 2)}\n`);
+  }
+  const activeRoleHints = await loadActiveRoleHints(targetRoot);
+  if (activeRoleHints) {
+    await updateActiveRoleHints(targetRoot, {
+      activeRole: activeRoleHints.activeRole,
+      authoritySource: activeRoleHints.authoritySource,
+      projectType: activeRoleHints.projectType,
+      supportingRoles: activeRoleHints.supportingRoles,
+      latestDispatchManifest: renderDisplayPath(targetRoot, paths.latestManifestPath)
+    });
   }
   return {
     manifestPath: paths.manifestPath,
@@ -231,6 +285,21 @@ export function renderDispatchMarkdown(targetRoot: string, manifest: DispatchMan
     "",
     ...manifest.authorityFiles.slice(0, 10).map((filePath) => `- \`${renderDisplayPath(targetRoot, filePath)}\``),
     "",
+    "## Read First",
+    "",
+    ...manifest.readFirst.map((filePath) => `- \`${filePath}\``),
+    "",
+    "## Checks To Run",
+    "",
+    ...manifest.checksToRun.map((item) => `- ${item}`),
+    "",
+    "## External Lookup Rules",
+    "",
+    "- inspect the repo codebase first before external search",
+    "- prefer promoted repo docs or canonical linked docs before internet search",
+    ...manifest.searchGuidance.useExternalLookupWhen.map((item) => `- use external lookup when: ${item}`),
+    ...manifest.searchGuidance.avoidExternalLookupWhen.map((item) => `- avoid external lookup when: ${item}`),
+    "",
     "## Role Assignments",
     "",
     ...manifest.roleAssignments.map(
@@ -242,6 +311,10 @@ export function renderDispatchMarkdown(targetRoot: string, manifest: DispatchMan
 }
 
 export async function loadLatestDispatchManifest(targetRoot: string): Promise<DispatchManifest | null> {
+  const latestManifestPath = getDispatchPaths(targetRoot).latestManifestPath;
+  if (latestManifestPath && (await pathExists(latestManifestPath))) {
+    return readJson<DispatchManifest>(latestManifestPath);
+  }
   const manifests = await listDispatchManifests(targetRoot);
   return manifests[0] ?? null;
 }
@@ -268,6 +341,12 @@ export async function listDispatchManifests(targetRoot: string): Promise<Dispatc
 }
 
 export async function loadLatestDispatchCollection(targetRoot: string, dispatchId?: string): Promise<DispatchCollection | null> {
+  if (!dispatchId) {
+    const latestCollectionPath = getDispatchPaths(targetRoot).latestCollectionPath;
+    if (latestCollectionPath && (await pathExists(latestCollectionPath))) {
+      return readJson<DispatchCollection>(latestCollectionPath);
+    }
+  }
   const manifest = dispatchId ? await loadDispatchManifest(targetRoot, dispatchId) : await loadLatestDispatchManifest(targetRoot);
   if (!manifest) {
     return null;
@@ -311,6 +390,7 @@ export async function collectDispatchOutputs(targetRoot: string, manifest: Dispa
         : "mixed";
 
   return {
+    artifactType: "shrey-junior/dispatch-collect",
     version: 1,
     createdAt: new Date().toISOString(),
     dispatchId: manifest.dispatchId,
@@ -340,6 +420,7 @@ export async function writeDispatchCollection(targetRoot: string, manifest: Disp
   const historyPath = path.join(paths.collectHistoryDir, `${collection.createdAt.replace(/[:.]/g, "-")}.json`);
   await writeText(latestPath, `${JSON.stringify(collection, null, 2)}\n`);
   await writeText(historyPath, `${JSON.stringify(collection, null, 2)}\n`);
+  await writeText(paths.latestCollectionPath, `${JSON.stringify(collection, null, 2)}\n`);
   const updatedManifest = applyCollectionToManifest(manifest, collection);
   await writeDispatchManifest(targetRoot, updatedManifest);
   return { latestPath, historyPath };

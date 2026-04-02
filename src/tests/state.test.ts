@@ -3,7 +3,18 @@ import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import { listTaskPacketDirectories, loadContinuitySnapshot, writeHandoffArtifacts, writePhaseRecord, type HandoffRecord, type PhaseRecord } from "../core/state.js";
+import {
+  listTaskPacketDirectories,
+  loadActiveRoleHints,
+  loadContinuitySnapshot,
+  loadLatestTaskPacketSet,
+  updateActiveRoleHints,
+  writeHandoffArtifacts,
+  writeLatestTaskPacketSet,
+  writePhaseRecord,
+  type HandoffRecord,
+  type PhaseRecord
+} from "../core/state.js";
 
 test("state ledger stores current phase and latest tool-specific handoff", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-state-"));
@@ -11,6 +22,7 @@ test("state ledger stores current phase and latest tool-specific handoff", async
   await fs.mkdir(repoRoot, { recursive: true });
 
   const phase: PhaseRecord = {
+    artifactType: "shrey-junior/current-phase",
     version: 1,
     timestamp: "2026-04-02T12:00:00.000Z",
     phaseId: "20260402-120000-phase-1",
@@ -36,8 +48,15 @@ test("state ledger stores current phase and latest tool-specific handoff", async
     nextRecommendedStep: "handoff to claude for review"
   };
   await writePhaseRecord(repoRoot, phase);
+  await updateActiveRoleHints(repoRoot, {
+    activeRole: "backend-specialist",
+    supportingRoles: ["review-specialist", "qa-specialist"],
+    authoritySource: "repo-local",
+    projectType: "node"
+  });
 
   const claudeHandoff: HandoffRecord = {
+    artifactType: "shrey-junior/handoff",
     version: 1,
     createdAt: "2026-04-02T12:30:00.000Z",
     toTool: "claude",
@@ -48,6 +67,15 @@ test("state ledger stores current phase and latest tool-specific handoff", async
     profile: phase.profile,
     mode: phase.mode,
     readFirst: ["AGENTS.md"],
+    writeTargets: ["src/core/router.ts"],
+    checksToRun: ["npm test", "bash .agent/scripts/verify-contract.sh"],
+    stopConditions: ["stop when repo authority conflicts"],
+    searchGuidance: {
+      inspectCodebaseFirst: true,
+      repoDocsFirst: true,
+      useExternalLookupWhen: ["repo docs are insufficient"],
+      avoidExternalLookupWhen: ["the repo already answers the question"]
+    },
     whatChanged: ["src/core/router.ts"],
     validationsPending: ["manual review"],
     risksRemaining: [],
@@ -71,6 +99,7 @@ test("state ledger stores current phase and latest tool-specific handoff", async
   await fs.mkdir(path.join(repoRoot, ".agent", "tasks", "run-1"), { recursive: true });
   await fs.writeFile(path.join(repoRoot, ".agent", "tasks", "run-1", "codex.md"), "packet", "utf8");
   await fs.writeFile(path.join(repoRoot, ".agent", "tasks", "run-1", "._codex.md"), "sidecar", "utf8");
+  await writeLatestTaskPacketSet(repoRoot, [".agent/tasks/run-1/codex.md"]);
 
   const allSnapshot = await loadContinuitySnapshot(repoRoot);
   assert.equal(allSnapshot.latestPhase?.phaseId, phase.phaseId);
@@ -82,4 +111,13 @@ test("state ledger stores current phase and latest tool-specific handoff", async
 
   const packetDirectories = await listTaskPacketDirectories(repoRoot);
   assert.equal(packetDirectories[0]?.fileCount, 1);
+  const latestPacketSet = await loadLatestTaskPacketSet(repoRoot);
+  assert.equal(latestPacketSet?.artifactType, "shrey-junior/latest-task-packets");
+  assert.equal(latestPacketSet?.files[0], ".agent/tasks/run-1/codex.md");
+  const activeRoleHints = await loadActiveRoleHints(repoRoot);
+  assert.equal(activeRoleHints?.activeRole, "backend-specialist");
+  assert.equal(activeRoleHints?.latestTaskPacket, ".agent/state/latest-task-packets.json");
+  assert.equal(activeRoleHints?.latestHandoff, ".agent/state/handoff/latest.json");
+  assert.equal(activeRoleHints?.readNext.length !== 0, true);
+  assert.equal(activeRoleHints?.checksToRun.length !== 0, true);
 });

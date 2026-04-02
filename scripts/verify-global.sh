@@ -16,10 +16,15 @@ test -f "$GLOBAL_HOME/mcp/mcp.servers.json"
 test -x "$GLOBAL_HOME/bin/shrey-junior"
 test -x "$PATH_BIN/shrey-junior"
 test -f "$HOME/.codex/AGENTS.md"
+test -f "$HOME/.codex/config.toml"
 test -f "$HOME/.claude/CLAUDE.md"
+test -f "$HOME/.claude/settings.json"
+test -f "$HOME/.claude/commands/shrey-read-first.md"
+test -f "$HOME/.claude/commands/shrey-serious-task.md"
 test -f "$HOME/Library/Application Support/Code/User/prompts/shrey-junior.instructions.md"
 
 grep -q "Shrey Junior Global Preference Layer" "$HOME/.codex/AGENTS.md"
+grep -q "BEGIN SHREY_JUNIOR_CODEX_CONFIG v1" "$HOME/.codex/config.toml"
 grep -q "Shrey Junior Global Preference Layer" "$HOME/.claude/CLAUDE.md"
 python3 - <<'PY'
 from pathlib import Path

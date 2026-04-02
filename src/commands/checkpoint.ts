@@ -1,10 +1,12 @@
 import { loadCanonicalConfig } from "../core/config.js";
 import { compileRepoContext } from "../core/context.js";
+import { buildCanonicalReadNext, buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets } from "../core/guidance.js";
 import { inspectGitState } from "../core/git.js";
+import { inspectBootstrapTarget } from "../core/project-detect.js";
 import { loadProjectOverlay, resolveExecutionMode, resolvePrimaryToolOverride, resolveProfileSelection } from "../core/profiles.js";
 import { assessGoalRisk } from "../core/risk.js";
-import { buildTemplateContext, resolveRoutingDecision } from "../core/router.js";
-import { buildPhaseId, parseCsvFlag, type PhaseStatus, type PhaseRecord, writePhaseRecord } from "../core/state.js";
+import { buildTemplateContext, resolveRoutingDecision, selectPortableContract } from "../core/router.js";
+import { buildPhaseId, loadActiveRoleHints, parseCsvFlag, type PhaseStatus, type PhaseRecord, updateActiveRoleHints, writePhaseRecord } from "../core/state.js";
 import { loadCurrentPhase } from "../core/state.js";
 import type { Logger } from "../core/logger.js";
 
@@ -29,6 +31,7 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
   const overlay = await loadProjectOverlay(options.targetRoot);
   const previousPhase = await loadCurrentPhase(options.targetRoot);
   const selection = await resolveProfileSelection(options.targetRoot, config, options.profileName);
+  const inspection = await inspectBootstrapTarget(options.targetRoot, config);
   const executionMode = resolveExecutionMode(config, selection, overlay, options.mode);
   const goal = options.goal ?? previousPhase?.goal ?? options.label;
   const risk = assessGoalRisk(goal);
@@ -55,9 +58,12 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
   const gitState = await inspectGitState(options.targetRoot);
   const generatedAt = buildTemplateContext(options.targetRoot, config, {
     profileName: selection.profileName,
-    executionMode
+    executionMode,
+    projectType: overlay?.bootstrap?.project_type ?? inspection.projectType,
+    profileSource: selection.source
   }).generatedAt;
   const record: PhaseRecord = {
+    artifactType: "shrey-junior/current-phase",
     version: 1,
     timestamp: generatedAt,
     phaseId: buildPhaseId(options.label, generatedAt),
@@ -97,6 +103,39 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
     ...(previousPhase?.phaseId ? { previousPhaseId: previousPhase.phaseId } : {})
   };
   const paths = await writePhaseRecord(options.targetRoot, record);
+  const currentActiveRoleHints = await loadActiveRoleHints(options.targetRoot);
+  const contract = selectPortableContract(
+    config,
+    buildTemplateContext(options.targetRoot, config, {
+      profileName: selection.profileName,
+      executionMode,
+      projectType: overlay?.bootstrap?.project_type ?? inspection.projectType,
+      profileSource: selection.source
+    })
+  );
+  await updateActiveRoleHints(options.targetRoot, {
+    activeRole: currentActiveRoleHints?.activeRole ?? contract.activeRole,
+    supportingRoles: currentActiveRoleHints?.supportingRoles ?? contract.supportingRoles,
+    authoritySource: selection.source,
+    projectType: overlay?.bootstrap?.project_type ?? inspection.projectType,
+    readNext: buildCanonicalReadNext({
+      targetRoot: options.targetRoot,
+      authorityOrder: compiledContext.authorityOrder,
+      promotedAuthorityDocs: compiledContext.promotedAuthorityDocs,
+      contract
+    }),
+    writeTargets: buildWriteTargets(contract, [".agent/state/current-phase.json"]),
+    checksToRun: buildChecksToRun(record.validationsRun),
+    stopConditions: buildStopConditions({
+      riskLevel: decision.riskLevel,
+      taskType: decision.taskType
+    }),
+    nextAction: record.nextRecommendedStep,
+    searchGuidance: buildSearchGuidance({
+      taskType: decision.taskType,
+      fileArea: decision.fileArea
+    })
+  });
   options.logger.info(`checkpoint recorded: ${paths.currentPhasePath}`);
   options.logger.info(`history entry: ${paths.historyPath}`);
   return 0;

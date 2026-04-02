@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { buildDispatchManifest, collectDispatchOutputs, loadLatestDispatchManifest, writeDispatchCollection, writeDispatchManifest } from "../core/dispatch.js";
+import { loadActiveRoleHints, updateActiveRoleHints } from "../core/state.js";
 
 test("dispatch manifest writes role assignments and collect tracks completed outputs", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-dispatch-"));
@@ -13,6 +14,12 @@ test("dispatch manifest writes role assignments and collect tracks completed out
   await fs.writeFile(path.join(repoRoot, ".agent", "tasks", "fanout-1", "implementer.md"), "implementer packet", "utf8");
   await fs.writeFile(path.join(repoRoot, ".agent", "tasks", "fanout-1", "reviewer.md"), "reviewer packet", "utf8");
   await fs.writeFile(path.join(repoRoot, ".agent", "tasks", "fanout-1", "tester.md"), "tester packet", "utf8");
+  await updateActiveRoleHints(repoRoot, {
+    activeRole: "architecture-specialist",
+    supportingRoles: ["review-specialist", "qa-specialist"],
+    authoritySource: "repo-local",
+    projectType: "node"
+  });
 
   const manifest = buildDispatchManifest({
     targetRoot: repoRoot,
@@ -81,7 +88,11 @@ test("dispatch manifest writes role assignments and collect tracks completed out
   await fs.writeFile(path.join(repoRoot, ".agent", "state", "dispatch", "._dispatch-sidecar", "manifest.json"), "{}", "utf8");
   const loaded = await loadLatestDispatchManifest(repoRoot);
   assert.equal(loaded?.dispatchId, manifest.dispatchId);
+  assert.equal(loaded?.artifactType, "shrey-junior/dispatch-manifest");
   assert.equal(loaded?.roleAssignments.length, 4);
+  assert.equal(loaded?.readFirst.includes(".agent/state/active-role-hints.json"), true);
+  const activeRoleHints = await loadActiveRoleHints(repoRoot);
+  assert.equal(activeRoleHints?.latestDispatchManifest, ".agent/state/dispatch/latest-manifest.json");
 
   const plannerResultPath = path.join(repoRoot, loaded!.roleAssignments.find((item) => item.role === "planner")!.expectedMarkdownPath);
   const reviewerResultPath = path.join(repoRoot, loaded!.roleAssignments.find((item) => item.role === "reviewer")!.expectedJsonPath);
@@ -95,6 +106,7 @@ test("dispatch manifest writes role assignments and collect tracks completed out
 
   const collection = await collectDispatchOutputs(repoRoot, loaded!);
   assert.equal(collection.overallStatus, "blocked");
+  assert.equal(collection.artifactType, "shrey-junior/dispatch-collect");
   assert.equal(collection.completedRoles.includes("planner"), true);
   assert.equal(collection.roleResults.find((item) => item.role === "reviewer")?.status, "blocked");
 

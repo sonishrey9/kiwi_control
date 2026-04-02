@@ -1,9 +1,11 @@
 import { loadCanonicalConfig } from "../core/config.js";
 import { compileRepoContext } from "../core/context.js";
+import { buildCanonicalReadNext, buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets } from "../core/guidance.js";
 import { inspectGitState } from "../core/git.js";
 import { buildHandoffBaseName, buildHandoffRecord, renderHandoffBrief, renderHandoffMarkdown } from "../core/handoff.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "../core/profiles.js";
-import { loadCurrentPhase, writeHandoffArtifacts } from "../core/state.js";
+import { loadCurrentPhase, updateActiveRoleHints, writeHandoffArtifacts } from "../core/state.js";
+import { buildTemplateContext, selectPortableContract } from "../core/router.js";
 import type { Logger } from "../core/logger.js";
 import type { ToolName } from "../core/config.js";
 
@@ -48,6 +50,38 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
     renderHandoffMarkdown(handoff),
     renderHandoffBrief(handoff)
   );
+  const contract = selectPortableContract(
+    config,
+    buildTemplateContext(options.targetRoot, config, {
+      profileName: selection.profileName,
+      executionMode,
+      projectType: overlay?.bootstrap?.project_type ?? "generic",
+      profileSource: selection.source
+    })
+  );
+  await updateActiveRoleHints(options.targetRoot, {
+    activeRole: contract.activeRole,
+    supportingRoles: contract.supportingRoles,
+    authoritySource: selection.source,
+    projectType: overlay?.bootstrap?.project_type ?? "generic",
+    readNext: buildCanonicalReadNext({
+      targetRoot: options.targetRoot,
+      authorityOrder: compiledContext.authorityOrder,
+      promotedAuthorityDocs: compiledContext.promotedAuthorityDocs,
+      contract
+    }),
+    writeTargets: buildWriteTargets(contract, handoff.whatChanged.length > 0 ? handoff.whatChanged : [".agent/state/handoff/latest.json"]),
+    checksToRun: buildChecksToRun(compiledContext.validationSteps),
+    stopConditions: buildStopConditions({
+      riskLevel: currentPhase?.routingSummary.riskLevel ?? compiledContext.riskLevel,
+      taskType: currentPhase?.routingSummary.taskType ?? compiledContext.taskType
+    }),
+    nextAction: handoff.nextStep,
+    searchGuidance: buildSearchGuidance({
+      taskType: currentPhase?.routingSummary.taskType ?? compiledContext.taskType,
+      fileArea: currentPhase?.routingSummary.fileArea ?? compiledContext.fileArea
+    })
+  });
   options.logger.info(`handoff markdown: ${artifacts.markdownPath}`);
   options.logger.info(`handoff json: ${artifacts.jsonPath}`);
   options.logger.info(`handoff brief: ${artifacts.briefPath}`);

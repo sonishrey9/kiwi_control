@@ -27,7 +27,11 @@ restore_file() {
 }
 
 restore_file ".codex/AGENTS.md"
+restore_file ".codex/config.toml"
 restore_file ".claude/CLAUDE.md"
+restore_file ".claude/settings.json"
+restore_file ".claude/commands/shrey-read-first.md"
+restore_file ".claude/commands/shrey-serious-task.md"
 restore_file "Library/Application Support/Code/User/mcp.json"
 restore_file "Library/Application Support/Code/User/prompts"
 

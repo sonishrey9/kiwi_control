@@ -1,14 +1,16 @@
 import { loadCanonicalConfig } from "../core/config.js";
 import { loadLatestDispatchCollection, loadLatestDispatchManifest } from "../core/dispatch.js";
 import { writeTaskPackets, summarizeWrites } from "../core/executor.js";
+import { buildCanonicalReadNext, buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets } from "../core/guidance.js";
 import { buildFanoutPackets } from "../core/planner.js";
 import { compileRepoContext } from "../core/context.js";
 import { evaluatePolicyPoint } from "../core/policies.js";
-import { buildTemplateContext, resolveRoutingDecision } from "../core/router.js";
+import { buildTemplateContext, resolveRoutingDecision, selectPortableContract } from "../core/router.js";
 import { assessGoalRisk } from "../core/risk.js";
 import { loadLatestReconcileReport } from "../core/reconcile.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "../core/profiles.js";
-import { loadContinuitySnapshot } from "../core/state.js";
+import { inspectBootstrapTarget } from "../core/project-detect.js";
+import { loadContinuitySnapshot, updateActiveRoleHints } from "../core/state.js";
 import { resolveRoleSpecialists } from "../core/specialists.js";
 import type { Logger } from "../core/logger.js";
 
@@ -30,11 +32,15 @@ export async function runFanout(options: FanoutOptions): Promise<number> {
   const config = await loadCanonicalConfig(options.repoRoot);
   const overlay = await loadProjectOverlay(options.targetRoot);
   const selection = await resolveProfileSelection(options.targetRoot, config, options.profileName);
+  const inspection = await inspectBootstrapTarget(options.targetRoot, config);
   const executionMode = resolveExecutionMode(config, selection, overlay, options.mode);
   const context = buildTemplateContext(options.targetRoot, config, {
     profileName: selection.profileName,
-    executionMode
+    executionMode,
+    projectType: overlay?.bootstrap?.project_type ?? inspection.projectType,
+    profileSource: selection.source
   });
+  const contract = selectPortableContract(config, context);
   const decision = resolveRoutingDecision(config, {
     goal: options.goal,
     profile: selection,
@@ -56,6 +62,13 @@ export async function runFanout(options: FanoutOptions): Promise<number> {
     fileArea: decision.fileArea,
     roleTools
   });
+  const plannerSpecialist = specialistsByRole.planner;
+  const implementerSpecialist = specialistsByRole.implementer;
+  const reviewerSpecialist = specialistsByRole.reviewer;
+  const testerSpecialist = specialistsByRole.tester;
+  if (!plannerSpecialist || !implementerSpecialist || !reviewerSpecialist || !testerSpecialist) {
+    throw new Error("fanout could not resolve the full planner/implementer/reviewer/tester specialist set");
+  }
   const compiledContext = await compileRepoContext({
     targetRoot: options.targetRoot,
     config,
@@ -125,6 +138,34 @@ export async function runFanout(options: FanoutOptions): Promise<number> {
     contextsByRole
   );
   const results = await writeTaskPackets(options.targetRoot, packets);
+  await updateActiveRoleHints(options.targetRoot, {
+    activeRole: plannerSpecialist.specialistId,
+    supportingRoles: [
+      implementerSpecialist.specialistId,
+      reviewerSpecialist.specialistId,
+      testerSpecialist.specialistId,
+      ...contract.supportingRoles
+    ].filter((role, index, items) => Boolean(role) && items.indexOf(role) === index && role !== plannerSpecialist.specialistId),
+    authoritySource: selection.source,
+    projectType: context.projectType,
+    readNext: buildCanonicalReadNext({
+      targetRoot: options.targetRoot,
+      authorityOrder: compiledContext.authorityOrder,
+      promotedAuthorityDocs: compiledContext.promotedAuthorityDocs,
+      contract
+    }),
+    writeTargets: buildWriteTargets(contract, packets.map((packet) => packet.relativePath)),
+    checksToRun: buildChecksToRun(compiledContext.validationSteps),
+    stopConditions: buildStopConditions({
+      riskLevel: decision.riskLevel,
+      taskType: decision.taskType
+    }),
+    nextAction: "Read the planner packet first, then work through the implementer/reviewer/tester packets in that order.",
+    searchGuidance: buildSearchGuidance({
+      taskType: decision.taskType,
+      fileArea: decision.fileArea
+    })
+  });
   options.logger.info(summarizeWrites(results, options.targetRoot));
   return 0;
 }

@@ -1,16 +1,17 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import type { LoadedConfig } from "./config.js";
-import type { ProfileSelection } from "./profiles.js";
+import type { ProfileSelection, ProjectOverlay } from "./profiles.js";
 import { compileRepoContext } from "./context.js";
 import { loadLatestDispatchCollection, loadLatestDispatchManifest } from "./dispatch.js";
 import { initOrSyncTarget } from "./executor.js";
 import { buildFanoutPackets, buildRunPackets } from "./planner.js";
+import { inspectBootstrapTarget } from "./project-detect.js";
 import { loadProjectOverlay, resolveExecutionMode } from "./profiles.js";
 import { loadLatestReconcileReport } from "./reconcile.js";
-import { buildTemplateContext, resolveRoutingDecision } from "./router.js";
+import { buildTemplateContext, resolveRoutingDecision, selectPortableContract, type PortableContractSelection } from "./router.js";
 import { assessGoalRisk } from "./risk.js";
-import { getStatePaths, loadContinuitySnapshot } from "./state.js";
+import { getStatePaths, loadActiveRoleHints, loadContinuitySnapshot } from "./state.js";
 import { hasConsistentManagedMarkers, isIgnoredArtifactName, pathExists, readJson, readText } from "../utils/fs.js";
 import { parseYaml } from "../utils/yaml.js";
 
@@ -40,6 +41,20 @@ export async function validateControlPlane(repoRoot: string, config: LoadedConfi
   }
 
   for (const relativePath of [
+    "docs/repo-first-upgrade-plan.md",
+    "docs/repo-contract-spec.md",
+    "docs/contract-minimization.md",
+    "docs/copilot-integration.md",
+    "docs/claude-role-integration.md",
+    "docs/active-role-hints.md",
+    "docs/artifact-contracts.md",
+    "docs/bootstrap-and-standardize.md",
+    "docs/global-accelerators.md",
+    "docs/ci-enforcement.md",
+    "docs/daily-workflow.md",
+    "docs/repo-lifecycle.md",
+    "docs/technical-architecture.md",
+    "docs/repo-first-upgrade-closeout.md",
     "docs/discovery-report.md",
     "docs/architecture.md",
     "docs/migration-plan.md",
@@ -69,14 +84,33 @@ export async function validateControlPlane(repoRoot: string, config: LoadedConfi
     "templates/project/AGENTS.md",
     "templates/project/CLAUDE.md",
     "templates/project/.github/copilot-instructions.md",
+    "templates/project/.github/instructions/backend.instructions.md",
+    "templates/project/.github/instructions/frontend.instructions.md",
+    "templates/project/.github/instructions/docs.instructions.md",
+    "templates/project/.github/instructions/data.instructions.md",
+    "templates/project/.github/agents/shrey-junior.md",
+    "templates/project/.github/agents/specialist-agent.md",
+    "templates/project/.github/workflows/shrey-junior-contract.yml",
     "templates/project/.agent/project.yaml",
     "templates/project/.agent/checks.yaml",
     "templates/project/.agent/context/architecture.md",
     "templates/project/.agent/context/conventions.md",
     "templates/project/.agent/context/runbooks.md",
+    "templates/project/.agent/roles/README.md",
+    "templates/project/.agent/roles/specialist-role.md",
+    "templates/project/.agent/templates/role-result.md",
+    "templates/project/.agent/state/current-phase.json",
+    "templates/project/.agent/state/active-role-hints.json",
+    "templates/project/.agent/state/handoff/README.md",
+    "templates/project/.agent/state/dispatch/README.md",
+    "templates/project/.agent/state/reconcile/README.md",
+    "templates/project/.agent/scripts/verify-contract.sh",
     "scripts/install-global.sh",
     "scripts/backup-global.sh",
-    "scripts/verify-global.sh"
+    "scripts/verify-global.sh",
+    "scripts/verify-global-hard.sh",
+    "scripts/apply-global-preferences.sh",
+    "scripts/restore-global.sh"
   ]) {
     const fullPath = path.join(repoRoot, relativePath);
     if (!(await pathExists(fullPath))) {
@@ -111,6 +145,7 @@ export async function validateControlPlane(repoRoot: string, config: LoadedConfi
 
   for (const specialistId of [
     "python-specialist",
+    "data-platform-specialist",
     "frontend-specialist",
     "backend-specialist",
     "fullstack-specialist",
@@ -157,15 +192,15 @@ export async function validateControlPlane(repoRoot: string, config: LoadedConfi
   const workflowAwareTemplates: Array<{ relativePath: string; requiredSnippets: string[] }> = [
     {
       relativePath: "templates/project/AGENTS.md",
-      requiredSnippets: ["trivial work", "push-check", "dispatch", "promoted canonical docs"]
+      requiredSnippets: ["active-role-hints.json", "push-check", "dispatch", "promoted canonical docs"]
     },
     {
       relativePath: "templates/project/CLAUDE.md",
-      requiredSnippets: ["current-phase.json", "latest handoff", "policy", "release-check"]
+      requiredSnippets: ["active-role-hints.json", "latest handoff", "policy", "release-check"]
     },
     {
       relativePath: "templates/project/.github/copilot-instructions.md",
-      requiredSnippets: ["trivial work", "non-trivial", "packet", "policy"]
+      requiredSnippets: ["active-role-hints.json", "non-trivial", "packet", "policy"]
     }
   ];
 
@@ -195,19 +230,36 @@ export async function validateTargetRepo(
   selection: ProfileSelection
 ): Promise<ValidationIssue[]> {
   const issues: ValidationIssue[] = [];
+  const inspection = await inspectBootstrapTarget(targetRoot, config);
   const overlay = await loadProjectOverlay(targetRoot);
   const executionMode = resolveExecutionMode(config, selection, overlay);
+  const fallbackContract = selectPortableContract(
+    config,
+    buildTemplateContext(targetRoot, config, {
+      profileName: selection.profileName,
+      executionMode,
+      projectType: overlay?.bootstrap?.project_type ?? inspection.projectType,
+      profileSource: selection.source,
+      starterSpecialists: overlay?.bootstrap?.specialist_suggestions ?? ""
+    })
+  );
+  const declaredContract = resolveDeclaredContract(overlay, fallbackContract);
+  const requiredRepoFiles = [
+    ...declaredContract.core,
+    ...declaredContract.instructions,
+    ...declaredContract.agentSurfaces,
+    ...declaredContract.roleSpecs,
+    ...declaredContract.ciSurfaces
+  ].filter((relativePath) => !["AGENTS.md", "CLAUDE.md", ".github/copilot-instructions.md"].includes(relativePath));
 
-  for (const relativePath of [
-    ".agent/project.yaml",
-    ".agent/checks.yaml",
-    ".agent/context/architecture.md",
-    ".agent/context/conventions.md",
-    ".agent/context/runbooks.md"
-  ]) {
+  for (const relativePath of requiredRepoFiles) {
     const fullPath = path.join(targetRoot, relativePath);
     if (!(await pathExists(fullPath))) {
-      issues.push({ level: "warn", message: "generated repo-local state missing", filePath: fullPath });
+      issues.push({
+        level: inspection.alreadyInitialized ? "error" : "warn",
+        message: "generated repo-local state missing",
+        filePath: fullPath
+      });
       continue;
     }
 
@@ -226,12 +278,28 @@ export async function validateTargetRepo(
         });
       }
     }
+
+    if (relativePath.endsWith(".json")) {
+      try {
+        await readJson(fullPath);
+      } catch (error) {
+        issues.push({
+          level: "error",
+          message: `invalid JSON: ${(error as Error).message}`,
+          filePath: fullPath
+        });
+      }
+    }
   }
 
   for (const relativePath of ["AGENTS.md", "CLAUDE.md", ".github/copilot-instructions.md"]) {
     const fullPath = path.join(targetRoot, relativePath);
     if (!(await pathExists(fullPath))) {
-      issues.push({ level: "warn", message: "native repo surface missing", filePath: fullPath });
+      issues.push({
+        level: inspection.alreadyInitialized ? "error" : "warn",
+        message: "native repo surface missing",
+        filePath: fullPath
+      });
       continue;
     }
 
@@ -241,6 +309,42 @@ export async function validateTargetRepo(
     }
     if (!hasConsistentManagedMarkers(content)) {
       issues.push({ level: "error", message: "managed markers are unbalanced", filePath: fullPath });
+    }
+  }
+
+  const expectedRoleFiles = declaredContract.roleSpecs.filter((relativePath) => relativePath.endsWith(".md"));
+  if (expectedRoleFiles.length === 0) {
+    issues.push({
+      level: inspection.alreadyInitialized ? "error" : "warn",
+      message: "repo contract resolved no specialist role specs",
+      filePath: path.join(targetRoot, ".agent", "roles")
+    });
+  }
+
+  const roleDir = path.join(targetRoot, ".agent", "roles");
+  if (await pathExists(roleDir)) {
+    const roleFiles = (await fs.readdir(roleDir))
+      .filter((entry) => entry.endsWith(".md") && entry !== "README.md" && !isIgnoredArtifactName(entry));
+    if (roleFiles.length === 0) {
+      issues.push({
+        level: inspection.alreadyInitialized ? "error" : "warn",
+        message: "no specialist role specs were generated",
+        filePath: roleDir
+      });
+    }
+  }
+
+  const expectedAgentFiles = declaredContract.agentSurfaces.filter((relativePath) => relativePath.endsWith(".md") && !relativePath.endsWith("shrey-junior.md"));
+  const githubAgentsDir = path.join(targetRoot, ".github", "agents");
+  if (await pathExists(githubAgentsDir)) {
+    const agentFiles = (await fs.readdir(githubAgentsDir))
+      .filter((entry) => entry.endsWith(".md") && entry !== "shrey-junior.md" && !isIgnoredArtifactName(entry));
+    if (agentFiles.length === 0 && expectedAgentFiles.length > 0) {
+      issues.push({
+        level: inspection.alreadyInitialized ? "error" : "warn",
+        message: "no specialist agent surfaces were generated",
+        filePath: githubAgentsDir
+      });
     }
   }
 
@@ -269,7 +373,10 @@ export async function validateTargetRepo(
   });
   const context = buildTemplateContext(targetRoot, config, {
     profileName: selection.profileName,
-    executionMode
+    executionMode,
+    projectType: overlay?.bootstrap?.project_type ?? inspection.projectType,
+    profileSource: selection.source,
+    starterSpecialists: overlay?.bootstrap?.specialist_suggestions ?? ""
   });
 
   try {
@@ -305,7 +412,28 @@ export async function validateTargetRepo(
   const statePaths = getStatePaths(targetRoot);
   if (await pathExists(statePaths.currentPhase)) {
     try {
-      await readJson(statePaths.currentPhase);
+      const currentPhase = await readJson<Record<string, unknown>>(statePaths.currentPhase);
+      if (currentPhase.artifactType !== "shrey-junior/current-phase") {
+        issues.push({
+          level: "error",
+          message: "current phase artifactType must be shrey-junior/current-phase",
+          filePath: statePaths.currentPhase
+        });
+      }
+      if (typeof currentPhase.timestamp !== "string" || !currentPhase.timestamp) {
+        issues.push({
+          level: "error",
+          message: "current phase must declare timestamp",
+          filePath: statePaths.currentPhase
+        });
+      }
+      if (typeof currentPhase.nextRecommendedStep !== "string" || !currentPhase.nextRecommendedStep) {
+        issues.push({
+          level: "error",
+          message: "current phase must declare nextRecommendedStep",
+          filePath: statePaths.currentPhase
+        });
+      }
     } catch (error) {
       issues.push({
         level: "error",
@@ -314,12 +442,117 @@ export async function validateTargetRepo(
       });
     }
   }
+  const hasActiveRoleHintsFile = await pathExists(statePaths.activeRoleHints);
+  let activeRoleHints: Awaited<ReturnType<typeof loadActiveRoleHints>> = null;
+  if (hasActiveRoleHintsFile) {
+    try {
+      activeRoleHints = await loadActiveRoleHints(targetRoot);
+    } catch (error) {
+      issues.push({
+        level: "error",
+        message: `invalid active role hints json: ${(error as Error).message}`,
+        filePath: statePaths.activeRoleHints
+      });
+    }
+  }
+  if (activeRoleHints) {
+    if (activeRoleHints.artifactType !== "shrey-junior/active-role-hints") {
+      issues.push({
+        level: "error",
+        message: "active role hints artifactType must be shrey-junior/active-role-hints",
+        filePath: statePaths.activeRoleHints
+      });
+    }
+    if (!activeRoleHints.updatedAt) {
+      issues.push({
+        level: "error",
+        message: "active role hints must declare updatedAt",
+        filePath: statePaths.activeRoleHints
+      });
+    }
+    if (!activeRoleHints.activeRole) {
+      issues.push({
+        level: "error",
+        message: "active role hints must declare activeRole",
+        filePath: statePaths.activeRoleHints
+      });
+    }
+    if (!Array.isArray(activeRoleHints.readNext) || activeRoleHints.readNext.length === 0) {
+      issues.push({
+        level: "error",
+        message: "active role hints must declare readNext",
+        filePath: statePaths.activeRoleHints
+      });
+    }
+    if (!Array.isArray(activeRoleHints.checksToRun) || activeRoleHints.checksToRun.length === 0) {
+      issues.push({
+        level: "error",
+        message: "active role hints must declare checksToRun",
+        filePath: statePaths.activeRoleHints
+      });
+    }
+    if (typeof activeRoleHints.nextAction !== "string" || !activeRoleHints.nextAction.trim()) {
+      issues.push({
+        level: "error",
+        message: "active role hints must declare nextAction",
+        filePath: statePaths.activeRoleHints
+      });
+    }
+    if (!activeRoleHints.searchGuidance || typeof activeRoleHints.searchGuidance !== "object") {
+      issues.push({
+        level: "error",
+        message: "active role hints must declare searchGuidance",
+        filePath: statePaths.activeRoleHints
+      });
+    }
+    for (const [field, value] of Object.entries({
+      latestTaskPacket: activeRoleHints.latestTaskPacket,
+      latestHandoff: activeRoleHints.latestHandoff,
+      latestDispatchManifest: activeRoleHints.latestDispatchManifest,
+      latestReconcile: activeRoleHints.latestReconcile
+    })) {
+      if (typeof value === "string" && value && !(await pathExists(path.join(targetRoot, value)))) {
+        issues.push({
+          level: "error",
+          message: `active role hints pointer is stale: ${field} -> ${value}`,
+          filePath: statePaths.activeRoleHints
+        });
+      }
+    }
+  } else if (inspection.alreadyInitialized && !hasActiveRoleHintsFile) {
+    issues.push({
+      level: "error",
+      message: "active role hints file missing",
+      filePath: statePaths.activeRoleHints
+    });
+  }
   if (await pathExists(statePaths.handoffDir)) {
     const entries = await fs.readdir(statePaths.handoffDir);
     for (const entry of entries.filter((item) => item.endsWith(".json") && !isIgnoredArtifactName(item))) {
       const fullPath = path.join(statePaths.handoffDir, entry);
       try {
-        await readJson(fullPath);
+        const handoff = await readJson<Record<string, unknown>>(fullPath);
+        if (handoff.artifactType !== "shrey-junior/handoff") {
+          issues.push({
+            level: "error",
+            message: "handoff artifacts must declare shrey-junior/handoff",
+            filePath: fullPath
+          });
+        }
+        if (typeof handoff.createdAt !== "string" || !handoff.createdAt) {
+          issues.push({
+            level: "error",
+            message: "handoff artifacts must declare createdAt",
+            filePath: fullPath
+          });
+        }
+        if (!Array.isArray(handoff.readFirst) || !Array.isArray(handoff.checksToRun)) {
+          issues.push({
+            level: "error",
+            message: "handoff artifacts must declare readFirst and checksToRun",
+            filePath: fullPath
+          });
+        }
       } catch (error) {
         issues.push({
           level: "error",
@@ -330,8 +563,57 @@ export async function validateTargetRepo(
     }
   }
 
+  if (await pathExists(statePaths.latestTaskPackets)) {
+    try {
+      const latestTaskPackets = await readJson<Record<string, unknown>>(statePaths.latestTaskPackets);
+      if (latestTaskPackets.artifactType !== "shrey-junior/latest-task-packets") {
+        issues.push({
+          level: "error",
+          message: "latest task packet set should declare shrey-junior/latest-task-packets",
+          filePath: statePaths.latestTaskPackets
+        });
+      }
+      if (typeof latestTaskPackets.createdAt !== "string" || !latestTaskPackets.createdAt) {
+        issues.push({
+          level: "error",
+          message: "latest task packet set must declare createdAt",
+          filePath: statePaths.latestTaskPackets
+        });
+      }
+      if (Array.isArray(latestTaskPackets.files)) {
+        for (const filePath of latestTaskPackets.files as unknown[]) {
+          if (typeof filePath === "string" && !(await pathExists(path.join(targetRoot, filePath)))) {
+            issues.push({
+              level: "error",
+              message: `latest task packet set points to a missing file: ${filePath}`,
+              filePath: statePaths.latestTaskPackets
+            });
+          }
+        }
+      }
+    } catch (error) {
+      issues.push({
+        level: "error",
+        message: `invalid latest task packet set json: ${(error as Error).message}`,
+        filePath: statePaths.latestTaskPackets
+      });
+    }
+  }
+
   const latestDispatch = await loadLatestDispatchManifest(targetRoot);
   if (latestDispatch) {
+    if (latestDispatch.artifactType !== "shrey-junior/dispatch-manifest") {
+      issues.push({
+        level: "error",
+        message: "latest dispatch manifest must declare shrey-junior/dispatch-manifest"
+      });
+    }
+    if (!latestDispatch.createdAt) {
+      issues.push({
+        level: "error",
+        message: "latest dispatch manifest must declare createdAt"
+      });
+    }
     if (latestDispatch.roleAssignments.length !== 4) {
       issues.push({
         level: "warn",
@@ -357,12 +639,40 @@ export async function validateTargetRepo(
         message: `latest collection relied on heuristic fallback parsing: ${latestCollection.fallbackRoles.join(", ")}`
       });
     }
+    if (latestCollection) {
+      if (latestCollection.artifactType !== "shrey-junior/dispatch-collect") {
+        issues.push({
+          level: "error",
+          message: "latest dispatch collection must declare shrey-junior/dispatch-collect"
+        });
+      }
+      if (!latestCollection.createdAt) {
+        issues.push({
+          level: "error",
+          message: "latest dispatch collection must declare createdAt"
+        });
+      }
+    }
     const latestReconcile = await loadLatestReconcileReport(targetRoot, latestDispatch.dispatchId);
     if (latestReconcile && latestReconcile.dispatchId !== latestDispatch.dispatchId) {
       issues.push({
         level: "warn",
         message: "latest reconcile report points to a different dispatch id"
       });
+    }
+    if (latestReconcile) {
+      if (latestReconcile.artifactType !== "shrey-junior/reconcile-report") {
+        issues.push({
+          level: "error",
+          message: "latest reconcile report must declare shrey-junior/reconcile-report"
+        });
+      }
+      if (!latestReconcile.createdAt) {
+        issues.push({
+          level: "error",
+          message: "latest reconcile report must declare createdAt"
+        });
+      }
     }
   }
 
@@ -372,4 +682,30 @@ export async function validateTargetRepo(
   }
 
   return issues;
+}
+
+function resolveDeclaredContract(
+  overlay: ProjectOverlay | null,
+  fallback: PortableContractSelection
+): {
+  core: string[];
+  instructions: string[];
+  agentSurfaces: string[];
+  roleSpecs: string[];
+  stateArtifacts: string[];
+  ciSurfaces: string[];
+} {
+  const generated = overlay?.contract?.generated_surfaces;
+  return {
+    core: normalizePathList(generated?.core, fallback.coreSurfaces),
+    instructions: normalizePathList(generated?.instructions, fallback.instructionSurfaces),
+    agentSurfaces: normalizePathList(generated?.agent_surfaces, fallback.agentSurfaces),
+    roleSpecs: normalizePathList(generated?.role_specs, fallback.roleSurfaces),
+    stateArtifacts: normalizePathList(generated?.state_artifacts, fallback.stateSurfaces),
+    ciSurfaces: normalizePathList(generated?.ci_surfaces, fallback.ciSurfaces)
+  };
+}
+
+function normalizePathList(value: string[] | undefined, fallback: string[]): string[] {
+  return value && value.length > 0 ? value : fallback;
 }

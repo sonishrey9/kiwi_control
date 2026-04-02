@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import { managedBlockStart, managedBlockEnd, upsertManagedBlock, upsertManagedFile } from "../utils/fs.js";
+import { managedBlockStart, managedBlockEnd, planCreateOnlyFile, upsertManagedBlock, upsertManagedFile } from "../utils/fs.js";
 
 test("managed block append then update keeps markers stable", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-fs-"));
@@ -41,4 +41,22 @@ test("managed yaml file uses yaml-safe markers", async () => {
 
   const finalText = await fs.readFile(filePath, "utf8");
   assert.match(finalText, /^# SHREY-JUNIOR:FILE-START/m);
+});
+
+test("seed-only raw files are created without managed markers and preserved on reapply", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-seed-"));
+  const filePath = path.join(tempDir, ".agent", "state", "current-phase.json");
+
+  const created = await planCreateOnlyFile(filePath, ".agent/state/current-phase.json", '{\n  "artifactType": "shrey-junior/current-phase"\n}\n', {
+    managed: false
+  });
+  assert.equal(created.status, "created");
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, created.nextContent!, "utf8");
+
+  const preserved = await planCreateOnlyFile(filePath, ".agent/state/current-phase.json", '{\n  "artifactType": "other"\n}\n', {
+    managed: false
+  });
+  assert.equal(preserved.status, "unchanged");
+  assert.equal(preserved.nextContent?.includes("FILE-START"), false);
 });

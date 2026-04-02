@@ -141,11 +141,11 @@ export async function compileRepoContext(options: {
 
 async function collectSourceContents(targetRoot: string, config: LoadedConfig): Promise<SourceContent[]> {
   const candidates: Array<{ relativePath: string; kind: ContextSourceSummary["kind"] }> = [
-    { relativePath: ".agent/project.yaml", kind: "authority" },
-    { relativePath: ".agent/checks.yaml", kind: "authority" },
     { relativePath: "AGENTS.md", kind: "authority" },
     { relativePath: "CLAUDE.md", kind: "authority" },
     { relativePath: ".github/copilot-instructions.md", kind: "authority" },
+    { relativePath: ".agent/project.yaml", kind: "authority" },
+    { relativePath: ".agent/checks.yaml", kind: "authority" },
     { relativePath: ".agent/context/architecture.md", kind: "context" },
     { relativePath: ".agent/context/conventions.md", kind: "context" },
     { relativePath: ".agent/context/runbooks.md", kind: "context" },
@@ -171,7 +171,7 @@ async function collectSourceContents(targetRoot: string, config: LoadedConfig): 
     contents.push({ path: fullPath, kind: candidate.kind, content });
   }
 
-  for (const relativePath of config.global.defaults.authority_files) {
+  for (const relativePath of config.global.defaults.authority_files ?? []) {
     const fullPath = path.join(targetRoot, relativePath);
     if (!(await pathExists(fullPath)) || contents.some((entry) => entry.path === fullPath)) {
       continue;
@@ -194,11 +194,22 @@ async function collectSourceContents(targetRoot: string, config: LoadedConfig): 
     contents.push(linkedDoc);
   }
 
+  for (const dynamicSource of await collectDirectoryMarkdownContents(targetRoot, [
+    ".github/instructions",
+    ".github/agents",
+    ".agent/roles"
+  ])) {
+    if (contents.some((entry) => entry.path === dynamicSource.path)) {
+      continue;
+    }
+    contents.push(dynamicSource);
+  }
+
   return contents;
 }
 
 function buildAuthorityOrder(targetRoot: string, config: LoadedConfig, sourceContents: SourceContent[]): string[] {
-  const configured = config.global.defaults.authority_files
+  const configured = (config.global.defaults.authority_files ?? [])
     .map((relativePath) => path.join(targetRoot, relativePath))
     .filter((fullPath) => sourceContents.some((source) => source.path === fullPath));
   const linkedDocs = sourceContents
@@ -338,6 +349,37 @@ async function safeReadDir(targetRoot: string): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+async function collectDirectoryMarkdownContents(targetRoot: string, relativeDirs: string[]): Promise<SourceContent[]> {
+  const contents: SourceContent[] = [];
+  for (const relativeDir of relativeDirs) {
+    const fullDir = path.join(targetRoot, relativeDir);
+    if (!(await pathExists(fullDir))) {
+      continue;
+    }
+
+    const entries = await safeReadDir(fullDir);
+    for (const entry of entries) {
+      if (!entry.endsWith(".md") || entry.startsWith("._")) {
+        continue;
+      }
+      const fullPath = path.join(fullDir, entry);
+      if (isSensitivePath(fullPath) || isMetadataOnlyPath(fullPath)) {
+        continue;
+      }
+      const content = (await readText(fullPath)).slice(0, 4000);
+      if (!content.trim()) {
+        continue;
+      }
+      contents.push({
+        path: fullPath,
+        kind: "context",
+        content
+      });
+    }
+  }
+  return contents;
 }
 
 async function collectValidationSteps(targetRoot: string): Promise<string[]> {

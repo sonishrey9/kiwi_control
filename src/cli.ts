@@ -7,6 +7,7 @@ import { runBootstrap } from "./commands/bootstrap.js";
 import { runCheck } from "./commands/check.js";
 import { runInit } from "./commands/init.js";
 import { runSync } from "./commands/sync.js";
+import { runStandardize } from "./commands/standardize.js";
 import { runRun } from "./commands/run.js";
 import { runFanout } from "./commands/fanout.js";
 import { runCheckpoint } from "./commands/checkpoint.js";
@@ -37,6 +38,18 @@ async function main(): Promise<void> {
         ...(typeof parsed.flags.profile === "string" ? { profileName: String(parsed.flags.profile) } : {}),
         ...(typeof parsed.flags["project-type"] === "string" ? { projectType: String(parsed.flags["project-type"]) } : {}),
         dryRun: parsed.flags["dry-run"] === true,
+        backup: parsed.flags.backup === true,
+        logger
+      });
+      return;
+    case "standardize":
+      process.exitCode = await runStandardize({
+        repoRoot,
+        targetRoot,
+        ...(typeof parsed.flags.profile === "string" ? { profileName: String(parsed.flags.profile) } : {}),
+        ...(typeof parsed.flags["project-type"] === "string" ? { projectType: String(parsed.flags["project-type"]) } : {}),
+        dryRun: parsed.flags["dry-run"] === true,
+        backup: parsed.flags.backup === true,
         logger
       });
       return;
@@ -228,6 +241,7 @@ function printHelp(): void {
 
 Usage:
   shrey-junior bootstrap --target /path/to/folder [--profile profile-name] [--project-type python|node|docs|data-platform|generic] [--dry-run]
+  shrey-junior standardize --target /path/to/repo [--profile profile-name] [--project-type python|node|docs|data-platform|generic] [--dry-run] [--backup]
   shrey-junior audit --target /path/to/repo [--report /path/to/report.md]
   shrey-junior check [--target /path/to/repo] [--profile profile-name]
   shrey-junior init --target /path/to/repo [--profile profile-name]

@@ -7,6 +7,7 @@ import type { PhaseRecord } from "../core/state.js";
 
 test("handoff rendering preserves the previous phase summary and remaining risks", () => {
   const phase: PhaseRecord = {
+    artifactType: "shrey-junior/current-phase",
     version: 1,
     timestamp: "2026-04-02T12:00:00.000Z",
     phaseId: "phase-1",
@@ -77,6 +78,7 @@ test("handoff rendering preserves the previous phase summary and remaining risks
   });
 
   assert.equal(handoff.status, "blocked");
+  assert.equal(handoff.readFirst.includes(".agent/state/active-role-hints.json"), true);
   assert.equal(handoff.validationsPending.includes("manual review"), true);
   const markdown = renderHandoffMarkdown(handoff);
   const brief = renderHandoffBrief(handoff);

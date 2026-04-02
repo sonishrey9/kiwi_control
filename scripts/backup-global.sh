@@ -49,7 +49,11 @@ for existing in \
   "$GLOBAL_HOME/adapters/global-adapter-strategy.md" \
   "$PATH_BIN/shrey-junior" \
   "$HOME/.codex/AGENTS.md" \
+  "$HOME/.codex/config.toml" \
   "$HOME/.claude/CLAUDE.md" \
+  "$HOME/.claude/settings.json" \
+  "$HOME/.claude/commands/shrey-read-first.md" \
+  "$HOME/.claude/commands/shrey-serious-task.md" \
   "$HOME/Library/Application Support/Code/User/mcp.json" \
   "$HOME/Library/Application Support/Code/User/prompts"; do
   backup_if_exists "$existing"

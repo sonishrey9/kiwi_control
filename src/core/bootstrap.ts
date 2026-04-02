@@ -1,9 +1,10 @@
 import type { GlobalBootstrapDefaults, LoadedConfig, ProjectType } from "./config.js";
 import { getGlobalHomeRoot, loadGlobalBootstrapDefaults } from "./config.js";
 import { initOrSyncTarget, summarizeWrites } from "./executor.js";
+import { buildBootstrapNextAction, buildChecksToRun, buildFirstReadContract } from "./guidance.js";
 import { inspectBootstrapTarget, type BootstrapInspection } from "./project-detect.js";
 import { loadProjectOverlay, resolveExecutionMode, type ProfileSelection } from "./profiles.js";
-import { buildTemplateContext, type TemplateContext } from "./router.js";
+import { buildTemplateContext, selectPortableContract, type TemplateContext } from "./router.js";
 import type { WriteResult } from "../utils/fs.js";
 
 export interface BootstrapOptions {
@@ -13,12 +14,13 @@ export interface BootstrapOptions {
   explicitProjectType?: ProjectType;
   dryRun?: boolean;
   diffSummary?: boolean;
+  backup?: boolean;
 }
 
 export interface BootstrapPlan {
   inspection: BootstrapInspection;
   profileName: string;
-  profileSource: "repo-authority" | "repo-local" | "cli" | "global-defaults" | "project-type" | "fallback-default";
+  profileSource: "repo-authority" | "repo-local" | "cli" | "global-accelerator" | "project-type" | "fallback-default";
   executionMode: TemplateContext["executionMode"];
   starterSpecialists: string[];
   starterValidationHints: string[];
@@ -26,11 +28,33 @@ export interface BootstrapPlan {
   warnings: string[];
   globalHomeRoot: string;
   globalDefaultsFound: boolean;
+  activeRole: string;
+  supportingRoles: string[];
+  firstReadPreview: string[];
+  verificationCommands: string[];
+  relevantContractSurfaces: string[];
+  skippedContractSurfaces: string[];
   results: WriteResult[];
   recommendedNextCommand: string;
 }
 
-export async function bootstrapTarget(options: BootstrapOptions, config: LoadedConfig): Promise<BootstrapPlan> {
+export interface PreparedBootstrapContext {
+  inspection: BootstrapInspection;
+  overlay: Awaited<ReturnType<typeof loadProjectOverlay>>;
+  profileResolution: {
+    profileName: string;
+    profile: LoadedConfig["routing"]["profiles"][string];
+    source: BootstrapPlan["profileSource"];
+  };
+  starterSpecialists: string[];
+  starterValidationHints: string[];
+  starterMcpHints: string[];
+  executionMode: TemplateContext["executionMode"];
+  globalDefaults: GlobalBootstrapDefaults | null;
+  context: TemplateContext;
+}
+
+export async function prepareBootstrapContext(options: BootstrapOptions, config: LoadedConfig): Promise<PreparedBootstrapContext> {
   const inspection = await inspectBootstrapTarget(options.targetRoot, config, options.explicitProjectType);
   const overlay = await loadProjectOverlay(options.targetRoot);
   const globalDefaults = await loadGlobalBootstrapDefaults();
@@ -50,11 +74,11 @@ export async function bootstrapTarget(options: BootstrapOptions, config: LoadedC
       profileName: profileResolution.profileName,
       profile: profileResolution.profile,
       source:
-        profileResolution.source === "repo-authority" || profileResolution.source === "repo-local"
-          ? "repo"
-          : profileResolution.source === "cli"
-            ? "cli"
-            : "default"
+        profileResolution.source === "repo-authority" ||
+        profileResolution.source === "repo-local" ||
+        profileResolution.source === "cli"
+          ? profileResolution.source
+          : "fallback-default"
     } satisfies ProfileSelection,
     overlay
   );
@@ -68,12 +92,30 @@ export async function bootstrapTarget(options: BootstrapOptions, config: LoadedC
     starterMcpHints: starterMcpHints.join(", ")
   });
 
+  return {
+    inspection,
+    overlay,
+    profileResolution,
+    starterSpecialists,
+    starterValidationHints,
+    starterMcpHints,
+    executionMode,
+    globalDefaults,
+    context
+  };
+}
+
+export async function bootstrapTarget(options: BootstrapOptions, config: LoadedConfig): Promise<BootstrapPlan> {
+  const prepared = await prepareBootstrapContext(options, config);
+  const { inspection, profileResolution, starterSpecialists, starterValidationHints, starterMcpHints, executionMode, globalDefaults, context } = prepared;
+  const contract = selectPortableContract(config, context);
+
   const results = inspection.authorityOptOut
     ? []
     : await initOrSyncTarget(options.repoRoot, options.targetRoot, config, context, {
-        ...(options.dryRun !== undefined ? { dryRun: options.dryRun } : {}),
-        diffSummary: options.diffSummary ?? options.dryRun ?? false,
-        backup: false,
+      ...(options.dryRun !== undefined ? { dryRun: options.dryRun } : {}),
+      diffSummary: options.diffSummary ?? options.dryRun ?? false,
+        backup: options.backup ?? false,
         backupLabel: context.generatedAt.replace(/[:.]/g, "-")
       });
 
@@ -96,6 +138,21 @@ export async function bootstrapTarget(options: BootstrapOptions, config: LoadedC
     warnings,
     globalHomeRoot: getGlobalHomeRoot(),
     globalDefaultsFound: Boolean(globalDefaults),
+    activeRole: contract.activeRole,
+    supportingRoles: contract.supportingRoles,
+    firstReadPreview: buildFirstReadContract({
+      targetRoot: options.targetRoot,
+      contract
+    }).slice(0, 8),
+    verificationCommands: buildChecksToRun(starterValidationHints),
+    relevantContractSurfaces: [
+      ...contract.coreSurfaces,
+      ...contract.instructionSurfaces,
+      ...contract.agentSurfaces,
+      ...contract.roleSurfaces,
+      ...contract.ciSurfaces
+    ],
+    skippedContractSurfaces: contract.skippedSurfaces,
     results,
     recommendedNextCommand
   };
@@ -111,9 +168,15 @@ export function formatBootstrapSummary(plan: BootstrapPlan): string {
     `- execution mode: ${plan.executionMode}`,
     `- global defaults: ${plan.globalDefaultsFound ? `loaded from ${plan.globalHomeRoot}` : `not found at ${plan.globalHomeRoot}`}`,
     `- authority files: ${plan.inspection.existingAuthorityFiles.length ? plan.inspection.existingAuthorityFiles.join(", ") : "none"}`,
+    `- active role: ${plan.activeRole}`,
+    `- supporting roles: ${plan.supportingRoles.join(", ") || "none"}`,
     `- starter specialists: ${plan.starterSpecialists.join(", ") || "none"}`,
     `- starter validations: ${plan.starterValidationHints.join(", ") || "none"}`,
-    `- starter MCP hints: ${plan.starterMcpHints.join(", ") || "none"}`
+    `- starter MCP hints: ${plan.starterMcpHints.join(", ") || "none"}`,
+    `- first read preview: ${plan.firstReadPreview.join(", ") || "none"}`,
+    `- relevant contract surfaces: ${plan.relevantContractSurfaces.slice(0, 8).join(", ") || "none"}`,
+    `- skipped as irrelevant: ${plan.skippedContractSurfaces.slice(0, 8).join(", ") || "none"}`,
+    `- verification commands: ${plan.verificationCommands.join(" | ") || buildBootstrapNextAction()}`
   ];
 
   if (plan.warnings.length) {
@@ -174,7 +237,7 @@ function resolveBootstrapProfile(inputs: BootstrapProfileInputs): {
     return {
       profileName: globalProfile,
       profile: config.routing.profiles[globalProfile],
-      source: "global-defaults"
+      source: "global-accelerator"
     };
   }
 
@@ -265,7 +328,7 @@ const fallbackSpecialistsByProjectType: Record<ProjectType, string[]> = {
   python: ["python-specialist", "backend-specialist", "qa-specialist", "security-specialist"],
   node: ["fullstack-specialist", "frontend-specialist", "backend-specialist", "qa-specialist"],
   docs: ["docs-specialist", "qa-specialist"],
-  "data-platform": ["backend-specialist", "qa-specialist", "security-specialist"],
+  "data-platform": ["data-platform-specialist", "backend-specialist", "qa-specialist", "security-specialist"],
   generic: ["fullstack-specialist", "qa-specialist", "docs-specialist"]
 };
 

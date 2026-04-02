@@ -10,20 +10,66 @@ bootstrap:
   mcp_policy_hints: "{{starterMcpHints}}"
 authority:
   canonical_repo: shrey-junior
+  precedence:
+    - explicit trusted repo authority
+    - repo-local generated overlays and state
+    - user-global accelerators
+    - fallback templates and defaults
   generated_outputs_are_derived: true
   read_first:
+{{firstReadOrderYaml}}
+contract:
+  source_of_truth:
+    - explicit repo authority
     - .agent/project.yaml
     - .agent/checks.yaml
-    - AGENTS.md
-    - CLAUDE.md
     - .github/copilot-instructions.md
+    - .github/instructions/*.instructions.md
+    - .github/agents/*.md
+    - .agent/roles/*.md
+  generated_state:
+    - .agent/state/current-phase.json
+    - .agent/state/active-role-hints.json
+    - .agent/state/handoff/latest.json
+    - .agent/state/dispatch/latest-manifest.json
+    - .agent/state/dispatch/latest-collect.json
+    - .agent/state/reconcile/latest.json
+    - .agent/state/latest-task-packets.json
+  generated_surfaces:
+    core:
+{{contractCoreSurfacesYaml}}
+    instructions:
+{{contractInstructionSurfacesYaml}}
+    agent_surfaces:
+{{contractAgentSurfacesYaml}}
+    role_specs:
+{{contractRoleSurfacesYaml}}
+    state_artifacts:
+{{contractStateSurfacesYaml}}
+    ci_surfaces:
+{{contractCiSurfacesYaml}}
+    skipped_as_irrelevant:
+{{contractSkippedSurfacesYaml}}
+  portability:
+    repo_local_contract_is_portable: true
+    global_accelerators_are_advisory_only: true
+    cloud_runtime_visibility_of_machine_global_files_is_not_guaranteed: true
 surfaces:
   codex: AGENTS.md
   claude: CLAUDE.md
   copilot: .github/copilot-instructions.md
+  copilot_instructions_dir: .github/instructions
+  copilot_agents_dir: .github/agents
+  specialist_roles_dir: .agent/roles
 paths:
   context: .agent/context
   tasks: .agent/tasks
+  state: .agent/state
+  active_role_hints: .agent/state/active-role-hints.json
+  latest_handoff: .agent/state/handoff/latest.json
+  latest_dispatch: .agent/state/dispatch/latest-manifest.json
+  latest_reconcile: .agent/state/reconcile/latest.json
+  latest_task_packets: .agent/state/latest-task-packets.json
 routing:
   preferred_execution_mode: "{{executionMode}}"
   primary_tool_override: ""
@@ -39,10 +85,12 @@ workflow:
   required_context_when_non_trivial:
     - existing repo authority files
     - promoted canonical docs explicitly referenced by repo authority
-    - .agent/project.yaml
-    - .agent/checks.yaml
+    - .agent/state/active-role-hints.json
     - .agent/state/current-phase.json when present
-    - latest handoff and latest reconcile when present
+    - latest task packet, latest handoff, latest reconcile, and latest dispatch manifest when present
+    - relevant .github/instructions/*.instructions.md and .agent/roles/*.md
+    - .agent/checks.yaml and .agent/scripts/verify-contract.sh
+    - .agent/project.yaml
   preferred_escalation:
     direct: trivial work only
     run: non-trivial single-owner work
@@ -51,12 +99,9 @@ workflow:
     continuity: checkpoint and handoff at phase boundaries
     push_gate: push-check before non-trivial or guarded push recommendations
   specialist_bias:
-    - python-specialist
-    - qa-specialist
-    - push-specialist
-    - security-specialist
-    - refactor-specialist
-    - docs-specialist
+{{contractSpecialistsYaml}}
+  verification_commands:
+{{verificationCommandsYaml}}
 rules:
   machine_local_state_is_reference_only: true
   global_config_changes_allowed: false

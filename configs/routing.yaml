@@ -19,6 +19,30 @@ portable_state:
     architecture: templates/project/.agent/context/architecture.md
     conventions: templates/project/.agent/context/conventions.md
     runbooks: templates/project/.agent/context/runbooks.md
+  roles:
+    readme: templates/project/.agent/roles/README.md
+    specialist_template: templates/project/.agent/roles/specialist-role.md
+  templates:
+    role_result: templates/project/.agent/templates/role-result.md
+  state:
+    current_phase: templates/project/.agent/state/current-phase.json
+    active_role_hints: templates/project/.agent/state/active-role-hints.json
+    handoff_readme: templates/project/.agent/state/handoff/README.md
+    dispatch_readme: templates/project/.agent/state/dispatch/README.md
+    reconcile_readme: templates/project/.agent/state/reconcile/README.md
+  scripts:
+    verify_contract: templates/project/.agent/scripts/verify-contract.sh
+  github:
+    instructions:
+      backend: templates/project/.github/instructions/backend.instructions.md
+      frontend: templates/project/.github/instructions/frontend.instructions.md
+      docs: templates/project/.github/instructions/docs.instructions.md
+      data: templates/project/.github/instructions/data.instructions.md
+    agents:
+      shrey_junior: templates/project/.github/agents/shrey-junior.md
+      specialist_template: templates/project/.github/agents/specialist-agent.md
+    workflows:
+      contract: templates/project/.github/workflows/shrey-junior-contract.yml
 task_packets:
   directory: .agent/tasks
   roles:

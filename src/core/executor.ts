@@ -3,6 +3,7 @@ import type { LoadedConfig } from "./config.js";
 import type { TaskPacket } from "./planner.js";
 import type { TemplateContext } from "./router.js";
 import { getPortableStateSpecs, getSurfaceSpecs } from "./router.js";
+import { writeLatestTaskPacketSet } from "./state.js";
 import { renderCodexBody } from "../adapters/codex.js";
 import { renderClaudeBody } from "../adapters/claude.js";
 import { renderCopilotBody } from "../adapters/copilot.js";
@@ -10,6 +11,7 @@ import {
   applyWritePlan,
   fileContainsManagedFile,
   pathExists,
+  planCreateOnlyFile,
   planManagedBlock,
   planManagedFile,
   readText,
@@ -35,7 +37,7 @@ export async function initOrSyncTarget(
 ): Promise<WriteResult[]> {
   const plans: WritePlan[] = [];
 
-  for (const item of getPortableStateSpecs(config)) {
+  for (const item of getPortableStateSpecs(config, context)) {
     const template = await readText(path.join(repoRoot, item.templatePath));
     const body = renderTemplate(template, {
       projectName: context.projectName,
@@ -49,10 +51,15 @@ export async function initOrSyncTarget(
       profileSource: context.profileSource,
       starterSpecialists: context.starterSpecialists,
       starterValidations: context.starterValidations,
-      starterMcpHints: context.starterMcpHints
+      starterMcpHints: context.starterMcpHints,
+      ...(item.templateValues ?? {})
     });
-
-    plans.push(await planManagedFile(path.join(targetRoot, item.outputPath), item.logicalName, body));
+    const outputPath = path.join(targetRoot, item.outputPath);
+    plans.push(
+      item.writeMode === "seed-only"
+        ? await planCreateOnlyFile(outputPath, item.logicalName, body, { managed: item.contentFormat !== "raw" })
+        : await planManagedFile(outputPath, item.logicalName, body)
+    );
   }
 
   for (const surface of getSurfaceSpecs(config)) {
@@ -80,6 +87,10 @@ export async function writeTaskPackets(targetRoot: string, packets: TaskPacket[]
     const plan = await planManagedFile(path.join(targetRoot, packet.relativePath), packet.logicalName, packet.content);
     results.push(await applyWritePlan(plan));
   }
+  await writeLatestTaskPacketSet(
+    targetRoot,
+    packets.map((packet) => packet.relativePath)
+  );
   return results;
 }
 

@@ -4,13 +4,15 @@ import { compileRepoContext } from "../core/context.js";
 import { loadLatestDispatchCollection, loadLatestDispatchManifest } from "../core/dispatch.js";
 import { buildDispatchManifest, writeDispatchManifest, type DispatchRole } from "../core/dispatch.js";
 import { writeTaskPackets, summarizeWrites } from "../core/executor.js";
+import { buildCanonicalReadNext, buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets } from "../core/guidance.js";
 import { buildFanoutPackets } from "../core/planner.js";
 import { evaluatePolicyPoint } from "../core/policies.js";
-import { loadContinuitySnapshot } from "../core/state.js";
+import { loadContinuitySnapshot, updateActiveRoleHints } from "../core/state.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "../core/profiles.js";
+import { inspectBootstrapTarget } from "../core/project-detect.js";
 import { assessGoalRisk } from "../core/risk.js";
 import { loadLatestReconcileReport } from "../core/reconcile.js";
-import { buildTemplateContext, resolveRoutingDecision } from "../core/router.js";
+import { buildTemplateContext, resolveRoutingDecision, selectPortableContract } from "../core/router.js";
 import { resolveRoleSpecialists } from "../core/specialists.js";
 import type { Logger } from "../core/logger.js";
 
@@ -27,11 +29,15 @@ export async function runDispatch(options: DispatchOptions): Promise<number> {
   const config = await loadCanonicalConfig(options.repoRoot);
   const overlay = await loadProjectOverlay(options.targetRoot);
   const selection = await resolveProfileSelection(options.targetRoot, config, options.profileName);
+  const inspection = await inspectBootstrapTarget(options.targetRoot, config);
   const executionMode = resolveExecutionMode(config, selection, overlay, options.mode);
   const context = buildTemplateContext(options.targetRoot, config, {
     profileName: selection.profileName,
-    executionMode
+    executionMode,
+    projectType: overlay?.bootstrap?.project_type ?? inspection.projectType,
+    profileSource: selection.source
   });
+  const contract = selectPortableContract(config, context);
   const risk = assessGoalRisk(options.goal);
   const decision = resolveRoutingDecision(config, {
     goal: options.goal,
@@ -54,6 +60,13 @@ export async function runDispatch(options: DispatchOptions): Promise<number> {
     fileArea: decision.fileArea,
     roleTools
   });
+  const plannerSpecialist = roleSpecialists.planner;
+  const implementerSpecialist = roleSpecialists.implementer;
+  const reviewerSpecialist = roleSpecialists.reviewer;
+  const testerSpecialist = roleSpecialists.tester;
+  if (!plannerSpecialist || !implementerSpecialist || !reviewerSpecialist || !testerSpecialist) {
+    throw new Error("dispatch could not resolve the full planner/implementer/reviewer/tester specialist set");
+  }
   const compiledContext = await compileRepoContext({
     targetRoot: options.targetRoot,
     config,
@@ -144,6 +157,37 @@ export async function runDispatch(options: DispatchOptions): Promise<number> {
     )
   });
   const dispatchArtifacts = await writeDispatchManifest(options.targetRoot, manifest);
+  await updateActiveRoleHints(options.targetRoot, {
+    activeRole: plannerSpecialist.specialistId,
+    supportingRoles: [
+      implementerSpecialist.specialistId,
+      reviewerSpecialist.specialistId,
+      testerSpecialist.specialistId,
+      ...contract.supportingRoles
+    ].filter((role, index, items) => Boolean(role) && items.indexOf(role) === index && role !== plannerSpecialist.specialistId),
+    authoritySource: selection.source,
+    projectType: context.projectType,
+    readNext: buildCanonicalReadNext({
+      targetRoot: options.targetRoot,
+      authorityOrder: compiledContext.authorityOrder,
+      promotedAuthorityDocs: compiledContext.promotedAuthorityDocs,
+      contract
+    }),
+    writeTargets: buildWriteTargets(contract, [
+      ...packets.map((packet) => packet.relativePath),
+      ".agent/state/dispatch/latest-manifest.json"
+    ]),
+    checksToRun: buildChecksToRun(compiledContext.validationSteps),
+    stopConditions: buildStopConditions({
+      riskLevel: decision.riskLevel,
+      taskType: decision.taskType
+    }),
+    nextAction: "Read .agent/state/dispatch/latest-manifest.json, then complete the planner packet before collecting role outputs.",
+    searchGuidance: buildSearchGuidance({
+      taskType: decision.taskType,
+      fileArea: decision.fileArea
+    })
+  });
 
   options.logger.info(summarizeWrites(results, options.targetRoot));
   options.logger.info(`dispatch manifest: ${dispatchArtifacts.manifestPath}`);

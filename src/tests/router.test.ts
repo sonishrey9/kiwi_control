@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildTemplateContext, resolveRoutingDecision } from "../core/router.js";
+import { buildTemplateContext, getPortableStateSpecs, resolveRoutingDecision, selectPortableContract } from "../core/router.js";
 import type { LoadedConfig } from "../core/config.js";
 import type { ProfileSelection } from "../core/profiles.js";
 
@@ -84,4 +84,233 @@ test("routing prefers explicit profile task mapping and escalates large risky ch
   assert.equal(decision.taskType, "planning");
   assert.equal(decision.requiredRoles.includes("planner"), true);
   assert.equal(decision.requiredRoles.includes("reviewer"), true);
+});
+
+test("portable state specs include repo-first role, Copilot, and CI contract surfaces", () => {
+  const config = {
+    global: {
+      defaults: {
+        task_directory: ".agent/tasks",
+        context_directory: ".agent/context",
+        managed_prefix: "SHREY-JUNIOR"
+      }
+    },
+    routing: {
+      portable_state: {
+        project: "templates/project/.agent/project.yaml",
+        checks: "templates/project/.agent/checks.yaml",
+        context: {
+          architecture: "templates/project/.agent/context/architecture.md",
+          conventions: "templates/project/.agent/context/conventions.md",
+          runbooks: "templates/project/.agent/context/runbooks.md"
+        },
+        roles: {
+          readme: "templates/project/.agent/roles/README.md",
+          specialist_template: "templates/project/.agent/roles/specialist-role.md"
+        },
+        templates: {
+          role_result: "templates/project/.agent/templates/role-result.md"
+        },
+        state: {
+          current_phase: "templates/project/.agent/state/current-phase.json",
+          active_role_hints: "templates/project/.agent/state/active-role-hints.json",
+          handoff_readme: "templates/project/.agent/state/handoff/README.md",
+          dispatch_readme: "templates/project/.agent/state/dispatch/README.md",
+          reconcile_readme: "templates/project/.agent/state/reconcile/README.md"
+        },
+        scripts: {
+          verify_contract: "templates/project/.agent/scripts/verify-contract.sh"
+        },
+        github: {
+          instructions: {
+            backend: "templates/project/.github/instructions/backend.instructions.md",
+            frontend: "templates/project/.github/instructions/frontend.instructions.md",
+            docs: "templates/project/.github/instructions/docs.instructions.md",
+            data: "templates/project/.github/instructions/data.instructions.md"
+          },
+          agents: {
+            shrey_junior: "templates/project/.github/agents/shrey-junior.md",
+            specialist_template: "templates/project/.github/agents/specialist-agent.md"
+          },
+          workflows: {
+            contract: "templates/project/.github/workflows/shrey-junior-contract.yml"
+          }
+        }
+      }
+    },
+    specialists: {
+      defaults: {
+        specialist_by_role: {
+          planner: "architecture-specialist",
+          reviewer: "review-specialist",
+          tester: "qa-specialist"
+        },
+        fallback_specialist: "architecture-specialist"
+      },
+      specialists: {
+        "fullstack-specialist": {
+          name: "Fullstack Specialist",
+          purpose: "Own fullstack contracts",
+          preferred_tools: ["codex"],
+          allowed_profiles: ["product-build"],
+          routing_bias: {
+            roles: ["implementer"],
+            task_types: ["implementation"],
+            file_areas: ["application"]
+          },
+          validation_expectations: ["tests"],
+          result_schema_expectations: ["summary"],
+          mcp_eligibility: ["github"],
+          risk_posture: "conservative",
+          handoff_guidance: ["handoff clearly"]
+        },
+        "backend-specialist": {
+          name: "Backend Specialist",
+          purpose: "Own backend contracts",
+          preferred_tools: ["codex"],
+          allowed_profiles: ["product-build"],
+          routing_bias: {
+            roles: ["implementer"],
+            task_types: ["implementation"],
+            file_areas: ["application"]
+          },
+          validation_expectations: ["tests"],
+          result_schema_expectations: ["summary"],
+          mcp_eligibility: ["github"],
+          risk_posture: "conservative",
+          handoff_guidance: ["handoff clearly"]
+        },
+        "frontend-specialist": {
+          name: "Frontend Specialist",
+          purpose: "Own frontend contracts",
+          preferred_tools: ["codex"],
+          allowed_profiles: ["product-build"],
+          routing_bias: {
+            roles: ["implementer"],
+            task_types: ["implementation"],
+            file_areas: ["application"]
+          },
+          validation_expectations: ["tests"],
+          result_schema_expectations: ["summary"],
+          mcp_eligibility: ["github"],
+          risk_posture: "conservative",
+          handoff_guidance: ["handoff clearly"]
+        },
+        "qa-specialist": {
+          name: "QA Specialist",
+          purpose: "Validate changes",
+          preferred_tools: ["claude"],
+          allowed_profiles: ["product-build"],
+          routing_bias: {
+            roles: ["tester"],
+            task_types: ["testing"],
+            file_areas: ["tests"]
+          },
+          validation_expectations: ["tests"],
+          result_schema_expectations: ["summary"],
+          mcp_eligibility: ["github"],
+          risk_posture: "conservative",
+          handoff_guidance: ["handoff clearly"]
+        },
+        "review-specialist": {
+          name: "Review Specialist",
+          purpose: "Review changes",
+          preferred_tools: ["claude"],
+          allowed_profiles: ["product-build"],
+          routing_bias: {
+            roles: ["reviewer"],
+            task_types: ["review"],
+            file_areas: ["application"]
+          },
+          validation_expectations: ["tests"],
+          result_schema_expectations: ["summary"],
+          mcp_eligibility: ["github"],
+          risk_posture: "conservative",
+          handoff_guidance: ["handoff clearly"]
+        },
+        "architecture-specialist": {
+          name: "Architecture Specialist",
+          purpose: "Plan changes",
+          preferred_tools: ["claude"],
+          allowed_profiles: ["product-build"],
+          routing_bias: {
+            roles: ["planner"],
+            task_types: ["planning"],
+            file_areas: ["context"]
+          },
+          validation_expectations: ["tests"],
+          result_schema_expectations: ["summary"],
+          mcp_eligibility: ["github"],
+          risk_posture: "conservative",
+          handoff_guidance: ["handoff clearly"]
+        }
+      }
+    }
+  } as unknown as LoadedConfig;
+
+  const context = buildTemplateContext("/tmp/node-app", config, {
+    profileName: "product-build",
+    executionMode: "assisted",
+    projectType: "node",
+    starterSpecialists: "fullstack-specialist, backend-specialist, frontend-specialist, qa-specialist"
+  });
+  const specs = getPortableStateSpecs(config, context);
+  const outputPaths = specs.map((spec) => spec.outputPath);
+  assert.equal(outputPaths.includes(".github/instructions/backend.instructions.md"), true);
+  assert.equal(outputPaths.includes(".github/instructions/frontend.instructions.md"), true);
+  assert.equal(outputPaths.includes(".github/instructions/docs.instructions.md"), false);
+  assert.equal(outputPaths.includes(".github/agents/shrey-junior.md"), true);
+  assert.equal(outputPaths.includes(".github/agents/backend-specialist.md"), true);
+  assert.equal(outputPaths.includes(".github/agents/review-specialist.md"), true);
+  assert.equal(outputPaths.includes(".agent/roles/backend-specialist.md"), true);
+  assert.equal(outputPaths.includes(".agent/state/active-role-hints.json"), true);
+  assert.equal(outputPaths.includes(".agent/scripts/verify-contract.sh"), true);
+  assert.equal(outputPaths.includes(".github/workflows/shrey-junior-contract.yml"), true);
+  const currentPhaseSpec = specs.find((spec) => spec.outputPath === ".agent/state/current-phase.json");
+  assert.equal(currentPhaseSpec?.writeMode, "seed-only");
+  assert.equal(currentPhaseSpec?.contentFormat, "raw");
+});
+
+test("portable contract selection stays minimal for docs-heavy repos", () => {
+  const config = {
+    global: {
+      defaults: {
+        task_directory: ".agent/tasks",
+        context_directory: ".agent/context",
+        managed_prefix: "SHREY-JUNIOR"
+      }
+    },
+    specialists: {
+      defaults: {
+        specialist_by_role: {
+          planner: "architecture-specialist",
+          reviewer: "review-specialist",
+          tester: "qa-specialist"
+        },
+        fallback_specialist: "architecture-specialist"
+      },
+      specialists: {
+        "docs-specialist": { allowed_profiles: ["documentation-heavy"] },
+        "qa-specialist": { allowed_profiles: ["documentation-heavy"] },
+        "review-specialist": { allowed_profiles: ["documentation-heavy"] },
+        "architecture-specialist": { allowed_profiles: ["documentation-heavy"] }
+      }
+    }
+  } as unknown as LoadedConfig;
+
+  const context = buildTemplateContext("/tmp/docs-repo", config, {
+    profileName: "documentation-heavy",
+    executionMode: "assisted",
+    projectType: "docs",
+    starterSpecialists: "docs-specialist, qa-specialist"
+  });
+  const contract = selectPortableContract(config, context);
+
+  assert.deepEqual(contract.instructionKeys, ["docs"]);
+  assert.equal(contract.specialistIds.includes("docs-specialist"), true);
+  assert.equal(contract.specialistIds.includes("qa-specialist"), true);
+  assert.equal(contract.specialistIds.includes("review-specialist"), true);
+  assert.equal(contract.specialistIds.includes("architecture-specialist"), true);
+  assert.equal(contract.specialistIds.includes("backend-specialist"), false);
+  assert.equal(contract.skippedSurfaces.includes(".github/instructions/backend.instructions.md"), true);
 });

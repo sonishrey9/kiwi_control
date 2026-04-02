@@ -1,11 +1,35 @@
 import path from "node:path";
 import type { ChangeSize, ExecutionMode, FileArea, LoadedConfig, RoutingProfile, TaskType, ToolName } from "./config.js";
+import { inspectBootstrapTarget } from "./project-detect.js";
 import { parseYaml } from "../utils/yaml.js";
 import { pathExists, readText } from "../utils/fs.js";
 
 export interface ProjectOverlay {
   version?: number;
   profile?: string;
+  bootstrap?: {
+    project_type?: string;
+    profile_source?: string;
+    specialist_suggestions?: string;
+  };
+  contract?: {
+    generated_surfaces?: {
+      core?: string[];
+      instructions?: string[];
+      agent_surfaces?: string[];
+      role_specs?: string[];
+      state_artifacts?: string[];
+      ci_surfaces?: string[];
+      skipped_as_irrelevant?: string[];
+    };
+  };
+  paths?: {
+    active_role_hints?: string;
+    latest_handoff?: string;
+    latest_dispatch?: string;
+    latest_reconcile?: string;
+    latest_task_packets?: string;
+  };
   routing?: {
     preferred_execution_mode?: ExecutionMode;
     primary_tool_override?: ToolName;
@@ -21,7 +45,7 @@ export interface ProjectOverlay {
 export interface ProfileSelection {
   profileName: string;
   profile: RoutingProfile;
-  source: "cli" | "repo" | "default";
+  source: "cli" | "repo-authority" | "repo-local" | "fallback-default";
 }
 
 export interface ProjectContextOptions {
@@ -56,19 +80,28 @@ export async function resolveProfileSelection(
     };
   }
 
+  const inspection = await inspectBootstrapTarget(targetRoot, config);
+  if (inspection.authorityProfileHint && config.routing.profiles[inspection.authorityProfileHint]) {
+    return {
+      profileName: inspection.authorityProfileHint,
+      profile: resolveProfile(inspection.authorityProfileHint, config),
+      source: "repo-authority"
+    };
+  }
+
   const overlay = await loadProjectOverlay(targetRoot);
   if (overlay?.profile && config.routing.profiles[overlay.profile]) {
     return {
       profileName: overlay.profile,
       profile: resolveProfile(overlay.profile, config),
-      source: "repo"
+      source: "repo-local"
     };
   }
 
   return {
     profileName: config.global.defaults.default_profile,
     profile: resolveProfile(config.global.defaults.default_profile, config),
-    source: "default"
+    source: "fallback-default"
   };
 }
 

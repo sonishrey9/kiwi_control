@@ -17,15 +17,19 @@ Authority order:
 Before medium/high complexity work or resuming a prior phase:
 
 1. read the existing repo authority files and any promoted canonical docs they reference
-2. read `.agent/project.yaml`
-3. read `.agent/checks.yaml`
-4. read `.agent/state/current-phase.json` when present
-5. read the latest handoff and latest reconcile result when present
-6. read `.agent/context/architecture.md`
-7. read `.agent/context/conventions.md`
-8. read `.agent/tasks/` packets when present
+2. read `.agent/state/active-role-hints.json`
+3. read `.agent/state/current-phase.json`
+4. read the latest task packet, latest handoff, latest reconcile, and latest dispatch manifest when present
+5. read the relevant `.github/instructions/*.instructions.md`
+6. read relevant `.github/agents/*.md`, `.agent/roles/*.md`, and `.agent/templates/role-result.md`
+7. read `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
+8. read `.agent/project.yaml`
+9. read `.agent/context/architecture.md`
+10. read `.agent/context/conventions.md`
+11. read `.agent/tasks/` packets when present
 
 Do not rely on machine-local `.claude/*` files as portable authority unless the repo explicitly routes to them.
+Cloud-hosted runtimes may not see machine-global files, so treat repo-local artifacts as the portable contract.
 
 Workflow rules:
 
@@ -36,6 +40,7 @@ Workflow rules:
 - require `checkpoint` and `handoff` when Claude is taking over after another tool or handing work back
 - consult `push-check` before recommending push on non-trivial or guarded work
 - consult `release-check` or `phase-close` when closing a phase or approaching release readiness
+- treat `.agent/state/active-role-hints.json` as the quickest repo-local pointer for current role focus, next file to open, and latest continuity artifacts
 
 Gate behavior:
 
@@ -45,5 +50,5 @@ Gate behavior:
 
 Specialists and MCP:
 
-- prefer specialist-aware routing when the task clearly maps to python, QA, security, docs, refactor, or push/release work
+- prefer specialist-aware routing when the task clearly maps to frontend, backend, fullstack, python, data-platform, QA, security, docs, refactor, architecture, or push/release work
 - MCP usage follows policy, capability, trust, profile, specialist, and approval rules; do not call MCP tools opportunistically

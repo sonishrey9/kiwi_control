@@ -15,11 +15,11 @@ defaults:
   default_task_type: implementation
   default_change_size: medium
   authority_files:
-    - .agent/project.yaml
-    - .agent/checks.yaml
     - AGENTS.md
     - CLAUDE.md
     - .github/copilot-instructions.md
+    - .agent/project.yaml
+    - .agent/checks.yaml
 surfaces:
   codex: AGENTS.md
   claude: CLAUDE.md

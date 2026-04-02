@@ -1,9 +1,9 @@
 import type { ExecutionMode, ToolName } from "./config.js";
 import type { CompiledContext } from "./context.js";
+import { buildChecksToRun, buildFirstReadContract, buildSearchGuidance, buildStopConditions, buildWriteTargets } from "./guidance.js";
 import type { GitState } from "./git.js";
 import type { HandoffRecord, PhaseRecord } from "./state.js";
 import { buildPhaseId } from "./state.js";
-import { renderDisplayPath } from "../utils/fs.js";
 
 export function buildHandoffRecord(options: {
   toTool: ToolName;
@@ -24,6 +24,7 @@ export function buildHandoffRecord(options: {
   const whatChanged = currentPhase?.changedFilesSummary?.changedFiles ?? options.gitState.changedFiles.slice(0, 12);
 
   return {
+    artifactType: "shrey-junior/handoff",
     version: 1,
     createdAt: now,
     toTool: options.toTool,
@@ -33,7 +34,37 @@ export function buildHandoffRecord(options: {
     goal: currentPhase?.goal ?? "Continue the current repo-local work safely.",
     profile: currentPhase?.profile ?? options.context.profileName,
     mode: (currentPhase?.mode ?? options.context.executionMode) as ExecutionMode,
-    readFirst: [...new Set(options.context.authorityOrder.map((authorityPath) => renderDisplayPath(options.context.targetRoot, authorityPath)))],
+    readFirst: buildFirstReadContract({
+      targetRoot: options.context.targetRoot,
+      authorityOrder: options.context.authorityOrder,
+      promotedAuthorityDocs: options.context.promotedAuthorityDocs,
+      contract: {
+        instructionSurfaces: options.context.stableContracts.filter((item) => item.includes(".github/instructions/")),
+        agentSurfaces: [".github/agents/shrey-junior.md"],
+        roleSurfaces: [],
+        activeRole: "handoff",
+        supportingRoles: []
+      }
+    }),
+    writeTargets: buildWriteTargets(
+      {
+        instructionSurfaces: [],
+        agentSurfaces: [],
+        roleSurfaces: [],
+        activeRole: "handoff",
+        supportingRoles: []
+      },
+      whatChanged.length > 0 ? whatChanged.slice(0, 8) : ["only goal-relevant repo files and continuity artifacts"]
+    ),
+    checksToRun: buildChecksToRun(options.context.validationSteps),
+    stopConditions: buildStopConditions({
+      riskLevel: currentPhase?.routingSummary.riskLevel ?? options.context.riskLevel,
+      taskType: currentPhase?.routingSummary.taskType ?? options.context.taskType
+    }),
+    searchGuidance: buildSearchGuidance({
+      taskType: currentPhase?.routingSummary.taskType ?? options.context.taskType,
+      fileArea: currentPhase?.routingSummary.fileArea ?? options.context.fileArea
+    }),
     whatChanged,
     validationsPending,
     risksRemaining,
@@ -57,7 +88,7 @@ export function renderHandoffMarkdown(handoff: HandoffRecord): string {
     ...(handoff.previousTool ? [`- previous tool: \`${handoff.previousTool}\``] : []),
     ...(handoff.fromPhaseId ? [`- phase id: \`${handoff.fromPhaseId}\``] : []),
     "",
-    "## Promoted Canonical Docs",
+    "## Priority Reads",
     "",
     ...handoff.readFirst.slice(0, 3).map((item) => `- \`${item}\``),
     "",
@@ -69,9 +100,28 @@ export function renderHandoffMarkdown(handoff: HandoffRecord): string {
     "",
     ...(handoff.whatChanged.length > 0 ? handoff.whatChanged.map((item) => `- ${item}`) : ["- no changed file summary recorded"]),
     "",
+    "## Write Targets",
+    "",
+    ...handoff.writeTargets.map((item) => `- ${item}`),
+    "",
+    "## Checks To Run",
+    "",
+    ...handoff.checksToRun.map((item) => `- ${item}`),
+    "",
     "## Validations Pending",
     "",
     ...(handoff.validationsPending.length > 0 ? handoff.validationsPending.map((item) => `- ${item}`) : ["- no pending validations recorded"]),
+    "",
+    "## Stop Conditions",
+    "",
+    ...handoff.stopConditions.map((item) => `- ${item}`),
+    "",
+    "## External Lookup Rules",
+    "",
+    "- inspect the repo codebase first before external search",
+    "- prefer promoted repo docs or canonical linked docs before internet search",
+    ...handoff.searchGuidance.useExternalLookupWhen.map((item) => `- use external lookup when: ${item}`),
+    ...handoff.searchGuidance.avoidExternalLookupWhen.map((item) => `- avoid external lookup when: ${item}`),
     "",
     "## Risks Remaining",
     "",
@@ -93,12 +143,16 @@ export function renderHandoffBrief(handoff: HandoffRecord): string {
     `Goal: ${handoff.goal}`,
     `Next step: ${handoff.nextStep}`,
     "",
-    "Promoted docs:",
+    "Priority reads:",
     ...handoff.readFirst.slice(0, 3).map((item) => `- \`${item}\``),
     "",
     "Start with:",
     ...handoff.readFirst.slice(0, 5).map((item) => `- \`${item}\``)
   ];
+
+  if (handoff.checksToRun.length > 0) {
+    lines.push("", "Checks to run next:", ...handoff.checksToRun.slice(0, 4).map((item) => `- ${item}`));
+  }
 
   if (handoff.risksRemaining.length > 0) {
     lines.push("", "Open risks:", ...handoff.risksRemaining.slice(0, 5).map((item) => `- ${item}`));
