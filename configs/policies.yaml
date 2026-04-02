@@ -1,0 +1,70 @@
+version: 1
+points:
+  pre-run:
+    checks:
+      - id: authority-conflicts
+        severity: block
+      - id: profile-mismatch
+        severity: warn
+      - id: specialist-mismatch
+        severity: warn
+      - id: mcp-ineligibility
+        severity: warn
+  pre-fanout:
+    checks:
+      - id: authority-conflicts
+        severity: block
+      - id: profile-mismatch
+        severity: warn
+      - id: blocked-reconcile
+        severity: warn
+      - id: specialist-mismatch
+        severity: warn
+  pre-dispatch:
+    checks:
+      - id: authority-conflicts
+        severity: block
+      - id: blocked-reconcile
+        severity: warn
+      - id: specialist-mismatch
+        severity: warn
+  pre-sync:
+    checks:
+      - id: authority-conflicts
+        severity: block
+      - id: profile-mismatch
+        severity: warn
+  post-sync:
+    checks:
+      - id: authority-conflicts
+        severity: block
+  pre-checkpoint:
+    checks:
+      - id: missing-validations
+        severity: warn
+      - id: blocked-reconcile
+        severity: block
+  pre-handoff:
+    checks:
+      - id: blocked-reconcile
+        severity: block
+      - id: missing-validations
+        severity: warn
+  pre-push-check:
+    checks:
+      - id: blocked-reconcile
+        severity: block
+      - id: missing-validations
+        severity: warn
+      - id: push-release-blockers
+        severity: warn
+  pre-release-check:
+    checks:
+      - id: blocked-reconcile
+        severity: block
+      - id: missing-structured-outputs
+        severity: warn
+      - id: missing-validations
+        severity: warn
+      - id: push-release-blockers
+        severity: warn

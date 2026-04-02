@@ -1,0 +1,56 @@
+version: 2
+sensitive_path_patterns:
+  - "\\.env"
+  - "secret"
+  - "token"
+  - "password"
+  - "key"
+  - "pem"
+  - "ssh"
+  - "aws"
+  - "render"
+  - "credential"
+  - "workspaceStorage"
+  - "session"
+  - "chat"
+metadata_only_patterns:
+  - "settings.json"
+  - "settings.local.json"
+  - "launch.json"
+  - "mcp-servers.json"
+  - "hooks.json"
+protected_global_roots:
+  - "~/.codex"
+  - "~/.claude"
+  - "~/Library/Application Support/Code/User"
+refuse_global_writes: true
+append_only_surfaces:
+  - AGENTS.md
+  - CLAUDE.md
+  - .github/copilot-instructions.md
+forbidden_scope:
+  default:
+    - global tool config
+    - secret-bearing files
+    - machine-local session or workspace state
+    - unmanaged destructive overwrites
+  strict-production:
+    - broad cross-cutting refactors without planner packet
+    - risky changes without reviewer packet
+    - destructive edits without a backup path
+  product-build:
+    - unmanaged authority rewrites
+  prototype:
+    - secret-bearing files
+    - global config mutation
+  data-platform:
+    - unsafe schema or migration edits without review
+  documentation-heavy:
+    - repo-wide behavior changes hidden inside docs-only tasks
+execution_modes:
+  assisted:
+    description: balanced day-to-day mode with explicit validation and review.
+  guarded:
+    description: high-safety mode that escalates risky or cross-cutting work.
+  inline:
+    description: small local edit mode optimized for quick bounded changes.

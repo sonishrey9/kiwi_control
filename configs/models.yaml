@@ -1,0 +1,31 @@
+version: 2
+tool_packets:
+  codex:
+    default_prompt: implementer
+    role: implementation
+  claude:
+    default_prompt: planner
+    role: planning
+  copilot:
+    default_prompt: reviewer
+    role: repo_guidance
+fanout_roles:
+  planner:
+    prompt: planner
+  implementer:
+    prompt: implementer
+  reviewer:
+    prompt: reviewer
+  tester:
+    prompt: tester
+task_prompts:
+  planning: planner
+  implementation: implementer
+  inline: implementer
+  review: reviewer
+  testing: tester
+  docs: summarizer
+  bugfix: bugfix
+  refactor: refactor
+  migration: migration
+  release-readiness: release-readiness

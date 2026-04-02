@@ -1,0 +1,289 @@
+version: 1
+defaults:
+  specialist_by_role:
+    planner: architecture-specialist
+    implementer: fullstack-specialist
+    reviewer: review-specialist
+    tester: qa-specialist
+    security: security-specialist
+    summarizer: docs-specialist
+    migrator: mcp-specialist
+    refactorer: refactor-specialist
+  fallback_specialist: architecture-specialist
+specialists:
+  python-specialist:
+    id: python-specialist
+    name: Python Specialist
+    purpose: Safe Python and backend implementation follow-through with explicit boundaries and validation.
+    preferred_tools: [codex, claude]
+    allowed_profiles: [strict-production, product-build, prototype, data-platform]
+    routing_bias:
+      roles: [implementer, reviewer]
+      task_types: [implementation, bugfix, refactor, testing]
+      file_areas: [application, tests, config]
+      preferred_primary_tool: codex
+      preferred_review_tool: claude
+    validation_expectations:
+      - run the smallest relevant repo test command
+      - confirm touched files stay inside the allowed scope
+      - report skipped validation explicitly
+    result_schema_expectations: [role, status, summary, validations, risks, touched_files, next_steps]
+    mcp_eligibility: [context7, github, filesystem]
+    risk_posture: medium
+    handoff_guidance:
+      - surface stable contracts before implementation begins
+      - hand off to qa-specialist or architecture-specialist for guarded review
+  backend-specialist:
+    id: backend-specialist
+    name: Backend Specialist
+    purpose: API, service, persistence, and contract-safe backend delivery across Python, Node, and general server-side repos.
+    preferred_tools: [codex, claude]
+    allowed_profiles: [strict-production, product-build, prototype, data-platform]
+    routing_bias:
+      roles: [implementer, reviewer]
+      task_types: [implementation, bugfix, refactor, migration]
+      file_areas: [application, infra, tests]
+      preferred_primary_tool: codex
+      preferred_review_tool: claude
+    validation_expectations:
+      - verify interface or contract changes explicitly
+      - run the narrowest backend or API validation available
+      - call out data, auth, or migration side effects
+    result_schema_expectations: [role, status, summary, validations, risks, touched_files, next_steps]
+    mcp_eligibility: [context7, filesystem, github, docker, supabase]
+    risk_posture: medium
+    handoff_guidance:
+      - hand off stable contracts and validation evidence early
+      - escalate to security-specialist for auth, exposure, or permission-sensitive work
+  frontend-specialist:
+    id: frontend-specialist
+    name: Frontend Specialist
+    purpose: UI and interaction work with emphasis on safe boundaries, browser evidence, and repo-aware frontend guidance.
+    preferred_tools: [codex, copilot, claude]
+    allowed_profiles: [strict-production, product-build, prototype, documentation-heavy]
+    routing_bias:
+      roles: [implementer, reviewer, tester]
+      task_types: [implementation, bugfix, refactor, docs]
+      file_areas: [application, docs, tests]
+      preferred_primary_tool: codex
+      preferred_review_tool: claude
+    validation_expectations:
+      - run the smallest frontend build or test loop available
+      - note missing browser evidence when UI behavior changed
+      - keep design or docs references explicit
+    result_schema_expectations: [role, status, summary, validations, risks, touched_files, next_steps]
+    mcp_eligibility: [context7, filesystem, github, playwright, figma]
+    risk_posture: medium
+    handoff_guidance:
+      - promote read-first UI docs and boundary files before edits
+      - route guarded UI changes through reviewer or qa-specialist coverage
+  fullstack-specialist:
+    id: fullstack-specialist
+    name: Fullstack Specialist
+    purpose: Balanced implementation specialist for app and web repos that cross frontend, backend, routing, and validation boundaries.
+    preferred_tools: [codex, claude, copilot]
+    allowed_profiles: [strict-production, product-build, prototype, documentation-heavy]
+    routing_bias:
+      roles: [implementer, planner]
+      task_types: [implementation, bugfix, refactor]
+      file_areas: [application, tests, docs, config]
+      preferred_primary_tool: codex
+      preferred_review_tool: claude
+    validation_expectations:
+      - identify touched boundary files before editing
+      - run at least one implementation validation and one review-oriented validation
+      - split reviewer or tester work when contracts or cross-cutting changes appear
+    result_schema_expectations: [role, status, summary, agreements, validations, risks, touched_files, next_steps]
+    mcp_eligibility: [context7, filesystem, github, playwright, docker]
+    risk_posture: medium
+    handoff_guidance:
+      - hand off browser evidence and backend validation together for guarded follow-through
+  qa-specialist:
+    id: qa-specialist
+    name: QA Specialist
+    purpose: Validation, edge-case coverage, and acceptance confidence for repo-local changes.
+    preferred_tools: [claude, codex]
+    allowed_profiles: [strict-production, product-build, prototype, data-platform, documentation-heavy]
+    routing_bias:
+      roles: [reviewer, tester]
+      task_types: [testing, review, release-readiness, bugfix]
+      file_areas: [tests, application, docs]
+      preferred_primary_tool: claude
+      preferred_review_tool: codex
+    validation_expectations:
+      - confirm the intended validations actually ran
+      - note missing evidence and acceptance gaps
+      - record unresolved risks explicitly
+    result_schema_expectations: [role, status, summary, agreements, conflicts, validations, risks, next_steps]
+    mcp_eligibility: [playwright, github, context7]
+    risk_posture: conservative
+    handoff_guidance:
+      - point the next tool at evidence, not assumptions
+      - do not mark work complete without validation coverage
+  review-specialist:
+    id: review-specialist
+    name: Review Specialist
+    purpose: General software engineering review for correctness, regression risk, contract safety, and change quality.
+    preferred_tools: [claude, codex]
+    allowed_profiles: [strict-production, product-build, prototype, data-platform, documentation-heavy]
+    routing_bias:
+      roles: [reviewer]
+      task_types: [review, release-readiness, bugfix, refactor]
+      file_areas: [application, tests, config, docs, infra]
+      preferred_primary_tool: claude
+      preferred_review_tool: codex
+    validation_expectations:
+      - separate findings from summary
+      - call out missing evidence or weak logic explicitly
+      - escalate unresolved contract or release risk conservatively
+    result_schema_expectations: [role, status, summary, agreements, conflicts, validations, risks, next_steps]
+    mcp_eligibility: [context7, filesystem, github, sequential-thinking]
+    risk_posture: conservative
+    handoff_guidance:
+      - use this specialist when generic review quality matters more than domain-specific depth
+  push-specialist:
+    id: push-specialist
+    name: Push Specialist
+    purpose: Conservative push-readiness and review gating before commit or push decisions.
+    preferred_tools: [claude, codex]
+    allowed_profiles: [strict-production, product-build, prototype, data-platform, documentation-heavy]
+    routing_bias:
+      roles: [reviewer, tester]
+      task_types: [release-readiness, review]
+      file_areas: [config, tests, application]
+      preferred_primary_tool: claude
+      preferred_review_tool: codex
+    validation_expectations:
+      - confirm reconcile status is not blocked
+      - confirm validations are recorded
+      - review git cleanliness and change grouping
+    result_schema_expectations: [role, status, summary, validations, risks, touched_files, next_steps]
+    mcp_eligibility: [github]
+    risk_posture: conservative
+    handoff_guidance:
+      - recommend push-check before any push suggestion
+      - surface unresolved warnings and review gates early
+  security-specialist:
+    id: security-specialist
+    name: Security Specialist
+    purpose: Review auth, permissions, data exposure, and unsafe assumptions without weakening guardrails.
+    preferred_tools: [claude, codex]
+    allowed_profiles: [strict-production, product-build, data-platform]
+    routing_bias:
+      roles: [reviewer, tester]
+      task_types: [review, bugfix, release-readiness]
+      file_areas: [application, config, infra]
+      preferred_primary_tool: claude
+      preferred_review_tool: codex
+    validation_expectations:
+      - confirm no secret-bearing files were touched unintentionally
+      - call out missing security validation explicitly
+      - escalate permission or exposure uncertainty
+    result_schema_expectations: [role, status, summary, conflicts, validations, risks, next_steps]
+    mcp_eligibility: [context7, github]
+    risk_posture: high
+    handoff_guidance:
+      - security concerns should block release or push recommendations
+      - prefer repo-local evidence over machine-local assumptions
+  refactor-specialist:
+    id: refactor-specialist
+    name: Refactor Specialist
+    purpose: Keep larger restructures bounded, contract-safe, and reviewable.
+    preferred_tools: [codex, claude]
+    allowed_profiles: [strict-production, product-build, prototype, data-platform]
+    routing_bias:
+      roles: [planner, implementer]
+      task_types: [refactor, implementation, bugfix]
+      file_areas: [application, context, tests]
+      preferred_primary_tool: codex
+      preferred_review_tool: claude
+    validation_expectations:
+      - identify stable contracts up front
+      - keep change grouping explicit
+      - ensure reviewer coverage on cross-cutting work
+    result_schema_expectations: [role, status, summary, agreements, conflicts, touched_files, next_steps]
+    mcp_eligibility: [context7, github, sequential-thinking]
+    risk_posture: medium
+    handoff_guidance:
+      - hand off to qa-specialist or architecture-specialist before phase close
+  docs-specialist:
+    id: docs-specialist
+    name: Docs Specialist
+    purpose: Improve docs, onboarding, summaries, and repo knowledge flow without drifting from authority.
+    preferred_tools: [claude, copilot]
+    allowed_profiles: [strict-production, product-build, prototype, documentation-heavy]
+    routing_bias:
+      roles: [planner, summarizer, reviewer]
+      task_types: [docs, planning, release-readiness]
+      file_areas: [docs, context]
+      preferred_primary_tool: claude
+      preferred_review_tool: copilot
+    validation_expectations:
+      - verify docs follow existing repo authority
+      - surface any docs-to-code mismatches
+    result_schema_expectations: [role, status, summary, agreements, risks, touched_files, next_steps]
+    mcp_eligibility: [context7, github]
+    risk_posture: low
+    handoff_guidance:
+      - surface canonical docs early in every handoff
+  architecture-specialist:
+    id: architecture-specialist
+    name: Architecture Specialist
+    purpose: Planning, decomposition, boundary analysis, and guarded change sequencing.
+    preferred_tools: [claude, codex]
+    allowed_profiles: [strict-production, product-build, prototype, data-platform, documentation-heavy]
+    routing_bias:
+      roles: [planner, reviewer]
+      task_types: [planning, refactor, migration, release-readiness]
+      file_areas: [application, context, infra]
+      preferred_primary_tool: claude
+      preferred_review_tool: codex
+    validation_expectations:
+      - identify stable contracts and boundary files
+      - clarify sequencing before broad edits begin
+      - escalate cross-cutting risk conservatively
+    result_schema_expectations: [role, status, summary, agreements, conflicts, risks, next_steps]
+    mcp_eligibility: [sequential-thinking, context7, github]
+    risk_posture: conservative
+    handoff_guidance:
+      - use this specialist when continuity needs stronger decomposition or decision framing
+  release-specialist:
+    id: release-specialist
+    name: Release Specialist
+    purpose: Release readiness, checkpoint health, and phase-close discipline before commit or push decisions.
+    preferred_tools: [claude, codex]
+    allowed_profiles: [strict-production, product-build, data-platform, documentation-heavy]
+    routing_bias:
+      roles: [reviewer, tester, summarizer]
+      task_types: [release-readiness, review, docs]
+      file_areas: [config, tests, docs, infra]
+      preferred_primary_tool: claude
+      preferred_review_tool: codex
+    validation_expectations:
+      - verify release blockers, reconcile state, and validations
+      - confirm next tool and next specialist are explicit at phase close
+    result_schema_expectations: [role, status, summary, validations, risks, next_steps]
+    mcp_eligibility: [github, context7]
+    risk_posture: conservative
+    handoff_guidance:
+      - prefer phase-close and release-check before push recommendations
+  mcp-specialist:
+    id: mcp-specialist
+    name: MCP Specialist
+    purpose: Safe capability selection for MCP-aware workflows without assuming live secrets or machine-local authority.
+    preferred_tools: [claude, codex]
+    allowed_profiles: [strict-production, product-build, prototype, data-platform, documentation-heavy]
+    routing_bias:
+      roles: [planner, reviewer, migrator]
+      task_types: [planning, migration, release-readiness]
+      file_areas: [config, context, docs]
+      preferred_primary_tool: claude
+      preferred_review_tool: codex
+    validation_expectations:
+      - verify MCP use is profile-allowed and specialist-compatible
+      - avoid repo-local packets that imply hidden credentials
+    result_schema_expectations: [role, status, summary, agreements, risks, next_steps]
+    mcp_eligibility: [context7, github, sequential-thinking]
+    risk_posture: medium
+    handoff_guidance:
+      - capture why a capability is safe to reference and when not to call it

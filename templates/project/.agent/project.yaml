@@ -1,0 +1,64 @@
+version: 2
+managed_by: shrey-junior
+project_name: "{{projectName}}"
+profile: "{{profileName}}"
+bootstrap:
+  project_type: "{{projectType}}"
+  profile_source: "{{profileSource}}"
+  specialist_suggestions: "{{starterSpecialists}}"
+  validation_hints: "{{starterValidations}}"
+  mcp_policy_hints: "{{starterMcpHints}}"
+authority:
+  canonical_repo: shrey-junior
+  generated_outputs_are_derived: true
+  read_first:
+    - .agent/project.yaml
+    - .agent/checks.yaml
+    - AGENTS.md
+    - CLAUDE.md
+    - .github/copilot-instructions.md
+surfaces:
+  codex: AGENTS.md
+  claude: CLAUDE.md
+  copilot: .github/copilot-instructions.md
+paths:
+  context: .agent/context
+  tasks: .agent/tasks
+routing:
+  preferred_execution_mode: "{{executionMode}}"
+  primary_tool_override: ""
+workflow:
+  trivial_work:
+    description: stay direct only for typo-level, wording, formatting, or one-line local fixes with no contract, auth, data, security, release, or multi-file impact
+  non_trivial_triggers:
+    - multi-file change
+    - interface or stable contract change
+    - guarded or cross-cutting refactor
+    - auth, data, security, or release-sensitive work
+    - reviewer or tester separation needed
+  required_context_when_non_trivial:
+    - existing repo authority files
+    - promoted canonical docs explicitly referenced by repo authority
+    - .agent/project.yaml
+    - .agent/checks.yaml
+    - .agent/state/current-phase.json when present
+    - latest handoff and latest reconcile when present
+  preferred_escalation:
+    direct: trivial work only
+    run: non-trivial single-owner work
+    fanout: guarded or role-separated work
+    dispatch: simultaneous small-role coordination
+    continuity: checkpoint and handoff at phase boundaries
+    push_gate: push-check before non-trivial or guarded push recommendations
+  specialist_bias:
+    - python-specialist
+    - qa-specialist
+    - push-specialist
+    - security-specialist
+    - refactor-specialist
+    - docs-specialist
+rules:
+  machine_local_state_is_reference_only: true
+  global_config_changes_allowed: false
+  additive_sync_only: true
+  backup_before_sync: false

@@ -1,0 +1,26 @@
+version: 2
+name: shrey-junior
+authority:
+  canonical_dirs:
+    - configs
+    - prompts
+    - templates
+  generated_outputs_are_derived: true
+defaults:
+  task_directory: .agent/tasks
+  context_directory: .agent/context
+  managed_prefix: SHREY-JUNIOR
+  default_profile: product-build
+  default_execution_mode: assisted
+  default_task_type: implementation
+  default_change_size: medium
+  authority_files:
+    - .agent/project.yaml
+    - .agent/checks.yaml
+    - AGENTS.md
+    - CLAUDE.md
+    - .github/copilot-instructions.md
+surfaces:
+  codex: AGENTS.md
+  claude: CLAUDE.md
+  copilot: .github/copilot-instructions.md

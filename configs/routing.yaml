@@ -1,0 +1,200 @@
+version: 2
+surfaces:
+  codex:
+    file: AGENTS.md
+    template: templates/project/AGENTS.md
+    block_name: codex
+  claude:
+    file: CLAUDE.md
+    template: templates/project/CLAUDE.md
+    block_name: claude
+  copilot:
+    file: .github/copilot-instructions.md
+    template: templates/project/.github/copilot-instructions.md
+    block_name: copilot
+portable_state:
+  project: templates/project/.agent/project.yaml
+  checks: templates/project/.agent/checks.yaml
+  context:
+    architecture: templates/project/.agent/context/architecture.md
+    conventions: templates/project/.agent/context/conventions.md
+    runbooks: templates/project/.agent/context/runbooks.md
+task_packets:
+  directory: .agent/tasks
+  roles:
+    - planner
+    - implementer
+    - reviewer
+    - tester
+defaults:
+  fallback_tool: codex
+  planning_tool: claude
+  review_tool: codex
+  docs_tool: claude
+  inline_tool: copilot
+profiles:
+  strict-production:
+    description: Safety-first routing for shared production systems.
+    default_execution_mode: guarded
+    review_tool: codex
+    sync:
+      default_backup: true
+    packet:
+      medium_risk_required_roles:
+        - reviewer
+      high_risk_required_roles:
+        - planner
+        - reviewer
+        - tester
+    routing:
+      task_types:
+        planning: claude
+        implementation: codex
+        inline: copilot
+        review: codex
+        testing: codex
+        docs: claude
+        bugfix: codex
+        refactor: codex
+        migration: claude
+        release-readiness: claude
+      risk_overrides:
+        high:
+          review_tool: claude
+          required_roles:
+            - planner
+            - reviewer
+      file_area_overrides:
+        docs: claude
+        context: claude
+        infra: codex
+  product-build:
+    description: Balanced defaults for active product development.
+    default_execution_mode: assisted
+    review_tool: codex
+    sync:
+      default_backup: false
+    packet:
+      medium_risk_required_roles:
+        - reviewer
+      high_risk_required_roles:
+        - planner
+        - reviewer
+    routing:
+      task_types:
+        planning: claude
+        implementation: codex
+        inline: copilot
+        review: codex
+        testing: codex
+        docs: claude
+        bugfix: codex
+        refactor: codex
+        migration: claude
+        release-readiness: claude
+      risk_overrides:
+        high:
+          required_roles:
+            - planner
+            - reviewer
+      file_area_overrides:
+        docs: claude
+        context: claude
+  prototype:
+    description: Fast iteration with lightweight review and inline edits.
+    default_execution_mode: inline
+    review_tool: codex
+    sync:
+      default_backup: false
+    packet:
+      medium_risk_required_roles:
+        - reviewer
+      high_risk_required_roles:
+        - planner
+        - reviewer
+    routing:
+      task_types:
+        planning: claude
+        implementation: codex
+        inline: copilot
+        review: codex
+        testing: codex
+        docs: copilot
+        bugfix: codex
+        refactor: codex
+        migration: claude
+        release-readiness: claude
+      risk_overrides:
+        high:
+          required_roles:
+            - planner
+            - reviewer
+      file_area_overrides:
+        docs: copilot
+  data-platform:
+    description: Data and migration heavy repos with stronger planning defaults.
+    default_execution_mode: assisted
+    review_tool: claude
+    sync:
+      default_backup: true
+    packet:
+      medium_risk_required_roles:
+        - reviewer
+      high_risk_required_roles:
+        - planner
+        - reviewer
+        - tester
+    routing:
+      task_types:
+        planning: claude
+        implementation: codex
+        inline: copilot
+        review: claude
+        testing: codex
+        docs: claude
+        bugfix: codex
+        refactor: codex
+        migration: claude
+        release-readiness: claude
+      risk_overrides:
+        high:
+          review_tool: claude
+          required_roles:
+            - planner
+            - reviewer
+      file_area_overrides:
+        data: codex
+        docs: claude
+  documentation-heavy:
+    description: Docs, onboarding, and knowledge-heavy repositories.
+    default_execution_mode: assisted
+    review_tool: claude
+    sync:
+      default_backup: false
+    packet:
+      medium_risk_required_roles:
+        - reviewer
+      high_risk_required_roles:
+        - planner
+        - reviewer
+    routing:
+      task_types:
+        planning: claude
+        implementation: codex
+        inline: copilot
+        review: claude
+        testing: codex
+        docs: claude
+        bugfix: codex
+        refactor: claude
+        migration: claude
+        release-readiness: claude
+      risk_overrides:
+        high:
+          review_tool: claude
+          required_roles:
+            - planner
+            - reviewer
+      file_area_overrides:
+        docs: claude
+        context: claude

@@ -1,0 +1,25 @@
+{
+  "name": "shrey-junior",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Thin repo-local control plane for Codex, Claude Code, and GitHub Copilot",
+  "bin": {
+    "shrey-junior": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test dist/tests/*.test.js",
+    "audit": "npm run build && node dist/cli.js audit",
+    "check": "npm run build && node dist/cli.js check",
+    "smoke": "npm run build && bash scripts/smoke-test.sh"
+  },
+  "dependencies": {
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "typescript": "^5.8.3"
+  }
+}
+

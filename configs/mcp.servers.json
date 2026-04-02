@@ -1,0 +1,317 @@
+{
+  "version": 2,
+  "notes": "Canonical sanitized MCP registry for repo-local routing. No secret values or live machine-specific commands are stored here. Entries are descriptive only and safe to reference in repo-local packets.",
+  "mcpServers": {
+    "context7": {
+      "id": "context7",
+      "category": "documentation",
+      "purpose": "official documentation lookup",
+      "portable": true,
+      "treatment": "reference",
+      "allowedProfiles": ["strict-production", "product-build", "prototype", "data-platform", "documentation-heavy"],
+      "trustLevel": "high",
+      "humanNotes": "Prefer for vendor and library docs when packets need authoritative references.",
+      "toolCompatibility": ["codex", "claude", "copilot"],
+      "referenceOnly": true,
+      "repoEligible": true,
+      "compatibleSpecialists": ["python-specialist", "backend-specialist", "frontend-specialist", "fullstack-specialist", "qa-specialist", "review-specialist", "docs-specialist", "architecture-specialist", "release-specialist", "mcp-specialist", "security-specialist"],
+      "readOnly": true,
+      "writeCapable": false,
+      "approvalRequired": false,
+      "usageGuidance": [
+        "Use when packets need vendor or framework documentation that should outrank generic memory.",
+        "Prefer this for specialist packets that need authoritative references."
+      ],
+      "antiPatterns": [
+        "Do not treat it as a substitute for repo-local authority files.",
+        "Do not use it to infer secrets or hidden machine-local state."
+      ]
+    },
+    "memory": {
+      "id": "memory",
+      "category": "memory",
+      "purpose": "machine-local memory service",
+      "portable": false,
+      "treatment": "reference",
+      "allowedProfiles": ["strict-production", "product-build", "prototype", "data-platform", "documentation-heavy"],
+      "trustLevel": "medium",
+      "humanNotes": "Reference only. Never treat machine-local memory as portable repo authority.",
+      "toolCompatibility": ["codex", "claude"],
+      "referenceOnly": true,
+      "repoEligible": false,
+      "compatibleSpecialists": ["architecture-specialist", "review-specialist", "mcp-specialist"],
+      "readOnly": true,
+      "writeCapable": false,
+      "approvalRequired": true,
+      "usageGuidance": [
+        "Use only as a reference to machine-local continuity, never as portable repo truth."
+      ],
+      "antiPatterns": [
+        "Do not promote machine-local memory above repo authority.",
+        "Do not rely on it for reproducible repo onboarding."
+      ]
+    },
+    "sequential-thinking": {
+      "id": "sequential-thinking",
+      "category": "reasoning",
+      "purpose": "structured reasoning support",
+      "portable": true,
+      "treatment": "reference",
+      "allowedProfiles": ["strict-production", "product-build", "prototype", "data-platform", "documentation-heavy"],
+      "trustLevel": "high",
+      "humanNotes": "Good fit for planner and reviewer packets that need traceable reasoning.",
+      "toolCompatibility": ["codex", "claude"],
+      "referenceOnly": true,
+      "repoEligible": true,
+      "compatibleSpecialists": ["architecture-specialist", "review-specialist", "mcp-specialist", "release-specialist"],
+      "readOnly": true,
+      "writeCapable": false,
+      "approvalRequired": false,
+      "usageGuidance": [
+        "Prefer for planner, reviewer, and release-check reasoning where a traceable chain is helpful."
+      ],
+      "antiPatterns": [
+        "Do not overuse it for trivial inline edits.",
+        "Do not let reasoning traces replace concrete validation evidence."
+      ]
+    },
+    "filesystem": {
+      "id": "filesystem",
+      "category": "local-io",
+      "purpose": "local file access",
+      "portable": false,
+      "treatment": "reference",
+      "allowedProfiles": ["strict-production", "product-build", "prototype", "data-platform", "documentation-heavy"],
+      "trustLevel": "medium",
+      "humanNotes": "Useful for repo-local work only. Never ingest sensitive file contents into packets.",
+      "toolCompatibility": ["codex", "claude"],
+      "referenceOnly": true,
+      "repoEligible": false,
+      "compatibleSpecialists": ["python-specialist", "backend-specialist", "frontend-specialist", "fullstack-specialist", "qa-specialist", "review-specialist", "refactor-specialist"],
+      "readOnly": true,
+      "writeCapable": true,
+      "approvalRequired": true,
+      "usageGuidance": [
+        "Use for repo-local file reads and writes that stay inside the selected target repo.",
+        "Pair with the sensitive-path classifier before reading or writing."
+      ],
+      "antiPatterns": [
+        "Do not use it for global config mutation.",
+        "Do not read secret-bearing files into packets or reports."
+      ]
+    },
+    "github": {
+      "id": "github",
+      "category": "code-hosting",
+      "purpose": "GitHub repository metadata and automation",
+      "portable": true,
+      "treatment": "reference",
+      "allowedProfiles": ["strict-production", "product-build", "prototype", "data-platform", "documentation-heavy"],
+      "trustLevel": "high",
+      "humanNotes": "Useful for review, CI status, and PR-linked workflows.",
+      "toolCompatibility": ["codex", "claude", "copilot"],
+      "referenceOnly": true,
+      "repoEligible": true,
+      "compatibleSpecialists": ["backend-specialist", "frontend-specialist", "fullstack-specialist", "qa-specialist", "review-specialist", "push-specialist", "release-specialist", "mcp-specialist"],
+      "readOnly": true,
+      "writeCapable": true,
+      "approvalRequired": true,
+      "usageGuidance": [
+        "Use for PR, CI, and repository metadata when repo-local context alone is insufficient."
+      ],
+      "antiPatterns": [
+        "Do not assume PR state replaces local diff review.",
+        "Do not trigger write-capable operations without an explicit user request."
+      ]
+    },
+    "playwright": {
+      "id": "playwright",
+      "category": "testing",
+      "purpose": "browser automation",
+      "portable": true,
+      "treatment": "reference",
+      "allowedProfiles": ["strict-production", "product-build", "prototype", "documentation-heavy"],
+      "trustLevel": "high",
+      "humanNotes": "Best suited for tester packets and UI validation in app repos.",
+      "toolCompatibility": ["codex", "claude"],
+      "referenceOnly": true,
+      "repoEligible": true,
+      "compatibleSpecialists": ["frontend-specialist", "fullstack-specialist", "qa-specialist", "release-specialist"],
+      "readOnly": false,
+      "writeCapable": true,
+      "approvalRequired": true,
+      "usageGuidance": [
+        "Use when tester or qa-specialist packets need browser evidence or smoke coverage."
+      ],
+      "antiPatterns": [
+        "Do not use it when repo-local unit or integration checks already answer the question.",
+        "Do not treat flaky browser evidence as release proof without context."
+      ]
+    },
+    "exa": {
+      "id": "exa",
+      "category": "research-search",
+      "purpose": "neural web and code search for current research, docs, and examples",
+      "portable": true,
+      "treatment": "reference",
+      "allowedProfiles": ["strict-production", "product-build", "prototype", "data-platform", "documentation-heavy"],
+      "trustLevel": "high",
+      "humanNotes": "Useful when packets need current external references beyond repo-local docs.",
+      "toolCompatibility": ["codex", "claude"],
+      "referenceOnly": true,
+      "repoEligible": true,
+      "compatibleSpecialists": ["docs-specialist", "architecture-specialist", "review-specialist", "mcp-specialist", "security-specialist"],
+      "readOnly": true,
+      "writeCapable": false,
+      "approvalRequired": false,
+      "usageGuidance": [
+        "Use for current research, library examples, or code references when repo-local authority is insufficient."
+      ],
+      "antiPatterns": [
+        "Do not use it to outrank trusted repo authority.",
+        "Do not fetch secrets or rely on uncontrolled external snippets."
+      ]
+    },
+    "firecrawl": {
+      "id": "firecrawl",
+      "category": "web-research",
+      "purpose": "targeted web search and scraping for current site-specific information",
+      "portable": true,
+      "treatment": "reference",
+      "allowedProfiles": ["strict-production", "product-build", "prototype", "documentation-heavy"],
+      "trustLevel": "medium",
+      "humanNotes": "Good fit for docs-heavy, release, and QA workflows when site-specific data is needed.",
+      "toolCompatibility": ["codex", "claude"],
+      "referenceOnly": true,
+      "repoEligible": true,
+      "compatibleSpecialists": ["docs-specialist", "qa-specialist", "release-specialist", "mcp-specialist"],
+      "readOnly": true,
+      "writeCapable": false,
+      "approvalRequired": true,
+      "usageGuidance": [
+        "Use for focused site search or extraction when official docs or repo context are not enough."
+      ],
+      "antiPatterns": [
+        "Do not treat scraped content as trusted without source review.",
+        "Do not use it when simpler local context already answers the question."
+      ]
+    },
+    "brave-search": {
+      "id": "brave-search",
+      "category": "search",
+      "purpose": "general web search for current information and discovery",
+      "portable": true,
+      "treatment": "reference",
+      "allowedProfiles": ["strict-production", "product-build", "prototype", "documentation-heavy"],
+      "trustLevel": "medium",
+      "humanNotes": "Useful for broad search before narrowing into stronger primary sources.",
+      "toolCompatibility": ["codex", "claude"],
+      "referenceOnly": true,
+      "repoEligible": true,
+      "compatibleSpecialists": ["docs-specialist", "architecture-specialist", "review-specialist", "mcp-specialist"],
+      "readOnly": true,
+      "writeCapable": false,
+      "approvalRequired": false,
+      "usageGuidance": [
+        "Use for broad discovery when you do not yet know the best source."
+      ],
+      "antiPatterns": [
+        "Do not stop at generic search results when authoritative sources exist."
+      ]
+    },
+    "docker": {
+      "id": "docker",
+      "category": "runtime",
+      "purpose": "container-local command execution and environment inspection",
+      "portable": false,
+      "treatment": "reference",
+      "allowedProfiles": ["strict-production", "product-build", "prototype", "data-platform"],
+      "trustLevel": "medium",
+      "humanNotes": "Useful for app, web, backend, and platform validation when work happens inside containers.",
+      "toolCompatibility": ["codex", "claude"],
+      "referenceOnly": true,
+      "repoEligible": false,
+      "compatibleSpecialists": ["backend-specialist", "fullstack-specialist", "qa-specialist", "release-specialist"],
+      "readOnly": false,
+      "writeCapable": true,
+      "approvalRequired": true,
+      "usageGuidance": [
+        "Use when the validation surface actually lives inside a container service."
+      ],
+      "antiPatterns": [
+        "Do not assume container access is safer than direct repo-local checks.",
+        "Do not mutate production-like containers without an explicit user request."
+      ]
+    },
+    "figma": {
+      "id": "figma",
+      "category": "design",
+      "purpose": "design context, screenshots, and code-connect mapping for design-to-code work",
+      "portable": true,
+      "treatment": "reference",
+      "allowedProfiles": ["product-build", "prototype", "documentation-heavy"],
+      "trustLevel": "high",
+      "humanNotes": "Useful for web and app development when a task starts from a Figma design.",
+      "toolCompatibility": ["codex", "claude"],
+      "referenceOnly": true,
+      "repoEligible": true,
+      "compatibleSpecialists": ["frontend-specialist", "fullstack-specialist", "docs-specialist"],
+      "readOnly": true,
+      "writeCapable": true,
+      "approvalRequired": true,
+      "usageGuidance": [
+        "Use when a trusted Figma node or file is part of the requested implementation workflow."
+      ],
+      "antiPatterns": [
+        "Do not use it when the repo already contains authoritative UI specs or screenshots."
+      ]
+    },
+    "supabase": {
+      "id": "supabase",
+      "category": "database-platform",
+      "purpose": "database, functions, types, and project metadata for Supabase-backed apps",
+      "portable": false,
+      "treatment": "reference",
+      "allowedProfiles": ["strict-production", "product-build", "prototype", "data-platform"],
+      "trustLevel": "medium",
+      "humanNotes": "Useful for backend and platform work when the repo uses Supabase directly.",
+      "toolCompatibility": ["codex", "claude"],
+      "referenceOnly": true,
+      "repoEligible": false,
+      "compatibleSpecialists": ["backend-specialist", "python-specialist", "release-specialist", "mcp-specialist"],
+      "readOnly": false,
+      "writeCapable": true,
+      "approvalRequired": true,
+      "usageGuidance": [
+        "Use for schema, function, or project metadata only when the repo clearly depends on Supabase."
+      ],
+      "antiPatterns": [
+        "Do not mutate hosted resources without explicit approval.",
+        "Do not assume database state replaces repo-local migrations or tests."
+      ]
+    },
+    "cloudflare-docs": {
+      "id": "cloudflare-docs",
+      "category": "documentation",
+      "purpose": "official Cloudflare product documentation lookup",
+      "portable": true,
+      "treatment": "reference",
+      "allowedProfiles": ["strict-production", "product-build", "prototype", "documentation-heavy"],
+      "trustLevel": "high",
+      "humanNotes": "Useful for web, edge, and deployment work that targets Cloudflare services.",
+      "toolCompatibility": ["codex", "claude"],
+      "referenceOnly": true,
+      "repoEligible": true,
+      "compatibleSpecialists": ["frontend-specialist", "backend-specialist", "docs-specialist", "release-specialist"],
+      "readOnly": true,
+      "writeCapable": false,
+      "approvalRequired": false,
+      "usageGuidance": [
+        "Use when Cloudflare platform docs should outrank generic search results."
+      ],
+      "antiPatterns": [
+        "Do not use it when the repo is not Cloudflare-related."
+      ]
+    }
+  }
+}
