@@ -1,0 +1,14 @@
+/Volumes/shrey ssd/shrey-junior/apps/sj-ui/src-tauri/target/debug/deps/serde-fa19721ab37a8dc1.d: /Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Volumes/shrey\ ssd/shrey-junior/apps/sj-ui/src-tauri/target/debug/build/serde-e8480f3b678a742a/out/private.rs
+
+/Volumes/shrey ssd/shrey-junior/apps/sj-ui/src-tauri/target/debug/deps/libserde-fa19721ab37a8dc1.rlib: /Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Volumes/shrey\ ssd/shrey-junior/apps/sj-ui/src-tauri/target/debug/build/serde-e8480f3b678a742a/out/private.rs
+
+/Volumes/shrey ssd/shrey-junior/apps/sj-ui/src-tauri/target/debug/deps/libserde-fa19721ab37a8dc1.rmeta: /Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Volumes/shrey\ ssd/shrey-junior/apps/sj-ui/src-tauri/target/debug/build/serde-e8480f3b678a742a/out/private.rs
+
+/Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs:
+/Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs:
+/Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs:
+/Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs:
+/Users/shreysoni/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs:
+/Volumes/shrey\ ssd/shrey-junior/apps/sj-ui/src-tauri/target/debug/build/serde-e8480f3b678a742a/out/private.rs:
+
+# env-dep:OUT_DIR=/Volumes/shrey ssd/shrey-junior/apps/sj-ui/src-tauri/target/debug/build/serde-e8480f3b678a742a/out

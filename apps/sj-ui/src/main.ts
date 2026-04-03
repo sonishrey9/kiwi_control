@@ -1,4 +1,6 @@
 import "./styles.css";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 type PanelItem = {
   label: string;
@@ -121,6 +123,7 @@ const sourceOfTruthNoteElement = sourceOfTruthNote;
 let currentTargetRoot = "";
 let isLoadingRepoState = false;
 let queuedLaunchRequest: LaunchRequestPayload | null = null;
+let lastHandledLaunchRequestId = "";
 
 renderState(initialState);
 bridgeNoteElement.textContent = buildBridgeNote(initialState, "shell");
@@ -142,28 +145,60 @@ async function boot(): Promise<void> {
 
   const initialLaunchRequest = await consumeInitialLaunchRequest();
   if (initialLaunchRequest) {
+    await logUiEvent("ui-initial-launch-request-consumed", initialLaunchRequest.requestId, initialLaunchRequest.targetRoot);
     await handleLaunchRequest(initialLaunchRequest);
+  } else {
+    await logUiEvent("ui-initial-launch-request-missing");
   }
+
+  window.setInterval(() => {
+    void pollPendingLaunchRequest();
+  }, 250);
 }
 
 async function registerLaunchRequestListener(): Promise<void> {
+  if (!isTauriBridgeAvailable()) {
+    return;
+  }
+
   try {
-    const { listen } = await import("@tauri-apps/api/event");
     await listen<LaunchRequestPayload>("desktop-launch-request", (event) => {
       void handleLaunchRequest(event.payload);
     });
   } catch {
-    // Tauri bridge is not available in browser-only contexts.
+    // Browser-only contexts or incomplete bridge initialization do not need live retarget listeners.
   }
 }
 
 async function handleLaunchRequest(request: LaunchRequestPayload): Promise<void> {
+  await logUiEvent("ui-launch-request-received", request.requestId, request.targetRoot);
+  lastHandledLaunchRequestId = request.requestId;
+
   if (isLoadingRepoState) {
     queuedLaunchRequest = request;
+    await logUiEvent("ui-launch-request-queued", request.requestId, request.targetRoot);
     return;
   }
 
   await loadAndRenderTarget(request.targetRoot, "cli", request.requestId);
+}
+
+async function pollPendingLaunchRequest(): Promise<void> {
+  if (isLoadingRepoState || !isTauriBridgeAvailable()) {
+    return;
+  }
+
+  const pendingLaunchRequest = await consumeInitialLaunchRequest();
+  if (!pendingLaunchRequest || pendingLaunchRequest.requestId === lastHandledLaunchRequestId) {
+    return;
+  }
+
+  await logUiEvent(
+    "ui-fallback-launch-request-consumed",
+    pendingLaunchRequest.requestId,
+    pendingLaunchRequest.targetRoot
+  );
+  await handleLaunchRequest(pendingLaunchRequest);
 }
 
 async function loadAndRenderTarget(targetRoot: string, source: "cli" | "manual", requestId?: string): Promise<void> {
@@ -185,6 +220,7 @@ async function loadAndRenderTarget(targetRoot: string, source: "cli" | "manual",
   renderState(state);
   targetInputElement.value = state.targetRoot || targetRoot;
   bridgeNoteElement.textContent = buildBridgeNote(state, source);
+  await logUiEvent("ui-repo-state-rendered", requestId, state.targetRoot || targetRoot, state.repoState.mode);
 
   if (requestId) {
     await acknowledgeLaunchRequest(requestId, state);
@@ -208,16 +244,44 @@ async function acknowledgeLaunchRequest(requestId: string, state: RepoControlSta
   const detail =
     status === "ready" ? `Loaded repo-local state for ${targetRoot}.` : BRIDGE_UNAVAILABLE_NEXT_STEP;
 
+  if (!isTauriBridgeAvailable()) {
+    return;
+  }
+
   try {
-    const { invoke } = await import("@tauri-apps/api/core");
+    await logUiEvent("ui-ack-attempt", requestId, targetRoot, status);
     await invoke("ack_launch_request", {
       requestId,
       targetRoot,
       status,
       detail
     });
+    await logUiEvent("ui-ack-succeeded", requestId, targetRoot, status);
+  } catch (error) {
+    bridgeNoteElement.textContent = "Kiwi Control loaded this repo, but the desktop launch acknowledgement did not complete yet.";
+    await logUiEvent("ui-ack-failed", requestId, targetRoot, error instanceof Error ? error.message : String(error));
+  }
+}
+
+async function logUiEvent(
+  event: string,
+  requestId?: string,
+  targetRoot?: string,
+  detail?: string
+): Promise<void> {
+  if (!isTauriBridgeAvailable()) {
+    return;
+  }
+
+  try {
+    await invoke("append_ui_launch_log", {
+      event,
+      requestId,
+      targetRoot,
+      detail
+    });
   } catch {
-    // Browser-only contexts do not need launch acknowledgements.
+    // Logging must never interrupt the product flow.
   }
 }
 
@@ -335,8 +399,11 @@ function renderPanel(title: string, items: PanelItem[]): string {
 }
 
 async function consumeInitialLaunchRequest(): Promise<LaunchRequestPayload | null> {
+  if (!isTauriBridgeAvailable()) {
+    return null;
+  }
+
   try {
-    const { invoke } = await import("@tauri-apps/api/core");
     return await invoke<LaunchRequestPayload | null>("consume_initial_launch_request");
   } catch {
     return null;
@@ -344,8 +411,11 @@ async function consumeInitialLaunchRequest(): Promise<LaunchRequestPayload | nul
 }
 
 async function loadRepoControlState(targetRoot: string): Promise<RepoControlState> {
+  if (!isTauriBridgeAvailable()) {
+    return buildBridgeUnavailableState(targetRoot);
+  }
+
   try {
-    const { invoke } = await import("@tauri-apps/api/core");
     return await invoke<RepoControlState>("load_repo_control_state", { targetRoot });
   } catch {
     return buildBridgeUnavailableState(targetRoot);
@@ -448,4 +518,8 @@ function escapeHtml(value: string): string {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function isTauriBridgeAvailable(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }

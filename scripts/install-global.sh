@@ -23,6 +23,45 @@ resolve_default_global_home() {
   printf '%s\n' "$legacy_home"
 }
 
+render_node_backed_launcher() {
+  local cli_entrypoint="$1"
+  cat <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+
+resolve_node_binary() {
+  if [[ -n "\${KIWI_CONTROL_NODE:-}" && -x "\${KIWI_CONTROL_NODE}" ]]; then
+    printf '%s\n' "\$KIWI_CONTROL_NODE"
+    return
+  fi
+
+  if [[ -n "\${SHREY_JUNIOR_NODE:-}" && -x "\${SHREY_JUNIOR_NODE}" ]]; then
+    printf '%s\n' "\$SHREY_JUNIOR_NODE"
+    return
+  fi
+
+  local candidate=""
+  if candidate="\$(command -v node 2>/dev/null)"; then
+    printf '%s\n' "\$candidate"
+    return
+  fi
+
+  for candidate in /opt/homebrew/bin/node /usr/local/bin/node /usr/bin/node; do
+    if [[ -x "\$candidate" ]]; then
+      printf '%s\n' "\$candidate"
+      return
+    fi
+  done
+
+  printf '%s\n' "Kiwi Control requires Node.js 22+ to run." >&2
+  exit 1
+}
+
+NODE_BIN="\$(resolve_node_binary)"
+exec "\$NODE_BIN" "$cli_entrypoint" "\$@"
+EOF
+}
+
 GLOBAL_HOME="$(resolve_default_global_home)"
 PATH_BIN="${KIWI_CONTROL_PATH_BIN:-${SHREY_JUNIOR_PATH_BIN:-$HOME/.local/bin}}"
 CLI_ENTRYPOINT="$ROOT/packages/sj-cli/dist/cli.js"
@@ -225,11 +264,7 @@ for existing in \
   backup_if_exists "$existing"
 done
 
-LAUNCHER_CONTENT=$(cat <<EOF
-#!/usr/bin/env bash
-exec node "$CLI_ENTRYPOINT" "\$@"
-EOF
-)
+LAUNCHER_CONTENT="$(render_node_backed_launcher "$CLI_ENTRYPOINT")"
 write_file "$GLOBAL_HOME/bin/kiwi-control" "$LAUNCHER_CONTENT"
 if [[ "$DRY_RUN" -eq 0 ]]; then
   chmod +x "$GLOBAL_HOME/bin/kiwi-control"

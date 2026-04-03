@@ -4,6 +4,12 @@ Kiwi Control is a local-first, repo-first control plane for coding agents.
 
 It gives developers one installable CLI and desktop control surface while keeping the real authority inside the repo. Repo-local artifacts are the portable source of truth. Machine-global files are accelerators only. CI remains the hard enforcement layer.
 
+Public beta positioning:
+
+- Kiwi Control is free and local-first for the first public beta.
+- Core usage does not depend on a cloud backend.
+- Enterprise distribution, team controls, and managed support are coming later, not hidden inside the beta.
+
 ## Product thesis
 
 Kiwi Control is not a generic AI tooling wrapper.
@@ -211,6 +217,9 @@ See:
 - [docs/package-architecture.md](/Volumes/shrey%20ssd/shrey-junior/docs/package-architecture.md)
 - [docs/release-packaging.md](/Volumes/shrey%20ssd/shrey-junior/docs/release-packaging.md)
 - [docs/beta-readiness-checklist.md](/Volumes/shrey%20ssd/shrey-junior/docs/beta-readiness-checklist.md)
+- [docs/privacy-policy.md](/Volumes/shrey%20ssd/shrey-junior/docs/privacy-policy.md)
+- [docs/terms-and-conditions.md](/Volumes/shrey%20ssd/shrey-junior/docs/terms-and-conditions.md)
+- [docs/security-and-trust.md](/Volumes/shrey%20ssd/shrey-junior/docs/security-and-trust.md)
 - [packaging/signing/README.md](/Volumes/shrey%20ssd/shrey-junior/packaging/signing/README.md)
 
 ## Non-goals

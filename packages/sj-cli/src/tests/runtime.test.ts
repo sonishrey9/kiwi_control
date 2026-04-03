@@ -8,6 +8,7 @@ import {
   isSourceProductCheckout,
   resolveShreyJuniorProductRoot,
   resolveSourceCliEntrypoint,
+  resolveSourceUiDesktopBundlePath,
   resolveSourceUiDevEntrypoint
 } from "@shrey-junior/sj-core";
 
@@ -40,16 +41,47 @@ test("runtime resolver falls back to the source repo root when running from sour
   assert.equal(resolved, repoRoot);
 });
 
+test("runtime resolver prefers the source repo root over packaged runtime assets in a built checkout", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-runtime-built-source-"));
+  const checkoutRoot = path.join(tempDir, "repo");
+  const runtimeFile = path.join(checkoutRoot, "packages", "sj-core", "dist", "runtime.js");
+  const packagedRuntimeRoot = path.join(checkoutRoot, "packages", "sj-core", "dist", "runtime");
+  await fs.mkdir(path.join(checkoutRoot, "configs"), { recursive: true });
+  await fs.mkdir(path.join(packagedRuntimeRoot, "configs"), { recursive: true });
+  await fs.mkdir(path.join(checkoutRoot, "packages", "sj-cli"), { recursive: true });
+  await fs.mkdir(path.join(checkoutRoot, "apps", "sj-ui"), { recursive: true });
+  await fs.mkdir(path.join(checkoutRoot, "scripts"), { recursive: true });
+  await fs.mkdir(path.dirname(runtimeFile), { recursive: true });
+  await fs.writeFile(path.join(checkoutRoot, "configs", "global.yaml"), "version: 2\n", "utf8");
+  await fs.writeFile(path.join(packagedRuntimeRoot, "configs", "global.yaml"), "version: 2\n", "utf8");
+  await fs.writeFile(path.join(checkoutRoot, "packages", "sj-cli", "package.json"), "{}\n", "utf8");
+  await fs.writeFile(path.join(checkoutRoot, "apps", "sj-ui", "package.json"), "{}\n", "utf8");
+  await fs.writeFile(path.join(checkoutRoot, "scripts", "run-ui-dev.mjs"), "", "utf8");
+  await fs.writeFile(runtimeFile, "", "utf8");
+
+  const resolved = resolveShreyJuniorProductRoot(pathToFileURL(runtimeFile).href);
+  assert.equal(resolved, checkoutRoot);
+});
+
 test("runtime helpers can derive source entrypoints from an explicit source checkout root", () => {
   const productRoot = repoRoot();
   const cliEntrypoint = resolveSourceCliEntrypoint(productRoot);
   const uiEntrypoint = resolveSourceUiDevEntrypoint(productRoot);
+  const desktopBundlePath = resolveSourceUiDesktopBundlePath(productRoot);
 
   assert.equal(
     cliEntrypoint,
     path.join(productRoot, "packages", "sj-cli", "dist", "cli.js")
   );
   assert.equal(uiEntrypoint, path.join(productRoot, "scripts", "run-ui-dev.mjs"));
+  if (process.platform === "darwin") {
+    assert.equal(
+      desktopBundlePath,
+      path.join(productRoot, "apps", "sj-ui", "src-tauri", "target", "release", "bundle", "macos", "Kiwi Control.app")
+    );
+  } else {
+    assert.equal(desktopBundlePath, null);
+  }
   assert.equal(isSourceProductCheckout(productRoot), true);
 });
 

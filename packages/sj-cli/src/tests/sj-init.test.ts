@@ -201,6 +201,9 @@ test("install-global installs kiwi-control plus compatibility aliases into the g
   const profileContents = await fs.readFile(profilePath, "utf8");
   assert.match(profileContents, /# >>> Kiwi Control PATH >>>/);
   assert.match(profileContents, /export PATH=".*\.local\/bin:\$PATH"/);
+  const installedLauncher = await fs.readFile(homeKiwiControl, "utf8");
+  assert.match(installedLauncher, /resolve_node_binary/);
+  assert.match(installedLauncher, /\/opt\/homebrew\/bin\/node/);
 
   const helpResult = spawnSync(pathKiwiControl, ["--help"], {
     env: {

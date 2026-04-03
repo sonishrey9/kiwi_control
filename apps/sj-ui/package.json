@@ -8,7 +8,7 @@
     "@tauri-apps/api": "^2.0.0"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && vite build",
+    "build": "tsc -p tsconfig.json && vite build && node ../../scripts/remove-macos-metadata.mjs dist",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"
   },

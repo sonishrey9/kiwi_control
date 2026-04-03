@@ -139,6 +139,20 @@ They still need live release URLs and real SHA256 values at publish time.
 
 The CI workflow installs Linux prerequisites and Rust so tagged builds have a concrete desktop packaging path.
 
+## Public launch support pages
+
+The public beta release set should include:
+
+- [docs/privacy-policy.md](/Volumes/shrey%20ssd/shrey-junior/docs/privacy-policy.md)
+- [docs/terms-and-conditions.md](/Volumes/shrey%20ssd/shrey-junior/docs/terms-and-conditions.md)
+- [docs/security-and-trust.md](/Volumes/shrey%20ssd/shrey-junior/docs/security-and-trust.md)
+
+These pages should stay honest about the current beta:
+
+- free and local-first now
+- no hidden cloud requirement for core usage
+- enterprise and managed distribution coming later
+
 ## Updater and desktop identity
 
 The desktop product identity must stay visibly Kiwi Control across:

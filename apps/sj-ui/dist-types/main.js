@@ -1,4 +1,6 @@
 import "./styles.css";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 const BRIDGE_UNAVAILABLE_NEXT_STEP = "Confirm kiwi-control works in Terminal, then run kc ui again.";
 const app = document.querySelector("#app");
 if (!app) {
@@ -63,6 +65,7 @@ const sourceOfTruthNoteElement = sourceOfTruthNote;
 let currentTargetRoot = "";
 let isLoadingRepoState = false;
 let queuedLaunchRequest = null;
+let lastHandledLaunchRequestId = "";
 renderState(initialState);
 bridgeNoteElement.textContent = buildBridgeNote(initialState, "shell");
 loadButtonElement.addEventListener("click", () => {
@@ -78,26 +81,49 @@ async function boot() {
     await registerLaunchRequestListener();
     const initialLaunchRequest = await consumeInitialLaunchRequest();
     if (initialLaunchRequest) {
+        await logUiEvent("ui-initial-launch-request-consumed", initialLaunchRequest.requestId, initialLaunchRequest.targetRoot);
         await handleLaunchRequest(initialLaunchRequest);
     }
+    else {
+        await logUiEvent("ui-initial-launch-request-missing");
+    }
+    window.setInterval(() => {
+        void pollPendingLaunchRequest();
+    }, 250);
 }
 async function registerLaunchRequestListener() {
+    if (!isTauriBridgeAvailable()) {
+        return;
+    }
     try {
-        const { listen } = await import("@tauri-apps/api/event");
         await listen("desktop-launch-request", (event) => {
             void handleLaunchRequest(event.payload);
         });
     }
     catch {
-        // Tauri bridge is not available in browser-only contexts.
+        // Browser-only contexts or incomplete bridge initialization do not need live retarget listeners.
     }
 }
 async function handleLaunchRequest(request) {
+    await logUiEvent("ui-launch-request-received", request.requestId, request.targetRoot);
+    lastHandledLaunchRequestId = request.requestId;
     if (isLoadingRepoState) {
         queuedLaunchRequest = request;
+        await logUiEvent("ui-launch-request-queued", request.requestId, request.targetRoot);
         return;
     }
     await loadAndRenderTarget(request.targetRoot, "cli", request.requestId);
+}
+async function pollPendingLaunchRequest() {
+    if (isLoadingRepoState || !isTauriBridgeAvailable()) {
+        return;
+    }
+    const pendingLaunchRequest = await consumeInitialLaunchRequest();
+    if (!pendingLaunchRequest || pendingLaunchRequest.requestId === lastHandledLaunchRequestId) {
+        return;
+    }
+    await logUiEvent("ui-fallback-launch-request-consumed", pendingLaunchRequest.requestId, pendingLaunchRequest.targetRoot);
+    await handleLaunchRequest(pendingLaunchRequest);
 }
 async function loadAndRenderTarget(targetRoot, source, requestId) {
     if (isLoadingRepoState) {
@@ -116,6 +142,7 @@ async function loadAndRenderTarget(targetRoot, source, requestId) {
     renderState(state);
     targetInputElement.value = state.targetRoot || targetRoot;
     bridgeNoteElement.textContent = buildBridgeNote(state, source);
+    await logUiEvent("ui-repo-state-rendered", requestId, state.targetRoot || targetRoot, state.repoState.mode);
     if (requestId) {
         await acknowledgeLaunchRequest(requestId, state);
     }
@@ -132,17 +159,38 @@ async function acknowledgeLaunchRequest(requestId, state) {
     const targetRoot = state.targetRoot || currentTargetRoot;
     const status = state.repoState.mode === "bridge-unavailable" ? "error" : "ready";
     const detail = status === "ready" ? `Loaded repo-local state for ${targetRoot}.` : BRIDGE_UNAVAILABLE_NEXT_STEP;
+    if (!isTauriBridgeAvailable()) {
+        return;
+    }
     try {
-        const { invoke } = await import("@tauri-apps/api/core");
+        await logUiEvent("ui-ack-attempt", requestId, targetRoot, status);
         await invoke("ack_launch_request", {
             requestId,
             targetRoot,
             status,
             detail
         });
+        await logUiEvent("ui-ack-succeeded", requestId, targetRoot, status);
+    }
+    catch (error) {
+        bridgeNoteElement.textContent = "Kiwi Control loaded this repo, but the desktop launch acknowledgement did not complete yet.";
+        await logUiEvent("ui-ack-failed", requestId, targetRoot, error instanceof Error ? error.message : String(error));
+    }
+}
+async function logUiEvent(event, requestId, targetRoot, detail) {
+    if (!isTauriBridgeAvailable()) {
+        return;
+    }
+    try {
+        await invoke("append_ui_launch_log", {
+            event,
+            requestId,
+            targetRoot,
+            detail
+        });
     }
     catch {
-        // Browser-only contexts do not need launch acknowledgements.
+        // Logging must never interrupt the product flow.
     }
 }
 function renderState(state) {
@@ -244,8 +292,10 @@ function renderPanel(title, items) {
   `;
 }
 async function consumeInitialLaunchRequest() {
+    if (!isTauriBridgeAvailable()) {
+        return null;
+    }
     try {
-        const { invoke } = await import("@tauri-apps/api/core");
         return await invoke("consume_initial_launch_request");
     }
     catch {
@@ -253,8 +303,10 @@ async function consumeInitialLaunchRequest() {
     }
 }
 async function loadRepoControlState(targetRoot) {
+    if (!isTauriBridgeAvailable()) {
+        return buildBridgeUnavailableState(targetRoot);
+    }
     try {
-        const { invoke } = await import("@tauri-apps/api/core");
         return await invoke("load_repo_control_state", { targetRoot });
     }
     catch {
@@ -353,4 +405,7 @@ function escapeHtml(value) {
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#39;");
+}
+function isTauriBridgeAvailable() {
+    return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }

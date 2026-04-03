@@ -6,17 +6,28 @@ function hasCanonicalConfigs(root: string): boolean {
   return existsSync(path.join(root, "configs", "global.yaml"));
 }
 
+function hasSourceCheckoutLayout(root: string): boolean {
+  return (
+    hasCanonicalConfigs(root) &&
+    existsSync(path.join(root, "packages", "sj-cli", "package.json")) &&
+    existsSync(path.join(root, "apps", "sj-ui", "package.json")) &&
+    existsSync(path.join(root, "scripts", "run-ui-dev.mjs"))
+  );
+}
+
 export function resolveShreyJuniorProductRoot(fromImportMetaUrl = import.meta.url): string {
   const baseDir = path.dirname(fileURLToPath(fromImportMetaUrl));
   const overrideRoot = process.env.KIWI_CONTROL_PRODUCT_ROOT || process.env.SHREY_JUNIOR_PRODUCT_ROOT;
+  const sourceCheckoutRoot = path.resolve(baseDir, "..", "..", "..");
   const candidates = [
     overrideRoot,
+    hasSourceCheckoutLayout(sourceCheckoutRoot) ? sourceCheckoutRoot : undefined,
     path.resolve(baseDir, "runtime"),
     path.resolve(baseDir, "..", "runtime"),
-    path.resolve(baseDir, "..", "..", "..")
+    sourceCheckoutRoot
   ].filter((candidate): candidate is string => Boolean(candidate));
 
-  const resolved = candidates.find(hasCanonicalConfigs);
+  const resolved = [...new Set(candidates)].find(hasCanonicalConfigs);
   if (resolved) {
     return resolved;
   }
@@ -30,6 +41,14 @@ export function resolveSourceCliEntrypoint(productRoot = resolveShreyJuniorProdu
 
 export function resolveSourceUiDevEntrypoint(productRoot = resolveShreyJuniorProductRoot()): string {
   return path.join(productRoot, "scripts", "run-ui-dev.mjs");
+}
+
+export function resolveSourceUiDesktopBundlePath(productRoot = resolveShreyJuniorProductRoot()): string | null {
+  if (process.platform !== "darwin") {
+    return null;
+  }
+
+  return path.join(productRoot, "apps", "sj-ui", "src-tauri", "target", "release", "bundle", "macos", "Kiwi Control.app");
 }
 
 export function isSourceProductCheckout(productRoot = resolveShreyJuniorProductRoot()): boolean {

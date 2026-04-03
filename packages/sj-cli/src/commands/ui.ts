@@ -1,9 +1,9 @@
-import { promises as fs } from "node:fs";
+import { existsSync, promises as fs, readdirSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { PRODUCT_METADATA, isSourceProductCheckout } from "@shrey-junior/sj-core";
+import { PRODUCT_METADATA, isSourceProductCheckout, resolveSourceUiDesktopBundlePath } from "@shrey-junior/sj-core";
 import { buildRepoControlState } from "@shrey-junior/sj-core/core/ui-state.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 
@@ -52,6 +52,7 @@ const DESKTOP_BINARY_CANDIDATES = ["kiwi-control-ui", "kiwi-control-desktop"];
 const DESKTOP_LAUNCH_WAIT_TIMEOUT_MS = 3_000;
 const DESKTOP_LAUNCH_POLL_INTERVAL_MS = 100;
 const DESKTOP_LAUNCH_PROBE_SETTLE_MS = 250;
+const DESKTOP_LAUNCH_BRIDGE_DIR_ENV = "KIWI_CONTROL_DESKTOP_BRIDGE_DIR";
 
 export async function runUi(options: UiOptions): Promise<number> {
   if (options.json) {
@@ -78,7 +79,7 @@ export async function runUi(options: UiOptions): Promise<number> {
     targetRoot: launchRequest.targetRoot
   });
 
-  const launched = await launchDesktopControlSurface(launchRequest);
+  const launched = await launchDesktopControlSurface(launchRequest, options.repoRoot);
   if (!launched) {
     await clearDesktopLaunchRequest();
     await appendDesktopLaunchLog({
@@ -140,8 +141,9 @@ export function buildDesktopLaunchTimeoutMessage(repoRoot: string): string {
   return buildDesktopUnavailableMessage(repoRoot);
 }
 
-export function buildDesktopLaunchCandidates(): DesktopLaunchCandidate[] {
+export function buildDesktopLaunchCandidates(repoRoot?: string): DesktopLaunchCandidate[] {
   const candidates: DesktopLaunchCandidate[] = [];
+  let hasExplicitDesktopOverride = false;
 
   for (const envName of PRODUCT_METADATA.compatibility.desktopEnvVars) {
     const value = process.env[envName]?.trim();
@@ -149,7 +151,24 @@ export function buildDesktopLaunchCandidates(): DesktopLaunchCandidate[] {
       continue;
     }
 
+    hasExplicitDesktopOverride = true;
     candidates.push(buildDesktopCandidateFromEnvValue(value));
+  }
+
+  if (hasExplicitDesktopOverride) {
+    return candidates;
+  }
+
+  const sourceBundlePath = resolveSourceDesktopLaunchBundle(repoRoot);
+  if (sourceBundlePath) {
+    const sourceBundleExecutable = resolveMacOsBundleExecutable(sourceBundlePath);
+    if (sourceBundleExecutable) {
+      candidates.push({
+        command: sourceBundleExecutable,
+        args: []
+      });
+    }
+    candidates.push(buildDesktopCandidateFromEnvValue(sourceBundlePath));
   }
 
   if (process.platform === "darwin") {
@@ -170,25 +189,56 @@ export function buildDesktopLaunchCandidates(): DesktopLaunchCandidate[] {
 }
 
 export function resolveDesktopLaunchRequestPath(): string {
-  return path.join(os.tmpdir(), PRODUCT_METADATA.release.artifactPrefix, "desktop-launch-request.json");
+  return path.join(resolveDesktopLaunchBridgeDir(), "desktop-launch-request.json");
 }
 
 export function resolveDesktopLaunchStatusPath(): string {
-  return path.join(os.tmpdir(), PRODUCT_METADATA.release.artifactPrefix, "desktop-launch-status.json");
+  return path.join(resolveDesktopLaunchBridgeDir(), "desktop-launch-status.json");
 }
 
 export function resolveDesktopLaunchLogPath(): string {
-  return path.join(os.tmpdir(), PRODUCT_METADATA.release.artifactPrefix, "desktop-launch-log.json");
+  return path.join(resolveDesktopLaunchBridgeDir(), "desktop-launch-log.json");
 }
 
-async function launchDesktopControlSurface(launchRequest: DesktopLaunchRequest): Promise<DesktopLaunchResult | null> {
-  for (const candidate of buildDesktopLaunchCandidates()) {
+async function launchDesktopControlSurface(launchRequest: DesktopLaunchRequest, repoRoot?: string): Promise<DesktopLaunchResult | null> {
+  for (const candidate of buildDesktopLaunchCandidates(repoRoot)) {
     if (await tryLaunchDesktopCandidate(candidate, launchRequest)) {
       return { candidate };
     }
   }
 
   return null;
+}
+
+function resolveSourceDesktopLaunchBundle(repoRoot?: string): string | null {
+  if (!repoRoot || !isSourceProductCheckout(repoRoot)) {
+    return null;
+  }
+
+  const bundlePath = resolveSourceUiDesktopBundlePath(repoRoot);
+  if (!bundlePath || !existsSync(bundlePath)) {
+    return null;
+  }
+
+  return bundlePath;
+}
+
+function resolveMacOsBundleExecutable(bundlePath: string): string | null {
+  if (process.platform !== "darwin" || !bundlePath.endsWith(".app")) {
+    return null;
+  }
+
+  const macOsDirectory = path.join(bundlePath, "Contents", "MacOS");
+  if (!existsSync(macOsDirectory)) {
+    return null;
+  }
+
+  const executable = readdirSync(macOsDirectory, { withFileTypes: true }).find((entry) => entry.isFile());
+  if (!executable) {
+    return null;
+  }
+
+  return path.join(macOsDirectory, executable.name);
 }
 
 function buildDesktopCandidateFromEnvValue(value: string): DesktopLaunchCandidate {
@@ -224,6 +274,15 @@ function buildDesktopCandidateFromEnvValue(value: string): DesktopLaunchCandidat
     command: value,
     args: []
   };
+}
+
+function resolveDesktopLaunchBridgeDir(): string {
+  const explicitBridgeDir = process.env[DESKTOP_LAUNCH_BRIDGE_DIR_ENV]?.trim();
+  if (explicitBridgeDir) {
+    return explicitBridgeDir;
+  }
+
+  return path.join(os.tmpdir(), PRODUCT_METADATA.release.artifactPrefix);
 }
 
 async function writeDesktopLaunchRequest(request: DesktopLaunchRequest): Promise<void> {
@@ -351,28 +410,11 @@ async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate, laun
 async function appendDesktopLaunchLog(entry: Omit<DesktopLaunchLogEntry, "reportedAt">): Promise<void> {
   const logPath = resolveDesktopLaunchLogPath();
   await fs.mkdir(path.dirname(logPath), { recursive: true });
-
-  const existingEntries = await readDesktopLaunchLog();
-  existingEntries.push({
+  const payload = JSON.stringify({
     ...entry,
     reportedAt: new Date().toISOString()
   });
-
-  await fs.writeFile(logPath, JSON.stringify(existingEntries, null, 2), "utf8");
-}
-
-async function readDesktopLaunchLog(): Promise<DesktopLaunchLogEntry[]> {
-  try {
-    const payload = await fs.readFile(resolveDesktopLaunchLogPath(), "utf8");
-    const entries = JSON.parse(payload) as DesktopLaunchLogEntry[];
-    return Array.isArray(entries) ? entries : [];
-  } catch (error) {
-    if (isMissingFileError(error)) {
-      return [];
-    }
-
-    return [];
-  }
+  await fs.appendFile(logPath, `${payload}\n`, "utf8");
 }
 
 function isMissingFileError(error: unknown): boolean {

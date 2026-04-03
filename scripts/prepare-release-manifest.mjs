@@ -67,23 +67,23 @@ const platformBundles = [
     platform: "macos",
     arch: "aarch64",
     artifactType: "desktop",
-    fileName: `${artifactPrefix}-${version}-macos-aarch64.app.tar.gz`,
+    fileName: `${artifactPrefix}-${version}-macos-aarch64.dmg`,
     localBuildCommand: "npm run ui:desktop:build",
-    bundlePath: "apps/sj-ui/src-tauri/target/release/bundle/macos"
+    bundlePath: "apps/sj-ui/src-tauri/target/release/bundle/dmg"
   },
   {
     platform: "macos",
     arch: "x64",
     artifactType: "desktop",
-    fileName: `${artifactPrefix}-${version}-macos-x64.app.tar.gz`,
+    fileName: `${artifactPrefix}-${version}-macos-x64.dmg`,
     localBuildCommand: "npm run ui:desktop:build",
-    bundlePath: "apps/sj-ui/src-tauri/target/release/bundle/macos"
+    bundlePath: "apps/sj-ui/src-tauri/target/release/bundle/dmg"
   },
   {
     platform: "windows",
     arch: "x64",
     artifactType: "desktop",
-    fileName: `${artifactPrefix}-${version}-windows-x64.msi.zip`,
+    fileName: `${artifactPrefix}-${version}-windows-x64.msi`,
     localBuildCommand: "npm run ui:desktop:build",
     bundlePath: "apps/sj-ui/src-tauri/target/release/bundle/msi"
   },
@@ -91,7 +91,7 @@ const platformBundles = [
     platform: "linux",
     arch: "x64",
     artifactType: "desktop",
-    fileName: `${artifactPrefix}-${version}-linux-x64.AppImage.tar.gz`,
+    fileName: `${artifactPrefix}-${version}-linux-x64.AppImage`,
     localBuildCommand: "npm run ui:desktop:build",
     bundlePath: "apps/sj-ui/src-tauri/target/release/bundle/appimage"
   }
@@ -169,6 +169,7 @@ const manifest = {
   },
   updateMetadata: {
     tauriUpdaterManifest: PRODUCT_METADATA.release.updaterManifestPath,
+    updaterArtifactsEnabled: false,
     checksumFiles: ["SHA256SUMS.txt"],
     signingInputs: [
       "TAURI_SIGNING_PRIVATE_KEY",
@@ -179,6 +180,10 @@ const manifest = {
       "APPLE_APP_SPECIFIC_PASSWORD",
       "WINDOWS_CODESIGN_CERT_SHA1",
       "WINDOWS_CODESIGN_PASSWORD"
+    ],
+    notes: [
+      "Updater artifact generation stays disabled until Tauri updater signing inputs and plugin configuration are active.",
+      "Do not claim auto-update support until signed updater metadata is shipping in published releases."
     ]
   },
   trustChecklist: {
@@ -248,7 +253,35 @@ function renderPosixCliLauncher() {
   return `#!/usr/bin/env bash
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
-exec node "$SCRIPT_DIR/../lib/cli.js" "$@"
+resolve_node_binary() {
+  if [[ -n "\${KIWI_CONTROL_NODE:-}" && -x "\${KIWI_CONTROL_NODE}" ]]; then
+    printf '%s\\n' "$KIWI_CONTROL_NODE"
+    return
+  fi
+
+  if [[ -n "\${SHREY_JUNIOR_NODE:-}" && -x "\${SHREY_JUNIOR_NODE}" ]]; then
+    printf '%s\\n' "$SHREY_JUNIOR_NODE"
+    return
+  fi
+
+  local candidate=""
+  if candidate="$(command -v node 2>/dev/null)"; then
+    printf '%s\\n' "$candidate"
+    return
+  fi
+
+  for candidate in /opt/homebrew/bin/node /usr/local/bin/node /usr/bin/node; do
+    if [[ -x "$candidate" ]]; then
+      printf '%s\\n' "$candidate"
+      return
+    fi
+  done
+
+  printf '%s\\n' "${PRODUCT_METADATA.displayName} requires Node.js 22+ to run." >&2
+  exit 1
+}
+NODE_BIN="$(resolve_node_binary)"
+exec "$NODE_BIN" "$SCRIPT_DIR/../lib/cli.js" "$@"
 `;
 }
 
@@ -418,7 +451,41 @@ PY
 
 write_wrapper() {
   local wrapper_path="$1"
-  printf '%s\\n' '#!/usr/bin/env bash' 'set -euo pipefail' "exec node \\\"$INSTALL_ROOT/lib/cli.js\\\" \\\"\\$@\\\"" >"$wrapper_path"
+  cat >"$wrapper_path" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+
+resolve_node_binary() {
+  if [[ -n "\${KIWI_CONTROL_NODE:-}" && -x "\${KIWI_CONTROL_NODE}" ]]; then
+    printf '%s\\n' "\$KIWI_CONTROL_NODE"
+    return
+  fi
+
+  if [[ -n "\${SHREY_JUNIOR_NODE:-}" && -x "\${SHREY_JUNIOR_NODE}" ]]; then
+    printf '%s\\n' "\$SHREY_JUNIOR_NODE"
+    return
+  fi
+
+  local candidate=""
+  if candidate="\$(command -v node 2>/dev/null)"; then
+    printf '%s\\n' "\$candidate"
+    return
+  fi
+
+  for candidate in /opt/homebrew/bin/node /usr/local/bin/node /usr/bin/node; do
+    if [[ -x "\$candidate" ]]; then
+      printf '%s\\n' "\$candidate"
+      return
+    fi
+  done
+
+  printf '%s\\n' "${PRODUCT_METADATA.displayName} requires Node.js 22+ to run." >&2
+  exit 1
+}
+
+NODE_BIN="\$(resolve_node_binary)"
+exec "\$NODE_BIN" "$INSTALL_ROOT/lib/cli.js" "\$@"
+EOF
   chmod +x "$wrapper_path"
 }
 
