@@ -15,21 +15,35 @@ Use this registry to choose the smallest specialist that matches the work. It is
 
 ## Curated Specialists
 
-### `python-implementer`
+### `python-specialist`
 
 - Purpose: Python implementation work in app, service, script, or infra-supporting repos.
 - Allowed MCP categories: core-pack, research-pack, aws-pack when repo authority justifies it.
 - Required checks: the narrowest Python test, lint, or typecheck available.
-- Best next handoff: `qa-specialist` or `security-reviewer`.
+- Best next handoff: `qa-specialist` or `security-specialist`.
 
-### `typescript-implementer`
+### `backend-specialist`
+
+- Purpose: server-side API, service, persistence, and contract-safe backend delivery.
+- Allowed MCP categories: core-pack, research-pack, aws-pack for AWS repos, and web-qa-pack when browser evidence matters.
+- Required checks: the narrowest backend validation plus explicit contract side-effect review.
+- Best next handoff: `review-specialist`, `qa-specialist`, or `security-specialist`.
+
+### `frontend-specialist`
+
+- Purpose: UI implementation and review with clear browser evidence and repo-aware design boundaries.
+- Allowed MCP categories: core-pack, web-qa-pack, research-pack.
+- Required checks: the narrowest frontend build/test loop plus browser evidence when behavior changed.
+- Best next handoff: `qa-specialist` or `review-specialist`.
+
+### `fullstack-specialist`
 
 - Purpose: TypeScript or Node implementation work, especially app and web repos.
 - Allowed MCP categories: core-pack, web-qa-pack, research-pack.
 - Required checks: the narrowest build, typecheck, or test loop available.
-- Best next handoff: `qa-specialist` or `performance-reviewer`.
+- Best next handoff: `qa-specialist` or `review-specialist`.
 
-### `sql-specialist`
+### `data-platform-specialist`
 
 - Purpose: schema, migration, query, transform, and data-boundary work.
 - Allowed MCP categories: core-pack, research-pack, aws-pack only when repo authority explicitly calls for it.
@@ -48,60 +62,79 @@ Use this registry to choose the smallest specialist that matches the work. It is
 - Purpose: iOS, Swift, SwiftUI, or Xcode-bound work.
 - Allowed MCP categories: core-pack, ios-pack, research-pack.
 - Required checks: repo-local Xcode or Swift validation; use Xcode bridges only when actually available.
-- Best next handoff: `qa-specialist` or `performance-reviewer`.
+- Best next handoff: `qa-specialist` or `review-specialist`.
 
 ### `qa-specialist`
 
 - Purpose: validation, acceptance gaps, regression spotting, and test evidence.
 - Allowed MCP categories: core-pack, web-qa-pack, research-pack.
 - Required checks: verify what ran, what passed, and what remains unproven.
-- Best next handoff: `reconciler` or `release-readiness`.
+- Best next handoff: `review-specialist` or `release-specialist`.
 
-### `security-reviewer`
+### `review-specialist`
+
+- Purpose: general code review, reconcile, and correctness/risk synthesis across specialist outputs.
+- Allowed MCP categories: core-pack, research-pack.
+- Required checks: findings first, missing evidence called out explicitly, and contradictions resolved before checkpointing.
+- Best next handoff: `release-specialist` or the next implementation specialist.
+
+### `security-specialist`
 
 - Purpose: auth, permission, exposure, secret-handling, and unsafe-boundary review.
 - Allowed MCP categories: core-pack, research-pack, aws-pack for AWS repos only.
 - Required checks: explicit security-sensitive diff review and missing-proof callouts.
-- Best next handoff: `reconciler` or `release-readiness`.
+- Best next handoff: `review-specialist` or `release-specialist`.
 
-### `performance-reviewer`
+### `refactor-specialist`
 
 - Purpose: refactor, performance, scaling, and runtime-risk review.
 - Allowed MCP categories: core-pack, web-qa-pack, research-pack.
 - Required checks: smallest meaningful perf/build/test proof available.
-- Best next handoff: `reconciler`.
+- Best next handoff: `review-specialist`.
 
 ### `docs-specialist`
 
 - Purpose: architecture docs, onboarding, task summaries, memory cleanup, and contract clarity.
 - Allowed MCP categories: core-pack, research-pack.
 - Required checks: align docs with repo-local truth, not memory or chat assumptions.
-- Best next handoff: `handoff-editor` or `dispatcher`.
+- Best next handoff: `architecture-specialist` or the actual next worker.
 
-### `dispatcher`
+### `architecture-specialist`
 
 - Purpose: decide who should work next, what they should read, and what proof they owe.
 - Allowed MCP categories: core-pack, research-pack.
 - Required checks: packet or handoff completeness, not implementation checks.
 - Best next handoff: whichever specialist is named next.
 
-### `reconciler`
+### `push-specialist`
+
+- Purpose: conservative push-readiness review before anyone recommends staging, committing, or pushing.
+- Allowed MCP categories: core-pack, research-pack.
+- Required checks: validate reconcile state, validations, and git cleanliness without mutating git state.
+- Best next handoff: `release-specialist` or the user.
+
+### `release-specialist`
 
 - Purpose: synthesize multi-role outputs into a coherent next action.
 - Allowed MCP categories: core-pack, research-pack.
 - Required checks: compare evidence, risks, and unresolved contradictions before recommending next steps.
-- Best next handoff: `release-readiness`, `handoff-editor`, or the next implementer.
+- Best next handoff: `docs-specialist`, `push-specialist`, or the user.
 
-### `handoff-editor`
+### `mcp-specialist`
 
-- Purpose: turn messy work history into a compact, high-signal handoff.
-- Allowed MCP categories: core-pack, research-pack.
-- Required checks: the handoff must include evidence, open questions, risks, next file, next command, and checkpoint pointer.
-- Best next handoff: the actual next worker.
+- Purpose: choose and explain MCP packs or capability usage without inventing runtime guarantees.
+- Allowed MCP categories: core-pack, research-pack, web-qa-pack, aws-pack, ios-pack, android-pack.
+- Required checks: match pack guidance to repo type, runtime reality, and approval policy.
+- Best next handoff: whichever specialist now has a credible tool plan.
 
-### `release-readiness`
+## Compatibility Aliases
 
-- Purpose: decide whether the repo is ready for push discussion, not to push automatically.
-- Allowed MCP categories: core-pack, research-pack, aws-pack only when the repo is AWS-specific.
-- Required checks: `shrey-junior check`, `push-check`, and any repo-specific release gates.
-- Best next handoff: `handoff-editor` or the user.
+- `python-implementer` -> `python-specialist`
+- `typescript-implementer` -> `fullstack-specialist`
+- `sql-specialist` -> `data-platform-specialist`
+- `security-reviewer` -> `security-specialist`
+- `performance-reviewer` -> `refactor-specialist`
+- `handoff-editor` -> `docs-specialist`
+- `dispatcher` -> `architecture-specialist`
+- `reconciler` -> `review-specialist`
+- `release-readiness` -> `release-specialist`

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Shrey Junior",
+  "version": "0.2.0-beta.1",
+  "identifier": "com.shreyjunior.desktop",
+  "build": {
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Shrey Junior",
+        "width": 1320,
+        "height": 920,
+        "resizable": true
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "icon": []
+  }
+}

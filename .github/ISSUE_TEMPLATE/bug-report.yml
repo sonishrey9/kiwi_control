@@ -1,0 +1,26 @@
+name: Bug report
+description: Report a reproducible defect in the CLI, core package, or desktop shell.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Include commands, target repo shape, and expected versus actual behavior.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, shell, Node version, and whether you are running from source or a release artifact.
+    validations:
+      required: true

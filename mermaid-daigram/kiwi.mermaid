@@ -1,0 +1,324 @@
+flowchart TB
+    %% =========================
+    %% TOP LEVEL
+    %% =========================
+    USER[Developer / User]
+
+    USER --> CLI[sj-cli]
+    USER --> UI[sj-ui Desktop App]
+
+    %% =========================
+    %% PRODUCT LAYERS
+    %% =========================
+    subgraph PRODUCT["Kiwi Control"]
+        direction TB
+
+        subgraph SURFACES["User Surfaces"]
+            CLI
+            UI
+        end
+
+        subgraph CORE["sj-core"]
+            direction TB
+            ORCH[Orchestration & Routing]
+            STATE[State & Continuity Engine]
+            MEMORY[Memory Bank Engine]
+            HANDOFF[Handoff v2 Engine]
+            CHECKPOINT[Checkpoint Engine]
+            RECOMMEND[Recommendations Engine]
+            VALIDATOR[Contract Validator]
+            CONTRACT[Repo Contract Generator / Resolver]
+            SPECREG[Canonical Specialist Registry]
+            MCPREG[Curated MCP Pack Registry]
+        end
+    end
+
+    CLI --> ORCH
+    CLI --> STATE
+    CLI --> VALIDATOR
+    CLI --> CONTRACT
+    CLI --> SPECREG
+    CLI --> MCPREG
+
+    UI --> ORCH
+    UI --> STATE
+    UI --> MEMORY
+    UI --> HANDOFF
+    UI --> CHECKPOINT
+    UI --> RECOMMEND
+    UI --> VALIDATOR
+    UI --> SPECREG
+    UI --> MCPREG
+
+    %% =========================
+    %% REPO = SOURCE OF TRUTH
+    %% =========================
+    subgraph REPO["Target Repository - Portable Source of Truth"]
+        direction TB
+
+        ROOT[Repo Root]
+
+        subgraph PROMOTED["Promoted Repo Guidance"]
+            AGENTS[AGENTS.md]
+            CLAUDE[CLAUDE.md]
+            COPILOT[.github/copilot-instructions.md]
+        end
+
+        subgraph AGENT[".agent"]
+            direction TB
+
+            subgraph CONTEXT["context"]
+                ARCH[architecture.md]
+                CMDS[commands.md]
+                TOOLS[tool-capabilities.md]
+                MCPDOC[mcp-capabilities.md]
+                SPECDOC[specialists.md]
+            end
+
+            subgraph STATEFILES["state"]
+                ACTIVE[active-role-hints.json]
+                PHASE[current-phase.json]
+                CPLATEST[checkpoints/latest.json]
+                CPLATESTMD[checkpoints/latest.md]
+                HANDOFFPTR[handoff/README.md]
+            end
+
+            subgraph MEMORYFILES["memory"]
+                REPOFACTS[repo-facts.json]
+                FOCUS[current-focus.json]
+                RISKS[open-risks.json]
+                DECISIONS[architecture-decisions.md]
+                GLOSSARY[domain-glossary.md]
+                GOTCHAS[known-gotchas.md]
+                PATTERNS[last-successful-patterns.md]
+            end
+
+            subgraph CHECKS["checks and scripts"]
+                PROJECTYAML[project.yaml]
+                CHECKSYAML[checks.yaml]
+                VERIFY[verify-contract.sh]
+            end
+
+            subgraph ROLEFILES["roles selective"]
+                ROLEDEF[role files / specialist-role.md]
+            end
+        end
+
+        subgraph GITHUB[".github"]
+            direction TB
+            AGENTFILES[agents selective]
+            INSTR[instructions selective]
+            CI[CI workflows]
+        end
+    end
+
+    %% =========================
+    %% CORE TO REPO
+    %% =========================
+    CONTRACT --> ROOT
+    CONTRACT --> AGENTS
+    CONTRACT --> CLAUDE
+    CONTRACT --> COPILOT
+    CONTRACT --> ARCH
+    CONTRACT --> CMDS
+    CONTRACT --> TOOLS
+    CONTRACT --> MCPDOC
+    CONTRACT --> SPECDOC
+    CONTRACT --> ACTIVE
+    CONTRACT --> PHASE
+    CONTRACT --> CPLATEST
+    CONTRACT --> CPLATESTMD
+    CONTRACT --> HANDOFFPTR
+    CONTRACT --> REPOFACTS
+    CONTRACT --> FOCUS
+    CONTRACT --> RISKS
+    CONTRACT --> DECISIONS
+    CONTRACT --> GLOSSARY
+    CONTRACT --> GOTCHAS
+    CONTRACT --> PATTERNS
+    CONTRACT --> PROJECTYAML
+    CONTRACT --> CHECKSYAML
+    CONTRACT --> VERIFY
+    CONTRACT --> ROLEDEF
+    CONTRACT --> AGENTFILES
+    CONTRACT --> INSTR
+
+    STATE --> ACTIVE
+    STATE --> PHASE
+    STATE --> CPLATEST
+    STATE --> CPLATESTMD
+    STATE --> HANDOFFPTR
+
+    MEMORY --> REPOFACTS
+    MEMORY --> FOCUS
+    MEMORY --> RISKS
+    MEMORY --> DECISIONS
+    MEMORY --> GLOSSARY
+    MEMORY --> GOTCHAS
+    MEMORY --> PATTERNS
+
+    HANDOFF --> HANDOFFPTR
+    CHECKPOINT --> CPLATEST
+    CHECKPOINT --> CPLATESTMD
+
+    VALIDATOR --> PROJECTYAML
+    VALIDATOR --> CHECKSYAML
+    VALIDATOR --> VERIFY
+    VALIDATOR --> CI
+
+    SPECREG --> SPECDOC
+    SPECREG --> ROLEDEF
+    SPECREG --> AGENTFILES
+
+    MCPREG --> MCPDOC
+
+    %% =========================
+    %% RUNTIME READ ORDER
+    %% =========================
+    subgraph RUNTIME["Runtime Operating Flow"]
+        direction LR
+        R1[Read promoted repo guidance]
+        R2[Read active-role-hints.json]
+        R3[Read current-phase.json]
+        R4[Read latest checkpoint and latest handoff pointers]
+        R5[Read current focus and memory surfaces]
+        R6[Read commands, tool guidance, MCP guidance, specialists]
+        R7[Choose next specialist, next file, next command]
+        R8[Perform work]
+        R9[Write checkpoint, handoff, updated focus]
+        R10[Validate contract and use CI backstop]
+    end
+
+    AGENTS --> R1
+    CLAUDE --> R1
+    COPILOT --> R1
+    ACTIVE --> R2
+    PHASE --> R3
+    CPLATEST --> R4
+    HANDOFFPTR --> R4
+    FOCUS --> R5
+    REPOFACTS --> R5
+    RISKS --> R5
+    CMDS --> R6
+    TOOLS --> R6
+    MCPDOC --> R6
+    SPECDOC --> R6
+
+    R1 --> R2 --> R3 --> R4 --> R5 --> R6 --> R7 --> R8 --> R9 --> R10
+
+    ORCH --> R7
+    RECOMMEND --> R7
+    HANDOFF --> R9
+    CHECKPOINT --> R9
+    VALIDATOR --> R10
+
+    %% =========================
+    %% SPECIALISTS
+    %% =========================
+    subgraph SPECIALISTS["Canonical Specialists"]
+        direction LR
+        DISP[dispatcher]
+        RECON[reconciler]
+        PY[python-implementer]
+        TS[typescript-implementer]
+        SQL[sql-specialist]
+        ANDROID[android-specialist]
+        IOS[ios-specialist]
+        QA[qa-specialist]
+        SEC[security-reviewer]
+        PERF[performance-reviewer]
+        DOCS[docs-specialist]
+        HEDIT[handoff-editor]
+        RELEASE[release-readiness]
+    end
+
+    SPECREG --> DISP
+    SPECREG --> RECON
+    SPECREG --> PY
+    SPECREG --> TS
+    SPECREG --> SQL
+    SPECREG --> ANDROID
+    SPECREG --> IOS
+    SPECREG --> QA
+    SPECREG --> SEC
+    SPECREG --> PERF
+    SPECREG --> DOCS
+    SPECREG --> HEDIT
+    SPECREG --> RELEASE
+
+    RECOMMEND --> SPECIALISTS
+    ORCH --> SPECIALISTS
+
+    %% =========================
+    %% MCP PACKS
+    %% =========================
+    subgraph MCP["Curated MCP Packs - Advisory and Runtime Dependent"]
+        direction LR
+        COREPACK[core-pack]
+        RESEARCH[research-pack]
+        WEBQA[web-qa-pack]
+        AWSPACK[aws-pack]
+        IOSPACK[ios-pack]
+        ANDROIDPACK[android-pack]
+    end
+
+    MCPREG --> COREPACK
+    MCPREG --> RESEARCH
+    MCPREG --> WEBQA
+    MCPREG --> AWSPACK
+    MCPREG --> IOSPACK
+    MCPREG --> ANDROIDPACK
+    RECOMMEND --> MCP
+
+    %% =========================
+    %% OUTPUTS
+    %% =========================
+    subgraph OUTPUTS["Operational Outputs"]
+        direction LR
+        STATUSOUT[status output]
+        HANDOFFOUT[handoff artifact]
+        CHECKPOINTOUT[checkpoint artifact]
+        RECOOUT[next specialist / next file / next command]
+        VALIDOUT[validation result]
+    end
+
+    CLI --> STATUSOUT
+    UI --> STATUSOUT
+    HANDOFF --> HANDOFFOUT
+    CHECKPOINT --> CHECKPOINTOUT
+    RECOMMEND --> RECOOUT
+    VALIDATOR --> VALIDOUT
+
+    %% =========================
+    %% PACKAGING AND RELEASE
+    %% =========================
+    subgraph DISTRO["Packaging and Public Beta Scaffolding"]
+        direction LR
+        PKGCORE[packages/sj-core]
+        PKGCLI[packages/sj-cli]
+        PKGUI[apps/sj-ui]
+        PACKAGING[packaging]
+        RELEASEMANIFEST[release manifest generation]
+        BREW[Homebrew templates]
+        WINGET[winget templates]
+        TAURI[Tauri desktop packaging]
+        RELEASEWF[GitHub Actions release workflows]
+    end
+
+    PKGCORE --> RELEASEMANIFEST
+    PKGCLI --> BREW
+    PKGCLI --> WINGET
+    PKGUI --> TAURI
+    PACKAGING --> RELEASEWF
+    RELEASEMANIFEST --> RELEASEWF
+
+    %% =========================
+    %% VISUAL EMPHASIS
+    %% =========================
+    style ROOT fill:#eef7ff,stroke:#3b82f6,stroke-width:2px
+    style CORE fill:#f5f3ff,stroke:#7c3aed,stroke-width:2px
+    style SURFACES fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
+    style RUNTIME fill:#fff7ed,stroke:#ea580c,stroke-width:2px
+    style SPECIALISTS fill:#fdf2f8,stroke:#db2777,stroke-width:2px
+    style MCP fill:#ecfeff,stroke:#0891b2,stroke-width:2px
+    style DISTRO fill:#fafaf9,stroke:#57534e,stroke-width:2px

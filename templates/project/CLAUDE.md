@@ -53,5 +53,6 @@ Gate behavior:
 
 Specialists and MCP:
 
-- prefer the curated specialist registry in `.agent/context/specialists.md` when the task clearly maps to implementation, QA, security, performance, docs, handoff, reconcile, or release-readiness work
+- prefer the curated specialist registry in `.agent/context/specialists.md` when the task clearly maps to implementation, QA, security, refactor, docs, planning, release, or MCP-policy work
+- emit canonical specialist IDs in any repo-local artifact you write; treat older aliases as compatibility input only
 - MCP usage follows policy, capability, trust, profile, specialist, and approval rules; do not call MCP tools opportunistically

@@ -1,0 +1,36 @@
+{
+  "name": "@shrey-junior/sj-core",
+  "version": "0.2.0-beta.1",
+  "type": "module",
+  "description": "Platform-neutral repo-first control plane engine for Shrey Junior",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./core/*.js": {
+      "types": "./dist/core/*.d.ts",
+      "default": "./dist/core/*.js"
+    },
+    "./utils/*.js": {
+      "types": "./dist/utils/*.d.ts",
+      "default": "./dist/utils/*.js"
+    },
+    "./adapters/*.js": {
+      "types": "./dist/adapters/*.d.ts",
+      "default": "./dist/adapters/*.js"
+    },
+    "./runtime/*": "./dist/runtime/*"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node ../../scripts/copy-runtime-assets.mjs packages/sj-core/dist/runtime"
+  },
+  "dependencies": {
+    "yaml": "^2.8.1"
+  }
+}

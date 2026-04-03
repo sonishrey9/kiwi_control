@@ -63,7 +63,8 @@ Escalate instead of proceeding directly when:
 
 Specialist guidance:
 
-- prefer the curated specialist registry in `.agent/context/specialists.md` when the task clearly maps to `python-implementer`, `typescript-implementer`, `sql-specialist`, `android-specialist`, `ios-specialist`, `qa-specialist`, `security-reviewer`, `performance-reviewer`, `docs-specialist`, `dispatcher`, `reconciler`, `handoff-editor`, or `release-readiness`
+- prefer the curated specialist registry in `.agent/context/specialists.md` when the task clearly maps to `architecture-specialist`, `backend-specialist`, `frontend-specialist`, `fullstack-specialist`, `python-specialist`, `data-platform-specialist`, `ios-specialist`, `android-specialist`, `qa-specialist`, `review-specialist`, `security-specialist`, `refactor-specialist`, `docs-specialist`, `push-specialist`, `release-specialist`, or `mcp-specialist`
+- treat any older alias names as compatibility input only; new artifacts should use canonical IDs
 - repo-specific `.agent/roles/*.md` and `.github/agents/*.md` remain narrower overlays when they exist
 
 MCP guidance:

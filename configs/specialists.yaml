@@ -15,6 +15,7 @@ specialists:
     id: python-specialist
     name: Python Specialist
     purpose: Safe Python and backend implementation follow-through with explicit boundaries and validation.
+    aliases: [python-implementer]
     preferred_tools: [codex, claude]
     allowed_profiles: [strict-production, product-build, prototype, data-platform]
     routing_bias:
@@ -37,6 +38,7 @@ specialists:
     id: data-platform-specialist
     name: Data Platform Specialist
     purpose: Safe work on pipelines, transforms, schemas, warehouse logic, and migration-sensitive data-platform repos.
+    aliases: [sql-specialist]
     preferred_tools: [claude, codex]
     allowed_profiles: [strict-production, product-build, data-platform]
     routing_bias:
@@ -103,6 +105,7 @@ specialists:
     id: fullstack-specialist
     name: Fullstack Specialist
     purpose: Balanced implementation specialist for app and web repos that cross frontend, backend, routing, and validation boundaries.
+    aliases: [typescript-implementer]
     preferred_tools: [codex, claude, copilot]
     allowed_profiles: [strict-production, product-build, prototype, documentation-heavy]
     routing_bias:
@@ -120,6 +123,50 @@ specialists:
     risk_posture: medium
     handoff_guidance:
       - hand off browser evidence and backend validation together for guarded follow-through
+  ios-specialist:
+    id: ios-specialist
+    name: iOS Specialist
+    purpose: Swift, SwiftUI, Xcode, and Apple-platform implementation or review with honest tool-availability boundaries.
+    preferred_tools: [codex, claude]
+    allowed_profiles: [strict-production, product-build, prototype]
+    routing_bias:
+      roles: [implementer, reviewer, tester]
+      task_types: [implementation, bugfix, refactor, testing]
+      file_areas: [application, tests, config]
+      preferred_primary_tool: codex
+      preferred_review_tool: claude
+    validation_expectations:
+      - run the narrowest repo-local Xcode or Swift validation available
+      - call out missing simulator or device evidence explicitly
+      - never imply Xcode bridge parity when the runtime does not expose it
+    result_schema_expectations: [role, status, summary, validations, risks, touched_files, next_steps]
+    mcp_eligibility: [context7, github, filesystem]
+    risk_posture: medium
+    handoff_guidance:
+      - hand off simulator evidence and project-bound commands together
+      - keep Apple-platform assumptions repo-local and explicit
+  android-specialist:
+    id: android-specialist
+    name: Android Specialist
+    purpose: Kotlin, Gradle, and Android app implementation or review with repo-local build and test discipline.
+    preferred_tools: [codex, claude]
+    allowed_profiles: [strict-production, product-build, prototype]
+    routing_bias:
+      roles: [implementer, reviewer, tester]
+      task_types: [implementation, bugfix, refactor, testing]
+      file_areas: [application, tests, config]
+      preferred_primary_tool: codex
+      preferred_review_tool: claude
+    validation_expectations:
+      - run the narrowest repo-local Gradle validation available
+      - note missing emulator evidence when behavior changed
+      - do not imply Android MCP parity when it is not actually present
+    result_schema_expectations: [role, status, summary, validations, risks, touched_files, next_steps]
+    mcp_eligibility: [context7, github, filesystem]
+    risk_posture: medium
+    handoff_guidance:
+      - hand off Gradle tasks and affected modules explicitly
+      - keep device and emulator assumptions out of portable claims
   qa-specialist:
     id: qa-specialist
     name: QA Specialist
@@ -146,6 +193,7 @@ specialists:
     id: review-specialist
     name: Review Specialist
     purpose: General software engineering review for correctness, regression risk, contract safety, and change quality.
+    aliases: [reconciler]
     preferred_tools: [claude, codex]
     allowed_profiles: [strict-production, product-build, prototype, data-platform, documentation-heavy]
     routing_bias:
@@ -189,6 +237,7 @@ specialists:
     id: security-specialist
     name: Security Specialist
     purpose: Review auth, permissions, data exposure, and unsafe assumptions without weakening guardrails.
+    aliases: [security-reviewer]
     preferred_tools: [claude, codex]
     allowed_profiles: [strict-production, product-build, data-platform]
     routing_bias:
@@ -211,6 +260,7 @@ specialists:
     id: refactor-specialist
     name: Refactor Specialist
     purpose: Keep larger restructures bounded, contract-safe, and reviewable.
+    aliases: [performance-reviewer]
     preferred_tools: [codex, claude]
     allowed_profiles: [strict-production, product-build, prototype, data-platform]
     routing_bias:
@@ -232,6 +282,7 @@ specialists:
     id: docs-specialist
     name: Docs Specialist
     purpose: Improve docs, onboarding, summaries, and repo knowledge flow without drifting from authority.
+    aliases: [handoff-editor]
     preferred_tools: [claude, copilot]
     allowed_profiles: [strict-production, product-build, prototype, documentation-heavy]
     routing_bias:
@@ -252,6 +303,7 @@ specialists:
     id: architecture-specialist
     name: Architecture Specialist
     purpose: Planning, decomposition, boundary analysis, and guarded change sequencing.
+    aliases: [dispatcher]
     preferred_tools: [claude, codex]
     allowed_profiles: [strict-production, product-build, prototype, data-platform, documentation-heavy]
     routing_bias:
@@ -273,6 +325,7 @@ specialists:
     id: release-specialist
     name: Release Specialist
     purpose: Release readiness, checkpoint health, and phase-close discipline before commit or push decisions.
+    aliases: [release-readiness]
     preferred_tools: [claude, codex]
     allowed_profiles: [strict-production, product-build, data-platform, documentation-heavy]
     routing_bias:

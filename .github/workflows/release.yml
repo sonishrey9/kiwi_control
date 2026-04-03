@@ -1,0 +1,43 @@
+name: Release Prep
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - run: node scripts/prepare-release-manifest.mjs
+      - name: Upload CLI build
+        uses: actions/upload-artifact@v4
+        with:
+          name: shrey-junior-cli-${{ matrix.os }}
+          path: packages/sj-cli/dist
+      - name: Upload runtime assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: shrey-junior-runtime-${{ matrix.os }}
+          path: packages/sj-core/dist/runtime
+      - name: Upload UI web bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: shrey-junior-ui-web-${{ matrix.os }}
+          path: apps/sj-ui/dist
+      - name: Desktop bundle placeholder
+        if: ${{ env.TAURI_SIGNING_PRIVATE_KEY != '' }}
+        run: echo "Configure signed Tauri desktop builds here once platform signing is ready."

@@ -1,0 +1,21 @@
+{
+  "name": "shrey-junior",
+  "version": "0.2.0-beta.1",
+  "type": "module",
+  "description": "Installable CLI for the Shrey Junior repo-first control plane",
+  "bin": {
+    "shrey-junior": "dist/cli.js",
+    "sj": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test dist/tests/*.test.js",
+    "smoke": "npm run build && bash ../../scripts/smoke-test.sh"
+  },
+  "dependencies": {
+    "@shrey-junior/sj-core": "0.2.0-beta.1"
+  }
+}

@@ -1,0 +1,16 @@
+class ShreyJunior < Formula
+  desc "Repo-first local control plane for coding agents"
+  homepage "https://github.com/OWNER/shrey-junior"
+  url "https://github.com/OWNER/shrey-junior/releases/download/v__VERSION__/shrey-junior-cli-__VERSION__-darwin-arm64.tar.gz"
+  sha256 "__SHA256__"
+  version "__VERSION__"
+
+  def install
+    bin.install "shrey-junior"
+    bin.install_symlink "shrey-junior" => "sj"
+  end
+
+  test do
+    system "#{bin}/shrey-junior", "specialists", "--json"
+  end
+end
