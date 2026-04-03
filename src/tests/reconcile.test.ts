@@ -71,5 +71,7 @@ test("reconcile report blocks on explicit conflicts and missing required role ou
   assert.equal(report.analysisBasis, "mostly-structured");
   assert.equal(report.conflicts.length > 0, true);
   assert.equal(report.roleStatusGaps.some((item) => item.includes("required role output missing: reviewer")), true);
-  assert.equal(report.readFirst[0], "/tmp/repo/docs/agent-shared.md");
+  assert.equal(report.readFirst[0], ".agent/state/active-role-hints.json");
+  assert.equal(report.readFirst[1], ".agent/state/current-phase.json");
+  assert.equal(report.readFirst[2], ".agent/state/checkpoints/latest.json");
 });

@@ -17,7 +17,10 @@ portable_state:
   checks: templates/project/.agent/checks.yaml
   context:
     architecture: templates/project/.agent/context/architecture.md
+    commands: templates/project/.agent/context/commands.md
     conventions: templates/project/.agent/context/conventions.md
+    tool_capabilities: templates/project/.agent/context/tool-capabilities.md
+    mcp_capabilities: templates/project/.agent/context/mcp-capabilities.md
     runbooks: templates/project/.agent/context/runbooks.md
   roles:
     readme: templates/project/.agent/roles/README.md
@@ -27,6 +30,8 @@ portable_state:
   state:
     current_phase: templates/project/.agent/state/current-phase.json
     active_role_hints: templates/project/.agent/state/active-role-hints.json
+    checkpoint_latest_json: templates/project/.agent/state/checkpoints/latest.json
+    checkpoint_latest_markdown: templates/project/.agent/state/checkpoints/latest.md
     handoff_readme: templates/project/.agent/state/handoff/README.md
     dispatch_readme: templates/project/.agent/state/dispatch/README.md
     reconcile_readme: templates/project/.agent/state/reconcile/README.md

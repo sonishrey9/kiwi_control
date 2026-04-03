@@ -1,7 +1,7 @@
 import { loadCanonicalConfig } from "../core/config.js";
 import { loadLatestDispatchCollection, loadLatestDispatchManifest } from "../core/dispatch.js";
 import { writeTaskPackets, summarizeWrites } from "../core/executor.js";
-import { buildCanonicalReadNext, buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets } from "../core/guidance.js";
+import { buildCanonicalReadNext, buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets, chooseNextFileToRead } from "../core/guidance.js";
 import { buildFanoutPackets } from "../core/planner.js";
 import { compileRepoContext } from "../core/context.js";
 import { evaluatePolicyPoint } from "../core/policies.js";
@@ -154,13 +154,17 @@ export async function runFanout(options: FanoutOptions): Promise<number> {
       promotedAuthorityDocs: compiledContext.promotedAuthorityDocs,
       contract
     }),
+    nextFileToRead: chooseNextFileToRead({
+      latestTaskPacket: packets.find((packet) => packet.relativePath.endsWith("/planner.md"))?.relativePath ?? packets[0]?.relativePath ?? null
+    }),
+    nextSuggestedCommand: `shrey-junior checkpoint "<milestone>" --target "${options.targetRoot}"`,
     writeTargets: buildWriteTargets(contract, packets.map((packet) => packet.relativePath)),
     checksToRun: buildChecksToRun(compiledContext.validationSteps),
     stopConditions: buildStopConditions({
       riskLevel: decision.riskLevel,
       taskType: decision.taskType
     }),
-    nextAction: "Read the planner packet first, then work through the implementer/reviewer/tester packets in that order.",
+    nextAction: "Read the planner packet first, then work through the implementer, reviewer, and tester packets in that order.",
     searchGuidance: buildSearchGuidance({
       taskType: decision.taskType,
       fileArea: decision.fileArea

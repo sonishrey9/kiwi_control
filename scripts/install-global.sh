@@ -55,6 +55,17 @@ copy_file() {
   cp "$source_path" "$target_path"
 }
 
+is_path_dir_on_path() {
+  case ":$PATH:" in
+    *":$PATH_BIN:"*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 backup_if_exists() {
   local file_path="$1"
   if [[ ! -e "$file_path" ]]; then
@@ -71,6 +82,31 @@ backup_if_exists() {
   cp -R "$file_path" "$backup_path"
 }
 
+ensure_symlink() {
+  local target_path="$1"
+  local link_path="$2"
+
+  if [[ -L "$link_path" ]]; then
+    local current_target
+    current_target="$(readlink "$link_path")"
+    if [[ "$current_target" == "$target_path" ]]; then
+      return
+    fi
+  elif [[ -e "$link_path" ]]; then
+    echo "refusing to replace existing non-symlink path: $link_path" >&2
+    exit 1
+  fi
+
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    log "[dry-run] symlink $link_path -> $target_path"
+    return
+  fi
+
+  mkdir -p "$(dirname "$link_path")"
+  rm -f "$link_path"
+  ln -s "$target_path" "$link_path"
+}
+
 for dir_name in configs prompts specialists policies mcp defaults adapters bin backups; do
   make_dir "$GLOBAL_HOME/$dir_name"
 done
@@ -81,13 +117,15 @@ fi
 
 for existing in \
   "$GLOBAL_HOME/bin/shrey-junior" \
+  "$GLOBAL_HOME/bin/sj-init" \
   "$GLOBAL_HOME/defaults/bootstrap.yaml" \
   "$GLOBAL_HOME/specialists/specialists.yaml" \
   "$GLOBAL_HOME/policies/policies.yaml" \
   "$GLOBAL_HOME/mcp/mcp.servers.json" \
   "$GLOBAL_HOME/adapters/tool-awareness.md" \
   "$GLOBAL_HOME/adapters/global-adapter-strategy.md" \
-  "$PATH_BIN/shrey-junior"; do
+  "$PATH_BIN/shrey-junior" \
+  "$PATH_BIN/sj-init"; do
   backup_if_exists "$existing"
 done
 
@@ -101,6 +139,16 @@ if [[ "$DRY_RUN" -eq 0 ]]; then
   chmod +x "$GLOBAL_HOME/bin/shrey-junior"
 fi
 
+SJ_INIT_CONTENT=$(cat <<EOF
+#!/usr/bin/env bash
+exec "$ROOT/scripts/sj-init.sh" "\$@"
+EOF
+)
+write_file "$GLOBAL_HOME/bin/sj-init" "$SJ_INIT_CONTENT"
+if [[ "$DRY_RUN" -eq 0 ]]; then
+  chmod +x "$GLOBAL_HOME/bin/sj-init"
+fi
+
 PATH_WRAPPER=$(cat <<EOF
 #!/usr/bin/env bash
 exec "$GLOBAL_HOME/bin/shrey-junior" "\$@"
@@ -110,6 +158,7 @@ write_file "$PATH_BIN/shrey-junior" "$PATH_WRAPPER"
 if [[ "$DRY_RUN" -eq 0 ]]; then
   chmod +x "$PATH_BIN/shrey-junior"
 fi
+ensure_symlink "$GLOBAL_HOME/bin/sj-init" "$PATH_BIN/sj-init"
 
 copy_file "$ROOT/configs/specialists.yaml" "$GLOBAL_HOME/specialists/specialists.yaml"
 copy_file "$ROOT/configs/policies.yaml" "$GLOBAL_HOME/policies/policies.yaml"
@@ -144,7 +193,8 @@ project_type_specialists:
     - qa-specialist
     - security-specialist
   generic:
-    - fullstack-specialist
+    - architecture-specialist
+    - review-specialist
     - qa-specialist
     - docs-specialist
 EOF
@@ -153,9 +203,16 @@ write_file "$GLOBAL_HOME/defaults/bootstrap.yaml" "$BOOTSTRAP_DEFAULTS"
 
 log "global bootstrap home: $GLOBAL_HOME"
 log "PATH-visible launcher: $PATH_BIN/shrey-junior"
+log "PATH-visible sj-init: $PATH_BIN/sj-init"
 log "home launcher: $GLOBAL_HOME/bin/shrey-junior"
+log "home sj-init: $GLOBAL_HOME/bin/sj-init"
 if [[ "$DRY_RUN" -eq 0 ]]; then
   log "backup dir: $BACKUP_DIR"
 fi
-log "PATH itself was not modified. This works because $PATH_BIN is already expected to be on PATH."
+if is_path_dir_on_path; then
+  log "PATH already includes $PATH_BIN"
+else
+  log "PATH update required: add this to your shell profile"
+  log "export PATH=\"$PATH_BIN:\$PATH\""
+fi
 log "No Codex, Claude, Copilot, or VS Code global settings were modified."

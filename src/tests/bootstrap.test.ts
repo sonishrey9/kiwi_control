@@ -59,8 +59,11 @@ test("bootstrap applies repo-local overlays into a new folder", async () => {
   assert.equal(activeRoleHints.projectType, "python");
   assert.equal(Array.isArray(activeRoleHints.readNext), true);
   assert.equal(Array.isArray(activeRoleHints.checksToRun), true);
+  assert.equal(activeRoleHints.latestCheckpoint, ".agent/state/checkpoints/latest.json");
+  assert.equal(activeRoleHints.nextFileToRead, ".agent/context/architecture.md");
+  assert.match(activeRoleHints.nextSuggestedCommand, /checkpoint "context seeded"/);
   assert.equal(activeRoleHints.readNext.includes(".github/instructions/backend.instructions.md"), true);
-  assert.match(activeRoleHints.nextAction, /shrey-junior status/);
+  assert.match(activeRoleHints.nextAction, /Fill in \.agent\/context\/architecture\.md/);
   assert.equal(await fs.readFile(path.join(target, ".github", "instructions", "backend.instructions.md"), "utf8").then(() => true), true);
   assert.equal(await fs.access(path.join(target, ".github", "instructions", "frontend.instructions.md")).then(() => true).catch(() => false), false);
   assert.equal(await fs.access(path.join(target, ".github", "instructions", "docs.instructions.md")).then(() => true).catch(() => false), false);
@@ -69,6 +72,9 @@ test("bootstrap applies repo-local overlays into a new folder", async () => {
   assert.equal(await fs.readFile(path.join(target, ".agent", "roles", "review-specialist.md"), "utf8").then(() => true), true);
   assert.equal(await fs.readFile(path.join(target, ".agent", "templates", "role-result.md"), "utf8").then(() => true), true);
   assert.equal(await fs.readFile(path.join(target, ".agent", "scripts", "verify-contract.sh"), "utf8").then(() => true), true);
+  const latestCheckpoint = JSON.parse(await fs.readFile(path.join(target, ".agent", "state", "checkpoints", "latest.json"), "utf8"));
+  assert.equal(latestCheckpoint.artifactType, "shrey-junior/checkpoint");
+  assert.equal(await fs.readFile(path.join(target, ".agent", "state", "checkpoints", "latest.md"), "utf8").then(() => true), true);
   const verifyContract = await fs.readFile(path.join(target, ".agent", "scripts", "verify-contract.sh"), "utf8");
   assert.match(verifyContract, /shrey-junior push-check --target "\$REPO_ROOT"/);
   const workflow = await fs.readFile(path.join(target, ".github", "workflows", "shrey-junior-contract.yml"), "utf8");
@@ -176,4 +182,26 @@ test("bootstrap seeds docs repos without backend-biased contract surfaces", asyn
   assert.equal(activeRoleHints.activeRole, "docs-specialist");
   assert.equal(activeRoleHints.readNext.includes(".agent/state/current-phase.json"), true);
   assert.equal(activeRoleHints.readNext.includes(".github/instructions/docs.instructions.md"), true);
+});
+
+test("bootstrap keeps generic repos quiet by default", async () => {
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+  const config = await loadCanonicalConfig(repoRoot);
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-bootstrap-"));
+  const target = path.join(tempDir, "generic-repo");
+  await fs.mkdir(target, { recursive: true });
+
+  await bootstrapTarget(
+    {
+      repoRoot,
+      targetRoot: target
+    },
+    config
+  );
+
+  assert.equal(await fs.access(path.join(target, ".github", "instructions", "backend.instructions.md")).then(() => true).catch(() => false), false);
+  assert.equal(await fs.access(path.join(target, ".github", "instructions", "frontend.instructions.md")).then(() => true).catch(() => false), false);
+  assert.equal(await fs.access(path.join(target, ".github", "instructions", "docs.instructions.md")).then(() => true).catch(() => false), true);
+  const activeRoleHints = JSON.parse(await fs.readFile(path.join(target, ".agent", "state", "active-role-hints.json"), "utf8"));
+  assert.equal(activeRoleHints.activeRole, "architecture-specialist");
 });

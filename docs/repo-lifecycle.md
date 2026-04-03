@@ -1,13 +1,27 @@
 # Repo Lifecycle
 
+## 0. One Command From Any Folder
+
+Install the global entrypoint once:
+
+```bash
+bash /path/to/shrey-junior/scripts/install-global.sh
+```
+
+Then, from any folder:
+
+```bash
+sj-init
+```
+
+Use `sj-init` when you want Shrey Junior to decide between `bootstrap` and `standardize` automatically. It preserves repo-authority precedence, stands down on explicit opt-out, and runs `status` plus `check` after a real apply unless `--no-check` is passed.
+
 ## 1. New Project
 
 Recommended flow:
 
 ```bash
-shrey-junior bootstrap --target /path/to/new-folder
-shrey-junior status --target /path/to/new-folder
-shrey-junior check --target /path/to/new-folder
+sj-init --target /path/to/new-folder
 ```
 
 Outcome:
@@ -15,27 +29,31 @@ Outcome:
 - full portable repo contract installed
 - starter profile chosen from safe metadata and defaults
 - specialist suggestions seeded
+- generic repos stay quiet by default and do not install backend/frontend instruction noise unless real repo signals justify them
+- the next useful file is usually `.agent/context/architecture.md`
+- the next useful command is usually `shrey-junior checkpoint "<milestone>" --target <repo>` after you seed real repo context
 
 ## 2. Existing Project Or Existing Repo
 
 Recommended flow:
 
 ```bash
-shrey-junior standardize --target /path/to/repo --dry-run
-shrey-junior standardize --target /path/to/repo --backup
+sj-init --target /path/to/repo --dry-run
+sj-init --target /path/to/repo
 ```
 
 Outcome:
 
 - existing repo gains the portable contract without pretending it is a fresh project
 - backups are kept for touched repo-local files where applicable
+- `commands.md`, `tool-capabilities.md`, and `mcp-capabilities.md` make the operating model visible to tools that only see the repo
 
 ## 3. External Cloned Repo
 
 Recommended flow:
 
 1. inspect repo authority first
-2. run `standardize --dry-run`
+2. run `sj-init --dry-run`
 3. only apply if repo authority does not opt out
 
 ## 4. Cloud-Only Environment
@@ -61,3 +79,11 @@ shrey-junior checkpoint "<milestone>" --target <repo>
 shrey-junior handoff --target <repo> --to <tool>
 shrey-junior push-check --target <repo>
 ```
+
+At each serious boundary, the shortest continuity path is:
+
+1. `.agent/state/active-role-hints.json`
+2. `.agent/state/current-phase.json`
+3. `.agent/state/checkpoints/latest.json`
+4. latest packet / handoff / reconcile pointers
+5. `.agent/context/commands.md`

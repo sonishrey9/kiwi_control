@@ -4,7 +4,7 @@ import { compileRepoContext } from "../core/context.js";
 import { loadLatestDispatchCollection, loadLatestDispatchManifest } from "../core/dispatch.js";
 import { buildDispatchManifest, writeDispatchManifest, type DispatchRole } from "../core/dispatch.js";
 import { writeTaskPackets, summarizeWrites } from "../core/executor.js";
-import { buildCanonicalReadNext, buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets } from "../core/guidance.js";
+import { buildCanonicalReadNext, buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets, chooseNextFileToRead } from "../core/guidance.js";
 import { buildFanoutPackets } from "../core/planner.js";
 import { evaluatePolicyPoint } from "../core/policies.js";
 import { loadContinuitySnapshot, updateActiveRoleHints } from "../core/state.js";
@@ -173,6 +173,10 @@ export async function runDispatch(options: DispatchOptions): Promise<number> {
       promotedAuthorityDocs: compiledContext.promotedAuthorityDocs,
       contract
     }),
+    nextFileToRead: chooseNextFileToRead({
+      latestDispatchManifest: ".agent/state/dispatch/latest-manifest.json"
+    }),
+    nextSuggestedCommand: `shrey-junior collect --target "${options.targetRoot}"`,
     writeTargets: buildWriteTargets(contract, [
       ...packets.map((packet) => packet.relativePath),
       ".agent/state/dispatch/latest-manifest.json"

@@ -2,7 +2,7 @@ import type { ExecutionMode, ToolName } from "./config.js";
 import type { CompiledContext } from "./context.js";
 import { buildChecksToRun, buildFirstReadContract, buildSearchGuidance, buildStopConditions, buildWriteTargets } from "./guidance.js";
 import type { GitState } from "./git.js";
-import type { HandoffRecord, PhaseRecord } from "./state.js";
+import type { CheckpointRecord, HandoffRecord, PhaseRecord } from "./state.js";
 import { buildPhaseId } from "./state.js";
 
 export function buildHandoffRecord(options: {
@@ -10,6 +10,7 @@ export function buildHandoffRecord(options: {
   currentPhase: PhaseRecord | null;
   context: CompiledContext;
   gitState: GitState;
+  latestCheckpoint?: CheckpointRecord | null;
 }): HandoffRecord {
   const now = new Date().toISOString();
   const currentPhase = options.currentPhase;
@@ -68,6 +69,12 @@ export function buildHandoffRecord(options: {
     whatChanged,
     validationsPending,
     risksRemaining,
+    ...(options.latestCheckpoint
+      ? {
+          latestCheckpoint: ".agent/state/checkpoints/latest.json",
+          checkpointSummary: options.latestCheckpoint.summary
+        }
+      : {}),
     nextStep: currentPhase?.nextRecommendedStep ?? `Continue with ${options.toTool} using the generated handoff brief.`,
     status: risksRemaining.length > 0 ? "blocked" : "ready"
   };
@@ -99,6 +106,15 @@ export function renderHandoffMarkdown(handoff: HandoffRecord): string {
     "## What Changed",
     "",
     ...(handoff.whatChanged.length > 0 ? handoff.whatChanged.map((item) => `- ${item}`) : ["- no changed file summary recorded"]),
+    ...(handoff.latestCheckpoint
+      ? [
+          "",
+          "## Latest Checkpoint",
+          "",
+          `- pointer: \`${handoff.latestCheckpoint}\``,
+          ...(handoff.checkpointSummary ? [`- summary: ${handoff.checkpointSummary}`] : [])
+        ]
+      : []),
     "",
     "## Write Targets",
     "",

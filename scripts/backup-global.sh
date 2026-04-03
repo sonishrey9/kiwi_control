@@ -41,6 +41,7 @@ fi
 
 for existing in \
   "$GLOBAL_HOME/bin/shrey-junior" \
+  "$GLOBAL_HOME/bin/sj-init" \
   "$GLOBAL_HOME/defaults/bootstrap.yaml" \
   "$GLOBAL_HOME/specialists/specialists.yaml" \
   "$GLOBAL_HOME/policies/policies.yaml" \
@@ -48,6 +49,7 @@ for existing in \
   "$GLOBAL_HOME/adapters/tool-awareness.md" \
   "$GLOBAL_HOME/adapters/global-adapter-strategy.md" \
   "$PATH_BIN/shrey-junior" \
+  "$PATH_BIN/sj-init" \
   "$HOME/.codex/AGENTS.md" \
   "$HOME/.codex/config.toml" \
   "$HOME/.claude/CLAUDE.md" \

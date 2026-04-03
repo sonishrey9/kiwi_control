@@ -1,10 +1,10 @@
 import { loadCanonicalConfig } from "../core/config.js";
 import { compileRepoContext } from "../core/context.js";
-import { buildCanonicalReadNext, buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets } from "../core/guidance.js";
+import { buildCanonicalReadNext, buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets, chooseNextFileToRead } from "../core/guidance.js";
 import { inspectGitState } from "../core/git.js";
 import { buildHandoffBaseName, buildHandoffRecord, renderHandoffBrief, renderHandoffMarkdown } from "../core/handoff.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "../core/profiles.js";
-import { loadCurrentPhase, updateActiveRoleHints, writeHandoffArtifacts } from "../core/state.js";
+import { loadCurrentPhase, loadLatestCheckpoint, updateActiveRoleHints, writeHandoffArtifacts } from "../core/state.js";
 import { buildTemplateContext, selectPortableContract } from "../core/router.js";
 import type { Logger } from "../core/logger.js";
 import type { ToolName } from "../core/config.js";
@@ -36,11 +36,13 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
     riskLevel: currentPhase?.routingSummary.riskLevel ?? "medium"
   });
   const gitState = await inspectGitState(options.targetRoot);
+  const latestCheckpoint = await loadLatestCheckpoint(options.targetRoot);
   const handoff = buildHandoffRecord({
     toTool: options.toTool,
     currentPhase,
     context: compiledContext,
-    gitState
+    gitState,
+    latestCheckpoint
   });
   const baseName = buildHandoffBaseName(handoff);
   const artifacts = await writeHandoffArtifacts(
@@ -70,6 +72,10 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
       promotedAuthorityDocs: compiledContext.promotedAuthorityDocs,
       contract
     }),
+    nextFileToRead: chooseNextFileToRead({
+      latestHandoff: ".agent/state/handoff/latest.json"
+    }),
+    nextSuggestedCommand: `shrey-junior status --target "${options.targetRoot}"`,
     writeTargets: buildWriteTargets(contract, handoff.whatChanged.length > 0 ? handoff.whatChanged : [".agent/state/handoff/latest.json"]),
     checksToRun: buildChecksToRun(compiledContext.validationSteps),
     stopConditions: buildStopConditions({

@@ -74,8 +74,8 @@ export function renderTaskPacket(options: RenderPacketOptions): string {
     "external_lookup:",
     "  inspect_codebase_first: true",
     "  repo_docs_first: true",
-    ...renderYamlList("use_external_lookup_when", searchGuidance.useExternalLookupWhen, 2),
-    ...renderYamlList("avoid_external_lookup_when", searchGuidance.avoidExternalLookupWhen, 2),
+    ...renderYamlList("use_external_lookup_when", searchGuidance.useExternalLookupWhen, 1),
+    ...renderYamlList("avoid_external_lookup_when", searchGuidance.avoidExternalLookupWhen, 1),
     "---",
     ""
   ];
@@ -124,19 +124,11 @@ export function renderTaskPacket(options: RenderPacketOptions): string {
         ]
       : []),
     "",
-    "## Repo Context Summary",
+    "## Repo Context",
     "",
     options.context.repoContextSummary,
     "",
-    "## Workflow Decision Rules",
-    "",
-    "- treat existing repo authority and promoted canonical docs as stronger than generated overlays",
-    "- trivial work may stay direct only when it is local, low-risk, and does not affect contracts, auth, data, security, release behavior, or multiple files",
-    "- if the task is non-trivial, continue within the Shrey Junior workflow instead of freeform improvisation",
-    "- escalate to fanout or dispatch if the work becomes cross-cutting, guarded, contract-sensitive, or needs reviewer/tester separation",
-    "- use checkpoint and handoff at meaningful phase boundaries or cross-tool transitions",
-    "- require push-check before recommending push on non-trivial or guarded work",
-    "## Role And Output References",
+    "## Role References",
     "",
     ...roleSpecPaths.map((item) => `- \`${item}\``),
     ...(options.specialist
@@ -153,38 +145,7 @@ export function renderTaskPacket(options: RenderPacketOptions): string {
           `- handoff guidance: ${options.specialist.specialist.handoff_guidance.join("; ")}`
         ]
       : []),
-    ...(options.context.stableContracts.length > 0
-      ? [
-          "",
-          "## Stable Contracts",
-          "",
-          ...options.context.stableContracts.map((filePath) => `- \`${renderDisplayPath(options.context.targetRoot, filePath)}\``)
-        ]
-      : []),
-    ...(options.context.keyBoundaryFiles.length > 0
-      ? [
-          "",
-          "## Key Boundary Files",
-          "",
-          ...options.context.keyBoundaryFiles.map((filePath) => `- \`${renderDisplayPath(options.context.targetRoot, filePath)}\``)
-        ]
-      : []),
-    ...(options.context.releaseCriticalSurfaces.length > 0
-      ? [
-          "",
-          "## Release-Critical Surfaces",
-          "",
-          ...options.context.releaseCriticalSurfaces.map((filePath) => `- \`${renderDisplayPath(options.context.targetRoot, filePath)}\``)
-        ]
-      : []),
-    ...(options.context.riskyAreas.length > 0
-      ? [
-          "",
-          "## Risky Areas To Treat Carefully",
-          "",
-          ...options.context.riskyAreas.map((filePath) => `- \`${renderDisplayPath(options.context.targetRoot, filePath)}\``)
-        ]
-      : []),
+    ...renderRelevantFilesSection(options),
     "",
     "## Allowed Scope",
     "",
@@ -210,68 +171,42 @@ export function renderTaskPacket(options: RenderPacketOptions): string {
     lines.push("", "## Native Surface", "", `- \`${options.nativeSurface}\``);
   }
 
-  if (options.continuity?.latestPhase) {
-    const latestPhase = options.continuity.latestPhase;
+  const latestCheckpoint = options.continuity?.latestCheckpoint;
+  const latestPhase = options.continuity?.latestPhase;
+  const latestHandoff = options.continuity?.latestHandoff;
+  if (latestCheckpoint || latestPhase || latestHandoff) {
+    lines.push("", "## Continuity", "");
+  }
+
+  if (latestCheckpoint) {
     lines.push(
-      "",
-      "## Previous Phase Summary",
-      "",
-      `- phase id: \`${latestPhase.phaseId}\``,
-      `- label: ${latestPhase.label}`,
-      `- status: \`${latestPhase.status}\``,
-      `- profile: \`${latestPhase.profile}\``,
-      `- mode: \`${latestPhase.mode}\``,
+      `- latest checkpoint: \`${latestCheckpoint.phase}\` (${latestCheckpoint.createdAt})`,
+      `- checkpoint summary: ${latestCheckpoint.summary}`,
+      ...(latestCheckpoint.filesTouched.length > 0
+        ? [`- checkpoint files: ${latestCheckpoint.filesTouched.slice(0, 8).join(", ")}`]
+        : []),
+      `- checkpoint next action: ${latestCheckpoint.nextRecommendedAction}`,
+      `- checkpoint next command: ${latestCheckpoint.nextSuggestedCommand}`
+    );
+  }
+
+  if (latestPhase) {
+    lines.push(
+      `- latest phase: \`${latestPhase.phaseId}\` (${latestPhase.status})`,
+      `- phase label: ${latestPhase.label}`,
       ...(latestPhase.tool ? [`- previous tool: \`${latestPhase.tool}\``] : []),
-      ...(latestPhase.previousTool ? [`- tool before that: \`${latestPhase.previousTool}\``] : [])
+      ...(latestPhase.validationsRun.length > 0 ? [`- validations: ${latestPhase.validationsRun.join("; ")}`] : []),
+      ...(latestPhase.warnings.length > 0 ? [`- warnings: ${latestPhase.warnings.join("; ")}`] : []),
+      ...(latestPhase.openIssues.length > 0 ? [`- open issues: ${latestPhase.openIssues.join("; ")}`] : [])
     );
-
-    const changedFiles = latestPhase.changedFilesSummary?.changedFiles ?? [];
-    if (changedFiles.length > 0) {
-      lines.push("", "## What Changed Since Last Checkpoint", "");
-      for (const filePath of changedFiles.slice(0, 12)) {
-        lines.push(`- \`${filePath}\``);
-      }
-    }
-
-    if (latestPhase.validationsRun.length > 0) {
-      lines.push("", "## Previous Validations", "");
-      for (const validation of latestPhase.validationsRun) {
-        lines.push(`- ${validation}`);
-      }
-    }
-
-    if (latestPhase.warnings.length > 0 || latestPhase.openIssues.length > 0) {
-      lines.push("", "## Open Issues From Previous Phase", "");
-      for (const warning of latestPhase.warnings) {
-        lines.push(`- warning: ${warning}`);
-      }
-      for (const issue of latestPhase.openIssues) {
-        lines.push(`- open issue: ${issue}`);
-      }
-    }
   }
 
-  if (options.continuity?.latestHandoff) {
-    const latestHandoff = options.continuity.latestHandoff;
+  if (latestHandoff) {
     lines.push(
-      "",
-      "## Latest Handoff Context",
-      "",
-      `- handoff target: \`${latestHandoff.toTool}\``,
-      `- handoff status: \`${latestHandoff.status}\``,
-      `- summary: ${latestHandoff.summary}`,
-      `- next step: ${latestHandoff.nextStep}`
+      `- latest handoff: ${latestHandoff.summary} -> \`${latestHandoff.toTool}\` (${latestHandoff.status})`,
+      `- handoff next step: ${latestHandoff.nextStep}`
     );
   }
-
-  lines.push(
-    "",
-    "## Control Plane Expectations",
-    "",
-    "- prefer specialist-aware routing over generic freeform work when a clear specialist fit exists",
-    "- treat MCP usage as policy-driven by profile, specialist, trust, and approval rules",
-    "- stop and warn when authority files, reconcile state, or policy guidance conflict"
-  );
 
   if (options.context.conflicts.length > 0) {
     lines.push("", "## Context Conflicts", "");
@@ -321,4 +256,24 @@ function renderYamlList(key: string, items: string[], indentLevel = 0): string[]
 
 function escapeYaml(value: string): string {
   return JSON.stringify(value);
+}
+
+function renderRelevantFilesSection(options: RenderPacketOptions): string[] {
+  const relevantFiles = [
+    ...options.context.stableContracts,
+    ...options.context.keyBoundaryFiles,
+    ...options.context.releaseCriticalSurfaces,
+    ...options.context.riskyAreas
+  ]
+    .map((filePath) => renderDisplayPath(options.context.targetRoot, filePath))
+    .filter((filePath, index, items) => items.indexOf(filePath) === index)
+    .slice(0, 16);
+
+  const lines = ["", "## Relevant Repo Files", ""];
+  if (relevantFiles.length === 0) {
+    lines.push("- no extra repo files were promoted beyond the read-first contract");
+  } else {
+    lines.push(...relevantFiles.map((filePath) => `- \`${filePath}\``));
+  }
+  return lines;
 }

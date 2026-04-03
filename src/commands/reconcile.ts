@@ -1,7 +1,7 @@
 import { loadCanonicalConfig } from "../core/config.js";
 import { compileRepoContext } from "../core/context.js";
 import { collectDispatchOutputs, loadLatestDispatchCollection, loadLatestDispatchManifest, writeDispatchCollection } from "../core/dispatch.js";
-import { buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets } from "../core/guidance.js";
+import { buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets, chooseNextFileToRead } from "../core/guidance.js";
 import { buildReconcileReport, writeReconcileArtifacts } from "../core/reconcile.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "../core/profiles.js";
 import type { Logger } from "../core/logger.js";
@@ -60,6 +60,13 @@ export async function runReconcile(options: ReconcileOptions): Promise<number> {
     supportingRoles: contract.supportingRoles,
     authoritySource: selection.source,
     projectType: overlay?.bootstrap?.project_type ?? "generic",
+    nextFileToRead: chooseNextFileToRead({
+      latestReconcile: ".agent/state/reconcile/latest.json"
+    }),
+    nextSuggestedCommand:
+      report.status === "ready-for-next-phase"
+        ? `shrey-junior checkpoint "<milestone>" --target "${options.targetRoot}"`
+        : `shrey-junior collect --target "${options.targetRoot}"`,
     checksToRun: buildChecksToRun(context.validationSteps),
     writeTargets: buildWriteTargets(contract, [renderDisplayPath(options.targetRoot, artifacts.jsonPath)]),
     stopConditions: buildStopConditions({

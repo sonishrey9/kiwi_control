@@ -15,6 +15,32 @@ export interface SearchGuidance {
   avoidExternalLookupWhen: string[];
 }
 
+export function buildBootstrapNextFileToRead(): string {
+  return ".agent/context/architecture.md";
+}
+
+export function buildBootstrapNextSuggestedCommand(targetRoot?: string): string {
+  const repoArg = targetRoot ? `"${targetRoot}"` : "<repo>";
+  return `shrey-junior checkpoint "context seeded" --target ${repoArg}`;
+}
+
+export function chooseNextFileToRead(options: {
+  latestTaskPacket?: string | null;
+  latestHandoff?: string | null;
+  latestReconcile?: string | null;
+  latestDispatchManifest?: string | null;
+  fallback?: string;
+}): string {
+  return (
+    options.latestTaskPacket ??
+    options.latestHandoff ??
+    options.latestReconcile ??
+    options.latestDispatchManifest ??
+    options.fallback ??
+    buildBootstrapNextFileToRead()
+  );
+}
+
 export function buildFirstReadContract(options: {
   targetRoot: string;
   authorityOrder?: string[];
@@ -51,17 +77,24 @@ export function buildCanonicalReadNext(options: {
   return uniqueStrings([
     ...authority,
     ".agent/state/current-phase.json",
+    ".agent/state/checkpoints/latest.json",
     ".agent/state/latest-task-packets.json",
     ".agent/state/handoff/latest.json",
     ".agent/state/reconcile/latest.json",
     ".agent/state/dispatch/latest-manifest.json",
+    ".agent/context/commands.md",
+    ".agent/context/tool-capabilities.md",
+    ".agent/context/mcp-capabilities.md",
+    ".agent/context/architecture.md",
     ...options.contract.instructionSurfaces,
     ".github/agents/shrey-junior.md",
     ...options.contract.agentSurfaces.filter((item) => item !== ".github/agents/shrey-junior.md"),
     ...options.contract.roleSurfaces,
     ".agent/checks.yaml",
     ".agent/scripts/verify-contract.sh",
-    ".agent/project.yaml"
+    ".agent/project.yaml",
+    ".agent/context/conventions.md",
+    ".agent/context/runbooks.md"
   ]);
 }
 
@@ -136,7 +169,7 @@ export function buildSearchGuidance(options?: {
 }
 
 export function buildBootstrapNextAction(): string {
-  return "Run shrey-junior status --target <repo>, then follow .agent/state/active-role-hints.json before non-trivial work.";
+  return "Fill in .agent/context/architecture.md, then record a checkpoint before non-trivial implementation or handoff.";
 }
 
 function uniqueStrings(items: string[]): string[] {

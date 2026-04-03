@@ -26,10 +26,17 @@ These are installed in every bootstrapped or standardized repo:
 - `.github/copilot-instructions.md`
 - `.agent/project.yaml`
 - `.agent/checks.yaml`
-- `.agent/context/*`
+- `.agent/context/architecture.md`
+- `.agent/context/commands.md`
+- `.agent/context/tool-capabilities.md`
+- `.agent/context/mcp-capabilities.md`
+- `.agent/context/conventions.md`
+- `.agent/context/runbooks.md`
 - `.agent/templates/role-result.md`
 - `.agent/state/current-phase.json`
 - `.agent/state/active-role-hints.json`
+- `.agent/state/checkpoints/latest.json`
+- `.agent/state/checkpoints/latest.md`
 - `.agent/state/*/README.md`
 - `.agent/scripts/verify-contract.sh`
 - `.github/agents/shrey-junior.md`
@@ -53,10 +60,12 @@ For a bootstrapped or standardized repo, the intended read order is:
 2. promoted canonical repo docs referenced by that authority
 3. `.agent/state/active-role-hints.json`
 4. `.agent/state/current-phase.json`
-5. latest packet, handoff, dispatch, and reconcile pointers
-6. relevant path-specific instruction files
-7. `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
-8. `.agent/project.yaml` for the installed contract shape
+5. `.agent/state/checkpoints/latest.json`
+6. latest packet, handoff, dispatch, and reconcile pointers
+7. `.agent/context/commands.md`, `.agent/context/tool-capabilities.md`, and `.agent/context/mcp-capabilities.md`
+8. relevant path-specific instruction files
+9. `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
+10. `.agent/project.yaml` for the installed contract shape
 
 ## Required Repo-Local Surfaces
 
@@ -69,13 +78,17 @@ For a bootstrapped or standardized repo, the intended read order is:
 | `.github/agents/*.md` | Repo-local agent and role surfaces | Generated overlay |
 | `.agent/project.yaml` | Portable repo contract metadata | Generated contract |
 | `.agent/checks.yaml` | Required validation/readiness checks | Generated contract |
-| `.agent/context/*` | Human-readable architecture/convention/runbook context | Generated starter context |
+| `.agent/context/commands.md` | Command discovery and next-step guidance | Generated starter context |
+| `.agent/context/tool-capabilities.md` | Honest tool-family capability matrix | Generated starter context |
+| `.agent/context/mcp-capabilities.md` | MCP and external lookup decision guide | Generated starter context |
+| `.agent/context/architecture.md`, `.agent/context/conventions.md`, `.agent/context/runbooks.md` | Human-readable repo context | Generated starter context |
 | `.agent/roles/*.md` | Specialist role definitions | Generated contract |
 | `.agent/templates/role-result.md` | Structured role result schema | Generated contract |
 | `.agent/scripts/verify-contract.sh` | Repo-local verification and CI gate | Generated contract |
 | `.agent/tasks/*` | Task packets for run/fanout/dispatch | Generated runtime artifact |
 | `.agent/state/current-phase.json` | Phase continuity state | Generated runtime artifact |
 | `.agent/state/active-role-hints.json` | Current active role, next reads, checks, and latest continuity pointers | Generated runtime artifact |
+| `.agent/state/checkpoints/latest.json`, `.agent/state/checkpoints/latest.md` | Latest git-aware continuity checkpoint | Generated runtime artifact |
 | `.agent/state/handoff/*` | Cross-tool handoff state | Generated runtime artifact |
 | `.agent/state/dispatch/*` | Dispatch manifests and collections | Generated runtime artifact |
 | `.agent/state/reconcile/*` | Reconcile summaries | Generated runtime artifact |
@@ -95,6 +108,7 @@ For a bootstrapped or standardized repo, the intended read order is:
 - Current phase artifacts use `artifactType: "shrey-junior/current-phase"`.
 - Latest task packet pointers use `artifactType: "shrey-junior/latest-task-packets"`.
 - Active role hints use `artifactType: "shrey-junior/active-role-hints"`.
+- Checkpoints use `artifactType: "shrey-junior/checkpoint"`.
 
 Generated overlays that may be re-applied should use stable managed markers or explicit schema fields.
 

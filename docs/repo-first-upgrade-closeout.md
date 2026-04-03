@@ -9,8 +9,11 @@ This document records the final productization pass that moved Shrey Junior towa
 - portable repo contract generation
 - Copilot-native repo surfaces
 - repo-local specialist role specs
+- repo-local command and capability discovery docs
+- git-aware checkpointing with latest JSON and Markdown pointers
 - latest continuity pointer artifacts
 - `standardize` support for existing repos
+- global `sj-init` Bash entrypoint for one-command repo preparation
 - CI contract verification template
 - architecture and portability documentation
 
@@ -29,6 +32,10 @@ This document records the final productization pass that moved Shrey Junior towa
 - [x] stronger stale-pointer validation proof
 - [x] first-read contract proof
 - [x] machine-global accelerator deferral proof
+- [x] git-aware checkpoint proof
+- [x] command and capability discovery proof
+- [x] `sj-init` bootstrap-versus-standardize proof
+- [x] `sj-init` global install proof
 
 ## Commands Run
 
@@ -39,23 +46,28 @@ bash scripts/verify-global.sh
 bash scripts/verify-global-hard.sh
 shrey-junior check
 node dist/cli.js standardize --target "/Volumes/shrey ssd/shrey-junior/examples/sample-project" --dry-run
+bash scripts/install-global.sh
+sj-init --target "/tmp/shrey-junior-smoke" --dry-run
 ```
 
 ## Results
 
 - `npm run build`: PASS
-- `npm test`: PASS, 41/41 tests green
+- `npm test`: PASS, 51/51 tests green
 - `verify-global.sh`: PASS, including `check passed`, a bootstrap dry-run that previews the minimized portable repo contract, and a sequential rerun after rebuild showing `selected profile: product-build (global-accelerator)` through the PATH launcher
 - `verify-global-hard.sh`: PASS, including versioned global marker counts, MCP JSON parse, Codex config marker validation, Claude settings validation, helper command validation, and restore script executability
 - `shrey-junior check`: PASS in the control-plane repo itself
 - `standardize --dry-run` on `examples/sample-project`: PASS, preserved `product-build (repo-authority)` and previewed the new role specs, Copilot surfaces, state directories, and CI contract workflow
 - selective generation: PASS, including python and docs repo fixtures that no longer seed irrelevant frontend or backend instruction authority
 - active-role hints: PASS, including bootstrap seed plus runtime pointer updates for task packets, handoff, dispatch, reconcile, next reads, checks, and next action
+- command and capability docs: PASS, including generated `commands.md`, `tool-capabilities.md`, and `mcp-capabilities.md` in the portable repo contract
+- git-aware checkpointing: PASS, including seed checkpoint artifacts plus runtime checkpoints with git state before the first commit
 - stale-pointer validation: PASS, including a failing test when `active-role-hints.json` references missing artifacts
 - CI push gate parity: PASS, with `.agent/scripts/verify-contract.sh` enforcing the portable artifact-backed gate and opportunistically running `shrey-junior push-check` when the CLI is available
 - repo-facing instruction templates: PASS, now explicitly direct cooperative tools to read `.agent/state/active-role-hints.json` early for current role focus and latest continuity pointers
 - first-read contract: PASS, with repo templates, active-role hints, packets, and machine-global accelerators all pointing tools to the same shortest repo-local read path
 - machine-global accelerators: PASS, now covering Codex config, Claude settings, and Claude helper commands while explicitly deferring to repo-local truth
+- `sj-init`: PASS, including dry-run bootstrap selection for empty folders, dry-run standardize selection for existing repos, opt-out stand-down, readable failure paths, a real installer run, and global launcher coverage for `~/.local/bin/sj-init`
 - control-plane validator coverage: PASS, now requiring the new minimization and active-role-hints architecture docs in addition to the portable contract templates and scripts
 
 ## Proven In This Pass
@@ -63,15 +75,20 @@ node dist/cli.js standardize --target "/Volumes/shrey ssd/shrey-junior/examples/
 - bootstrap installs the expanded portable repo contract
 - standardize upgrades an existing repo and can back up touched files
 - bootstrap and standardize now generate a minimized contract instead of a maximal specialist and instruction dump
+- generic repos now stay quieter by default and no longer inherit backend/frontend instruction noise from generic fallback specialist defaults
 - specialist role specs and Copilot-friendly agent docs are generated repo-locally
 - active-role-hints gives cooperative runtimes one repo-local file to read first for current role and latest pointers
 - active-role-hints now also gives the next read set, checks to run, search guidance, stop conditions, and next action
+- active-role-hints now points at the latest checkpoint and the next suggested command
+- checkpoints capture git branch, staged/dirty state, files touched, related continuity artifacts, and next action without requiring a commit to exist
 - latest continuity pointers for handoff, dispatch, reconcile, and task packets are written in stable locations
+- command and capability discovery docs are now part of the repo-local contract instead of being implied only by higher-level docs
 - repo-local contract validation covers the expanded surfaces
 - repo-local CI verification now enforces behavioral state constraints, not just existence
 - repo-local CI verification now acts as a portable push gate and also runs `push-check` when the CLI is available
 - repo-facing tool instructions now point agents at `active-role-hints.json` as the shortest repo-local continuity read
 - machine-global accelerators now reinforce the same first-read contract instead of acting like an independent authority layer
+- the new `sj-init` Bash entrypoint stays thin and repo-first by delegating to `bootstrap`, `standardize`, `status`, and `check` instead of reimplementing contract logic
 - control-plane validation now guards the new architecture docs that explain contract minimization and active-role hints
 - global accelerator scripts still verify cleanly after the repo-first upgrade
 - runtime profile resolution now prefers explicit repo authority over generated overlay metadata
@@ -116,3 +133,5 @@ Additional realism fixes applied during the same audit:
 
 - Copilot-facing templates now say MCP eligibility is repo metadata, not proof that Copilot can invoke MCP tools directly.
 - The new first-read contract is now command-backed in `verify-global.sh`, which shows `.agent/state/active-role-hints.json` at the front of the previewed read path.
+- Generic repo fallback is now explicitly constrained so machine-global defaults do not quietly widen a generic repo into backend/frontend instruction noise.
+- Checkpoint seed JSON and active-role-hints seed JSON now render quoted command strings safely, preventing fresh-repo bootstrap from generating invalid JSON.

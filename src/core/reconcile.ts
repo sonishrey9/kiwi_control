@@ -71,7 +71,13 @@ export function buildReconcileReport(manifest: DispatchManifest, collection: Dis
     missingValidations,
     unresolvedRisks,
     recommendedNextStep,
-    readFirst: dedupeStrings([...context.promotedAuthorityDocs, ...context.authorityOrder]).slice(0, 8)
+    readFirst: dedupeStrings([
+      ".agent/state/active-role-hints.json",
+      ".agent/state/current-phase.json",
+      ".agent/state/checkpoints/latest.json",
+      ...context.promotedAuthorityDocs,
+      ...context.authorityOrder
+    ]).slice(0, 8)
   };
 }
 

@@ -1,7 +1,7 @@
 import type { GlobalBootstrapDefaults, LoadedConfig, ProjectType } from "./config.js";
 import { getGlobalHomeRoot, loadGlobalBootstrapDefaults } from "./config.js";
 import { initOrSyncTarget, summarizeWrites } from "./executor.js";
-import { buildBootstrapNextAction, buildChecksToRun, buildFirstReadContract } from "./guidance.js";
+import { buildBootstrapNextAction, buildBootstrapNextFileToRead, buildBootstrapNextSuggestedCommand, buildChecksToRun, buildFirstReadContract } from "./guidance.js";
 import { inspectBootstrapTarget, type BootstrapInspection } from "./project-detect.js";
 import { loadProjectOverlay, resolveExecutionMode, type ProfileSelection } from "./profiles.js";
 import { buildTemplateContext, selectPortableContract, type TemplateContext } from "./router.js";
@@ -32,9 +32,13 @@ export interface BootstrapPlan {
   supportingRoles: string[];
   firstReadPreview: string[];
   verificationCommands: string[];
+  coreContractSurfaces: string[];
+  optionalContractSurfaces: string[];
   relevantContractSurfaces: string[];
   skippedContractSurfaces: string[];
   results: WriteResult[];
+  nextFileToRead: string;
+  nextSuggestedCommand: string;
   recommendedNextCommand: string;
 }
 
@@ -126,6 +130,11 @@ export async function bootstrapTarget(options: BootstrapOptions, config: LoadedC
     : hasConflicts
       ? `node dist/cli.js sync --target "${options.targetRoot}" --dry-run --diff-summary`
       : `node dist/cli.js status --target "${options.targetRoot}"`;
+  const nextSuggestedCommand = inspection.authorityOptOut
+    ? recommendedNextCommand
+    : hasConflicts
+      ? recommendedNextCommand
+      : buildBootstrapNextSuggestedCommand(options.targetRoot);
 
   return {
     inspection,
@@ -145,6 +154,13 @@ export async function bootstrapTarget(options: BootstrapOptions, config: LoadedC
       contract
     }).slice(0, 8),
     verificationCommands: buildChecksToRun(starterValidationHints),
+    coreContractSurfaces: contract.coreSurfaces,
+    optionalContractSurfaces: [
+      ...contract.instructionSurfaces,
+      ...contract.agentSurfaces,
+      ...contract.roleSurfaces,
+      ...contract.ciSurfaces
+    ],
     relevantContractSurfaces: [
       ...contract.coreSurfaces,
       ...contract.instructionSurfaces,
@@ -154,6 +170,8 @@ export async function bootstrapTarget(options: BootstrapOptions, config: LoadedC
     ],
     skippedContractSurfaces: contract.skippedSurfaces,
     results,
+    nextFileToRead: buildBootstrapNextFileToRead(),
+    nextSuggestedCommand,
     recommendedNextCommand
   };
 }
@@ -176,7 +194,9 @@ export function formatBootstrapSummary(plan: BootstrapPlan): string {
     `- first read preview: ${plan.firstReadPreview.join(", ") || "none"}`,
     `- relevant contract surfaces: ${plan.relevantContractSurfaces.slice(0, 8).join(", ") || "none"}`,
     `- skipped as irrelevant: ${plan.skippedContractSurfaces.slice(0, 8).join(", ") || "none"}`,
-    `- verification commands: ${plan.verificationCommands.join(" | ") || buildBootstrapNextAction()}`
+    `- verification commands: ${plan.verificationCommands.join(" | ") || buildBootstrapNextAction()}`,
+    `- next file to open: ${plan.nextFileToRead}`,
+    `- next command: ${plan.nextSuggestedCommand}`
   ];
 
   if (plan.warnings.length) {
@@ -264,7 +284,11 @@ function resolveStarterSpecialists(
   globalDefaults: GlobalBootstrapDefaults | null
 ): string[] {
   const configured = globalDefaults?.project_type_specialists?.[projectType] ?? [];
-  const candidates = Array.from(new Set([...configured, ...fallbackSpecialistsByProjectType[projectType]]));
+  const normalizedConfigured =
+    projectType === "generic"
+      ? configured.filter((specialistId) => genericStarterSpecialists.has(specialistId))
+      : configured;
+  const candidates = Array.from(new Set([...normalizedConfigured, ...fallbackSpecialistsByProjectType[projectType]]));
   return candidates.filter((specialistId) => {
     const specialist = config.specialists.specialists[specialistId];
     return Boolean(specialist && specialist.allowed_profiles.includes(profileName));
@@ -329,8 +353,15 @@ const fallbackSpecialistsByProjectType: Record<ProjectType, string[]> = {
   node: ["fullstack-specialist", "frontend-specialist", "backend-specialist", "qa-specialist"],
   docs: ["docs-specialist", "qa-specialist"],
   "data-platform": ["data-platform-specialist", "backend-specialist", "qa-specialist", "security-specialist"],
-  generic: ["fullstack-specialist", "qa-specialist", "docs-specialist"]
+  generic: ["architecture-specialist", "review-specialist", "qa-specialist", "docs-specialist"]
 };
+
+const genericStarterSpecialists = new Set([
+  "architecture-specialist",
+  "review-specialist",
+  "qa-specialist",
+  "docs-specialist"
+]);
 
 const fallbackValidationsByProjectType: Record<ProjectType, string[]> = {
   python: ["ruff", "mypy", "pytest", "node dist/cli.js check"],

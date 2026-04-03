@@ -11,6 +11,7 @@ export interface BootstrapCommandOptions {
   projectType?: string;
   dryRun?: boolean;
   backup?: boolean;
+  json?: boolean;
   logger: Logger;
 }
 
@@ -36,6 +37,10 @@ export async function runBootstrap(options: BootstrapCommandOptions): Promise<nu
     config
   );
 
-  options.logger.info(formatBootstrapSummary(plan));
+  if (options.json) {
+    console.log(JSON.stringify(plan, null, 2));
+  } else {
+    options.logger.info(formatBootstrapSummary(plan));
+  }
   return plan.results.some((result) => result.status === "conflict") ? 1 : 0;
 }

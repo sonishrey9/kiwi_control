@@ -1,7 +1,17 @@
 import path from "node:path";
 import type { ChangeSize, ExecutionMode, FileArea, LoadedConfig, TaskType, ToolName } from "./config.js";
 import { TOOL_NAMES } from "./config.js";
-import { buildBootstrapNextAction, buildCanonicalReadNext, buildChecksToRun, buildFirstReadContract, buildSearchGuidance, buildStopConditions, buildWriteTargets } from "./guidance.js";
+import {
+  buildBootstrapNextAction,
+  buildBootstrapNextFileToRead,
+  buildBootstrapNextSuggestedCommand,
+  buildCanonicalReadNext,
+  buildChecksToRun,
+  buildFirstReadContract,
+  buildSearchGuidance,
+  buildStopConditions,
+  buildWriteTargets
+} from "./guidance.js";
 import type { RiskLevel } from "./risk.js";
 import type { ProfileSelection } from "./profiles.js";
 
@@ -150,6 +160,9 @@ export function selectPortableContract(config: LoadedConfig, context: TemplateCo
     ".github/copilot-instructions.md",
     ".agent/project.yaml",
     ".agent/checks.yaml",
+    ".agent/context/commands.md",
+    ".agent/context/tool-capabilities.md",
+    ".agent/context/mcp-capabilities.md",
     ".agent/context/architecture.md",
     ".agent/context/conventions.md",
     ".agent/context/runbooks.md",
@@ -157,6 +170,8 @@ export function selectPortableContract(config: LoadedConfig, context: TemplateCo
     ".agent/templates/role-result.md",
     ".agent/state/current-phase.json",
     ".agent/state/active-role-hints.json",
+    ".agent/state/checkpoints/latest.json",
+    ".agent/state/checkpoints/latest.md",
     ".agent/state/handoff/README.md",
     ".agent/state/dispatch/README.md",
     ".agent/state/reconcile/README.md",
@@ -165,6 +180,7 @@ export function selectPortableContract(config: LoadedConfig, context: TemplateCo
   const stateSurfaces = [
     ".agent/state/current-phase.json",
     ".agent/state/active-role-hints.json",
+    ".agent/state/checkpoints/latest.json",
     ".agent/state/handoff/latest.json",
     ".agent/state/dispatch/latest-manifest.json",
     ".agent/state/dispatch/latest-collect.json",
@@ -181,6 +197,9 @@ export function selectPortableContract(config: LoadedConfig, context: TemplateCo
     ...roleSurfaces,
     ".agent/project.yaml",
     ".agent/checks.yaml",
+    ".agent/context/commands.md",
+    ".agent/context/tool-capabilities.md",
+    ".agent/context/mcp-capabilities.md",
     ".agent/state/current-phase.json",
     ".agent/state/active-role-hints.json"
   ];
@@ -252,12 +271,22 @@ export function getPortableStateSpecs(config: LoadedConfig, context: TemplateCon
     firstReadOrderYaml: renderYamlList(firstReadOrder),
     verificationCommandsYaml: renderYamlList(defaultChecksToRun),
     bootstrapNextAction: buildBootstrapNextAction(),
+    bootstrapNextActionJson: renderJson(buildBootstrapNextAction()),
+    bootstrapNextFileToRead: buildBootstrapNextFileToRead(),
+    bootstrapNextFileToReadJson: renderJson(buildBootstrapNextFileToRead()),
+    bootstrapNextSuggestedCommand: buildBootstrapNextSuggestedCommand(context.targetRoot),
+    bootstrapNextSuggestedCommandJson: renderJson(buildBootstrapNextSuggestedCommand(context.targetRoot)),
     activeRoleReadNextJson: renderJson(defaultReadNext),
     activeRoleWriteTargetsJson: renderJson(defaultWriteTargets),
     activeRoleChecksToRunJson: renderJson(defaultChecksToRun),
     activeRoleStopConditionsJson: renderJson(defaultStopConditions),
     activeRoleSearchGuidanceJson: renderJson(defaultSearchGuidance),
     activeRoleNextAction: buildBootstrapNextAction(),
+    activeRoleNextActionJson: renderJson(buildBootstrapNextAction()),
+    activeRoleNextFileToRead: buildBootstrapNextFileToRead(),
+    activeRoleNextFileToReadJson: renderJson(buildBootstrapNextFileToRead()),
+    activeRoleNextSuggestedCommand: buildBootstrapNextSuggestedCommand(context.targetRoot),
+    activeRoleNextSuggestedCommandJson: renderJson(buildBootstrapNextSuggestedCommand(context.targetRoot)),
     verifyRequiredFilesBash: renderBashArray([
       ...contract.coreSurfaces,
       ...contract.instructionSurfaces,
@@ -286,6 +315,21 @@ export function getPortableStateSpecs(config: LoadedConfig, context: TemplateCon
       templatePath: config.routing.portable_state.checks,
       outputPath: ".agent/checks.yaml",
       templateValues: sharedTemplateValues
+    },
+    {
+      logicalName: ".agent/context/commands.md",
+      templatePath: config.routing.portable_state.context.commands,
+      outputPath: ".agent/context/commands.md"
+    },
+    {
+      logicalName: ".agent/context/tool-capabilities.md",
+      templatePath: config.routing.portable_state.context.tool_capabilities,
+      outputPath: ".agent/context/tool-capabilities.md"
+    },
+    {
+      logicalName: ".agent/context/mcp-capabilities.md",
+      templatePath: config.routing.portable_state.context.mcp_capabilities,
+      outputPath: ".agent/context/mcp-capabilities.md"
     },
     {
       logicalName: ".agent/context/architecture.md",
@@ -326,6 +370,21 @@ export function getPortableStateSpecs(config: LoadedConfig, context: TemplateCon
       outputPath: ".agent/state/active-role-hints.json",
       writeMode: "seed-only",
       contentFormat: "raw",
+      templateValues: sharedTemplateValues
+    },
+    {
+      logicalName: ".agent/state/checkpoints/latest.json",
+      templatePath: config.routing.portable_state.state.checkpoint_latest_json,
+      outputPath: ".agent/state/checkpoints/latest.json",
+      writeMode: "seed-only",
+      contentFormat: "raw",
+      templateValues: sharedTemplateValues
+    },
+    {
+      logicalName: ".agent/state/checkpoints/latest.md",
+      templatePath: config.routing.portable_state.state.checkpoint_latest_markdown,
+      outputPath: ".agent/state/checkpoints/latest.md",
+      writeMode: "seed-only",
       templateValues: sharedTemplateValues
     },
     {

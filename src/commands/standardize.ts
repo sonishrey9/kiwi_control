@@ -11,6 +11,7 @@ export interface StandardizeCommandOptions {
   projectType?: string;
   dryRun?: boolean;
   backup?: boolean;
+  json?: boolean;
   logger: Logger;
 }
 
@@ -37,6 +38,10 @@ export async function runStandardize(options: StandardizeCommandOptions): Promis
     config
   );
 
-  options.logger.info(formatBootstrapSummary(plan).replace(/^bootstrap summary/, "standardize summary"));
+  if (options.json) {
+    console.log(JSON.stringify(plan, null, 2));
+  } else {
+    options.logger.info(formatBootstrapSummary(plan).replace(/^bootstrap summary/, "standardize summary"));
+  }
   return plan.results.some((result) => result.status === "conflict") ? 1 : 0;
 }

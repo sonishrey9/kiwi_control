@@ -101,7 +101,10 @@ test("portable state specs include repo-first role, Copilot, and CI contract sur
         checks: "templates/project/.agent/checks.yaml",
         context: {
           architecture: "templates/project/.agent/context/architecture.md",
+          commands: "templates/project/.agent/context/commands.md",
           conventions: "templates/project/.agent/context/conventions.md",
+          tool_capabilities: "templates/project/.agent/context/tool-capabilities.md",
+          mcp_capabilities: "templates/project/.agent/context/mcp-capabilities.md",
           runbooks: "templates/project/.agent/context/runbooks.md"
         },
         roles: {
@@ -114,6 +117,8 @@ test("portable state specs include repo-first role, Copilot, and CI contract sur
         state: {
           current_phase: "templates/project/.agent/state/current-phase.json",
           active_role_hints: "templates/project/.agent/state/active-role-hints.json",
+          checkpoint_latest_json: "templates/project/.agent/state/checkpoints/latest.json",
+          checkpoint_latest_markdown: "templates/project/.agent/state/checkpoints/latest.md",
           handoff_readme: "templates/project/.agent/state/handoff/README.md",
           dispatch_readme: "templates/project/.agent/state/dispatch/README.md",
           reconcile_readme: "templates/project/.agent/state/reconcile/README.md"
@@ -256,6 +261,9 @@ test("portable state specs include repo-first role, Copilot, and CI contract sur
   });
   const specs = getPortableStateSpecs(config, context);
   const outputPaths = specs.map((spec) => spec.outputPath);
+  assert.equal(outputPaths.includes(".agent/context/commands.md"), true);
+  assert.equal(outputPaths.includes(".agent/context/tool-capabilities.md"), true);
+  assert.equal(outputPaths.includes(".agent/context/mcp-capabilities.md"), true);
   assert.equal(outputPaths.includes(".github/instructions/backend.instructions.md"), true);
   assert.equal(outputPaths.includes(".github/instructions/frontend.instructions.md"), true);
   assert.equal(outputPaths.includes(".github/instructions/docs.instructions.md"), false);
@@ -264,6 +272,8 @@ test("portable state specs include repo-first role, Copilot, and CI contract sur
   assert.equal(outputPaths.includes(".github/agents/review-specialist.md"), true);
   assert.equal(outputPaths.includes(".agent/roles/backend-specialist.md"), true);
   assert.equal(outputPaths.includes(".agent/state/active-role-hints.json"), true);
+  assert.equal(outputPaths.includes(".agent/state/checkpoints/latest.json"), true);
+  assert.equal(outputPaths.includes(".agent/state/checkpoints/latest.md"), true);
   assert.equal(outputPaths.includes(".agent/scripts/verify-contract.sh"), true);
   assert.equal(outputPaths.includes(".github/workflows/shrey-junior-contract.yml"), true);
   const currentPhaseSpec = specs.find((spec) => spec.outputPath === ".agent/state/current-phase.json");
@@ -313,4 +323,45 @@ test("portable contract selection stays minimal for docs-heavy repos", () => {
   assert.equal(contract.specialistIds.includes("architecture-specialist"), true);
   assert.equal(contract.specialistIds.includes("backend-specialist"), false);
   assert.equal(contract.skippedSurfaces.includes(".github/instructions/backend.instructions.md"), true);
+});
+
+test("portable contract selection stays quiet for generic repos", () => {
+  const config = {
+    global: {
+      defaults: {
+        task_directory: ".agent/tasks",
+        context_directory: ".agent/context",
+        managed_prefix: "SHREY-JUNIOR"
+      }
+    },
+    specialists: {
+      defaults: {
+        specialist_by_role: {
+          planner: "architecture-specialist",
+          reviewer: "review-specialist",
+          tester: "qa-specialist"
+        },
+        fallback_specialist: "architecture-specialist"
+      },
+      specialists: {
+        "docs-specialist": { allowed_profiles: ["product-build"] },
+        "qa-specialist": { allowed_profiles: ["product-build"] },
+        "review-specialist": { allowed_profiles: ["product-build"] },
+        "architecture-specialist": { allowed_profiles: ["product-build"] }
+      }
+    }
+  } as unknown as LoadedConfig;
+
+  const context = buildTemplateContext("/tmp/generic-repo", config, {
+    profileName: "product-build",
+    executionMode: "assisted",
+    projectType: "generic",
+    starterSpecialists: "architecture-specialist, review-specialist, qa-specialist, docs-specialist"
+  });
+  const contract = selectPortableContract(config, context);
+
+  assert.deepEqual(contract.instructionKeys, ["docs"]);
+  assert.equal(contract.specialistIds.includes("backend-specialist"), false);
+  assert.equal(contract.specialistIds.includes("frontend-specialist"), false);
+  assert.equal(contract.activeRole, "architecture-specialist");
 });

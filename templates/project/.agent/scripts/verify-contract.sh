@@ -47,6 +47,10 @@ if not active.get("activeRole"):
     raise SystemExit("active-role-hints.json must include activeRole")
 if not active.get("readNext"):
     raise SystemExit("active-role-hints.json must include readNext")
+if not active.get("nextFileToRead"):
+    raise SystemExit("active-role-hints.json must include nextFileToRead")
+if not active.get("nextSuggestedCommand"):
+    raise SystemExit("active-role-hints.json must include nextSuggestedCommand")
 if not active.get("checksToRun"):
     raise SystemExit("active-role-hints.json must include checksToRun")
 if not active.get("nextAction"):
@@ -57,10 +61,31 @@ if not isinstance(search_guidance, dict):
 if "inspectCodebaseFirst" not in search_guidance or "repoDocsFirst" not in search_guidance:
     raise SystemExit("active-role-hints.json searchGuidance is incomplete")
 
-for pointer_key in ["latestTaskPacket", "latestHandoff", "latestDispatchManifest", "latestReconcile"]:
+for pointer_key in ["latestCheckpoint", "latestTaskPacket", "latestHandoff", "latestDispatchManifest", "latestReconcile"]:
     pointer_value = active.get(pointer_key)
     if pointer_value and not Path(pointer_value).exists():
         raise SystemExit(f"active-role-hints.json points to a missing file: {pointer_key} -> {pointer_value}")
+
+checkpoint = json.loads(Path(".agent/state/checkpoints/latest.json").read_text(encoding="utf-8"))
+if checkpoint.get("artifactType") != "shrey-junior/checkpoint":
+    raise SystemExit("latest checkpoint has the wrong artifactType")
+if checkpoint.get("schemaVersion") != 1:
+    raise SystemExit("latest checkpoint must declare schemaVersion 1")
+for key in ["createdAt", "phase", "activeRole", "authoritySource", "summary", "nextRecommendedAction", "nextSuggestedCommand"]:
+    if not checkpoint.get(key):
+        raise SystemExit(f"latest checkpoint must include {key}")
+if not isinstance(checkpoint.get("taskContext"), dict):
+    raise SystemExit("latest checkpoint must include taskContext")
+if not isinstance(checkpoint.get("dirtyState"), dict):
+    raise SystemExit("latest checkpoint must include dirtyState")
+if active.get("latestCheckpoint") and active.get("latestCheckpoint") != ".agent/state/checkpoints/latest.json":
+    raise SystemExit("active-role-hints.json latestCheckpoint must point to .agent/state/checkpoints/latest.json")
+
+checkpoint_markdown = Path(".agent/state/checkpoints/latest.md")
+if not checkpoint_markdown.exists():
+    raise SystemExit("latest checkpoint markdown missing")
+if "# Checkpoint" not in checkpoint_markdown.read_text(encoding="utf-8"):
+    raise SystemExit("latest checkpoint markdown must include a heading")
 
 for pointer_path in required_pointer_paths:
     path = Path(pointer_path)
@@ -70,6 +95,13 @@ for pointer_path in required_pointer_paths:
             raise SystemExit(f"{pointer_path} must include artifactType when present")
         if pointer_path.endswith(".json") and "updatedAt" not in payload and "createdAt" not in payload:
             raise SystemExit(f"{pointer_path} must include createdAt or updatedAt when present")
+
+project_yaml = Path(".agent/project.yaml").read_text(encoding="utf-8")
+if 'project_type: generic' in project_yaml or 'project_type: "generic"' in project_yaml:
+    if Path(".github/instructions/backend.instructions.md").exists():
+        raise SystemExit("generic repos should not carry backend.instructions.md by default")
+    if Path(".github/instructions/frontend.instructions.md").exists():
+        raise SystemExit("generic repos should not carry frontend.instructions.md by default")
 
 reconcile_path = Path(".agent/state/reconcile/latest.json")
 if reconcile_path.exists():

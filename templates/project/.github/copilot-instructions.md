@@ -15,8 +15,9 @@ Authority order:
 7. relevant `.github/agents/*.md`, `.agent/roles/*.md`, and `.agent/templates/role-result.md`
 8. `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
 9. `.agent/project.yaml`
-10. `.agent/tasks/` packets when present
-11. `.agent/context/*`
+10. `.agent/context/commands.md`, `.agent/context/tool-capabilities.md`, and `.agent/context/mcp-capabilities.md`
+11. `.agent/tasks/` packets when present
+12. `.agent/context/architecture.md`, `.agent/context/conventions.md`, and `.agent/context/runbooks.md`
 
 Before non-trivial shared changes:
 
@@ -37,7 +38,7 @@ Decision rules:
 - if the task is multi-file, guarded, contract-sensitive, security-sensitive, or needs reviewer/tester separation, do not behave like this is an isolated inline edit
 - align suggestions with `.agent/checks.yaml`, the active profile, and any existing packets
 - if policy or reconcile state is blocked, stop and surface the blocker instead of suggesting freeform edits
-- use `.agent/state/active-role-hints.json` as the shortest repo-local path to current role focus, next file to open, and latest continuity pointers
+- use `.agent/state/active-role-hints.json` as the shortest repo-local path to current role focus, next file to open, next command to consider, and latest continuity pointers
 
 Specialists and MCP:
 

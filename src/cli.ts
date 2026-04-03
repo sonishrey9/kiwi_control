@@ -39,6 +39,7 @@ async function main(): Promise<void> {
         ...(typeof parsed.flags["project-type"] === "string" ? { projectType: String(parsed.flags["project-type"]) } : {}),
         dryRun: parsed.flags["dry-run"] === true,
         backup: parsed.flags.backup === true,
+        json: parsed.flags.json === true,
         logger
       });
       return;
@@ -50,6 +51,7 @@ async function main(): Promise<void> {
         ...(typeof parsed.flags["project-type"] === "string" ? { projectType: String(parsed.flags["project-type"]) } : {}),
         dryRun: parsed.flags["dry-run"] === true,
         backup: parsed.flags.backup === true,
+        json: parsed.flags.json === true,
         logger
       });
       return;
@@ -240,8 +242,8 @@ function printHelp(): void {
   console.log(`shrey-junior
 
 Usage:
-  shrey-junior bootstrap --target /path/to/folder [--profile profile-name] [--project-type python|node|docs|data-platform|generic] [--dry-run]
-  shrey-junior standardize --target /path/to/repo [--profile profile-name] [--project-type python|node|docs|data-platform|generic] [--dry-run] [--backup]
+  shrey-junior bootstrap --target /path/to/folder [--profile profile-name] [--project-type python|node|docs|data-platform|generic] [--dry-run] [--json]
+  shrey-junior standardize --target /path/to/repo [--profile profile-name] [--project-type python|node|docs|data-platform|generic] [--dry-run] [--backup] [--json]
   shrey-junior audit --target /path/to/repo [--report /path/to/report.md]
   shrey-junior check [--target /path/to/repo] [--profile profile-name]
   shrey-junior init --target /path/to/repo [--profile profile-name]

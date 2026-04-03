@@ -8,13 +8,17 @@ trap 'rm -rf "$TMP_TARGET"' EXIT
 
 printf 'global home: %s\n' "$GLOBAL_HOME"
 printf 'path launcher: %s\n' "$PATH_BIN/shrey-junior"
+printf 'path sj-init: %s\n' "$PATH_BIN/sj-init"
 printf 'command -v shrey-junior: %s\n' "$(command -v shrey-junior || echo 'missing')"
+printf 'command -v sj-init: %s\n' "$(command -v sj-init || echo 'missing')"
 
 test -f "$GLOBAL_HOME/defaults/bootstrap.yaml"
 test -f "$GLOBAL_HOME/specialists/specialists.yaml"
 test -f "$GLOBAL_HOME/mcp/mcp.servers.json"
 test -x "$GLOBAL_HOME/bin/shrey-junior"
+test -x "$GLOBAL_HOME/bin/sj-init"
 test -x "$PATH_BIN/shrey-junior"
+test -L "$PATH_BIN/sj-init"
 test -f "$HOME/.codex/AGENTS.md"
 test -f "$HOME/.codex/config.toml"
 test -f "$HOME/.claude/CLAUDE.md"
@@ -38,5 +42,7 @@ PY
 
 shrey-junior check
 shrey-junior bootstrap --target "$TMP_TARGET" --dry-run
+SHREY_JUNIOR_BIN="$PATH_BIN/shrey-junior" "$PATH_BIN/sj-init" --target "$TMP_TARGET" --dry-run
+"$PATH_BIN/sj-init" --help >/dev/null
 
 printf 'global verification passed\n'

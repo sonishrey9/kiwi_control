@@ -1,4 +1,5 @@
 import { loadLatestDispatchCollection, loadLatestDispatchManifest, collectDispatchOutputs, writeDispatchCollection } from "../core/dispatch.js";
+import { loadActiveRoleHints, updateActiveRoleHints } from "../core/state.js";
 import type { Logger } from "../core/logger.js";
 import { renderDisplayPath } from "../utils/fs.js";
 
@@ -16,6 +17,18 @@ export async function runCollect(options: CollectOptions): Promise<number> {
   const previousCollection = await loadLatestDispatchCollection(options.targetRoot, manifest.dispatchId);
   const collection = await collectDispatchOutputs(options.targetRoot, manifest);
   const paths = await writeDispatchCollection(options.targetRoot, manifest, collection);
+  const activeRoleHints = await loadActiveRoleHints(options.targetRoot);
+  if (activeRoleHints) {
+    await updateActiveRoleHints(options.targetRoot, {
+      activeRole: activeRoleHints.activeRole,
+      authoritySource: activeRoleHints.authoritySource,
+      projectType: activeRoleHints.projectType,
+      supportingRoles: activeRoleHints.supportingRoles,
+      nextFileToRead: ".agent/state/dispatch/latest-collect.json",
+      nextSuggestedCommand: `shrey-junior reconcile --target "${options.targetRoot}"`,
+      nextAction: "Review the latest dispatch collection, then reconcile the role outputs before checkpointing or handoff."
+    });
+  }
 
   const lines = [
     `dispatch: ${manifest.dispatchId}`,

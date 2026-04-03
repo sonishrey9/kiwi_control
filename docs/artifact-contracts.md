@@ -10,8 +10,13 @@ Shrey Junior coordinates through files so humans and tools can inspect the same 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `.agent/project.yaml` | Repo profile, contract metadata, precedence summary | `bootstrap`, `sync`, `standardize` | `status`, `check`, packet builders, humans | Required | Repo-local generated overlay | Cloud-visible | Human-readable YAML |
 | `.agent/checks.yaml` | Required checks and contract expectations | `bootstrap`, `sync`, `standardize` | `status`, `check`, humans | Required | Repo-local generated overlay | Cloud-visible | Human-readable YAML |
+| `.agent/context/commands.md` | Command discovery and next-step guidance | `bootstrap`, `sync`, `standardize` | `active-role-hints`, humans, cooperative tools | Required | Repo-local generated overlay | Cloud-visible | Human-readable Markdown |
+| `.agent/context/tool-capabilities.md` | Honest tool-family capability matrix | `bootstrap`, `sync`, `standardize` | humans and cooperative tools | Required | Repo-local generated overlay | Cloud-visible | Human-readable Markdown |
+| `.agent/context/mcp-capabilities.md` | External lookup and MCP decision guide | `bootstrap`, `sync`, `standardize` | packets, humans, cooperative tools | Required | Repo-local generated overlay | Cloud-visible | Human-readable Markdown |
 | `.agent/state/current-phase.json` | Latest phase continuity record | `checkpoint`, bootstrap seed | `status`, `handoff`, agents, humans | Required | Runtime artifact | Cloud-visible | Structured JSON |
 | `.agent/state/active-role-hints.json` | Current lead role, next reads, next writes, checks, stop conditions, and latest continuity pointers | bootstrap seed, `run`, `fanout`, `dispatch`, `checkpoint`, `handoff`, `reconcile` | `status`, cooperative runtimes, humans | Required | Runtime artifact | Cloud-visible | Structured JSON |
+| `.agent/state/checkpoints/latest.json` | Latest git-aware checkpoint for resume, QA, and handoff | bootstrap seed, `checkpoint` | `status`, `handoff`, packets, humans | Required | Runtime artifact | Cloud-visible | Structured JSON |
+| `.agent/state/checkpoints/latest.md` | Human-readable summary of latest checkpoint | bootstrap seed, `checkpoint` | humans, Copilot-like tools | Required | Runtime artifact | Cloud-visible | Markdown |
 | `.agent/state/handoff/latest.json` | Latest cross-tool handoff | `handoff` | `status`, resuming tools | Optional | Runtime artifact | Cloud-visible | Structured JSON |
 | `.agent/state/dispatch/latest-manifest.json` | Latest dispatch manifest | `dispatch` | `collect`, `reconcile`, humans | Optional | Runtime artifact | Cloud-visible | Structured JSON |
 | `.agent/state/dispatch/latest-collect.json` | Latest dispatch collection summary | `collect` | `reconcile`, `status`, humans | Optional | Runtime artifact | Cloud-visible | Structured JSON |
@@ -29,6 +34,7 @@ Shrey Junior coordinates through files so humans and tools can inspect the same 
 - Copilot agent docs: `schema: shrey-junior/copilot-agent@v1`
 - Current phase: `artifactType: "shrey-junior/current-phase"`
 - Active role hints: `artifactType: "shrey-junior/active-role-hints"`
+- Checkpoint: `artifactType: "shrey-junior/checkpoint"`
 - Handoff: `artifactType: "shrey-junior/handoff"`
 - Dispatch manifest: `artifactType: "shrey-junior/dispatch-manifest"`
 - Dispatch collection: `artifactType: "shrey-junior/dispatch-collect"`
@@ -40,6 +46,7 @@ Shrey Junior coordinates through files so humans and tools can inspect the same 
 Stable latest-pointer files exist so a tool can recover context without scanning history:
 
 - `active-role-hints.json`
+- `checkpoints/latest.json`
 - `handoff/latest.json`
 - `dispatch/latest-manifest.json`
 - `dispatch/latest-collect.json`
@@ -53,5 +60,6 @@ These are portability helpers rather than stronger authority than the underlying
 The runtime artifacts are designed to reduce unnecessary exploration:
 
 - `active-role-hints.json` should answer “who acts now, what should be read next, what should be written next, and which checks matter”
+- `checkpoints/latest.json` should answer “what changed most recently, under which role, against which git state, and what the next command should be”
 - task packets should answer “what is in scope, what is out of scope, and when to stop”
 - handoff and reconcile artifacts should answer “what changed, what is still risky, and what the next tool should do”

@@ -67,7 +67,8 @@ test("dispatch manifest writes role assignments and collect tracks completed out
     },
     continuity: {
       latestPhase: null,
-      latestHandoff: null
+      latestHandoff: null,
+      latestCheckpoint: null
     },
     packetRelativePaths: {
       planner: ".agent/tasks/fanout-1/planner.md",

@@ -17,9 +17,12 @@ This document distinguishes:
 | Repo-local contract generation for new repos | Proven | `bootstrap` installs overlays, role specs, state seed, and CI workflow |
 | Existing repo upgrade path | Proven | `standardize` wraps the bootstrap planner with backup support |
 | Selective contract generation by repo shape | Proven | irrelevant instructions and specialist surfaces are skipped |
+| Quiet generic fallback | Proven | generic repos now default to architecture/review/qa/docs instead of fullstack-heavy starter noise |
 | Repo-authority stand-down | Proven | explicit repo-local opt-out remains stronger than generated overlays |
 | Latest continuity pointer files | Proven | handoff, dispatch, reconcile, and latest packet pointers are written/read locally |
 | Active role hints | Proven | `active-role-hints.json` is seeded and updated by runtime commands |
+| Command and capability discovery docs | Proven | repo-local command, tool-capability, and MCP-capability docs are generated into every initialized repo |
+| Git-aware checkpoints | Proven | bootstrap seeds a checkpoint and `checkpoint` records git-aware continuity even before the first commit |
 | First-read contract across repo-local and machine-global surfaces | Proven | templates and global accelerators now point tools at the same repo-local read order |
 | Global preference layers with rollback and idempotency | Proven | verified by global verification scripts |
 | Copilot-native repo-local surfaces | Proven locally / structurally supported in tooling | files are generated and validated; honoring by every runtime is not proven |
@@ -149,20 +152,23 @@ sequenceDiagram
 
 1. `status` compiles authority, continuity, and current routing state.
 2. `run`, `fanout`, or `dispatch` produce task packets and refresh active-role hints.
-3. role workers write results against the packet and role-result contract.
-4. `collect` reads dispatch outputs.
-5. `reconcile` writes the conflict and agreement summary.
-6. `checkpoint` and `handoff` persist continuity.
-7. `push-check` evaluates readiness using git state and latest reconcile state.
+3. `checkpoint` records the latest git-aware continuity summary.
+4. role workers write results against the packet and role-result contract.
+5. `collect` reads dispatch outputs.
+6. `reconcile` writes the conflict and agreement summary.
+7. `handoff` persists cross-tool continuity.
+8. `push-check` evaluates readiness using git state and latest reconcile state.
 
 The practical first read for any cooperative runtime is:
 
 1. trusted repo authority
 2. `active-role-hints.json`
 3. `current-phase.json`
-4. latest packet, handoff, dispatch, and reconcile pointers
-5. path-specific instructions
-6. checks and repo-local verifier expectations
+4. `checkpoints/latest.json`
+5. latest packet, handoff, dispatch, and reconcile pointers
+6. `commands.md`, `tool-capabilities.md`, and `mcp-capabilities.md`
+7. path-specific instructions
+8. checks and repo-local verifier expectations
 
 ## Repo Detection And Routing Flow
 
@@ -238,6 +244,7 @@ flowchart LR
 ## Artifact Contract Table
 
 See [artifact-contracts.md](/Volumes/shrey%20ssd/shrey-junior/docs/artifact-contracts.md) for the canonical table.
+See [checkpointing.md](/Volumes/shrey%20ssd/shrey-junior/docs/checkpointing.md) for the git-aware continuity layer.
 
 ## Local Vs Cloud Visibility Model
 

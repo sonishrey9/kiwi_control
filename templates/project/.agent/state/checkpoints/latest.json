@@ -1,0 +1,46 @@
+{
+  "artifactType": "shrey-junior/checkpoint",
+  "schemaVersion": 1,
+  "createdAt": "{{generatedAt}}",
+  "checkpointId": "bootstrap-initialized",
+  "phase": "bootstrap initialized",
+  "activeRole": "{{activeRole}}",
+  "supportingRoles": {{supportingRolesJson}},
+  "authoritySource": "{{profileSource}}",
+  "summary": "Bootstrap seed only. Fill in the repo context, then replace this with a real checkpoint after meaningful work.",
+  "taskContext": {
+    "goal": "Establish the repo-local Shrey Junior contract and initial context.",
+    "taskType": "planning",
+    "fileArea": "context",
+    "changeSize": "small",
+    "riskLevel": "low",
+    "primaryTool": "claude",
+    "reviewTool": "codex"
+  },
+  "filesTouched": [],
+  "filesCreated": [],
+  "filesDeleted": [],
+  "checksRun": [
+    "portable repo contract installed"
+  ],
+  "checksPassed": [
+    "portable repo contract installed"
+  ],
+  "checksFailed": [],
+  "gitBranch": null,
+  "gitCommitBefore": null,
+  "gitCommitAfter": null,
+  "dirtyState": {
+    "isGitRepo": false,
+    "clean": true,
+    "stagedCount": 0,
+    "unstagedCount": 0,
+    "untrackedCount": 0
+  },
+  "stagedFiles": [],
+  "relatedTaskPacket": null,
+  "relatedHandoff": null,
+  "relatedReconcile": null,
+  "nextRecommendedAction": {{bootstrapNextActionJson}},
+  "nextSuggestedCommand": {{bootstrapNextSuggestedCommandJson}}
+}

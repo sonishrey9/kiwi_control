@@ -7,11 +7,14 @@ import {
   listTaskPacketDirectories,
   loadActiveRoleHints,
   loadContinuitySnapshot,
+  loadLatestCheckpoint,
   loadLatestTaskPacketSet,
   updateActiveRoleHints,
+  writeCheckpointArtifacts,
   writeHandoffArtifacts,
   writeLatestTaskPacketSet,
   writePhaseRecord,
+  type CheckpointRecord,
   type HandoffRecord,
   type PhaseRecord
 } from "../core/state.js";
@@ -52,8 +55,54 @@ test("state ledger stores current phase and latest tool-specific handoff", async
     activeRole: "backend-specialist",
     supportingRoles: ["review-specialist", "qa-specialist"],
     authoritySource: "repo-local",
-    projectType: "node"
+    projectType: "node",
+    nextFileToRead: ".agent/context/architecture.md",
+    nextSuggestedCommand: 'shrey-junior checkpoint "milestone" --target <repo>'
   });
+  const checkpoint: CheckpointRecord = {
+    artifactType: "shrey-junior/checkpoint",
+    schemaVersion: 1,
+    createdAt: "2026-04-02T12:15:00.000Z",
+    checkpointId: "20260402-121500-phase-1",
+    phase: phase.label,
+    activeRole: "backend-specialist",
+    supportingRoles: ["review-specialist", "qa-specialist"],
+    authoritySource: "repo-local",
+    summary: "phase 1 complete",
+    taskContext: {
+      goal: phase.goal,
+      taskType: phase.routingSummary.taskType,
+      fileArea: phase.routingSummary.fileArea,
+      changeSize: phase.routingSummary.changeSize,
+      riskLevel: phase.routingSummary.riskLevel,
+      primaryTool: phase.routingSummary.primaryTool,
+      reviewTool: phase.routingSummary.reviewTool
+    },
+    filesTouched: ["src/core/router.ts"],
+    filesCreated: [],
+    filesDeleted: [],
+    checksRun: ["npm test"],
+    checksPassed: ["npm test"],
+    checksFailed: [],
+    gitBranch: "main",
+    gitCommitBefore: null,
+    gitCommitAfter: null,
+    dirtyState: {
+      isGitRepo: true,
+      clean: false,
+      branch: "main",
+      stagedCount: 0,
+      unstagedCount: 1,
+      untrackedCount: 0
+    },
+    stagedFiles: [],
+    relatedTaskPacket: null,
+    relatedHandoff: null,
+    relatedReconcile: null,
+    nextRecommendedAction: "handoff to claude for review",
+    nextSuggestedCommand: 'shrey-junior handoff --target <repo> --to-tool claude'
+  };
+  await writeCheckpointArtifacts(repoRoot, checkpoint);
 
   const claudeHandoff: HandoffRecord = {
     artifactType: "shrey-junior/handoff",
@@ -104,6 +153,7 @@ test("state ledger stores current phase and latest tool-specific handoff", async
   const allSnapshot = await loadContinuitySnapshot(repoRoot);
   assert.equal(allSnapshot.latestPhase?.phaseId, phase.phaseId);
   assert.equal(allSnapshot.latestHandoff?.toTool, "copilot");
+  assert.equal(allSnapshot.latestCheckpoint?.artifactType, "shrey-junior/checkpoint");
 
   const claudeSnapshot = await loadContinuitySnapshot(repoRoot, "claude");
   assert.equal(claudeSnapshot.latestHandoff?.toTool, "claude");
@@ -114,10 +164,15 @@ test("state ledger stores current phase and latest tool-specific handoff", async
   const latestPacketSet = await loadLatestTaskPacketSet(repoRoot);
   assert.equal(latestPacketSet?.artifactType, "shrey-junior/latest-task-packets");
   assert.equal(latestPacketSet?.files[0], ".agent/tasks/run-1/codex.md");
+  const latestCheckpoint = await loadLatestCheckpoint(repoRoot);
+  assert.equal(latestCheckpoint?.phase, phase.label);
   const activeRoleHints = await loadActiveRoleHints(repoRoot);
   assert.equal(activeRoleHints?.activeRole, "backend-specialist");
+  assert.equal(activeRoleHints?.latestCheckpoint, ".agent/state/checkpoints/latest.json");
   assert.equal(activeRoleHints?.latestTaskPacket, ".agent/state/latest-task-packets.json");
   assert.equal(activeRoleHints?.latestHandoff, ".agent/state/handoff/latest.json");
+  assert.equal(activeRoleHints?.nextFileToRead, ".agent/context/architecture.md");
+  assert.match(activeRoleHints?.nextSuggestedCommand ?? "", /checkpoint/);
   assert.equal(activeRoleHints?.readNext.length !== 0, true);
   assert.equal(activeRoleHints?.checksToRun.length !== 0, true);
 });

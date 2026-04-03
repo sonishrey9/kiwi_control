@@ -15,8 +15,9 @@ Read in this order before non-trivial work:
 7. relevant `.github/agents/*.md`, `.agent/roles/*.md`, and `.agent/templates/role-result.md`
 8. `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
 9. `.agent/project.yaml`
-10. `.agent/context/architecture.md`, `.agent/context/conventions.md`, and `.agent/context/runbooks.md`
-11. `.agent/tasks/` packets when present
+10. `.agent/context/commands.md`, `.agent/context/tool-capabilities.md`, and `.agent/context/mcp-capabilities.md`
+11. `.agent/context/architecture.md`, `.agent/context/conventions.md`, and `.agent/context/runbooks.md`
+12. `.agent/tasks/` packets when present
 
 Authority rules:
 
@@ -48,7 +49,7 @@ Use the control plane like this:
 - use `handoff` when Codex, Claude, Copilot, or another tool is continuing the next phase
 - use `push-check` before recommending push for non-trivial, guarded, contract-sensitive, or release-sensitive work
 - use `release-check` and `phase-close` when the phase is nearing review, release, or a clean handoff boundary
-- use `.agent/state/active-role-hints.json` as the fastest repo-local read for the current lead role, next file to open, and latest continuity pointers
+- use `.agent/state/active-role-hints.json` as the fastest repo-local read for the current lead role, next file to open, next command to consider, and latest continuity pointers
 
 Escalate instead of proceeding directly when:
 

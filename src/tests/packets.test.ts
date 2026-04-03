@@ -59,21 +59,28 @@ test("task packets include first-read guidance, checks, and control-plane expect
     supportingRole: "primary owner for implementation"
   });
 
-  assert.match(packet, /## Workflow Decision Rules/);
   assert.match(packet, /^---$/m);
   assert.match(packet, /schema: shrey-junior\/task-packet@v1/);
   assert.match(packet, /read_first:/);
   assert.match(packet, /checks_to_run:/);
   assert.match(packet, /stop_conditions:/);
+  assert.match(packet, /external_lookup:/);
+  assert.match(packet, /use_external_lookup_when:/);
   assert.match(packet, /## Read This First/);
   assert.match(packet, /\.agent\/state\/active-role-hints\.json/);
+  assert.match(packet, /\.agent\/state\/checkpoints\/latest\.json/);
+  assert.match(packet, /\.agent\/context\/commands\.md/);
+  assert.match(packet, /\.agent\/context\/tool-capabilities\.md/);
+  assert.match(packet, /\.agent\/context\/mcp-capabilities\.md/);
   assert.match(packet, /## Exact Checks To Run/);
   assert.match(packet, /## Stop Conditions/);
   assert.match(packet, /## External Lookup Rules/);
   assert.match(packet, /\.agent\/state\/latest-task-packets\.json/);
-  assert.match(packet, /## Role And Output References/);
+  assert.match(packet, /## Repo Context/);
+  assert.match(packet, /## Role References/);
+  assert.match(packet, /## Relevant Repo Files/);
   assert.match(packet, /\.agent\/templates\/role-result\.md/);
-  assert.match(packet, /trivial work may stay direct only when it is local, low-risk/);
-  assert.match(packet, /require push-check before recommending push/);
-  assert.match(packet, /treat MCP usage as policy-driven/);
+  assert.match(packet, /shrey-junior push-check --target <repo> when the CLI is available/);
+  assert.match(packet, /prefer promoted repo docs or linked canonical docs before internet search/);
+  assert.match(packet, /## Eligible MCP References/);
 });

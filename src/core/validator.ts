@@ -11,7 +11,7 @@ import { loadProjectOverlay, resolveExecutionMode } from "./profiles.js";
 import { loadLatestReconcileReport } from "./reconcile.js";
 import { buildTemplateContext, resolveRoutingDecision, selectPortableContract, type PortableContractSelection } from "./router.js";
 import { assessGoalRisk } from "./risk.js";
-import { getStatePaths, loadActiveRoleHints, loadContinuitySnapshot } from "./state.js";
+import { getStatePaths, loadActiveRoleHints, loadContinuitySnapshot, loadLatestCheckpoint } from "./state.js";
 import { hasConsistentManagedMarkers, isIgnoredArtifactName, pathExists, readJson, readText } from "../utils/fs.js";
 import { parseYaml } from "../utils/yaml.js";
 
@@ -47,6 +47,7 @@ export async function validateControlPlane(repoRoot: string, config: LoadedConfi
     "docs/copilot-integration.md",
     "docs/claude-role-integration.md",
     "docs/active-role-hints.md",
+    "docs/checkpointing.md",
     "docs/artifact-contracts.md",
     "docs/bootstrap-and-standardize.md",
     "docs/global-accelerators.md",
@@ -94,13 +95,18 @@ export async function validateControlPlane(repoRoot: string, config: LoadedConfi
     "templates/project/.agent/project.yaml",
     "templates/project/.agent/checks.yaml",
     "templates/project/.agent/context/architecture.md",
+    "templates/project/.agent/context/commands.md",
     "templates/project/.agent/context/conventions.md",
+    "templates/project/.agent/context/tool-capabilities.md",
+    "templates/project/.agent/context/mcp-capabilities.md",
     "templates/project/.agent/context/runbooks.md",
     "templates/project/.agent/roles/README.md",
     "templates/project/.agent/roles/specialist-role.md",
     "templates/project/.agent/templates/role-result.md",
     "templates/project/.agent/state/current-phase.json",
     "templates/project/.agent/state/active-role-hints.json",
+    "templates/project/.agent/state/checkpoints/latest.json",
+    "templates/project/.agent/state/checkpoints/latest.md",
     "templates/project/.agent/state/handoff/README.md",
     "templates/project/.agent/state/dispatch/README.md",
     "templates/project/.agent/state/reconcile/README.md",
@@ -498,6 +504,20 @@ export async function validateTargetRepo(
         filePath: statePaths.activeRoleHints
       });
     }
+    if (typeof activeRoleHints.nextFileToRead !== "string" || !activeRoleHints.nextFileToRead.trim()) {
+      issues.push({
+        level: "error",
+        message: "active role hints must declare nextFileToRead",
+        filePath: statePaths.activeRoleHints
+      });
+    }
+    if (typeof activeRoleHints.nextSuggestedCommand !== "string" || !activeRoleHints.nextSuggestedCommand.trim()) {
+      issues.push({
+        level: "error",
+        message: "active role hints must declare nextSuggestedCommand",
+        filePath: statePaths.activeRoleHints
+      });
+    }
     if (!activeRoleHints.searchGuidance || typeof activeRoleHints.searchGuidance !== "object") {
       issues.push({
         level: "error",
@@ -506,6 +526,7 @@ export async function validateTargetRepo(
       });
     }
     for (const [field, value] of Object.entries({
+      latestCheckpoint: activeRoleHints.latestCheckpoint,
       latestTaskPacket: activeRoleHints.latestTaskPacket,
       latestHandoff: activeRoleHints.latestHandoff,
       latestDispatchManifest: activeRoleHints.latestDispatchManifest,
@@ -524,6 +545,86 @@ export async function validateTargetRepo(
       level: "error",
       message: "active role hints file missing",
       filePath: statePaths.activeRoleHints
+    });
+  }
+
+  const latestCheckpoint = await loadLatestCheckpoint(targetRoot);
+  if (await pathExists(statePaths.latestCheckpointJson)) {
+    try {
+      const checkpoint = await readJson<Record<string, unknown>>(statePaths.latestCheckpointJson);
+      if (checkpoint.artifactType !== "shrey-junior/checkpoint") {
+        issues.push({
+          level: "error",
+          message: "latest checkpoint must declare shrey-junior/checkpoint",
+          filePath: statePaths.latestCheckpointJson
+        });
+      }
+      if (checkpoint.schemaVersion !== 1) {
+        issues.push({
+          level: "error",
+          message: "latest checkpoint must declare schemaVersion 1",
+          filePath: statePaths.latestCheckpointJson
+        });
+      }
+      for (const key of ["createdAt", "phase", "activeRole", "authoritySource", "summary", "nextRecommendedAction", "nextSuggestedCommand"] as const) {
+        if (typeof checkpoint[key] !== "string" || !String(checkpoint[key]).trim()) {
+          issues.push({
+            level: "error",
+            message: `latest checkpoint must declare ${key}`,
+            filePath: statePaths.latestCheckpointJson
+          });
+        }
+      }
+      if (!checkpoint.taskContext || typeof checkpoint.taskContext !== "object") {
+        issues.push({
+          level: "error",
+          message: "latest checkpoint must declare taskContext",
+          filePath: statePaths.latestCheckpointJson
+        });
+      }
+      if (!checkpoint.dirtyState || typeof checkpoint.dirtyState !== "object") {
+        issues.push({
+          level: "error",
+          message: "latest checkpoint must declare dirtyState",
+          filePath: statePaths.latestCheckpointJson
+        });
+      }
+      if (!Array.isArray(checkpoint.filesTouched) || !Array.isArray(checkpoint.stagedFiles)) {
+        issues.push({
+          level: "error",
+          message: "latest checkpoint must declare filesTouched and stagedFiles",
+          filePath: statePaths.latestCheckpointJson
+        });
+      }
+    } catch (error) {
+      issues.push({
+        level: "error",
+        message: `invalid latest checkpoint json: ${(error as Error).message}`,
+        filePath: statePaths.latestCheckpointJson
+      });
+    }
+  } else if (inspection.alreadyInitialized) {
+    issues.push({
+      level: "error",
+      message: "latest checkpoint file missing",
+      filePath: statePaths.latestCheckpointJson
+    });
+  }
+
+  if (await pathExists(statePaths.latestCheckpointMarkdown)) {
+    const latestMarkdown = await readText(statePaths.latestCheckpointMarkdown);
+    if (!latestMarkdown.includes("# Checkpoint")) {
+      issues.push({
+        level: "error",
+        message: "latest checkpoint markdown must include a heading",
+        filePath: statePaths.latestCheckpointMarkdown
+      });
+    }
+  } else if (inspection.alreadyInitialized) {
+    issues.push({
+      level: "error",
+      message: "latest checkpoint markdown missing",
+      filePath: statePaths.latestCheckpointMarkdown
     });
   }
   if (await pathExists(statePaths.handoffDir)) {
@@ -674,6 +775,29 @@ export async function validateTargetRepo(
         });
       }
     }
+  }
+
+  if (inspection.projectType === "generic") {
+    for (const instructionSurface of declaredContract.instructions) {
+      if (
+        instructionSurface.endsWith("backend.instructions.md") ||
+        instructionSurface.endsWith("frontend.instructions.md")
+      ) {
+        issues.push({
+          level: "error",
+          message: "generic repos must not install backend/frontend instruction surfaces by default",
+          filePath: path.join(targetRoot, instructionSurface)
+        });
+      }
+    }
+  }
+
+  if (latestCheckpoint && activeRoleHints?.latestCheckpoint && activeRoleHints.latestCheckpoint !== ".agent/state/checkpoints/latest.json") {
+    issues.push({
+      level: "error",
+      message: "active role hints latestCheckpoint must point at .agent/state/checkpoints/latest.json",
+      filePath: statePaths.activeRoleHints
+    });
   }
 
   const preview = await initOrSyncTarget(config.repoRoot, targetRoot, config, context, { dryRun: true });

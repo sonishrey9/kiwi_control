@@ -3,6 +3,8 @@ import { promises as fs } from "node:fs";
 import type { ChangeSize, ExecutionMode, FileArea, TaskType, ToolName } from "./config.js";
 import {
   buildBootstrapNextAction,
+  buildBootstrapNextFileToRead,
+  buildBootstrapNextSuggestedCommand,
   buildChecksToRun,
   buildSearchGuidance,
   buildStopConditions,
@@ -62,15 +64,66 @@ export interface ActiveRoleHintsRecord {
   authoritySource: string;
   projectType: string;
   readNext: string[];
+  nextFileToRead: string;
+  nextSuggestedCommand: string;
   writeTargets: string[];
   checksToRun: string[];
   stopConditions: string[];
   nextAction: string;
   searchGuidance: SearchGuidance;
+  latestCheckpoint: string | null;
   latestTaskPacket: string | null;
   latestHandoff: string | null;
   latestDispatchManifest: string | null;
   latestReconcile: string | null;
+}
+
+export interface CheckpointDirtyState {
+  isGitRepo: boolean;
+  clean: boolean;
+  branch?: string;
+  stagedCount: number;
+  unstagedCount: number;
+  untrackedCount: number;
+}
+
+export interface CheckpointTaskContext {
+  goal: string;
+  taskType: TaskType;
+  fileArea: FileArea;
+  changeSize: ChangeSize;
+  riskLevel: "low" | "medium" | "high";
+  primaryTool?: ToolName;
+  reviewTool?: ToolName;
+}
+
+export interface CheckpointRecord {
+  artifactType: "shrey-junior/checkpoint";
+  schemaVersion: 1;
+  createdAt: string;
+  checkpointId: string;
+  phase: string;
+  activeRole: string;
+  supportingRoles: string[];
+  authoritySource: string;
+  summary: string;
+  taskContext: CheckpointTaskContext;
+  filesTouched: string[];
+  filesCreated: string[];
+  filesDeleted: string[];
+  checksRun: string[];
+  checksPassed: string[];
+  checksFailed: string[];
+  gitBranch: string | null;
+  gitCommitBefore: string | null;
+  gitCommitAfter: string | null;
+  dirtyState: CheckpointDirtyState;
+  stagedFiles: string[];
+  relatedTaskPacket: string | null;
+  relatedHandoff: string | null;
+  relatedReconcile: string | null;
+  nextRecommendedAction: string;
+  nextSuggestedCommand: string;
 }
 
 export interface HandoffRecord {
@@ -92,6 +145,8 @@ export interface HandoffRecord {
   whatChanged: string[];
   validationsPending: string[];
   risksRemaining: string[];
+  latestCheckpoint?: string;
+  checkpointSummary?: string;
   nextStep: string;
   status: "ready" | "blocked";
 }
@@ -113,6 +168,7 @@ export interface LatestTaskPacketSet {
 export interface ContinuitySnapshot {
   latestPhase: PhaseRecord | null;
   latestHandoff: HandoffRecord | null;
+  latestCheckpoint: CheckpointRecord | null;
 }
 
 export function getStatePaths(targetRoot: string): {
@@ -120,6 +176,9 @@ export function getStatePaths(targetRoot: string): {
   currentPhase: string;
   activeRoleHints: string;
   historyDir: string;
+  checkpointsDir: string;
+  latestCheckpointJson: string;
+  latestCheckpointMarkdown: string;
   handoffDir: string;
   latestTaskPackets: string;
 } {
@@ -129,6 +188,9 @@ export function getStatePaths(targetRoot: string): {
     currentPhase: path.join(root, "current-phase.json"),
     activeRoleHints: path.join(root, "active-role-hints.json"),
     historyDir: path.join(root, "history"),
+    checkpointsDir: path.join(root, "checkpoints"),
+    latestCheckpointJson: path.join(root, "checkpoints", "latest.json"),
+    latestCheckpointMarkdown: path.join(root, "checkpoints", "latest.md"),
     handoffDir: path.join(root, "handoff"),
     latestTaskPackets: path.join(root, "latest-task-packets.json")
   };
@@ -137,6 +199,7 @@ export function getStatePaths(targetRoot: string): {
 export async function ensureStateLayout(targetRoot: string): Promise<ReturnType<typeof getStatePaths>> {
   const paths = getStatePaths(targetRoot);
   await ensureDir(paths.historyDir);
+  await ensureDir(paths.checkpointsDir);
   await ensureDir(paths.handoffDir);
   return paths;
 }
@@ -192,7 +255,18 @@ export async function updateActiveRoleHints(
     supportingRoles: [],
     authoritySource: patch.authoritySource,
     projectType: patch.projectType,
-    readNext: [".agent/state/current-phase.json", ".agent/checks.yaml", ".agent/project.yaml"],
+    readNext: [
+      ".agent/state/current-phase.json",
+      ".agent/state/checkpoints/latest.json",
+      ".agent/context/commands.md",
+      ".agent/context/tool-capabilities.md",
+      ".agent/context/mcp-capabilities.md",
+      ".agent/context/architecture.md",
+      ".agent/checks.yaml",
+      ".agent/project.yaml"
+    ],
+    nextFileToRead: buildBootstrapNextFileToRead(),
+    nextSuggestedCommand: buildBootstrapNextSuggestedCommand(),
     writeTargets: [".agent/tasks/*", ".agent/state/current-phase.json", ".agent/state/handoff/*"],
     checksToRun: buildChecksToRun(),
     stopConditions: buildStopConditions(),
@@ -200,6 +274,7 @@ export async function updateActiveRoleHints(
     searchGuidance: buildSearchGuidance({
       projectType: patch.projectType
     }),
+    latestCheckpoint: null,
     latestTaskPacket: null,
     latestHandoff: null,
     latestDispatchManifest: null,
@@ -212,13 +287,57 @@ export async function updateActiveRoleHints(
     updatedAt: patch.updatedAt ?? new Date().toISOString(),
     supportingRoles: patch.supportingRoles ?? current.supportingRoles,
     readNext: patch.readNext ?? current.readNext,
+    nextFileToRead: patch.nextFileToRead ?? current.nextFileToRead,
+    nextSuggestedCommand: patch.nextSuggestedCommand ?? current.nextSuggestedCommand,
     writeTargets: patch.writeTargets ?? current.writeTargets,
     checksToRun: patch.checksToRun ?? current.checksToRun,
     stopConditions: patch.stopConditions ?? current.stopConditions,
     nextAction: patch.nextAction ?? current.nextAction,
-    searchGuidance: patch.searchGuidance ?? current.searchGuidance
+    searchGuidance: patch.searchGuidance ?? current.searchGuidance,
+    latestCheckpoint: patch.latestCheckpoint ?? current.latestCheckpoint
   };
   return writeActiveRoleHints(targetRoot, next);
+}
+
+export async function loadLatestCheckpoint(targetRoot: string): Promise<CheckpointRecord | null> {
+  const paths = getStatePaths(targetRoot);
+  if (!(await pathExists(paths.latestCheckpointJson))) {
+    return null;
+  }
+  return readJson<CheckpointRecord>(paths.latestCheckpointJson);
+}
+
+export async function writeCheckpointArtifacts(targetRoot: string, record: CheckpointRecord): Promise<{
+  jsonPath: string;
+  latestJsonPath: string;
+  latestMarkdownPath: string;
+}> {
+  const paths = await ensureStateLayout(targetRoot);
+  const jsonPath = path.join(paths.checkpointsDir, `${record.checkpointId}.json`);
+  const latestJsonPath = paths.latestCheckpointJson;
+  const latestMarkdownPath = paths.latestCheckpointMarkdown;
+  const jsonPayload = `${JSON.stringify(record, null, 2)}\n`;
+  const markdown = renderCheckpointMarkdown(record);
+  await writeText(jsonPath, jsonPayload);
+  await writeText(latestJsonPath, jsonPayload);
+  await writeText(latestMarkdownPath, markdown);
+
+  const activeRoleHints = await loadActiveRoleHints(targetRoot);
+  if (activeRoleHints) {
+    await updateActiveRoleHints(targetRoot, {
+      activeRole: activeRoleHints.activeRole,
+      authoritySource: activeRoleHints.authoritySource,
+      projectType: activeRoleHints.projectType,
+      supportingRoles: activeRoleHints.supportingRoles,
+      latestCheckpoint: relativeFrom(targetRoot, latestJsonPath)
+    });
+  }
+
+  return {
+    jsonPath,
+    latestJsonPath,
+    latestMarkdownPath
+  };
 }
 
 export async function loadLatestHandoff(targetRoot: string, toTool?: ToolName): Promise<HandoffRecord | null> {
@@ -345,7 +464,8 @@ export async function loadLatestTaskPacketSet(targetRoot: string): Promise<Lates
 export async function loadContinuitySnapshot(targetRoot: string, toTool?: ToolName): Promise<ContinuitySnapshot> {
   return {
     latestPhase: await loadCurrentPhase(targetRoot),
-    latestHandoff: await loadLatestHandoff(targetRoot, toTool)
+    latestHandoff: await loadLatestHandoff(targetRoot, toTool),
+    latestCheckpoint: await loadLatestCheckpoint(targetRoot)
   };
 }
 
@@ -357,4 +477,49 @@ export function parseCsvFlag(value: string | undefined): string[] {
     .split(",")
     .map((item) => item.trim())
     .filter((item) => Boolean(item));
+}
+
+export function renderCheckpointMarkdown(record: CheckpointRecord): string {
+  const lines = [
+    `# Checkpoint ${record.phase}`,
+    "",
+    `Created: ${record.createdAt}`,
+    `Active role: \`${record.activeRole}\``,
+    `Authority source: \`${record.authoritySource}\``,
+    ...(record.gitBranch ? [`Git branch: \`${record.gitBranch}\``] : ["Git branch: none"]),
+    ...(record.gitCommitAfter ? [`Git commit: \`${record.gitCommitAfter}\``] : ["Git commit: none"]),
+    "",
+    "## Summary",
+    "",
+    `- ${record.summary}`,
+    "",
+    "## Task Context",
+    "",
+    `- goal: ${record.taskContext.goal}`,
+    `- task type: \`${record.taskContext.taskType}\``,
+    `- file area: \`${record.taskContext.fileArea}\``,
+    `- change size: \`${record.taskContext.changeSize}\``,
+    `- risk: \`${record.taskContext.riskLevel}\``,
+    ...(record.taskContext.primaryTool ? [`- primary tool: \`${record.taskContext.primaryTool}\``] : []),
+    ...(record.taskContext.reviewTool ? [`- review tool: \`${record.taskContext.reviewTool}\``] : []),
+    "",
+    "## Files",
+    "",
+    ...(record.filesTouched.length > 0 ? record.filesTouched.map((item) => `- touched: \`${item}\``) : ["- touched: none recorded"]),
+    ...(record.filesCreated.length > 0 ? record.filesCreated.map((item) => `- created: \`${item}\``) : []),
+    ...(record.filesDeleted.length > 0 ? record.filesDeleted.map((item) => `- deleted: \`${item}\``) : []),
+    "",
+    "## Checks",
+    "",
+    ...(record.checksRun.length > 0 ? record.checksRun.map((item) => `- ran: ${item}`) : ["- ran: none recorded"]),
+    ...(record.checksPassed.length > 0 ? record.checksPassed.map((item) => `- passed: ${item}`) : []),
+    ...(record.checksFailed.length > 0 ? record.checksFailed.map((item) => `- failed: ${item}`) : []),
+    "",
+    "## Next",
+    "",
+    `- next action: ${record.nextRecommendedAction}`,
+    `- next command: ${record.nextSuggestedCommand}`
+  ];
+
+  return `${lines.join("\n")}\n`;
 }

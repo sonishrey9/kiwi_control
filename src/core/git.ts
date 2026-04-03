@@ -4,12 +4,18 @@ import { runCommand } from "../utils/child-process.js";
 export interface GitState {
   isGitRepo: boolean;
   branch?: string;
+  headCommit?: string | null;
   ahead: number;
   behind: number;
   stagedCount: number;
   unstagedCount: number;
   untrackedCount: number;
   changedFiles: string[];
+  stagedFiles?: string[];
+  unstagedFiles?: string[];
+  untrackedFiles?: string[];
+  createdFiles?: string[];
+  deletedFiles?: string[];
   clean: boolean;
   error?: string;
 }
@@ -32,26 +38,41 @@ export async function inspectGitState(targetRoot: string): Promise<GitState> {
   if (probe.code !== 0 || probe.stdout.trim() !== "true") {
     return {
       isGitRepo: false,
+      headCommit: null,
       ahead: 0,
       behind: 0,
       stagedCount: 0,
       unstagedCount: 0,
       untrackedCount: 0,
       changedFiles: [],
+      stagedFiles: [],
+      unstagedFiles: [],
+      untrackedFiles: [],
+      createdFiles: [],
+      deletedFiles: [],
       clean: true
     };
   }
+
+  const headCommitProbe = await runCommand("git", ["rev-parse", "HEAD"], targetRoot);
+  const headCommit = headCommitProbe.code === 0 ? headCommitProbe.stdout.trim() : null;
 
   const status = await runCommand("git", ["status", "--porcelain=1", "--branch"], targetRoot);
   if (status.code !== 0) {
     return {
       isGitRepo: true,
+      headCommit,
       ahead: 0,
       behind: 0,
       stagedCount: 0,
       unstagedCount: 0,
       untrackedCount: 0,
       changedFiles: [],
+      stagedFiles: [],
+      unstagedFiles: [],
+      untrackedFiles: [],
+      createdFiles: [],
+      deletedFiles: [],
       clean: false,
       error: status.stderr.trim() || "git status failed"
     };
@@ -66,37 +87,64 @@ export async function inspectGitState(targetRoot: string): Promise<GitState> {
   let unstagedCount = 0;
   let untrackedCount = 0;
   const changedFiles: string[] = [];
+  const stagedFiles: string[] = [];
+  const unstagedFiles: string[] = [];
+  const untrackedFiles: string[] = [];
+  const createdFiles: string[] = [];
+  const deletedFiles: string[] = [];
 
   for (const line of lines.filter((line) => !line.startsWith("##"))) {
+    const filePath = parsePorcelainPath(line);
     if (line.startsWith("??")) {
       untrackedCount += 1;
-      changedFiles.push(line.slice(3).trim());
+      if (filePath) {
+        changedFiles.push(filePath);
+        untrackedFiles.push(filePath);
+        createdFiles.push(filePath);
+      }
       continue;
     }
 
     const indexStatus = line[0] ?? " ";
     const worktreeStatus = line[1] ?? " ";
-    const filePath = line.slice(3).trim();
     if (indexStatus !== " ") {
       stagedCount += 1;
+      if (filePath) {
+        stagedFiles.push(filePath);
+      }
     }
     if (worktreeStatus !== " ") {
       unstagedCount += 1;
+      if (filePath) {
+        unstagedFiles.push(filePath);
+      }
     }
     if (filePath) {
       changedFiles.push(filePath);
+    }
+    if (filePath && (indexStatus === "A" || worktreeStatus === "A")) {
+      createdFiles.push(filePath);
+    }
+    if (filePath && (indexStatus === "D" || worktreeStatus === "D")) {
+      deletedFiles.push(filePath);
     }
   }
 
   return {
     isGitRepo: true,
     ...(branch ? { branch } : {}),
+    headCommit,
     ahead,
     behind,
     stagedCount,
     unstagedCount,
     untrackedCount,
     changedFiles,
+    stagedFiles: uniqueStrings(stagedFiles),
+    unstagedFiles: uniqueStrings(unstagedFiles),
+    untrackedFiles: uniqueStrings(untrackedFiles),
+    createdFiles: uniqueStrings(createdFiles),
+    deletedFiles: uniqueStrings(deletedFiles),
     clean: stagedCount === 0 && unstagedCount === 0 && untrackedCount === 0
   };
 }
@@ -182,4 +230,17 @@ function buildRecommendedNote(result: PushAssessment["result"], git: GitState, l
     return `Do not push ${phase}${branch} until the blocked checkpoint issues are resolved.`;
   }
   return `Review ${phase}${branch}, resolve outstanding warnings or dirty-tree items, and then reassess push readiness.`;
+}
+
+function parsePorcelainPath(line: string): string {
+  return line
+    .slice(3)
+    .trim()
+    .split(" -> ")
+    .pop()
+    ?.trim() ?? "";
+}
+
+function uniqueStrings(items: string[]): string[] {
+  return [...new Set(items.filter((item) => Boolean(item.trim())))];
 }

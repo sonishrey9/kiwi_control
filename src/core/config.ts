@@ -74,7 +74,10 @@ export interface RoutingConfig {
     checks: string;
     context: {
       architecture: string;
+      commands: string;
       conventions: string;
+      tool_capabilities: string;
+      mcp_capabilities: string;
       runbooks: string;
     };
     roles: {
@@ -87,6 +90,8 @@ export interface RoutingConfig {
     state: {
       current_phase: string;
       active_role_hints: string;
+      checkpoint_latest_json: string;
+      checkpoint_latest_markdown: string;
       handoff_readme: string;
       dispatch_readme: string;
       reconcile_readme: string;

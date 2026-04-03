@@ -30,56 +30,28 @@ CODEX_BLOCK=$(cat <<'EOF'
 BEGIN SHREY_JUNIOR_GLOBAL_PREFS v1
 ## Shrey Junior Global Preference Layer
 
-For serious repository work on this machine, treat `shrey-junior` as the preferred control plane.
-These global instructions are accelerators only; when a repo-local Shrey Junior contract exists, it is stronger than this file.
+Repo-local authority and repo-local Shrey Junior files beat this block. Use it only as a local accelerator.
 
-Authority order:
-1. Existing trusted repo authority files
-2. Promoted repo-local canonical docs explicitly referenced by that authority
-3. Repo-local Shrey Junior overlays, `.github/instructions/*`, `.github/agents/*`, `.agent/roles/*`, and `.agent/state/*`
-4. Generic global guidance in this file
+Serious-work read order:
+1. trusted repo authority and promoted repo docs
+2. `.agent/state/active-role-hints.json`
+3. `.agent/state/current-phase.json`
+4. `.agent/state/checkpoints/latest.json` plus latest packet / handoff / reconcile / dispatch pointers
+5. `.agent/context/commands.md`, `.agent/context/tool-capabilities.md`, `.agent/context/mcp-capabilities.md`
+6. relevant `.github/instructions/*.instructions.md`, `.github/agents/*.md`, and `.agent/roles/*.md`
+7. `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
 
-Before medium or high complexity work, check:
-- repo authority files and promoted canonical docs
-- `.agent/state/active-role-hints.json` and `.agent/state/current-phase.json` when present
-- latest task packet, latest handoff, latest dispatch, and latest reconcile result if present
-- `.github/instructions/*.instructions.md`, `.github/agents/*.md`, and `.agent/roles/*.md` when present
-- `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
-- active profile via `shrey-junior status --target "<repo>"`
+For non-trivial work, prefer:
+- `shrey-junior status --target "<repo>"`
+- `shrey-junior check --target "<repo>"`
+- `shrey-junior run|fanout|dispatch ...`
+- `shrey-junior checkpoint "<milestone>" --target "<repo>"`
+- `shrey-junior handoff --target "<repo>" --to-tool <tool>`
+- `shrey-junior push-check --target "<repo>"`
 
-Treat work as trivial only when it is clearly local and low risk, such as:
-- typo or wording fix
-- one-line formatting or comment cleanup
-- narrow non-contract local fix in a single file
-
-Escalate beyond trivial work when any of these are true:
-- multi-file change
-- interface, contract, or schema change
-- auth, data, security, release, or push-sensitive work
-- guarded refactor or cross-cutting workflow change
-- reviewer/tester separation would materially improve confidence
-
-Preferred workflow:
-- `shrey-junior status --target "<repo>"` before serious work
-- `shrey-junior check --target "<repo>"` before medium or higher risk work
-- `shrey-junior run "<goal>" ...` for focused non-trivial work
-- `shrey-junior fanout "<goal>" ...` for guarded or multi-role planning
-- `shrey-junior dispatch "<goal>" ...` when planner/implementer/reviewer/tester should work in parallel
-- `shrey-junior collect --target "<repo>"` and `shrey-junior reconcile --target "<repo>"` before phase close on coordinated work
-- `shrey-junior checkpoint "<milestone>" ...` at meaningful phase boundaries
-- `shrey-junior handoff --target "<repo>" --to <tool>` when switching tools
-- `shrey-junior push-check --target "<repo>"` before any push or release discussion
-- use `release-check` and `phase-close` if the repo exposes them
-
-Specialists and MCPs:
-- prefer specialist-aware routing for Python, frontend, backend, QA, security, docs, refactor, release, and push work
-- MCP use is policy-driven, not ad hoc; follow repo profile, capability, trust, approval, and specialist rules
-- do not treat global MCP availability as blanket permission to call tools
-
-If a serious repo is not initialized yet, do not improvise a replacement control layer first. Prefer:
-- `shrey-junior bootstrap --target "<repo>" --dry-run`
-
-Repo authority still wins. Shrey Junior is the default workflow layer, not a license to ignore repo truth, and not proof that cloud runtimes can see this home-directory file.
+If the repo is uninitialized, prefer `sj-init --dry-run` or `shrey-junior bootstrap|standardize --dry-run`.
+MCP or tool availability is not blanket permission; follow repo-local policy and capability docs.
+Cloud runtimes may not see this file.
 END SHREY_JUNIOR_GLOBAL_PREFS v1
 EOF
 )
@@ -88,55 +60,21 @@ CLAUDE_BLOCK=$(cat <<'EOF'
 BEGIN SHREY_JUNIOR_GLOBAL_PREFS v1
 ## Shrey Junior Global Preference Layer
 
-For serious repository work on this machine, treat `shrey-junior` as the preferred repo control layer.
-This file is an accelerator only; when a repo-local Shrey Junior contract exists, it is stronger than this file.
+Repo-local authority and repo-local Shrey Junior files beat this block. Use it only to get back to the repo-local contract faster.
 
-Authority order:
-1. Existing trusted repo authority files
-2. Promoted repo-local canonical docs explicitly referenced by that authority
-3. Repo-local Shrey Junior overlays, `.github/instructions/*`, `.github/agents/*`, `.agent/roles/*`, and `.agent/state/*`
-4. Generic global guidance in this file
+Serious-work read order:
+1. trusted repo authority and promoted repo docs
+2. `.agent/state/active-role-hints.json`
+3. `.agent/state/current-phase.json`
+4. `.agent/state/checkpoints/latest.json` plus latest packet / handoff / reconcile / dispatch pointers
+5. `.agent/context/commands.md`, `.agent/context/tool-capabilities.md`, `.agent/context/mcp-capabilities.md`
+6. relevant `.github/instructions/*.instructions.md`, `.github/agents/*.md`, and `.agent/roles/*.md`
+7. `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
 
-Before medium or high complexity work, prefer:
-- `shrey-junior status --target "<repo>"`
-- repo authority files and promoted canonical docs
-- `.agent/state/active-role-hints.json` and `.agent/state/current-phase.json` when present
-- latest task packet, latest handoff, latest dispatch, and latest reconcile result if present
-- `.github/instructions/*.instructions.md`, `.github/agents/*.md`, and `.agent/roles/*.md` when present
-- `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
-- active profile and current blocked work before restarting a phase
-
-Treat the work as trivial only when it is clearly low risk and local, such as:
-- typo or wording fix
-- one-line formatting or comment cleanup
-- narrow single-file fix with no contract or validation impact
-
-Escalate into control-plane workflow when any of these are true:
-- multi-file or cross-cutting change
-- interface, schema, contract, auth, data, or release-sensitive work
-- guarded refactor
-- reviewer/tester separation would materially improve confidence
-- unresolved blocked reconcile or policy warning exists
-
-Preferred workflow:
-- use `run` for focused non-trivial work
-- use `fanout` for guarded multi-role decomposition
-- use `dispatch` when planner / implementer / reviewer / tester coordination should be explicit
-- use `collect` and `reconcile` before phase closure on coordinated work
-- require `checkpoint` before handoff or push-readiness discussion on serious work
-- use `handoff` when switching tools or phases
-- use `push-check` before suggesting push
-- use `release-check` and `phase-close` when the repo exposes them
-
-Policy and specialist rules:
-- treat hook and policy points as workflow gates, not advisory prose
-- prefer specialist-aware routing for Python, frontend, backend, QA, security, docs, refactor, release, and push work
-- MCP usage is policy-driven; follow capability, trust, specialist, approval, and profile constraints instead of calling tools ad hoc
-
-If a serious repo is not initialized yet, prefer:
-- `shrey-junior bootstrap --target "<repo>" --dry-run`
-
-Repo authority still wins. Shrey Junior is the default continuity layer, not an override of repo truth, and not proof that hosted runtimes can see this machine-global file.
+For non-trivial work, prefer `status`, `check`, `run|fanout|dispatch`, `checkpoint`, `handoff`, and `push-check`.
+If the repo is uninitialized, prefer `sj-init --dry-run` or `shrey-junior bootstrap|standardize --dry-run`.
+Treat MCP or tool access as policy-driven and non-symmetric across tools.
+Cloud runtimes may not see this file.
 END SHREY_JUNIOR_GLOBAL_PREFS v1
 EOF
 )
@@ -145,52 +83,20 @@ PROMPT_CONTENT=$(cat <<'EOF'
 BEGIN SHREY_JUNIOR_GLOBAL_PROMPT v1
 # Shrey Junior Repo Workflow Preference
 
-Use `shrey-junior` as the preferred workflow layer for serious repository work on this machine.
-This prompt is an accelerator only; when a repo-local Shrey Junior contract exists, it is stronger than this file.
+Use `shrey-junior` as the preferred local workflow accelerator for serious repo work. Repo-local truth beats this prompt.
 
-Authority order:
-1. Existing trusted repo authority files
-2. Promoted repo-local canonical docs explicitly referenced by that authority
-3. Repo-local Shrey Junior overlays, `.github/instructions/*`, `.github/agents/*`, `.agent/roles/*`, and `.agent/state/*`
-4. Generic editor-level guidance
+Read order:
+1. trusted repo authority and promoted repo docs
+2. `.agent/state/active-role-hints.json`
+3. `.agent/state/current-phase.json`
+4. `.agent/state/checkpoints/latest.json` plus latest packet / handoff / reconcile / dispatch pointers
+5. `.agent/context/commands.md`, `.agent/context/tool-capabilities.md`, `.agent/context/mcp-capabilities.md`
+6. relevant instruction and role files
+7. `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
 
-Before medium or high complexity work, prefer:
-- `shrey-junior status --target "<repo>"`
-- repo authority files and promoted canonical docs
-- `.agent/state/active-role-hints.json` and `.agent/state/current-phase.json` when present
-- latest task packet, latest handoff, latest dispatch, and latest reconcile result if present
-- `.github/instructions/*.instructions.md`, `.github/agents/*.md`, and `.agent/roles/*.md` when present
-- `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
-- current profile and blocked work
-
-Treat work as trivial only when it is clearly local and low risk:
-- typo or wording fix
-- narrow formatting cleanup
-- one-line single-file fix with no contract, auth, data, or release impact
-
-Escalate into the control-plane workflow when any of these are true:
-- multi-file change
-- interface, schema, contract, auth, data, security, release, or push-sensitive work
-- guarded refactor
-- reviewer/tester separation would materially improve confidence
-
-Preferred commands:
-- `shrey-junior check --target "<repo>"` for serious work health
-- `shrey-junior run "<goal>" ...` for focused non-trivial work
-- `shrey-junior fanout "<goal>" ...` for guarded decomposition
-- `shrey-junior dispatch "<goal>" ...` for explicit multi-role coordination
-- `shrey-junior collect --target "<repo>"` and `shrey-junior reconcile --target "<repo>"` before phase close on coordinated work
-- `shrey-junior checkpoint "<milestone>" ...` at meaningful phase boundaries
-- `shrey-junior handoff --target "<repo>" --to <tool>` when switching tools
-- `shrey-junior push-check --target "<repo>"` before push or release discussion
-
-Specialists and MCPs:
-- prefer specialist-aware routing for Python, frontend, backend, QA, security, docs, refactor, release, and push work
-- MCP usage is policy-driven; follow capability, trust, specialist, approval, and profile constraints
-- repo authority wins over generic suggestions
-
-If a serious repo is not initialized, prefer:
-- `shrey-junior bootstrap --target "<repo>" --dry-run`
+Prefer `status`, `check`, `run|fanout|dispatch`, `checkpoint`, `handoff`, and `push-check` for non-trivial work.
+If the repo is uninitialized, prefer `sj-init --dry-run`.
+Treat MCP as routing and capability context, not as universal tool parity or blanket permission.
 END SHREY_JUNIOR_GLOBAL_PROMPT v1
 EOF
 )

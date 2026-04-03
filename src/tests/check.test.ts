@@ -75,6 +75,8 @@ test("check fails when active-role-hints points at missing continuity artifacts"
         authoritySource: "repo-local",
         projectType: "python",
         readNext: [".agent/state/current-phase.json", ".agent/checks.yaml"],
+        nextFileToRead: ".agent/context/architecture.md",
+        nextSuggestedCommand: 'shrey-junior checkpoint "milestone" --target <repo>',
         writeTargets: [".agent/tasks/*", ".agent/state/handoff/*"],
         checksToRun: ["bash .agent/scripts/verify-contract.sh"],
         stopConditions: ["stop when repo authority conflicts"],
@@ -85,6 +87,7 @@ test("check fails when active-role-hints points at missing continuity artifacts"
           useExternalLookupWhen: ["repo docs are insufficient"],
           avoidExternalLookupWhen: ["the repo already answers the question"]
         },
+        latestCheckpoint: ".agent/state/checkpoints/latest.json",
         latestTaskPacket: ".agent/state/latest-task-packets.json",
         latestHandoff: ".agent/state/handoff/latest.json",
         latestDispatchManifest: null,

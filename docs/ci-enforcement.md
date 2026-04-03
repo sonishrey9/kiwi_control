@@ -13,13 +13,16 @@ Prompts and local guidance can be ignored. CI is the hard backstop.
 
 - the repo-local verification script exists and runs
 - required repo-local contract files from `.agent/project.yaml` are present
+- command and capability discovery docs are present
 - only the selected instruction and specialist surfaces are required
 - `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` still contain managed markers
 - `.agent/state/current-phase.json` and `.agent/state/active-role-hints.json` parse and declare the expected artifact types
 - `active-role-hints.json` carries `readNext`, `checksToRun`, `nextAction`, and `searchGuidance`
+- latest checkpoint JSON and Markdown exist and carry minimal continuity metadata
 - latest pointers referenced by `active-role-hints.json` point to existing files
 - latest handoff, dispatch, reconcile, and task packet pointer files parse when present
 - latest pointer JSON files carry minimal metadata such as `artifactType` plus a timestamp
+- generic repos do not drag backend/frontend instruction noise by default when the CLI-backed validator is available
 - latest reconcile must not still be blocked or review-required
 - a portable repo-local push gate runs from the generated verifier
 - `shrey-junior push-check --target <repo>` also runs when the CLI is available in the environment

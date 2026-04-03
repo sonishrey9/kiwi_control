@@ -23,6 +23,9 @@ contract:
     - explicit repo authority
     - .agent/project.yaml
     - .agent/checks.yaml
+    - .agent/context/commands.md
+    - .agent/context/tool-capabilities.md
+    - .agent/context/mcp-capabilities.md
     - .github/copilot-instructions.md
     - .github/instructions/*.instructions.md
     - .github/agents/*.md
@@ -30,6 +33,8 @@ contract:
   generated_state:
     - .agent/state/current-phase.json
     - .agent/state/active-role-hints.json
+    - .agent/state/checkpoints/latest.json
+    - .agent/state/checkpoints/latest.md
     - .agent/state/handoff/latest.json
     - .agent/state/dispatch/latest-manifest.json
     - .agent/state/dispatch/latest-collect.json
@@ -63,9 +68,13 @@ surfaces:
   specialist_roles_dir: .agent/roles
 paths:
   context: .agent/context
+  commands: .agent/context/commands.md
+  tool_capabilities: .agent/context/tool-capabilities.md
+  mcp_capabilities: .agent/context/mcp-capabilities.md
   tasks: .agent/tasks
   state: .agent/state
   active_role_hints: .agent/state/active-role-hints.json
+  latest_checkpoint: .agent/state/checkpoints/latest.json
   latest_handoff: .agent/state/handoff/latest.json
   latest_dispatch: .agent/state/dispatch/latest-manifest.json
   latest_reconcile: .agent/state/reconcile/latest.json
@@ -87,7 +96,9 @@ workflow:
     - promoted canonical docs explicitly referenced by repo authority
     - .agent/state/active-role-hints.json
     - .agent/state/current-phase.json when present
+    - .agent/state/checkpoints/latest.json when present
     - latest task packet, latest handoff, latest reconcile, and latest dispatch manifest when present
+    - .agent/context/commands.md, .agent/context/tool-capabilities.md, and .agent/context/mcp-capabilities.md
     - relevant .github/instructions/*.instructions.md and .agent/roles/*.md
     - .agent/checks.yaml and .agent/scripts/verify-contract.sh
     - .agent/project.yaml

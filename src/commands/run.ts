@@ -1,7 +1,7 @@
 import { loadCanonicalConfig } from "../core/config.js";
 import { loadLatestDispatchCollection, loadLatestDispatchManifest } from "../core/dispatch.js";
 import { writeTaskPackets, summarizeWrites } from "../core/executor.js";
-import { buildCanonicalReadNext, buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets } from "../core/guidance.js";
+import { buildCanonicalReadNext, buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets, chooseNextFileToRead } from "../core/guidance.js";
 import { buildRunPackets } from "../core/planner.js";
 import { compileRepoContext } from "../core/context.js";
 import { evaluatePolicyPoint } from "../core/policies.js";
@@ -110,6 +110,10 @@ export async function runRun(options: RunOptions): Promise<number> {
       promotedAuthorityDocs: compiledContext.promotedAuthorityDocs,
       contract
     }),
+    nextFileToRead: chooseNextFileToRead({
+      latestTaskPacket: packets[0]?.relativePath ?? null
+    }),
+    nextSuggestedCommand: `shrey-junior checkpoint "<milestone>" --target "${options.targetRoot}"`,
     writeTargets: buildWriteTargets(contract, packets.map((packet) => packet.relativePath)),
     checksToRun: buildChecksToRun(compiledContext.validationSteps),
     stopConditions: buildStopConditions({

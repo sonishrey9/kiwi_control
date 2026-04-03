@@ -37,8 +37,8 @@ The accelerator layer should push tools toward the same first reads:
 
 ## Current Local-Only Reinforcements
 
-- Codex global guidance and config now point back to the repo-local contract and preserve supported TOML config instead of inventing a custom format.
-- Claude global guidance, safe Bash allowlist settings, and Shrey helper commands now steer serious work back through repo-local continuity artifacts.
+- Codex global guidance and config now point back to the repo-local contract with a short read-order reminder instead of a long workflow dump.
+- Claude global guidance, safe Bash allowlist settings, and Shrey helper commands now steer serious work back through repo-local continuity artifacts and command/capability docs.
 - VS Code user prompts and user MCP config remain accelerators for local ergonomics only.
 
 ## Proven Behavior

@@ -7,6 +7,9 @@ CLAUDE_FILE="$HOME/.claude/CLAUDE.md"
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 CLAUDE_READ_FIRST_COMMAND="$HOME/.claude/commands/shrey-read-first.md"
 CLAUDE_SERIOUS_TASK_COMMAND="$HOME/.claude/commands/shrey-serious-task.md"
+GLOBAL_SHREY_JUNIOR_BIN="$HOME/.shrey-junior/bin/shrey-junior"
+GLOBAL_SJ_INIT_BIN="$HOME/.shrey-junior/bin/sj-init"
+PATH_SJ_INIT="$HOME/.local/bin/sj-init"
 PROMPT_FILE="$HOME/Library/Application Support/Code/User/prompts/shrey-junior.instructions.md"
 MCP_FILE="$HOME/Library/Application Support/Code/User/mcp.json"
 RESTORE_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/restore-global.sh"
@@ -39,6 +42,8 @@ assert_file "$CLAUDE_FILE"
 assert_file "$CLAUDE_SETTINGS"
 assert_file "$CLAUDE_READ_FIRST_COMMAND"
 assert_file "$CLAUDE_SERIOUS_TASK_COMMAND"
+assert_file "$GLOBAL_SHREY_JUNIOR_BIN"
+assert_file "$GLOBAL_SJ_INIT_BIN"
 assert_file "$PROMPT_FILE"
 assert_file "$MCP_FILE"
 
@@ -92,6 +97,12 @@ grep -q "Shrey Junior Read-First" "$CLAUDE_READ_FIRST_COMMAND"
 printf 'PASS command content %s\n' "$CLAUDE_READ_FIRST_COMMAND"
 grep -q "Shrey Junior Serious Task" "$CLAUDE_SERIOUS_TASK_COMMAND"
 printf 'PASS command content %s\n' "$CLAUDE_SERIOUS_TASK_COMMAND"
+
+if [[ ! -L "$PATH_SJ_INIT" ]]; then
+  printf 'FAIL sj-init is not a symlink %s\n' "$PATH_SJ_INIT" >&2
+  exit 1
+fi
+printf 'PASS sj-init symlink %s -> %s\n' "$PATH_SJ_INIT" "$(readlink "$PATH_SJ_INIT")"
 
 if [[ ! -x "$RESTORE_SCRIPT" ]]; then
   printf 'FAIL restore script not executable %s\n' "$RESTORE_SCRIPT" >&2

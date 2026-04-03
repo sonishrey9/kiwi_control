@@ -24,9 +24,10 @@ Before medium/high complexity work or resuming a prior phase:
 6. read relevant `.github/agents/*.md`, `.agent/roles/*.md`, and `.agent/templates/role-result.md`
 7. read `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
 8. read `.agent/project.yaml`
-9. read `.agent/context/architecture.md`
-10. read `.agent/context/conventions.md`
-11. read `.agent/tasks/` packets when present
+9. read `.agent/context/commands.md`, `.agent/context/tool-capabilities.md`, and `.agent/context/mcp-capabilities.md`
+10. read `.agent/context/architecture.md`
+11. read `.agent/context/conventions.md`
+12. read `.agent/tasks/` packets when present
 
 Do not rely on machine-local `.claude/*` files as portable authority unless the repo explicitly routes to them.
 Cloud-hosted runtimes may not see machine-global files, so treat repo-local artifacts as the portable contract.
@@ -40,7 +41,7 @@ Workflow rules:
 - require `checkpoint` and `handoff` when Claude is taking over after another tool or handing work back
 - consult `push-check` before recommending push on non-trivial or guarded work
 - consult `release-check` or `phase-close` when closing a phase or approaching release readiness
-- treat `.agent/state/active-role-hints.json` as the quickest repo-local pointer for current role focus, next file to open, and latest continuity artifacts
+- treat `.agent/state/active-role-hints.json` as the quickest repo-local pointer for current role focus, next file to open, next command to consider, and latest continuity artifacts
 
 Gate behavior:
 
