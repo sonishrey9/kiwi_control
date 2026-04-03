@@ -20,6 +20,7 @@ import { runCollect } from "./commands/collect.js";
 import { runReconcile } from "./commands/reconcile.js";
 import { runSpecialists } from "./commands/specialists.js";
 import { runUi } from "./commands/ui.js";
+import { runPrepare } from "./commands/prepare.js";
 
 interface ParsedArgs {
   command: string | undefined;
@@ -238,6 +239,20 @@ async function main(): Promise<void> {
       });
       return;
     }
+    case "prepare": {
+      const goal = parsed.positionals.join(" ").trim();
+      if (!goal) {
+        throw new CliUsageError('prepare requires a task string. Example: kiwi-control prepare "fix auth middleware"');
+      }
+      process.exitCode = await runPrepare({
+        repoRoot,
+        targetRoot,
+        task: goal,
+        json: parsed.flags.json === true,
+        logger
+      });
+      return;
+    }
     default:
       if (parsed.command) {
         throw new CliUsageError(`unknown command: ${parsed.command}`);
@@ -292,6 +307,7 @@ Primary commands:
 Commands default to the current working directory. Use --target only when you need to operate on a different repo or folder.
 
 Core commands:
+  ${primaryCommand} prepare "task" [--json] [--target /path/to/repo]
   ${primaryCommand} init [--profile profile-name] [--target /path/to/repo]
   ${primaryCommand} status [--profile profile-name] [--json] [--target /path/to/repo]
   ${primaryCommand} check [--profile profile-name] [--json] [--target /path/to/repo]

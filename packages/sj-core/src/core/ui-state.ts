@@ -12,7 +12,10 @@ import { listSpecialists, normalizeSpecialistId, recommendNextSpecialist } from 
 import { loadActiveRoleHints, loadContinuitySnapshot, loadLatestTaskPacketSet } from "./state.js";
 import type { ValidationIssue } from "./validator.js";
 import { validateControlPlane, validateTargetRepo } from "./validator.js";
-import { pathExists, renderDisplayPath } from "../utils/fs.js";
+import { pathExists, readJson, renderDisplayPath } from "../utils/fs.js";
+import type { ContextSelectionState } from "./context-selector.js";
+import type { TokenUsageState } from "./token-estimator.js";
+import { inspectGitState } from "./git.js";
 
 export interface RepoControlPanelItem {
   label: string;
@@ -47,6 +50,38 @@ export interface RepoControlStatus {
   sourceOfTruthNote: string;
 }
 
+export interface KiwiControlContextView {
+  task: string | null;
+  selectedFiles: string[];
+  excludedPatterns: string[];
+  reason: string | null;
+  timestamp: string | null;
+}
+
+export interface KiwiControlTokenAnalytics {
+  selectedTokens: number;
+  fullRepoTokens: number;
+  savingsPercent: number;
+  fileCountSelected: number;
+  fileCountTotal: number;
+  task: string | null;
+  timestamp: string | null;
+}
+
+export interface KiwiControlEfficiency {
+  avoidedRepoScan: boolean;
+  avoidedWebSearch: boolean;
+  minimalEditMode: boolean;
+  instructionsGenerated: boolean;
+  instructionsPath: string | null;
+}
+
+export interface KiwiControlState {
+  contextView: KiwiControlContextView;
+  tokenAnalytics: KiwiControlTokenAnalytics;
+  efficiency: KiwiControlEfficiency;
+}
+
 export interface RepoControlState {
   targetRoot: string;
   profileName: string;
@@ -67,6 +102,7 @@ export interface RepoControlState {
     available: ReturnType<typeof listMcpPacks>;
   };
   validation: RepoValidationSummary;
+  kiwiControl: KiwiControlState;
 }
 
 export async function buildRepoControlState(options: {
@@ -205,6 +241,8 @@ export async function buildRepoControlStateFromConfig(options: {
         : recommendedSpecialist;
   const repoOverview = summarizeRepoOverview();
 
+  const kiwiControl = await loadKiwiControlState(options.targetRoot);
+
   return {
     targetRoot: options.targetRoot,
     profileName: selection.profileName,
@@ -224,7 +262,8 @@ export async function buildRepoControlStateFromConfig(options: {
       suggestedPack,
       available: listMcpPacks()
     },
-    validation
+    validation,
+    kiwiControl
   };
 
   function summarizeRepoOverview(): RepoControlPanelItem[] {
@@ -339,4 +378,64 @@ function buildSafeParallelHint(mode: RepoControlMode, taskFileCount: number): st
   }
 
   return "Keep generic repos quiet. Fan out only when file ownership and reconcile responsibilities are explicit.";
+}
+
+async function loadKiwiControlState(targetRoot: string): Promise<KiwiControlState> {
+  const contextSelectionPath = path.join(targetRoot, ".agent", "state", "context-selection.json");
+  const tokenUsagePath = path.join(targetRoot, ".agent", "state", "token-usage.json");
+  const instructionsPath = path.join(targetRoot, ".agent", "context", "generated-instructions.md");
+
+  let contextView: KiwiControlContextView = {
+    task: null,
+    selectedFiles: [],
+    excludedPatterns: [],
+    reason: null,
+    timestamp: null
+  };
+
+  if (await pathExists(contextSelectionPath)) {
+    const selection = await readJson<ContextSelectionState>(contextSelectionPath);
+    contextView = {
+      task: selection.task,
+      selectedFiles: selection.include,
+      excludedPatterns: selection.exclude,
+      reason: selection.reason,
+      timestamp: selection.timestamp
+    };
+  }
+
+  let tokenAnalytics: KiwiControlTokenAnalytics = {
+    selectedTokens: 0,
+    fullRepoTokens: 0,
+    savingsPercent: 0,
+    fileCountSelected: 0,
+    fileCountTotal: 0,
+    task: null,
+    timestamp: null
+  };
+
+  if (await pathExists(tokenUsagePath)) {
+    const usage = await readJson<TokenUsageState>(tokenUsagePath);
+    tokenAnalytics = {
+      selectedTokens: usage.selected_tokens,
+      fullRepoTokens: usage.full_repo_tokens,
+      savingsPercent: usage.savings_percent,
+      fileCountSelected: usage.file_count_selected,
+      fileCountTotal: usage.file_count_total,
+      task: usage.task,
+      timestamp: usage.timestamp
+    };
+  }
+
+  const hasInstructions = await pathExists(instructionsPath);
+
+  const efficiency: KiwiControlEfficiency = {
+    avoidedRepoScan: contextView.selectedFiles.length > 0,
+    avoidedWebSearch: true,
+    minimalEditMode: true,
+    instructionsGenerated: hasInstructions,
+    instructionsPath: hasInstructions ? instructionsPath : null
+  };
+
+  return { contextView, tokenAnalytics, efficiency };
 }

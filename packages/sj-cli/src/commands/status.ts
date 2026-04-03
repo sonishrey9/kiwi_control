@@ -9,7 +9,10 @@ import { normalizeSpecialistId } from "@shrey-junior/sj-core/core/specialists.js
 import { listTaskPacketDirectories, loadActiveRoleHints, loadContinuitySnapshot, loadLatestTaskPacketSet } from "@shrey-junior/sj-core/core/state.js";
 import { buildRepoControlState } from "@shrey-junior/sj-core/core/ui-state.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
-import { renderDisplayPath } from "@shrey-junior/sj-core/utils/fs.js";
+import { pathExists, readJson, renderDisplayPath } from "@shrey-junior/sj-core/utils/fs.js";
+import type { TokenUsageState } from "@shrey-junior/sj-core/core/token-estimator.js";
+import type { ContextSelectionState } from "@shrey-junior/sj-core/core/context-selector.js";
+import path from "node:path";
 
 export interface StatusOptions {
   repoRoot: string;
@@ -167,6 +170,32 @@ export async function runStatus(options: StatusOptions): Promise<number> {
     `push readiness: ${push.result}`
   ];
 
+  const tokenUsagePath = path.join(options.targetRoot, ".agent", "state", "token-usage.json");
+  if (await pathExists(tokenUsagePath)) {
+    const tokenUsage = await readJson<TokenUsageState>(tokenUsagePath);
+    lines.push(
+      `token usage: selected=${formatTokenCount(tokenUsage.selected_tokens)} full_repo=${formatTokenCount(tokenUsage.full_repo_tokens)} savings=${tokenUsage.savings_percent}%`
+    );
+    lines.push(`token files: selected=${tokenUsage.file_count_selected} total=${tokenUsage.file_count_total}`);
+  } else {
+    lines.push("token usage: not yet computed (run kc prepare to generate)");
+  }
+
+  const contextSelectionPath = path.join(options.targetRoot, ".agent", "state", "context-selection.json");
+  if (await pathExists(contextSelectionPath)) {
+    const ctxSelection = await readJson<ContextSelectionState>(contextSelectionPath);
+    lines.push(`context selection: ${ctxSelection.include.length} files for "${ctxSelection.task}"`);
+    lines.push(`context reason: ${ctxSelection.reason}`);
+  } else {
+    lines.push("context selection: not yet computed (run kc prepare to generate)");
+  }
+
   options.logger.info(lines.join("\n"));
   return 0;
+}
+
+function formatTokenCount(count: number): string {
+  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
+  if (count >= 1_000) return `${(count / 1_000).toFixed(1)}K`;
+  return String(count);
 }

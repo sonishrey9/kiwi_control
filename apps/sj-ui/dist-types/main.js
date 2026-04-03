@@ -241,29 +241,49 @@ function buildBridgeNote(state, source) {
     return `Repo-local state for ${state.targetRoot} is ready.`;
 }
 function renderPanels(state) {
+    const kc = state.kiwiControl;
     return [
-        renderPanel("Repo Overview", [
+        renderPanel("Dashboard", [
             { label: "Repo", value: state.targetRoot || "No repo loaded yet", ...(state.targetRoot ? {} : { tone: "warn" }) },
-            ...state.repoOverview
+            { label: "Profile", value: state.profileName },
+            { label: "Project type", value: state.projectType },
+            { label: "Current phase", value: state.repoOverview.find((i) => i.label === "Current phase")?.value ?? "none" },
+            { label: "Next action", value: state.repoOverview.find((i) => i.label === "Next command")?.value ?? "none recorded" },
+            { label: "Repo health", value: state.repoState.title }
+        ]),
+        renderPanel("Context View", kc?.contextView.task ? [
+            { label: "Task", value: kc.contextView.task },
+            { label: "Selected files", value: String(kc.contextView.selectedFiles.length) },
+            ...kc.contextView.selectedFiles.slice(0, 8).map((f) => ({ label: "  file", value: f })),
+            ...(kc.contextView.selectedFiles.length > 8 ? [{ label: "  ...", value: `+${kc.contextView.selectedFiles.length - 8} more` }] : []),
+            { label: "Excluded patterns", value: String(kc.contextView.excludedPatterns.length) },
+            { label: "Reason", value: kc.contextView.reason ?? "none" }
+        ] : [
+            { label: "Status", value: "No context selection yet", tone: "warn" },
+            { label: "Action", value: "Run kc prepare \"task\" to generate context" }
+        ]),
+        renderPanel("Token Analytics", kc?.tokenAnalytics.task ? [
+            { label: "Task", value: kc.tokenAnalytics.task },
+            { label: "Selected tokens", value: formatTokens(kc.tokenAnalytics.selectedTokens) },
+            { label: "Full repo tokens", value: formatTokens(kc.tokenAnalytics.fullRepoTokens) },
+            { label: "Savings", value: `${kc.tokenAnalytics.savingsPercent}%`, ...(kc.tokenAnalytics.savingsPercent >= 50 ? {} : { tone: "warn" }) },
+            { label: "Files (selected/total)", value: `${kc.tokenAnalytics.fileCountSelected} / ${kc.tokenAnalytics.fileCountTotal}` }
+        ] : [
+            { label: "Status", value: "No token data yet", tone: "warn" },
+            { label: "Action", value: "Run kc prepare \"task\" to compute token savings" }
+        ]),
+        renderPanel("Efficiency", [
+            { label: "Avoided repo scan", value: kc?.efficiency.avoidedRepoScan ? "Yes" : "Not yet" },
+            { label: "Avoided web search", value: kc?.efficiency.avoidedWebSearch ? "Yes" : "Not yet" },
+            { label: "Minimal edit mode", value: kc?.efficiency.minimalEditMode ? "Active" : "Inactive" },
+            { label: "Instructions generated", value: kc?.efficiency.instructionsGenerated ? "Yes" : "No", ...(kc?.efficiency.instructionsGenerated ? {} : { tone: "warn" }) },
+            ...(kc?.efficiency.instructionsPath ? [{ label: "Instructions file", value: kc.efficiency.instructionsPath }] : [])
         ]),
         renderPanel("Continuity", state.continuity),
-        renderPanel("Memory Bank", state.memoryBank.map((entry) => ({
-            label: entry.label,
-            value: `${entry.present ? "present" : "missing"} (${entry.path})`,
-            ...(entry.present ? {} : { tone: "warn" })
-        }))),
         renderPanel("Specialists", [
             { label: "Recommended", value: state.specialists.recommendedSpecialist },
             { label: "Targets", value: state.specialists.handoffTargets.join(", ") || "none recorded" },
             { label: "Parallel hint", value: state.specialists.safeParallelHint }
-        ]),
-        renderPanel("MCP Packs", [
-            { label: "Suggested", value: `${state.mcpPacks.suggestedPack.id}: ${state.mcpPacks.suggestedPack.description}` },
-            ...state.mcpPacks.available.slice(0, 3).map((pack) => ({
-                label: pack.id,
-                value: pack.realismNotes[0] ?? pack.description,
-                tone: "warn"
-            }))
         ]),
         renderPanel("Validation", [
             { label: "OK", value: String(state.validation.ok) },
@@ -271,6 +291,13 @@ function renderPanels(state) {
             { label: "Warnings", value: String(state.validation.warnings), ...(state.validation.warnings ? { tone: "warn" } : {}) }
         ])
     ].join("");
+}
+function formatTokens(count) {
+    if (count >= 1_000_000)
+        return `${(count / 1_000_000).toFixed(1)}M tokens`;
+    if (count >= 1_000)
+        return `${(count / 1_000).toFixed(1)}K tokens`;
+    return `${count} tokens`;
 }
 function renderPanel(title, items) {
     return `
@@ -395,6 +422,31 @@ function buildBridgeUnavailableState(targetRoot) {
             ok: false,
             errors: hasTargetRoot ? 1 : 0,
             warnings: hasTargetRoot ? 0 : 1
+        },
+        kiwiControl: {
+            contextView: {
+                task: null,
+                selectedFiles: [],
+                excludedPatterns: [],
+                reason: null,
+                timestamp: null
+            },
+            tokenAnalytics: {
+                selectedTokens: 0,
+                fullRepoTokens: 0,
+                savingsPercent: 0,
+                fileCountSelected: 0,
+                fileCountTotal: 0,
+                task: null,
+                timestamp: null
+            },
+            efficiency: {
+                avoidedRepoScan: false,
+                avoidedWebSearch: false,
+                minimalEditMode: false,
+                instructionsGenerated: false,
+                instructionsPath: null
+            }
         }
     };
 }
