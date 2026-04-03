@@ -116,7 +116,7 @@ cd /path/to/repo
 kiwi-control ui
 ```
 
-`kiwi-control ui` launches Kiwi Control and loads the current repo automatically. Manual repo switching stays available inside the app only when you want a different folder.
+`kiwi-control ui` launches Kiwi Control, brings the desktop app forward on macOS, and loads the current repo automatically. Manual repo switching stays available inside the app only when you want a different folder.
 
 The desktop app stays repo-backed and non-authoritative. It mirrors:
 

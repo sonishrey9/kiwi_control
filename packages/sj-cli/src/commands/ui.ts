@@ -1,4 +1,5 @@
 import { promises as fs } from "node:fs";
+import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -20,11 +21,37 @@ interface DesktopLaunchCandidate {
 }
 
 interface DesktopLaunchRequest {
+  requestId: string;
   targetRoot: string;
   requestedAt: string;
 }
 
+interface DesktopLaunchStatus {
+  requestId: string;
+  targetRoot: string;
+  state: "ready" | "error";
+  detail: string;
+  reportedAt: string;
+}
+
+interface DesktopLaunchLogEntry {
+  event: string;
+  reportedAt: string;
+  requestId?: string;
+  targetRoot?: string;
+  detail?: string;
+  command?: string;
+  args?: string[];
+}
+
+interface DesktopLaunchResult {
+  candidate: DesktopLaunchCandidate;
+}
+
 const DESKTOP_BINARY_CANDIDATES = ["kiwi-control-ui", "kiwi-control-desktop"];
+const DESKTOP_LAUNCH_WAIT_TIMEOUT_MS = 3_000;
+const DESKTOP_LAUNCH_POLL_INTERVAL_MS = 100;
+const DESKTOP_LAUNCH_PROBE_SETTLE_MS = 250;
 
 export async function runUi(options: UiOptions): Promise<number> {
   if (options.json) {
@@ -38,15 +65,62 @@ export async function runUi(options: UiOptions): Promise<number> {
     return 0;
   }
 
-  await writeDesktopLaunchRequest(options.targetRoot);
-  const launched = await launchDesktopControlSurface();
-  if (launched) {
-    options.logger.info(`Launched ${PRODUCT_METADATA.desktop.appName} for ${options.targetRoot}. It will load this repo automatically.`);
+  const launchRequest: DesktopLaunchRequest = {
+    requestId: randomUUID(),
+    targetRoot: options.targetRoot,
+    requestedAt: new Date().toISOString()
+  };
+
+  await writeDesktopLaunchRequest(launchRequest);
+  await appendDesktopLaunchLog({
+    event: "launch-requested",
+    requestId: launchRequest.requestId,
+    targetRoot: launchRequest.targetRoot
+  });
+
+  const launched = await launchDesktopControlSurface(launchRequest);
+  if (!launched) {
+    await clearDesktopLaunchRequest();
+    await appendDesktopLaunchLog({
+      event: "launch-unavailable",
+      requestId: launchRequest.requestId,
+      targetRoot: launchRequest.targetRoot
+    });
+    options.logger.error(buildDesktopUnavailableMessage(options.repoRoot));
+    return 1;
+  }
+
+  const launchStatus = await waitForDesktopLaunchStatus(launchRequest.requestId, DESKTOP_LAUNCH_WAIT_TIMEOUT_MS);
+  if (launchStatus?.state === "ready") {
+    await appendDesktopLaunchLog({
+      event: "launch-ready",
+      requestId: launchStatus.requestId,
+      targetRoot: launchStatus.targetRoot,
+      detail: launchStatus.detail
+    });
+    options.logger.info(`Opened ${PRODUCT_METADATA.desktop.appName} for ${options.targetRoot}. The app is visible and loading this repo now.`);
     return 0;
   }
 
   await clearDesktopLaunchRequest();
-  options.logger.error(buildDesktopUnavailableMessage(options.repoRoot));
+  if (launchStatus?.state === "error") {
+    await appendDesktopLaunchLog({
+      event: "launch-error",
+      requestId: launchStatus.requestId,
+      targetRoot: launchStatus.targetRoot,
+      detail: launchStatus.detail
+    });
+    options.logger.error(launchStatus.detail || buildDesktopLaunchTimeoutMessage(options.repoRoot));
+    return 1;
+  }
+
+  await appendDesktopLaunchLog({
+    event: "launch-timeout",
+    requestId: launchRequest.requestId,
+    targetRoot: launchRequest.targetRoot,
+    detail: `No matching desktop launch status arrived within ${DESKTOP_LAUNCH_WAIT_TIMEOUT_MS}ms`
+  });
+  options.logger.error(buildDesktopLaunchTimeoutMessage(options.repoRoot));
   return 1;
 }
 
@@ -56,6 +130,14 @@ export function buildDesktopUnavailableMessage(repoRoot: string): string {
   }
 
   return `${PRODUCT_METADATA.desktop.appName} desktop is not installed or CLI-launchable on this machine. Install the matching ${PRODUCT_METADATA.desktop.appName} desktop bundle from the GitHub Release.`;
+}
+
+export function buildDesktopLaunchTimeoutMessage(repoRoot: string): string {
+  if (process.platform === "darwin") {
+    return `Open ${PRODUCT_METADATA.desktop.appName} once from Applications, then run ${PRODUCT_METADATA.cli.shortCommand} ui again.`;
+  }
+
+  return buildDesktopUnavailableMessage(repoRoot);
 }
 
 export function buildDesktopLaunchCandidates(): DesktopLaunchCandidate[] {
@@ -91,14 +173,22 @@ export function resolveDesktopLaunchRequestPath(): string {
   return path.join(os.tmpdir(), PRODUCT_METADATA.release.artifactPrefix, "desktop-launch-request.json");
 }
 
-async function launchDesktopControlSurface(): Promise<boolean> {
+export function resolveDesktopLaunchStatusPath(): string {
+  return path.join(os.tmpdir(), PRODUCT_METADATA.release.artifactPrefix, "desktop-launch-status.json");
+}
+
+export function resolveDesktopLaunchLogPath(): string {
+  return path.join(os.tmpdir(), PRODUCT_METADATA.release.artifactPrefix, "desktop-launch-log.json");
+}
+
+async function launchDesktopControlSurface(launchRequest: DesktopLaunchRequest): Promise<DesktopLaunchResult | null> {
   for (const candidate of buildDesktopLaunchCandidates()) {
-    if (await tryLaunchDesktopCandidate(candidate)) {
-      return true;
+    if (await tryLaunchDesktopCandidate(candidate, launchRequest)) {
+      return { candidate };
     }
   }
 
-  return false;
+  return null;
 }
 
 function buildDesktopCandidateFromEnvValue(value: string): DesktopLaunchCandidate {
@@ -136,13 +226,10 @@ function buildDesktopCandidateFromEnvValue(value: string): DesktopLaunchCandidat
   };
 }
 
-async function writeDesktopLaunchRequest(targetRoot: string): Promise<void> {
+async function writeDesktopLaunchRequest(request: DesktopLaunchRequest): Promise<void> {
   const requestPath = resolveDesktopLaunchRequestPath();
   await fs.mkdir(path.dirname(requestPath), { recursive: true });
-  const request: DesktopLaunchRequest = {
-    targetRoot,
-    requestedAt: new Date().toISOString()
-  };
+  await fs.rm(resolveDesktopLaunchStatusPath(), { force: true });
   await fs.writeFile(requestPath, JSON.stringify(request, null, 2), "utf8");
 }
 
@@ -150,20 +237,148 @@ async function clearDesktopLaunchRequest(): Promise<void> {
   await fs.rm(resolveDesktopLaunchRequestPath(), { force: true });
 }
 
-async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate): Promise<boolean> {
+async function waitForDesktopLaunchStatus(requestId: string, timeoutMs: number): Promise<DesktopLaunchStatus | null> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() <= deadline) {
+    const status = await readDesktopLaunchStatus();
+    if (status?.requestId === requestId) {
+      return status;
+    }
+
+    await delay(DESKTOP_LAUNCH_POLL_INTERVAL_MS);
+  }
+
+  return null;
+}
+
+async function readDesktopLaunchStatus(): Promise<DesktopLaunchStatus | null> {
+  try {
+    const payload = await fs.readFile(resolveDesktopLaunchStatusPath(), "utf8");
+    return JSON.parse(payload) as DesktopLaunchStatus;
+  } catch (error) {
+    if (isMissingFileError(error)) {
+      return null;
+    }
+
+    return null;
+  }
+}
+
+async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate, launchRequest: DesktopLaunchRequest): Promise<boolean> {
+  await appendDesktopLaunchLog({
+    event: "launch-attempt",
+    requestId: launchRequest.requestId,
+    targetRoot: launchRequest.targetRoot,
+    command: candidate.command,
+    args: candidate.args
+  });
+
   return await new Promise((resolve) => {
+    let settled = false;
+    let stderrOutput = "";
     const child = spawn(candidate.command, candidate.args, {
       detached: true,
-      stdio: "ignore"
+      stdio: ["ignore", "ignore", "pipe"]
     });
 
-    child.once("error", () => {
+    child.stderr?.setEncoding("utf8");
+    child.stderr?.on("data", (chunk: string) => {
+      stderrOutput = `${stderrOutput}${chunk}`.slice(-2048);
+    });
+
+    child.once("error", async (error) => {
+      settled = true;
+      await appendDesktopLaunchLog({
+        event: "launch-attempt-failed",
+        requestId: launchRequest.requestId,
+        targetRoot: launchRequest.targetRoot,
+        command: candidate.command,
+        args: candidate.args,
+        detail: error.message
+      });
       resolve(false);
     });
 
-    child.once("spawn", () => {
+    child.once("spawn", async () => {
+      await appendDesktopLaunchLog({
+        event: "launch-spawned",
+        requestId: launchRequest.requestId,
+        targetRoot: launchRequest.targetRoot,
+        command: candidate.command,
+        args: candidate.args
+      });
+
       child.unref();
-      resolve(true);
+
+      setTimeout(() => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        resolve(true);
+      }, DESKTOP_LAUNCH_PROBE_SETTLE_MS);
+    });
+
+    child.once("close", async (code, signal) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      if (code === 0) {
+        resolve(true);
+        return;
+      }
+
+      const failureDetail = [stderrOutput.trim(), code === null ? null : `exit code ${code}`, signal ? `signal ${signal}` : null]
+        .filter(Boolean)
+        .join(" | ");
+
+      await appendDesktopLaunchLog({
+        event: "launch-attempt-failed",
+        requestId: launchRequest.requestId,
+        targetRoot: launchRequest.targetRoot,
+        command: candidate.command,
+        args: candidate.args,
+        detail: failureDetail || "desktop launch candidate exited before Kiwi Control could open"
+      });
+      resolve(false);
     });
   });
+}
+
+async function appendDesktopLaunchLog(entry: Omit<DesktopLaunchLogEntry, "reportedAt">): Promise<void> {
+  const logPath = resolveDesktopLaunchLogPath();
+  await fs.mkdir(path.dirname(logPath), { recursive: true });
+
+  const existingEntries = await readDesktopLaunchLog();
+  existingEntries.push({
+    ...entry,
+    reportedAt: new Date().toISOString()
+  });
+
+  await fs.writeFile(logPath, JSON.stringify(existingEntries, null, 2), "utf8");
+}
+
+async function readDesktopLaunchLog(): Promise<DesktopLaunchLogEntry[]> {
+  try {
+    const payload = await fs.readFile(resolveDesktopLaunchLogPath(), "utf8");
+    const entries = JSON.parse(payload) as DesktopLaunchLogEntry[];
+    return Array.isArray(entries) ? entries : [];
+  } catch (error) {
+    if (isMissingFileError(error)) {
+      return [];
+    }
+
+    return [];
+  }
+}
+
+function isMissingFileError(error: unknown): boolean {
+  return error instanceof Error && "code" in error && error.code === "ENOENT";
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

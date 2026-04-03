@@ -75,7 +75,7 @@ kiwi-control status
 kiwi-control ui
 ```
 
-`kiwi-control ui` launches Kiwi Control and loads the current repo automatically. Manual repo switching inside the app is fallback-only.
+`kiwi-control ui` launches Kiwi Control, brings the app forward on macOS, and loads the current repo automatically. Manual repo switching inside the app is fallback-only.
 
 6. Before serious work, use the active role and latest continuity artifacts instead of scanning the whole repo from scratch.
 7. Keep repo-local memory low-noise:

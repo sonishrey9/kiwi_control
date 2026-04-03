@@ -44,6 +44,13 @@ type RepoControlState = {
   };
 };
 
+type LaunchRequestPayload = {
+  requestId: string;
+  targetRoot: string;
+};
+
+const BRIDGE_UNAVAILABLE_NEXT_STEP = "Confirm kiwi-control works in Terminal, then run kc ui again.";
+
 const app = document.querySelector<HTMLDivElement>("#app");
 
 if (!app) {
@@ -56,9 +63,9 @@ app.innerHTML = `
   <main class="shell">
     <header class="hero">
       <p class="eyebrow">Kiwi Control</p>
-      <h1>Repo-first local control for coding agents</h1>
+      <h1>The current repo, already in view.</h1>
       <p class="lede">
-        Kiwi Control reads repo-local artifacts directly, mirrors the CLI contract, and keeps the current repo obvious from the moment the desktop app opens.
+        Launch from Terminal with <code>kc ui</code>. Kiwi Control opens, comes forward, and reads the repo you are standing in without moving authority out of the repo.
       </p>
     </header>
     <section class="control-bar">
@@ -67,11 +74,16 @@ app.innerHTML = `
         <strong id="active-target-root">No repo loaded yet</strong>
         <p id="active-target-hint">Run <code>kc ui</code> inside a repo to load it automatically.</p>
       </div>
-      <label class="repo-target">
-        <span>Switch repo manually (optional)</span>
-        <input id="target-root" type="text" placeholder="/path/to/another/repo" />
-      </label>
-      <button id="load-state" type="button">Load another repo</button>
+      <details class="manual-switcher">
+        <summary>Load another repo</summary>
+        <div class="manual-switcher-body">
+          <label class="repo-target">
+            <span>Repo path</span>
+            <input id="target-root" type="text" placeholder="/path/to/another/repo" />
+          </label>
+          <button id="load-state" type="button">Load another repo</button>
+        </div>
+      </details>
       <p id="bridge-note" class="bridge-note">
         Kiwi Control reads repo-local artifacts directly. The desktop app is a control surface, never the source of truth.
       </p>
@@ -108,6 +120,7 @@ const sourceOfTruthNoteElement = sourceOfTruthNote;
 
 let currentTargetRoot = "";
 let isLoadingRepoState = false;
+let queuedLaunchRequest: LaunchRequestPayload | null = null;
 
 renderState(initialState);
 bridgeNoteElement.textContent = buildBridgeNote(initialState, "shell");
@@ -122,58 +135,101 @@ loadButtonElement.addEventListener("click", () => {
   void loadAndRenderTarget(targetRoot, "manual");
 });
 
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") {
-    void syncLaunchRequest();
-  }
-});
-
-window.setInterval(() => {
-  void syncLaunchRequest();
-}, 1500);
-
 void boot();
 
 async function boot(): Promise<void> {
-  await syncLaunchRequest();
+  await registerLaunchRequestListener();
+
+  const initialLaunchRequest = await consumeInitialLaunchRequest();
+  if (initialLaunchRequest) {
+    await handleLaunchRequest(initialLaunchRequest);
+  }
 }
 
-async function syncLaunchRequest(): Promise<void> {
+async function registerLaunchRequestListener(): Promise<void> {
+  try {
+    const { listen } = await import("@tauri-apps/api/event");
+    await listen<LaunchRequestPayload>("desktop-launch-request", (event) => {
+      void handleLaunchRequest(event.payload);
+    });
+  } catch {
+    // Tauri bridge is not available in browser-only contexts.
+  }
+}
+
+async function handleLaunchRequest(request: LaunchRequestPayload): Promise<void> {
   if (isLoadingRepoState) {
+    queuedLaunchRequest = request;
     return;
   }
 
-  const targetRoot = await consumeLaunchTargetRoot();
-  if (!targetRoot || targetRoot === currentTargetRoot) {
-    return;
-  }
-
-  await loadAndRenderTarget(targetRoot, "cli");
+  await loadAndRenderTarget(request.targetRoot, "cli", request.requestId);
 }
 
-async function loadAndRenderTarget(targetRoot: string, source: "cli" | "manual"): Promise<void> {
+async function loadAndRenderTarget(targetRoot: string, source: "cli" | "manual", requestId?: string): Promise<void> {
+  if (isLoadingRepoState) {
+    if (requestId) {
+      queuedLaunchRequest = { requestId, targetRoot };
+    }
+    return;
+  }
+
   isLoadingRepoState = true;
   currentTargetRoot = targetRoot;
   targetInputElement.value = targetRoot;
   bridgeNoteElement.textContent =
-    source === "cli" ? `Loading ${targetRoot} from the CLI...` : `Loading repo-local state for ${targetRoot}...`;
+    source === "cli" ? `Opening ${targetRoot} from ${requestId ? "kc ui" : "the CLI"}...` : `Loading repo-local state for ${targetRoot}...`;
 
   const state = await loadRepoControlState(targetRoot);
   currentTargetRoot = state.targetRoot || targetRoot;
   renderState(state);
   targetInputElement.value = state.targetRoot || targetRoot;
   bridgeNoteElement.textContent = buildBridgeNote(state, source);
+
+  if (requestId) {
+    await acknowledgeLaunchRequest(requestId, state);
+  }
+
   isLoadingRepoState = false;
+
+  if (queuedLaunchRequest && queuedLaunchRequest.requestId !== requestId) {
+    const nextRequest = queuedLaunchRequest;
+    queuedLaunchRequest = null;
+    await handleLaunchRequest(nextRequest);
+    return;
+  }
+
+  queuedLaunchRequest = null;
+}
+
+async function acknowledgeLaunchRequest(requestId: string, state: RepoControlState): Promise<void> {
+  const targetRoot = state.targetRoot || currentTargetRoot;
+  const status = state.repoState.mode === "bridge-unavailable" ? "error" : "ready";
+  const detail =
+    status === "ready" ? `Loaded repo-local state for ${targetRoot}.` : BRIDGE_UNAVAILABLE_NEXT_STEP;
+
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("ack_launch_request", {
+      requestId,
+      targetRoot,
+      status,
+      detail
+    });
+  } catch {
+    // Browser-only contexts do not need launch acknowledgements.
+  }
 }
 
 function renderState(state: RepoControlState): void {
   const resolvedTargetRoot = state.targetRoot || "No repo loaded yet";
   activeTargetRootElement.textContent = resolvedTargetRoot;
+  activeTargetRootElement.title = resolvedTargetRoot;
   activeTargetHintElement.textContent = buildActiveTargetHint(state);
   gridElement.innerHTML = renderPanels(state);
   repoStateBannerElement.className = `repo-state-banner repo-state-${state.repoState.mode}`;
   repoStateBannerElement.innerHTML = `
-    <p class="repo-state-kicker">Repo state</p>
+    <p class="repo-state-kicker">Repo health</p>
     <h2>${escapeHtml(state.repoState.title)}</h2>
     <p>${escapeHtml(state.repoState.detail)}</p>
   `;
@@ -182,39 +238,39 @@ function renderState(state: RepoControlState): void {
 
 function buildActiveTargetHint(state: RepoControlState): string {
   if (!state.targetRoot) {
-    return "Run kc ui inside a repo to load it automatically, or switch repos below.";
+    return "Run kc ui inside a repo to load it automatically. Use “Load another repo” only when you want a different folder.";
   }
 
   switch (state.repoState.mode) {
     case "healthy":
-      return "Repo-local state is loaded and ready. Switch repos only if you want a different folder.";
+      return "Repo-local state is loaded and ready. Load another repo only when you intentionally want a different folder.";
     case "repo-not-initialized":
-      return "This folder is not initialized yet. Run kc init in a terminal when you want to standardize it.";
+      return "This folder is not initialized yet. Run kc init in Terminal when you want to standardize it.";
     case "initialized-invalid":
-      return "This repo needs attention before continuity is fully trustworthy.";
+      return "This repo needs a little repair before continuity is fully trustworthy.";
     case "initialized-with-warnings":
       return "This repo is usable now, with a few warnings still worth addressing.";
     case "bridge-unavailable":
     default:
-      return "Automatic loading did not complete for this repo yet.";
+      return BRIDGE_UNAVAILABLE_NEXT_STEP;
   }
 }
 
 function buildBridgeNote(state: RepoControlState, source: "cli" | "manual" | "shell"): string {
   if (!state.targetRoot) {
-    return "Run kc ui inside a repo to load it automatically, or switch repos below.";
+    return "Run kc ui inside a repo to load it automatically. Keep manual switching as fallback only.";
   }
 
   if (state.repoState.mode === "bridge-unavailable") {
-    return "Kiwi Control could not load this repo automatically. Confirm kiwi-control works in Terminal, then run kc ui again.";
+    return BRIDGE_UNAVAILABLE_NEXT_STEP;
   }
 
   if (source === "cli") {
-    return `Loaded repo-local state for ${state.targetRoot} from the CLI. Use the switch repo field only if you want a different folder.`;
+    return `Loaded ${state.targetRoot} from kc ui. Use “Load another repo” only when you want to move to a different folder.`;
   }
 
   if (source === "manual") {
-    return `Loaded repo-local state for ${state.targetRoot}. Use the switch repo field only when you want to move to another repo.`;
+    return `Loaded ${state.targetRoot}. You can switch again whenever you intentionally want a different repo.`;
   }
 
   return `Repo-local state for ${state.targetRoot} is ready.`;
@@ -278,10 +334,10 @@ function renderPanel(title: string, items: PanelItem[]): string {
   `;
 }
 
-async function consumeLaunchTargetRoot(): Promise<string | null> {
+async function consumeInitialLaunchRequest(): Promise<LaunchRequestPayload | null> {
   try {
     const { invoke } = await import("@tauri-apps/api/core");
-    return await invoke<string | null>("consume_launch_target_root");
+    return await invoke<LaunchRequestPayload | null>("consume_initial_launch_request");
   } catch {
     return null;
   }
@@ -309,8 +365,8 @@ function buildBridgeUnavailableState(targetRoot: string): RepoControlState {
       mode: "bridge-unavailable",
       title: hasTargetRoot ? "Could not load this repo yet" : "Open a repo",
       detail: hasTargetRoot
-        ? "Kiwi Control could not read repo-local state for this folder yet. Confirm kiwi-control works in Terminal, then run kc ui again."
-        : "Run kc ui inside a repo to load it automatically, or switch repos manually below.",
+        ? "Kiwi Control could not read repo-local state for this folder yet."
+        : "Run kc ui inside a repo to load it automatically, or use “Load another repo” only when you want a different folder.",
       sourceOfTruthNote:
         "Repo-local artifacts under .agent/ and promoted repo instruction files remain the source of truth. The desktop app never replaces that state with hidden app-owned storage."
     },
@@ -336,7 +392,7 @@ function buildBridgeUnavailableState(targetRoot: string): RepoControlState {
       { label: "Latest reconcile", value: "none recorded" },
       {
         label: "Current focus",
-        value: hasTargetRoot ? `reload repo-local state for ${resolvedTargetRoot}` : "open a repo from the CLI or switch repo manually"
+        value: hasTargetRoot ? `reload repo-local state for ${resolvedTargetRoot}` : "open a repo from the CLI or switch repos manually"
       },
       {
         label: "Open risks",

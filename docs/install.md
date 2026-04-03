@@ -88,7 +88,7 @@ After install, you can:
 - open `Kiwi Control` from your OS application launcher
 - `cd /path/to/repo && kiwi-control ui`
 
-`kiwi-control ui` launches the desktop app when the desktop bundle is installed or otherwise CLI-launchable, then loads the repo you are standing in automatically. Manual repo switching stays available inside the app only when you want a different folder.
+`kiwi-control ui` launches the desktop app when the desktop bundle is installed or otherwise CLI-launchable, brings it forward on macOS, and loads the repo you are standing in automatically. Manual repo switching stays available inside the app only when you want a different folder.
 
 If the desktop app is not available yet, the command fails clearly and tells you the next exact step.
 

@@ -89,7 +89,7 @@ For the first beta, public docs should teach this exact order:
 5. run `kiwi-control init`
 6. optionally install the matching Kiwi Control desktop bundle and run `kiwi-control ui`
 
-`kiwi-control ui` should launch Kiwi Control and load the current repo automatically. Do not teach manual repo pasting as the normal desktop path.
+`kiwi-control ui` should launch Kiwi Control, bring it forward on macOS, and load the current repo automatically. Do not teach manual repo pasting as the normal desktop path.
 
 Do not lead end users to contributor scripts such as `scripts/install-global.sh`.
 

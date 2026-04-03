@@ -321,7 +321,7 @@ Inside-folder usage:
   ${primaryCommand} handoff --to qa-specialist
   ${primaryCommand} ui
 
-${primaryCommand} ui launches the Kiwi Control desktop app and loads the current repo automatically. Use --target only when you want the desktop app to open a different folder.
+${primaryCommand} ui launches the Kiwi Control desktop app, foregrounds it on macOS, and loads the current repo automatically. Use --target only when you want the desktop app to open a different folder.
 
 Contributor source usage:
   npm install
