@@ -159,37 +159,48 @@ test("sj-init failure path is readable when the Kiwi Control CLI is unavailable"
 test("install-global installs kiwi-control plus compatibility aliases into the global home", async () => {
   const root = repoRoot();
   const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "sj-install-"));
-  const globalHome = path.join(tempHome, ".shrey-junior");
+  const globalHome = path.join(tempHome, ".kiwi-control");
   const pathBin = path.join(tempHome, ".local", "bin");
+  const profilePath = path.join(tempHome, ".zshrc");
 
   const result = runBashScript(path.join(root, "scripts", "install-global.sh"), [], {
     env: {
       HOME: tempHome,
-      SHREY_JUNIOR_HOME: globalHome,
-      SHREY_JUNIOR_PATH_BIN: pathBin,
+      KIWI_CONTROL_HOME: globalHome,
+      KIWI_CONTROL_PATH_BIN: pathBin,
+      SHELL: "/bin/zsh",
       PATH: process.env.PATH ?? ""
     }
   });
 
   assert.equal(result.code, 0);
-  assert.match(result.stdout, /PATH-visible sj-init:/);
-  assert.match(result.stdout, /PATH-visible launcher: .*kiwi-control/);
-  assert.match(result.stdout, /PATH update required:/);
+  assert.match(result.stdout, /Installed commands:/);
+  assert.match(result.stdout, /Temporary beta compatibility aliases:/);
+  assert.match(result.stdout, /PATH updated in .*\.zshrc/);
+  assert.match(result.stdout, /Next step: source .*\.zshrc/);
 
   const homeSjInit = path.join(globalHome, "bin", "sj-init");
   const pathSjInit = path.join(pathBin, "sj-init");
   const homeKiwiControl = path.join(globalHome, "bin", "kiwi-control");
   const pathKiwiControl = path.join(pathBin, "kiwi-control");
+  const pathKc = path.join(pathBin, "kc");
   const pathShreyJunior = path.join(pathBin, "shrey-junior");
   assert.equal(await fs.access(homeSjInit).then(() => true).catch(() => false), true);
   assert.equal(await fs.access(homeKiwiControl).then(() => true).catch(() => false), true);
   assert.equal(await fs.access(pathKiwiControl).then(() => true).catch(() => false), true);
+  assert.equal(await fs.access(pathKc).then(() => true).catch(() => false), true);
   const symlinkStat = await fs.lstat(pathSjInit);
   assert.equal(symlinkStat.isSymbolicLink(), true);
   assert.equal(await fs.readlink(pathSjInit), homeSjInit);
+  const kcAliasStat = await fs.lstat(pathKc);
+  assert.equal(kcAliasStat.isSymbolicLink(), true);
+  assert.equal(await fs.readlink(pathKc), pathKiwiControl);
   const legacyAliasStat = await fs.lstat(pathShreyJunior);
   assert.equal(legacyAliasStat.isSymbolicLink(), true);
   assert.equal(await fs.readlink(pathShreyJunior), pathKiwiControl);
+  const profileContents = await fs.readFile(profilePath, "utf8");
+  assert.match(profileContents, /# >>> Kiwi Control PATH >>>/);
+  assert.match(profileContents, /export PATH=".*\.local\/bin:\$PATH"/);
 
   const helpResult = spawnSync(pathKiwiControl, ["--help"], {
     env: {
@@ -200,4 +211,34 @@ test("install-global installs kiwi-control plus compatibility aliases into the g
   });
   assert.equal(helpResult.status ?? 1, 0);
   assert.match(helpResult.stdout, /Kiwi Control/);
+});
+
+test("install-global upgrades legacy managed alias files into symlinks", async () => {
+  const root = repoRoot();
+  const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "sj-install-migrate-"));
+  const globalHome = path.join(tempHome, ".shrey-junior");
+  const pathBin = path.join(tempHome, ".local", "bin");
+
+  await fs.mkdir(path.join(globalHome, "bin"), { recursive: true });
+  await fs.mkdir(pathBin, { recursive: true });
+  await fs.writeFile(path.join(globalHome, "bin", "shrey-junior"), "#!/usr/bin/env bash\necho legacy\n", "utf8");
+  await fs.writeFile(path.join(pathBin, "shrey-junior"), "#!/usr/bin/env bash\necho legacy\n", "utf8");
+
+  const result = runBashScript(path.join(root, "scripts", "install-global.sh"), [], {
+    env: {
+      HOME: tempHome,
+      SHREY_JUNIOR_HOME: globalHome,
+      SHREY_JUNIOR_PATH_BIN: pathBin,
+      SHELL: "/bin/zsh",
+      PATH: process.env.PATH ?? ""
+    }
+  });
+
+  assert.equal(result.code, 0);
+  const homeLegacyAlias = path.join(globalHome, "bin", "shrey-junior");
+  const pathLegacyAlias = path.join(pathBin, "shrey-junior");
+  assert.equal((await fs.lstat(homeLegacyAlias)).isSymbolicLink(), true);
+  assert.equal((await fs.lstat(pathLegacyAlias)).isSymbolicLink(), true);
+  assert.equal(await fs.readlink(homeLegacyAlias), path.join(globalHome, "bin", "kiwi-control"));
+  assert.equal(await fs.readlink(pathLegacyAlias), path.join(pathBin, "kiwi-control"));
 });

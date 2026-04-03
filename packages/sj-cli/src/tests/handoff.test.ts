@@ -75,6 +75,7 @@ test("handoff rendering preserves the previous phase summary and remaining risks
 
   const handoff = buildHandoffRecord({
     toTool: "claude",
+    toRole: "qa-specialist",
     currentPhase: phase,
     context,
     gitState,

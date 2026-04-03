@@ -74,7 +74,7 @@ export async function runReconcile(options: ReconcileOptions): Promise<number> {
     }),
     nextSuggestedCommand:
       report.status === "ready-for-next-phase"
-        ? `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "<milestone>" --target "${options.targetRoot}"`
+        ? `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "<milestone>"`
         : `${PRODUCT_METADATA.cli.primaryCommand} collect --target "${options.targetRoot}"`,
     checksToRun: buildChecksToRun(context.validationSteps),
     writeTargets: buildWriteTargets(contract, [renderDisplayPath(options.targetRoot, artifacts.jsonPath)]),

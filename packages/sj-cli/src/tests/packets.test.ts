@@ -80,7 +80,7 @@ test("task packets include first-read guidance, checks, and control-plane expect
   assert.match(packet, /## Role References/);
   assert.match(packet, /## Relevant Repo Files/);
   assert.match(packet, /\.agent\/templates\/role-result\.md/);
-  assert.match(packet, /kiwi-control push-check --target <repo> when the CLI is available/);
+  assert.match(packet, /kiwi-control push-check when the CLI is available/);
   assert.match(packet, /prefer promoted repo docs or linked canonical docs before internet search/);
   assert.match(packet, /## Eligible MCP References/);
 });

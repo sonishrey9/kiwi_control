@@ -44,10 +44,10 @@ export async function runUi(options: UiOptions): Promise<number> {
 
 export function buildDesktopUnavailableMessage(repoRoot: string): string {
   if (isSourceProductCheckout(repoRoot)) {
-    return `${PRODUCT_METADATA.desktop.appName} desktop is not installed from this source checkout. Run \`npm run build\` first if needed, then start the desktop shell with \`${PRODUCT_METADATA.cli.sourceDesktopLauncher}\`.`;
+    return `${PRODUCT_METADATA.desktop.appName} desktop is not installed from this source checkout. Run \`${PRODUCT_METADATA.cli.sourceDesktopLauncher}\`.`;
   }
 
-  return `${PRODUCT_METADATA.desktop.appName} desktop is not installed or CLI-launchable on this machine. Install the matching ${PRODUCT_METADATA.desktop.appName} desktop bundle from the GitHub Release, then rerun \`${PRODUCT_METADATA.cli.primaryCommand} ui\`.`;
+  return `${PRODUCT_METADATA.desktop.appName} desktop is not installed or CLI-launchable on this machine. Install the matching ${PRODUCT_METADATA.desktop.appName} desktop bundle from the GitHub Release.`;
 }
 
 export function buildDesktopLaunchCandidates(): DesktopLaunchCandidate[] {

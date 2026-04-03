@@ -8,6 +8,7 @@ import { buildPhaseId } from "./state.js";
 
 export function buildHandoffRecord(options: {
   toTool: ToolName;
+  toRole: string;
   currentPhase: PhaseRecord | null;
   context: CompiledContext;
   gitState: GitState;
@@ -28,12 +29,12 @@ export function buildHandoffRecord(options: {
   ];
   const whatChanged = currentPhase?.changedFilesSummary?.changedFiles ?? options.gitState.changedFiles.slice(0, 12);
   const fromRole = options.activeRoleHints?.activeRole ?? currentPhase?.nextRecommendedSpecialist ?? "architecture-specialist";
-  const toRole = options.recommendedSpecialistId;
+  const toRole = options.toRole;
   const recommendedMcpPack = options.recommendedMcpPack;
   const checkpointPointer = options.latestCheckpoint ? ".agent/state/checkpoints/latest.json" : null;
   const nextCommand = currentPhase?.nextRecommendedStep
-    ? `${PRODUCT_METADATA.cli.primaryCommand} status --target "${options.context.targetRoot}"`
-    : `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "<milestone>" --target "${options.context.targetRoot}"`;
+    ? `${PRODUCT_METADATA.cli.primaryCommand} status`
+    : `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "<milestone>"`;
   const nextFile = options.activeRoleHints?.nextFileToRead ?? ".agent/state/active-role-hints.json";
 
   return {
@@ -107,7 +108,7 @@ export function buildHandoffRecord(options: {
           checkpointSummary: options.latestCheckpoint.summary
         }
       : {}),
-    nextStep: currentPhase?.nextRecommendedStep ?? `Continue with ${options.toTool} using the generated handoff brief.`,
+    nextStep: currentPhase?.nextRecommendedStep ?? `Continue with ${options.toRole} using the generated handoff brief.`,
     status: risksRemaining.length > 0 ? "blocked" : "ready"
   };
 }

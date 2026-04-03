@@ -17,28 +17,26 @@ The operating rule is simple:
 
 ## One-Command Entry
 
-If you want Kiwi Control to decide `bootstrap` versus `standardize` for you, install and use:
+After installing Kiwi Control, use this public first-user entrypoint when you want it to decide `bootstrap` versus `standardize` for you:
 
 ```bash
-bash /path/to/shrey-junior/scripts/install-global.sh
-sj-init
+kiwi-control init
 ```
 
-`sj-init` is a thin Bash entrypoint over the existing CLI. It:
+`kiwi-control init` is the primary first-user entrypoint. It:
 
 - defaults to the current folder
 - chooses `bootstrap` for empty or effectively empty folders
 - chooses `standardize` for existing projects or git repos
 - preserves repo-authority opt-out stand-down
-- runs `status` and `check` after a real apply unless `--no-check` is passed
+- installs or refreshes the repo-local control plane directly
 
 Useful variants:
 
 ```bash
-sj-init --dry-run
-sj-init --target /path/to/repo
-sj-init --type python
-sj-init --no-check
+kiwi-control init
+kiwi-control init --target /path/to/repo
+kc init
 ```
 
 ## Starting A New Repo
@@ -47,7 +45,8 @@ sj-init --no-check
 2. Run:
 
 ```bash
-sj-init --target /path/to/repo
+cd /path/to/repo
+kiwi-control init
 ```
 
 3. Read, in order:
@@ -67,7 +66,7 @@ sj-init --target /path/to/repo
 4. Run:
 
 ```bash
-kiwi-control status --target /path/to/repo
+kiwi-control status
 ```
 
 5. Before serious work, use the active role and latest continuity artifacts instead of scanning the whole repo from scratch.
@@ -79,7 +78,7 @@ kiwi-control status --target /path/to/repo
 7. After meaningful work, record a checkpoint:
 
 ```bash
-kiwi-control checkpoint "<milestone>" --target /path/to/repo
+kiwi-control checkpoint "<milestone>"
 ```
 
 ## Standardizing An Existing Repo
@@ -87,7 +86,7 @@ kiwi-control checkpoint "<milestone>" --target /path/to/repo
 Use the explicit upgrade path:
 
 ```bash
-sj-init --target /path/to/repo --dry-run
+kiwi-control standardize --target /path/to/repo --dry-run
 ```
 
 If you want to drive the lower-level commands directly:
@@ -99,7 +98,8 @@ kiwi-control standardize --target /path/to/repo --dry-run
 If the preview looks correct:
 
 ```bash
-sj-init --target /path/to/repo
+cd /path/to/repo
+kiwi-control init
 ```
 
 Dry-run should tell you:
@@ -139,7 +139,7 @@ The intent is to make the next useful read obvious and keep token spend low.
 Use `status` first:
 
 ```bash
-kiwi-control status --target /path/to/repo
+kiwi-control status
 ```
 
 Then choose the workflow:
@@ -169,7 +169,7 @@ Use `handoff` whenever the next tool should not need to guess:
 Checkpoint after coherent work instead of relying on long session memory:
 
 ```bash
-kiwi-control checkpoint "<milestone>" --target /path/to/repo
+kiwi-control checkpoint "<milestone>"
 ```
 
 ## Working Across Codex, Claude, And Copilot
@@ -177,6 +177,7 @@ kiwi-control checkpoint "<milestone>" --target /path/to/repo
 ### Codex
 
 - best when it can read repo-local artifacts and invoke `shrey-junior`
+- public users should prefer `kiwi-control` or `kc`; `shrey-junior` remains a beta compatibility alias
 - machine-global `~/.codex/AGENTS.md` and `~/.codex/config.toml` should accelerate orientation, not override the repo
 
 ### Claude Code
@@ -218,23 +219,23 @@ Do not treat machine-global files as the durable source of truth.
 
 Machine-global installation notes:
 
-- `scripts/install-global.sh` installs `sj-init` under `~/.shrey-junior/bin/sj-init`
-- it creates a PATH-facing symlink at `~/.local/bin/sj-init`
-- if `~/.local/bin` is not on PATH, the installer prints the exact export line to add
+- the public install flow creates `kiwi-control` and `kc` under `~/.local/bin`
+- temporary beta compatibility aliases `shrey-junior` and `sj` are also installed
+- if `~/.local/bin` is not already on PATH, the installer adds one managed PATH block and prints one exact next step
 
 ## Verification Before Review Or Push
 
 Minimum:
 
 ```bash
-kiwi-control check --target /path/to/repo
+kiwi-control check
 bash .agent/scripts/verify-contract.sh
 ```
 
 When the CLI is available, the generated verifier also runs:
 
 ```bash
-kiwi-control push-check --target /path/to/repo
+kiwi-control push-check
 ```
 
 CI reruns the same repo-local verifier. That is the hard backstop when prompts are not enough.

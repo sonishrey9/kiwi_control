@@ -30,15 +30,38 @@ function runCli(args: string[], entrypoint = cliEntrypoint()): { code: number; s
   };
 }
 
+function runCliInCwd(
+  args: string[],
+  cwd: string,
+  entrypoint = cliEntrypoint()
+): { code: number; stdout: string; stderr: string } {
+  const result = spawnSync("node", [entrypoint, ...args], {
+    cwd,
+    encoding: "utf8"
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  return {
+    code: result.status ?? 1,
+    stdout: result.stdout,
+    stderr: result.stderr
+  };
+}
+
 test("--help exits cleanly and leads with the installed Kiwi Control command surface", () => {
   const result = runCli(["--help"]);
 
   assert.equal(result.code, 0);
   assert.match(result.stdout, /Kiwi Control/);
   assert.match(result.stdout, /Core commands:/);
-  assert.match(result.stdout, /kiwi-control init --target \/path\/to\/repo/);
+  assert.match(result.stdout, /Commands default to the current working directory/);
+  assert.match(result.stdout, /kiwi-control init/);
   assert.match(result.stdout, /kiwi-control ui/);
-  assert.match(result.stdout, /Installed usage:/);
+  assert.match(result.stdout, /Inside-folder usage:/);
+  assert.match(result.stdout, /kiwi-control handoff --to qa-specialist/);
   assert.match(result.stdout, /Contributor source usage:/);
   assert.match(result.stdout, /npm run ui:dev/);
 });
@@ -62,4 +85,28 @@ test("unknown commands exit with usage status and corrective guidance", () => {
   assert.match(result.stderr, /kiwi-control usage error:/);
   assert.match(result.stderr, /unknown command: does-not-exist/);
   assert.match(result.stderr, /Core commands: init, status, check, specialists, checkpoint, handoff, ui/);
+});
+
+test("inside-folder workflow uses the current working directory by default", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-cli-inside-folder-"));
+  const repoDir = path.join(tempDir, "repo");
+  await fs.mkdir(repoDir, { recursive: true });
+  await fs.writeFile(path.join(repoDir, "package.json"), '{\n  "name": "inside-folder-repo"\n}\n', "utf8");
+
+  const initResult = runCliInCwd(["init"], repoDir);
+  assert.equal(initResult.code, 0);
+
+  const statusResult = runCliInCwd(["status"], repoDir);
+  assert.equal(statusResult.code, 0);
+  assert.match(statusResult.stdout, /repo state:/);
+
+  const checkResult = runCliInCwd(["check"], repoDir);
+  assert.equal(checkResult.code, 0);
+
+  const checkpointResult = runCliInCwd(["checkpoint", "inside-folder milestone"], repoDir);
+  assert.equal(checkpointResult.code, 0);
+
+  const handoffResult = runCliInCwd(["handoff", "--to", "qa-specialist"], repoDir);
+  assert.equal(handoffResult.code, 0);
+  assert.match(handoffResult.stdout, /handoff markdown:/);
 });

@@ -277,7 +277,7 @@ function summarizeRepoState(options: {
     return {
       mode: "repo-not-initialized",
       title: "Repo not initialized yet",
-      detail: `Run ${PRODUCT_METADATA.cli.primaryCommand} init --target "${options.targetRoot}" to seed the repo-local control surfaces before using specialists, checkpoints, or handoffs.`,
+      detail: `Run ${PRODUCT_METADATA.cli.primaryCommand} init in this folder to seed the repo-local control surfaces before using specialists, checkpoints, or handoffs.`,
       sourceOfTruthNote
     };
   }
@@ -286,7 +286,7 @@ function summarizeRepoState(options: {
     return {
       mode: "initialized-invalid",
       title: "Repo contract needs repair",
-      detail: `${options.validation.errors} validation error${options.validation.errors === 1 ? "" : "s"} are blocking a healthy repo-local state. Use ${PRODUCT_METADATA.cli.primaryCommand} check --target "${options.targetRoot}" to inspect the contract drift.`,
+      detail: `${options.validation.errors} validation error${options.validation.errors === 1 ? "" : "s"} are blocking a healthy repo-local state. Use ${PRODUCT_METADATA.cli.primaryCommand} check in this folder to inspect the contract drift.`,
       sourceOfTruthNote
     };
   }
@@ -308,14 +308,14 @@ function summarizeRepoState(options: {
   };
 }
 
-function buildFallbackNextCommand(mode: RepoControlMode, targetRoot: string): string {
+function buildFallbackNextCommand(mode: RepoControlMode, _targetRoot: string): string {
   switch (mode) {
     case "repo-not-initialized":
-      return `${PRODUCT_METADATA.cli.primaryCommand} init --target "${targetRoot}"`;
+      return `${PRODUCT_METADATA.cli.primaryCommand} init`;
     case "initialized-invalid":
-      return `${PRODUCT_METADATA.cli.primaryCommand} check --target "${targetRoot}" --json`;
+      return `${PRODUCT_METADATA.cli.primaryCommand} check --json`;
     case "initialized-with-warnings":
-      return `${PRODUCT_METADATA.cli.primaryCommand} status --target "${targetRoot}"`;
+      return `${PRODUCT_METADATA.cli.primaryCommand} status`;
     default:
       return "none recorded";
   }

@@ -29,7 +29,7 @@ Prompts and local guidance can be ignored. CI is the hard backstop.
 - generic repos do not drag backend/frontend instruction noise by default when the CLI-backed validator is available
 - latest reconcile must not still be blocked or review-required
 - a portable repo-local push gate runs from the generated verifier
-- `kiwi-control push-check --target <repo>` also runs when the CLI is available in the environment
+- `kiwi-control push-check` also runs when the CLI is available in the environment
 - repo-specific commands declared in `.agent/checks.yaml` are executed when present
 
 ## What It Does Not Verify

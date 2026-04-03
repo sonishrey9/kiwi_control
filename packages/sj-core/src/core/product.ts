@@ -60,7 +60,7 @@ export const PRODUCT_METADATA: ProductMetadata = {
     cliEnvVars: ["KIWI_CONTROL_BIN", "SHREY_JUNIOR_BIN", "KIWI_CONTROL_CLI", "SHREY_JUNIOR_CLI"],
     desktopEnvVars: ["KIWI_CONTROL_DESKTOP", "SHREY_JUNIOR_DESKTOP"],
     productRootEnvVars: ["KIWI_CONTROL_PRODUCT_ROOT", "SHREY_JUNIOR_PRODUCT_ROOT"],
-    globalHomeDefault: "~/.shrey-junior",
+    globalHomeDefault: "~/.kiwi-control",
     pathBinDefault: "~/.local/bin",
     legacyDesktopBridgeEnv: "SHREY_JUNIOR_CLI"
   }

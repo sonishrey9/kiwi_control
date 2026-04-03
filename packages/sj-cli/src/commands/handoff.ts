@@ -7,7 +7,7 @@ import { writeOpenRisksRecord } from "@shrey-junior/sj-core/core/memory.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "@shrey-junior/sj-core/core/profiles.js";
 import { PRODUCT_METADATA } from "@shrey-junior/sj-core/core/product.js";
 import { recommendMcpPack } from "@shrey-junior/sj-core/core/recommendations.js";
-import { recommendNextSpecialist } from "@shrey-junior/sj-core/core/specialists.js";
+import { isKnownSpecialistId, normalizeSpecialistId, recommendNextSpecialist } from "@shrey-junior/sj-core/core/specialists.js";
 import { loadActiveRoleHints, loadCurrentPhase, loadLatestCheckpoint, updateActiveRoleHints, writeHandoffArtifacts } from "@shrey-junior/sj-core/core/state.js";
 import { buildTemplateContext, selectPortableContract } from "@shrey-junior/sj-core/core/router.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
@@ -16,7 +16,8 @@ import type { ToolName } from "@shrey-junior/sj-core/core/config.js";
 export interface HandoffOptions {
   repoRoot: string;
   targetRoot: string;
-  toTool: ToolName;
+  toRole: string;
+  toTool?: ToolName;
   profileName?: string;
   logger: Logger;
 }
@@ -52,6 +53,16 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
       ? { activeSpecialistId: activeRoleHints?.nextRecommendedSpecialist ?? activeRoleHints?.activeRole }
       : {})
   }).specialistId;
+  const targetSpecialistId = normalizeSpecialistId(config, options.toRole, nextRecommendedSpecialist);
+  if (!targetSpecialistId || !isKnownSpecialistId(config, targetSpecialistId)) {
+    throw new Error(`unknown specialist: ${options.toRole}`);
+  }
+
+  const handoffTool =
+    options.toTool ??
+    currentPhase?.routingSummary.reviewTool ??
+    currentPhase?.routingSummary.primaryTool ??
+    config.routing.defaults.review_tool;
   const nextSuggestedMcpPack = recommendMcpPack({
     projectType: overlay?.bootstrap?.project_type ?? "generic",
     taskType: currentPhase?.routingSummary.taskType ?? compiledContext.taskType,
@@ -59,7 +70,8 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
     authorityFiles: compiledContext.authorityOrder
   });
   const handoff = buildHandoffRecord({
-    toTool: options.toTool,
+    toTool: handoffTool,
+    toRole: targetSpecialistId,
     currentPhase,
     context: compiledContext,
     gitState,
@@ -99,14 +111,14 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
     nextFileToRead: chooseNextFileToRead({
       latestHandoff: ".agent/state/handoff/latest.json"
     }),
-    nextSuggestedCommand: `${PRODUCT_METADATA.cli.primaryCommand} status --target "${options.targetRoot}"`,
+    nextSuggestedCommand: `${PRODUCT_METADATA.cli.primaryCommand} status`,
     writeTargets: buildWriteTargets(contract, handoff.whatChanged.length > 0 ? handoff.whatChanged : [".agent/state/handoff/latest.json"]),
     checksToRun: buildChecksToRun(compiledContext.validationSteps),
     stopConditions: buildStopConditions({
       riskLevel: currentPhase?.routingSummary.riskLevel ?? compiledContext.riskLevel,
       taskType: currentPhase?.routingSummary.taskType ?? compiledContext.taskType
     }),
-    nextRecommendedSpecialist,
+    nextRecommendedSpecialist: targetSpecialistId,
     nextSuggestedMcpPack,
     nextAction: handoff.nextStep,
     searchGuidance: buildSearchGuidance({

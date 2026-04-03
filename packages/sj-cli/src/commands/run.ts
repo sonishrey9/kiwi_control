@@ -114,7 +114,7 @@ export async function runRun(options: RunOptions): Promise<number> {
     nextFileToRead: chooseNextFileToRead({
       latestTaskPacket: packets[0]?.relativePath ?? null
     }),
-    nextSuggestedCommand: `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "<milestone>" --target "${options.targetRoot}"`,
+    nextSuggestedCommand: `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "<milestone>"`,
     writeTargets: buildWriteTargets(contract, packets.map((packet) => packet.relativePath)),
     checksToRun: buildChecksToRun(compiledContext.validationSteps),
     stopConditions: buildStopConditions({

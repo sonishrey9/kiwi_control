@@ -115,7 +115,7 @@ test("ui command reports repo-not-initialized for an uninitialized generic repo 
   };
 
   assert.equal(payload.repoState.mode, "repo-not-initialized");
-  assert.match(payload.repoState.detail, /kiwi-control init --target/);
+  assert.match(payload.repoState.detail, /kiwi-control init in this folder/);
   assert.equal(payload.validation.warnings > 0, true);
 });
 

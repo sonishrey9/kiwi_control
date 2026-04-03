@@ -295,6 +295,15 @@ Run:
 ${PRODUCT_METADATA.cli.primaryCommand} --help
 \`\`\`
 
+Then, inside a repo or folder you want Kiwi Control to manage:
+
+\`\`\`bash
+cd /path/to/repo
+${PRODUCT_METADATA.cli.primaryCommand} init
+${PRODUCT_METADATA.cli.shortCommand} status
+${PRODUCT_METADATA.cli.shortCommand} check
+\`\`\`
+
 This beta CLI bundle stays Node-backed. Install Node.js 22 or newer before using the installed commands.
 
 Version: ${version}
@@ -306,7 +315,28 @@ function renderCliBundleInstaller(version) {
 set -euo pipefail
 
 BUNDLE_ROOT="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
-GLOBAL_HOME="\${KIWI_CONTROL_HOME:-\${SHREY_JUNIOR_HOME:-$HOME/.shrey-junior}}"
+resolve_default_global_home() {
+  if [[ -n "\${KIWI_CONTROL_HOME:-}" ]]; then
+    printf '%s\\n' "$KIWI_CONTROL_HOME"
+    return
+  fi
+
+  if [[ -n "\${SHREY_JUNIOR_HOME:-}" ]]; then
+    printf '%s\\n' "$SHREY_JUNIOR_HOME"
+    return
+  fi
+
+  local kiwi_control_home="$HOME/.kiwi-control"
+  local legacy_home="$HOME/.shrey-junior"
+  if [[ -d "$kiwi_control_home" || ! -d "$legacy_home" ]]; then
+    printf '%s\\n' "$kiwi_control_home"
+    return
+  fi
+
+  printf '%s\\n' "$legacy_home"
+}
+
+GLOBAL_HOME="$(resolve_default_global_home)"
 PATH_BIN="\${KIWI_CONTROL_PATH_BIN:-\${SHREY_JUNIOR_PATH_BIN:-$HOME/.local/bin}}"
 INSTALL_ROOT="$GLOBAL_HOME/releases/${artifactPrefix}-${version}"
 
@@ -321,9 +351,74 @@ cp -R "$BUNDLE_ROOT" "$INSTALL_ROOT"
 
 chmod +x "$INSTALL_ROOT/bin/${PRODUCT_METADATA.cli.primaryCommand}" "$INSTALL_ROOT/bin/${PRODUCT_METADATA.cli.shortCommand}" "$INSTALL_ROOT/bin/${PRODUCT_METADATA.cli.compatibilityCommands[0]}" "$INSTALL_ROOT/bin/${PRODUCT_METADATA.cli.compatibilityCommands[1]}"
 
+is_path_dir_on_path() {
+  case ":$PATH:" in
+    *":$PATH_BIN:"*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+resolve_shell_profile() {
+  local shell_name="\${KIWI_CONTROL_SHELL:-\${SHELL##*/}}"
+  case "$shell_name" in
+    zsh)
+      printf '%s\\n' "$HOME/.zshrc"
+      ;;
+    bash)
+      if [[ "\${OSTYPE:-}" == darwin* ]]; then
+        printf '%s\\n' "$HOME/.bash_profile"
+      else
+        printf '%s\\n' "$HOME/.bashrc"
+      fi
+      ;;
+    *)
+      printf '%s\\n' "$HOME/.profile"
+      ;;
+  esac
+}
+
+upsert_path_profile() {
+  local profile_path="$1"
+  local begin_marker="# >>> Kiwi Control PATH >>>"
+  local end_marker="# <<< Kiwi Control PATH <<<"
+  local block_body="export PATH=\\\"$PATH_BIN:\\$PATH\\\""
+
+  mkdir -p "$(dirname "$profile_path")"
+  if [[ ! -f "$profile_path" ]]; then
+    : > "$profile_path"
+  fi
+
+  python3 - "$profile_path" "$begin_marker" "$end_marker" "$block_body" <<'PY'
+from pathlib import Path
+import sys
+
+profile_path = Path(sys.argv[1])
+begin_marker = sys.argv[2]
+end_marker = sys.argv[3]
+block_body = sys.argv[4]
+
+block = f"{begin_marker}\\n{block_body}\\n{end_marker}"
+content = profile_path.read_text(encoding="utf-8")
+
+if begin_marker in content and end_marker in content:
+    start = content.index(begin_marker)
+    end = content.index(end_marker, start) + len(end_marker)
+    updated = f"{content[:start].rstrip()}\\n{block}\\n{content[end:].lstrip()}"
+else:
+    separator = "\\n" if content and not content.endswith("\\n") else ""
+    updated = f"{content}{separator}{block}\\n"
+
+profile_path.write_text(updated, encoding="utf-8")
+PY
+}
+
 write_wrapper() {
   local wrapper_path="$1"
-  printf '%s\n' '#!/usr/bin/env bash' 'set -euo pipefail' "exec node \\\"$INSTALL_ROOT/lib/cli.js\\\" \\\"\\$@\\\"" >"$wrapper_path"
+  printf '%s\\n' '#!/usr/bin/env bash' 'set -euo pipefail' "exec node \\\"$INSTALL_ROOT/lib/cli.js\\\" \\\"\\$@\\\"" >"$wrapper_path"
   chmod +x "$wrapper_path"
 }
 
@@ -332,11 +427,18 @@ write_wrapper "$PATH_BIN/${PRODUCT_METADATA.cli.shortCommand}"
 write_wrapper "$PATH_BIN/${PRODUCT_METADATA.cli.compatibilityCommands[0]}"
 write_wrapper "$PATH_BIN/${PRODUCT_METADATA.cli.compatibilityCommands[1]}"
 
-printf '%s\n' "${PRODUCT_METADATA.displayName} CLI installed."
-printf '%s\n' "Primary command: $PATH_BIN/${PRODUCT_METADATA.cli.primaryCommand}"
-printf '%s\n' "Short alias: $PATH_BIN/${PRODUCT_METADATA.cli.shortCommand}"
-printf '%s\n' "Compatibility aliases: $PATH_BIN/${PRODUCT_METADATA.cli.compatibilityCommands[0]}, $PATH_BIN/${PRODUCT_METADATA.cli.compatibilityCommands[1]}"
-printf '%s\n' "Add $PATH_BIN to PATH if needed, then run ${PRODUCT_METADATA.cli.primaryCommand} --help."
+printf '%s\\n' "${PRODUCT_METADATA.displayName} CLI installed."
+printf '%s\\n' "Primary command: $PATH_BIN/${PRODUCT_METADATA.cli.primaryCommand}"
+printf '%s\\n' "Short alias: $PATH_BIN/${PRODUCT_METADATA.cli.shortCommand}"
+printf '%s\\n' "Compatibility aliases: $PATH_BIN/${PRODUCT_METADATA.cli.compatibilityCommands[0]}, $PATH_BIN/${PRODUCT_METADATA.cli.compatibilityCommands[1]}"
+if is_path_dir_on_path; then
+  printf '%s\\n' "PATH already includes $PATH_BIN"
+else
+  PROFILE_PATH="$(resolve_shell_profile)"
+  upsert_path_profile "$PROFILE_PATH"
+  printf '%s\\n' "PATH updated in $PROFILE_PATH"
+  printf '%s\\n' "Next step: source $PROFILE_PATH"
+fi
 `;
 }
 
@@ -344,7 +446,7 @@ function renderCliBundleInstallerPs1(version) {
   return `param()
 
 $BundleRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$GlobalHome = if ($env:KIWI_CONTROL_HOME) { $env:KIWI_CONTROL_HOME } elseif ($env:SHREY_JUNIOR_HOME) { $env:SHREY_JUNIOR_HOME } else { Join-Path $HOME ".shrey-junior" }
+$GlobalHome = if ($env:KIWI_CONTROL_HOME) { $env:KIWI_CONTROL_HOME } elseif ($env:SHREY_JUNIOR_HOME) { $env:SHREY_JUNIOR_HOME } else { Join-Path $HOME ".kiwi-control" }
 $PathBin = if ($env:KIWI_CONTROL_PATH_BIN) { $env:KIWI_CONTROL_PATH_BIN } elseif ($env:SHREY_JUNIOR_PATH_BIN) { $env:SHREY_JUNIOR_PATH_BIN } else { Join-Path $HOME ".local/bin" }
 $InstallRoot = Join-Path $GlobalHome "releases\\${artifactPrefix}-${version}"
 

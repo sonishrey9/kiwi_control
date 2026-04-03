@@ -2,26 +2,23 @@
 
 ## 0. One Command From Any Folder
 
-Install the global entrypoint once:
-
-```bash
-bash /path/to/shrey-junior/scripts/install-global.sh
-```
+Install Kiwi Control once using the public install flow in [docs/install.md](/Volumes/shrey%20ssd/shrey-junior/docs/install.md).
 
 Then, from any folder:
 
 ```bash
-sj-init
+kc init
 ```
 
-Use `sj-init` when you want Kiwi Control to decide between `bootstrap` and `standardize` automatically. It preserves repo-authority precedence, stands down on explicit opt-out, and runs `status` plus `check` after a real apply unless `--no-check` is passed.
+Use `kiwi-control init` when you want Kiwi Control to decide between `bootstrap` and `standardize` automatically. It preserves repo-authority precedence and stands down on explicit opt-out.
 
 ## 1. New Project
 
 Recommended flow:
 
 ```bash
-sj-init --target /path/to/new-folder
+cd /path/to/new-folder
+kiwi-control init
 ```
 
 Outcome:
@@ -33,15 +30,15 @@ Outcome:
 - curated specialist registry seeded at `.agent/context/specialists.md`
 - generic repos stay quiet by default and do not install backend/frontend instruction noise unless real repo signals justify them
 - the next useful file is usually `.agent/context/architecture.md`
-- the next useful command is usually `kiwi-control checkpoint "<milestone>" --target <repo>` after you seed real repo context
+- the next useful command is usually `kiwi-control checkpoint "<milestone>"` after you seed real repo context
 
 ## 2. Existing Project Or Existing Repo
 
 Recommended flow:
 
 ```bash
-sj-init --target /path/to/repo --dry-run
-sj-init --target /path/to/repo
+kiwi-control standardize --target /path/to/repo --dry-run
+cd /path/to/repo && kiwi-control init
 ```
 
 Outcome:
@@ -56,7 +53,7 @@ Outcome:
 Recommended flow:
 
 1. inspect repo authority first
-2. run `sj-init --dry-run`
+2. run `kiwi-control standardize --target /path/to/repo --dry-run`
 3. only apply if repo authority does not opt out
 
 ## 4. Cloud-Only Environment
@@ -73,14 +70,14 @@ If only the repo is visible:
 Recommended sequence:
 
 ```bash
-kiwi-control status --target <repo>
-kiwi-control check --target <repo>
+kiwi-control status
+kiwi-control check
 kiwi-control run|fanout|dispatch ...
-kiwi-control collect --target <repo>
-kiwi-control reconcile --target <repo>
-kiwi-control checkpoint "<milestone>" --target <repo>
-kiwi-control handoff --target <repo> --to <tool>
-kiwi-control push-check --target <repo>
+kiwi-control collect
+kiwi-control reconcile
+kiwi-control checkpoint "<milestone>"
+kiwi-control handoff --to qa-specialist
+kiwi-control push-check
 ```
 
 At each serious boundary, the shortest continuity path is:

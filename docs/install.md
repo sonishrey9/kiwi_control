@@ -34,6 +34,12 @@ On Windows:
 .\install.ps1
 ```
 
+If you are installing from a source checkout before using a GitHub Release, run:
+
+```bash
+./install.sh
+```
+
 After install, the public commands are:
 
 - `kiwi-control`
@@ -47,18 +53,19 @@ Temporary beta compatibility aliases are also installed:
 ### First installed CLI flow
 
 ```bash
-kiwi-control init --target /path/to/repo
-kiwi-control status --target /path/to/repo
-kiwi-control check --target /path/to/repo
+cd /path/to/repo
+kiwi-control init
+kiwi-control status
+kiwi-control check
 kiwi-control specialists
-kiwi-control checkpoint "first local proof" --target /path/to/repo
-kiwi-control handoff --target /path/to/repo --to claude
+kiwi-control checkpoint "first local proof"
+kiwi-control handoff --to qa-specialist
 ```
 
 If you want machine-readable output:
 
 ```bash
-kiwi-control ui --target /path/to/repo --json
+kiwi-control ui --json
 ```
 
 ## Installed desktop users
@@ -130,7 +137,7 @@ npm run build
 Run the CLI from source:
 
 ```bash
-npm run cli -- status --target .
+npm run cli -- status
 ```
 
 Run the desktop app from source:

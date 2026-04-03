@@ -68,6 +68,12 @@ On Windows:
 .\install.ps1
 ```
 
+If you are dogfooding directly from this source checkout before using a GitHub Release, run:
+
+```bash
+./install.sh
+```
+
 The beta CLI bundle stays Node-backed. Install Node.js 22 or newer before running the installed commands.
 
 After install, use:
@@ -80,9 +86,10 @@ kc --help
 ### First repo workflow
 
 ```bash
-kiwi-control init --target /path/to/repo
-kiwi-control status --target /path/to/repo
-kiwi-control check --target /path/to/repo
+cd /path/to/repo
+kc init
+kc status
+kc check
 ```
 
 If the repo is generic and not initialized yet, Kiwi Control stays quiet until you opt in.
@@ -90,8 +97,8 @@ If the repo is generic and not initialized yet, Kiwi Control stays quiet until y
 ### Continue work with checkpoints and handoffs
 
 ```bash
-kiwi-control checkpoint "finish contract pass" --target /path/to/repo
-kiwi-control handoff --target /path/to/repo --to claude
+kc checkpoint "finish contract pass"
+kc handoff --to qa-specialist
 ```
 
 Repo-local continuity stays under:
@@ -122,18 +129,19 @@ The desktop app stays repo-backed and non-authoritative. It mirrors:
 ### Installed CLI users
 
 ```bash
-kiwi-control init --target /path/to/repo
-kiwi-control status --target /path/to/repo
-kiwi-control check --target /path/to/repo
+cd /path/to/repo
+kiwi-control init
+kiwi-control status
+kiwi-control check
 kiwi-control specialists
-kiwi-control checkpoint "beta handoff ready" --target /path/to/repo
-kiwi-control handoff --target /path/to/repo --to claude
+kiwi-control checkpoint "beta handoff ready"
+kiwi-control handoff --to qa-specialist
 ```
 
 Use `kc` when you want the short alias:
 
 ```bash
-kc status --target /path/to/repo
+kc status
 ```
 
 ### Installed desktop users
@@ -151,7 +159,7 @@ npm install
 npm run build
 npm test
 bash scripts/smoke-test.sh
-npm run cli -- status --target .
+npm run cli -- status
 npm run ui:dev
 ```
 

@@ -85,7 +85,8 @@ For the first beta, public docs should teach this exact order:
 1. download the Kiwi Control CLI bundle from GitHub Releases
 2. extract it
 3. run `install.sh` or `install.ps1`
-4. run `kiwi-control init --target /path/to/repo`
+4. `cd /path/to/repo`
+5. run `kiwi-control init`
 5. optionally install the matching Kiwi Control desktop bundle and run `kiwi-control ui`
 
 Do not lead end users to contributor scripts such as `scripts/install-global.sh`.

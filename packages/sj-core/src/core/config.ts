@@ -1,5 +1,6 @@
 import os from "node:os";
 import path from "node:path";
+import { existsSync } from "node:fs";
 import { pathExists, readJson } from "../utils/fs.js";
 import { readYamlFile } from "../utils/yaml.js";
 
@@ -321,7 +322,21 @@ export async function loadCanonicalConfig(repoRoot: string): Promise<LoadedConfi
 }
 
 export function getGlobalHomeRoot(): string {
-  return process.env.KIWI_CONTROL_HOME || process.env.SHREY_JUNIOR_HOME || path.join(os.homedir(), ".shrey-junior");
+  if (process.env.KIWI_CONTROL_HOME) {
+    return process.env.KIWI_CONTROL_HOME;
+  }
+
+  if (process.env.SHREY_JUNIOR_HOME) {
+    return process.env.SHREY_JUNIOR_HOME;
+  }
+
+  const kiwiControlHome = path.join(os.homedir(), ".kiwi-control");
+  const legacyHome = path.join(os.homedir(), ".shrey-junior");
+  if (existsSync(kiwiControlHome) || !existsSync(legacyHome)) {
+    return kiwiControlHome;
+  }
+
+  return legacyHome;
 }
 
 export function getGlobalHomePaths(root = getGlobalHomeRoot()): GlobalHomePaths {

@@ -21,8 +21,8 @@ export function buildBootstrapNextFileToRead(): string {
 }
 
 export function buildBootstrapNextSuggestedCommand(targetRoot?: string): string {
-  const repoArg = targetRoot ? `"${targetRoot}"` : "<repo>";
-  return `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "context seeded" --target ${repoArg}`;
+  void targetRoot;
+  return `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "context seeded"`;
 }
 
 export function chooseNextFileToRead(options: {
@@ -125,7 +125,7 @@ export function buildChecksToRun(validationSteps: string[] = []): string[] {
     ".agent/checks.yaml",
     "bash .agent/scripts/verify-contract.sh",
     ...validationSteps,
-    `${PRODUCT_METADATA.cli.primaryCommand} push-check --target <repo> when the CLI is available`
+    `${PRODUCT_METADATA.cli.primaryCommand} push-check when the CLI is available`
   ]);
 }
 

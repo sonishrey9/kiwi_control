@@ -2,12 +2,34 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-GLOBAL_HOME="${KIWI_CONTROL_HOME:-${SHREY_JUNIOR_HOME:-$HOME/.shrey-junior}}"
+resolve_default_global_home() {
+  if [[ -n "${KIWI_CONTROL_HOME:-}" ]]; then
+    printf '%s\n' "$KIWI_CONTROL_HOME"
+    return
+  fi
+
+  if [[ -n "${SHREY_JUNIOR_HOME:-}" ]]; then
+    printf '%s\n' "$SHREY_JUNIOR_HOME"
+    return
+  fi
+
+  local kiwi_control_home="$HOME/.kiwi-control"
+  local legacy_home="$HOME/.shrey-junior"
+  if [[ -d "$kiwi_control_home" || ! -d "$legacy_home" ]]; then
+    printf '%s\n' "$kiwi_control_home"
+    return
+  fi
+
+  printf '%s\n' "$legacy_home"
+}
+
+GLOBAL_HOME="$(resolve_default_global_home)"
 PATH_BIN="${KIWI_CONTROL_PATH_BIN:-${SHREY_JUNIOR_PATH_BIN:-$HOME/.local/bin}}"
 CLI_ENTRYPOINT="$ROOT/packages/sj-cli/dist/cli.js"
 TIMESTAMP="$(date +"%Y%m%d-%H%M%S")"
 BACKUP_DIR="$GLOBAL_HOME/backups/install-$TIMESTAMP"
 DRY_RUN=0
+PROFILE_PATH=""
 
 for arg in "$@"; do
   case "$arg" in
@@ -72,6 +94,65 @@ is_path_dir_on_path() {
   esac
 }
 
+resolve_shell_profile() {
+  local shell_name="${KIWI_CONTROL_SHELL:-${SHELL##*/}}"
+  case "$shell_name" in
+    zsh)
+      printf '%s\n' "$HOME/.zshrc"
+      ;;
+    bash)
+      if [[ "${OSTYPE:-}" == darwin* ]]; then
+        printf '%s\n' "$HOME/.bash_profile"
+      else
+        printf '%s\n' "$HOME/.bashrc"
+      fi
+      ;;
+    *)
+      printf '%s\n' "$HOME/.profile"
+      ;;
+  esac
+}
+
+upsert_path_profile() {
+  local profile_path="$1"
+  local begin_marker="# >>> Kiwi Control PATH >>>"
+  local end_marker="# <<< Kiwi Control PATH <<<"
+  local block_body="export PATH=\"$PATH_BIN:\$PATH\""
+
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    log "[dry-run] update shell profile $profile_path"
+    return
+  fi
+
+  mkdir -p "$(dirname "$profile_path")"
+  if [[ ! -f "$profile_path" ]]; then
+    : > "$profile_path"
+  fi
+
+  python3 - "$profile_path" "$begin_marker" "$end_marker" "$block_body" <<'PY'
+from pathlib import Path
+import sys
+
+profile_path = Path(sys.argv[1])
+begin_marker = sys.argv[2]
+end_marker = sys.argv[3]
+block_body = sys.argv[4]
+
+block = f"{begin_marker}\n{block_body}\n{end_marker}"
+content = profile_path.read_text(encoding="utf-8")
+
+if begin_marker in content and end_marker in content:
+    start = content.index(begin_marker)
+    end = content.index(end_marker, start) + len(end_marker)
+    updated = f"{content[:start].rstrip()}\n{block}\n{content[end:].lstrip()}"
+else:
+    separator = "\n" if content and not content.endswith("\n") else ""
+    updated = f"{content}{separator}{block}\n"
+
+profile_path.write_text(updated, encoding="utf-8")
+PY
+}
+
 backup_if_exists() {
   local file_path="$1"
   if [[ ! -e "$file_path" ]]; then
@@ -99,8 +180,11 @@ ensure_symlink() {
       return
     fi
   elif [[ -e "$link_path" ]]; then
-    echo "refusing to replace existing non-symlink path: $link_path" >&2
-    exit 1
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      log "[dry-run] replace existing managed path $link_path with symlink -> $target_path"
+      return
+    fi
+    rm -rf "$link_path"
   fi
 
   if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -219,20 +303,22 @@ EOF
 )
 write_file "$GLOBAL_HOME/defaults/bootstrap.yaml" "$BOOTSTRAP_DEFAULTS"
 
-log "Kiwi Control global bootstrap home: $GLOBAL_HOME"
-log "PATH-visible launcher: $PATH_BIN/kiwi-control"
-log "PATH-visible aliases: $PATH_BIN/kc, $PATH_BIN/shrey-junior, $PATH_BIN/sj"
-log "PATH-visible sj-init: $PATH_BIN/sj-init"
-log "home launcher: $GLOBAL_HOME/bin/kiwi-control"
-log "home compatibility aliases: $GLOBAL_HOME/bin/kc, $GLOBAL_HOME/bin/shrey-junior, $GLOBAL_HOME/bin/sj"
-log "home sj-init: $GLOBAL_HOME/bin/sj-init"
+log "Kiwi Control install root: $GLOBAL_HOME"
+log "Installed commands:"
+log "- $PATH_BIN/kiwi-control"
+log "- $PATH_BIN/kc"
+log "Temporary beta compatibility aliases:"
+log "- $PATH_BIN/shrey-junior"
+log "- $PATH_BIN/sj"
 if [[ "$DRY_RUN" -eq 0 ]]; then
   log "backup dir: $BACKUP_DIR"
 fi
 if is_path_dir_on_path; then
   log "PATH already includes $PATH_BIN"
 else
-  log "PATH update required: add this to your shell profile"
-  log "export PATH=\"$PATH_BIN:\$PATH\""
+  PROFILE_PATH="$(resolve_shell_profile)"
+  upsert_path_profile "$PROFILE_PATH"
+  log "PATH updated in $PROFILE_PATH"
+  log "Next step: source $PROFILE_PATH"
 fi
 log "No Codex, Claude, Copilot, or VS Code global settings were modified."

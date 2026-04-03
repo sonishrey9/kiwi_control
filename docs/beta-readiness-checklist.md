@@ -17,18 +17,19 @@ This checklist is for a local-first public beta. It is intentionally honest abou
 - download the Kiwi Control CLI bundle from GitHub Releases
 - run the included `install.sh` or `install.ps1`
 - run `kiwi-control --help`
-- run `kiwi-control init --target /path/to/repo`
-- run `kiwi-control status --target /path/to/repo`
-- run `kiwi-control check --target /path/to/repo`
-- run `kiwi-control checkpoint "<milestone>" --target /path/to/repo`
-- run `kiwi-control handoff --target /path/to/repo --to claude`
-- run `kiwi-control ui --json --target /path/to/repo`
+- `cd /path/to/repo`
+- run `kiwi-control init`
+- run `kiwi-control status`
+- run `kiwi-control check`
+- run `kiwi-control checkpoint "<milestone>"`
+- run `kiwi-control handoff --to qa-specialist`
+- run `kiwi-control ui --json`
 
 ## What works for source contributors
 
 - `npm install`
 - `npm run build`
-- `npm run cli -- status --target .`
+- `npm run cli -- status`
 - `npm run ui:dev`
 - `npm test`
 - `bash scripts/smoke-test.sh`
@@ -57,7 +58,8 @@ Desktop bundle generation still requires Rust/Cargo and the platform-native desk
 After installing the CLI bundle:
 
 ```bash
-kiwi-control init --target /path/to/repo
+cd /path/to/repo
+kiwi-control init
 ```
 
 ## First commands for a contributor

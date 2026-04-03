@@ -11,5 +11,5 @@ echo "Building workspace packages"
 npm run build
 
 echo "Local install ready."
-echo "Run the CLI from source with: npm run cli -- status --target ."
+echo "Run the CLI from source with: npm run cli -- status"
 echo "Run the desktop app from source with: npm run ui:dev"

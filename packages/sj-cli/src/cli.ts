@@ -106,7 +106,7 @@ async function main(): Promise<void> {
     case "run": {
       const goal = parsed.positionals.join(" ").trim();
       if (!goal) {
-        throw new CliUsageError("run requires a goal string. Example: kiwi-control run \"stabilize repo-local docs\" --target /path/to/repo");
+        throw new CliUsageError('run requires a goal string. Example: kiwi-control run "stabilize repo-local docs"');
       }
       process.exitCode = await runRun({
         repoRoot,
@@ -122,7 +122,7 @@ async function main(): Promise<void> {
     case "checkpoint": {
       const label = parsed.positionals.join(" ").trim();
       if (!label) {
-        throw new CliUsageError("checkpoint requires a label. Example: kiwi-control checkpoint \"beta handoff ready\" --target /path/to/repo");
+        throw new CliUsageError("checkpoint requires a label. Example: kiwi-control checkpoint \"beta handoff ready\"");
       }
       process.exitCode = await runCheckpoint({
         repoRoot,
@@ -143,18 +143,23 @@ async function main(): Promise<void> {
       });
       return;
     }
-    case "handoff":
+    case "handoff": {
       if (typeof parsed.flags.to !== "string") {
-        throw new CliUsageError("handoff requires --to codex|claude|copilot. Example: kiwi-control handoff --target /path/to/repo --to claude");
+        throw new CliUsageError("handoff requires --to qa-specialist. Example: kiwi-control handoff --to qa-specialist");
       }
+      const handoffTarget = String(parsed.flags.to);
+      const explicitTool = parseToolFlag(parsed.flags.tool) ?? parseToolFlag(parsed.flags["to-tool"]);
+      const legacyToolTarget = parseToolFlag(handoffTarget);
       process.exitCode = await runHandoff({
         repoRoot,
         targetRoot,
-        toTool: String(parsed.flags.to) as "codex" | "claude" | "copilot",
+        toRole: legacyToolTarget ? "" : handoffTarget,
+        ...(explicitTool ? { toTool: explicitTool } : legacyToolTarget ? { toTool: legacyToolTarget } : {}),
         ...(typeof parsed.flags.profile === "string" ? { profileName: String(parsed.flags.profile) } : {}),
         logger
       });
       return;
+    }
     case "status":
       process.exitCode = await runStatus({
         repoRoot,
@@ -192,7 +197,7 @@ async function main(): Promise<void> {
     case "dispatch": {
       const goal = parsed.positionals.join(" ").trim();
       if (!goal) {
-        throw new CliUsageError("dispatch requires a goal string. Example: kiwi-control dispatch \"split docs cleanup\" --target /path/to/repo");
+        throw new CliUsageError('dispatch requires a goal string. Example: kiwi-control dispatch "split docs cleanup"');
       }
       process.exitCode = await runDispatch({
         repoRoot,
@@ -221,7 +226,7 @@ async function main(): Promise<void> {
     case "fanout": {
       const goal = parsed.positionals.join(" ").trim();
       if (!goal) {
-        throw new CliUsageError("fanout requires a goal string. Example: kiwi-control fanout \"stabilize release docs\" --target /path/to/repo");
+        throw new CliUsageError('fanout requires a goal string. Example: kiwi-control fanout "stabilize release docs"');
       }
       process.exitCode = await runFanout({
         repoRoot,
@@ -284,14 +289,16 @@ Primary commands:
   ${primaryCommand}
   ${PRODUCT_METADATA.cli.shortCommand}
 
+Commands default to the current working directory. Use --target only when you need to operate on a different repo or folder.
+
 Core commands:
-  ${primaryCommand} init --target /path/to/repo [--profile profile-name]
-  ${primaryCommand} status [--target /path/to/repo] [--profile profile-name] [--json]
-  ${primaryCommand} check [--target /path/to/repo] [--profile profile-name] [--json]
+  ${primaryCommand} init [--profile profile-name] [--target /path/to/repo]
+  ${primaryCommand} status [--profile profile-name] [--json] [--target /path/to/repo]
+  ${primaryCommand} check [--profile profile-name] [--json] [--target /path/to/repo]
   ${primaryCommand} specialists [--profile profile-name] [--json]
-  ${primaryCommand} checkpoint "label" --target /path/to/repo [--goal text] [--tool codex|claude|copilot] [--profile profile-name] [--mode assisted|guarded|inline] [--status in-progress|complete|blocked] [--validations a,b] [--warnings a,b] [--open-issues a,b] [--next text]
-  ${primaryCommand} handoff --target /path/to/repo --to codex|claude|copilot [--profile profile-name]
-  ${primaryCommand} ui [--target /path/to/repo] [--profile profile-name] [--json]
+  ${primaryCommand} checkpoint "label" [--goal text] [--tool codex|claude|copilot] [--profile profile-name] [--mode assisted|guarded|inline] [--status in-progress|complete|blocked] [--validations a,b] [--warnings a,b] [--open-issues a,b] [--next text] [--target /path/to/repo]
+  ${primaryCommand} handoff --to qa-specialist [--tool codex|claude|copilot] [--profile profile-name] [--target /path/to/repo]
+  ${primaryCommand} ui [--profile profile-name] [--json] [--target /path/to/repo]
 
 Advanced commands:
   ${primaryCommand} bootstrap --target /path/to/folder [--profile profile-name] [--project-type python|node|docs|data-platform|generic] [--dry-run] [--json]
@@ -301,22 +308,23 @@ Advanced commands:
   ${primaryCommand} run "goal" --target /path/to/repo [--profile profile-name] [--mode assisted|guarded|inline] [--tool codex|claude|copilot]
   ${primaryCommand} fanout "goal" --target /path/to/repo [--profile profile-name] [--mode assisted|guarded|inline]
   ${primaryCommand} dispatch "goal" --target /path/to/repo [--profile profile-name] [--mode assisted|guarded|inline]
-  ${primaryCommand} collect --target /path/to/repo
-  ${primaryCommand} reconcile --target /path/to/repo [--profile profile-name]
-  ${primaryCommand} push-check --target /path/to/repo [--profile profile-name]
+  ${primaryCommand} collect [--target /path/to/repo]
+  ${primaryCommand} reconcile [--profile profile-name] [--target /path/to/repo]
+  ${primaryCommand} push-check [--profile profile-name] [--target /path/to/repo]
 
-Installed usage:
-  ${primaryCommand} init --target /path/to/repo
-  ${primaryCommand} status --target /path/to/repo
-  ${primaryCommand} check --target /path/to/repo
-  ${primaryCommand} checkpoint "beta handoff ready" --target /path/to/repo
-  ${primaryCommand} handoff --target /path/to/repo --to claude
+Inside-folder usage:
+  cd /path/to/repo
+  ${primaryCommand} init
+  ${primaryCommand} status
+  ${primaryCommand} check
+  ${primaryCommand} checkpoint "beta handoff ready"
+  ${primaryCommand} handoff --to qa-specialist
   ${primaryCommand} ui
 
 Contributor source usage:
   npm install
   npm run build
-  ${PRODUCT_METADATA.cli.sourceLauncher} status --target .
+  ${PRODUCT_METADATA.cli.sourceLauncher} status
   ${PRODUCT_METADATA.cli.sourceDesktopLauncher}
 
 Compatibility:
@@ -335,6 +343,14 @@ function resolveInvokedCommand(argv1?: string): string {
 
   const invokedName = path.basename(argv1).replace(/\.(cjs|mjs|js|cmd|ps1|bat|exe)$/i, "");
   return listCliCommandAliases().includes(invokedName) ? invokedName : fallback;
+}
+
+function parseToolFlag(value: string | boolean | undefined): "codex" | "claude" | "copilot" | undefined {
+  if (value !== "codex" && value !== "claude" && value !== "copilot") {
+    return undefined;
+  }
+
+  return value;
 }
 
 class CliUsageError extends Error {}

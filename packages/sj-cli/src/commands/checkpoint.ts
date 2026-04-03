@@ -146,10 +146,10 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
   const paths = await writePhaseRecord(options.targetRoot, record);
   const nextSuggestedCommand =
     record.status === "blocked"
-      ? `${PRODUCT_METADATA.cli.primaryCommand} status --target "${options.targetRoot}"`
+      ? `${PRODUCT_METADATA.cli.primaryCommand} status`
       : record.status === "complete"
-        ? `${PRODUCT_METADATA.cli.primaryCommand} push-check --target "${options.targetRoot}"`
-        : `${PRODUCT_METADATA.cli.primaryCommand} handoff --target "${options.targetRoot}" --to-tool ${decision.reviewTool}`;
+        ? `${PRODUCT_METADATA.cli.primaryCommand} push-check`
+        : `${PRODUCT_METADATA.cli.primaryCommand} handoff --to ${nextRecommendedSpecialist} --tool ${decision.reviewTool}`;
   const checkpoint: CheckpointRecord = {
     artifactType: "shrey-junior/checkpoint",
     schemaVersion: 1,
