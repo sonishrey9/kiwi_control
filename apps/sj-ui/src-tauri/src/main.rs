@@ -1,7 +1,15 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use serde::Deserialize;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopLaunchRequest {
+    target_root: String,
+}
 
 #[tauri::command]
 fn load_repo_control_state(target_root: String) -> Result<serde_json::Value, String> {
@@ -15,9 +23,31 @@ fn load_repo_control_state(target_root: String) -> Result<serde_json::Value, Str
     serde_json::from_slice(&output.stdout).map_err(|error| format!("invalid CLI json payload: {error}"))
 }
 
+#[tauri::command]
+fn consume_launch_target_root() -> Result<Option<String>, String> {
+    let request_path = resolve_launch_request_path();
+    if !request_path.exists() {
+        return Ok(None);
+    }
+
+    let payload = fs::read_to_string(&request_path)
+        .map_err(|error| format!("failed to read desktop launch request: {error}"))?;
+    let request: DesktopLaunchRequest = serde_json::from_str(&payload)
+        .map_err(|error| format!("failed to parse desktop launch request: {error}"))?;
+
+    remove_launch_request(&request_path);
+
+    let trimmed_target_root = request.target_root.trim();
+    if trimmed_target_root.is_empty() {
+        return Ok(None);
+    }
+
+    Ok(Some(trimmed_target_root.to_string()))
+}
+
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![load_repo_control_state])
+        .invoke_handler(tauri::generate_handler![consume_launch_target_root, load_repo_control_state])
         .run(tauri::generate_context!())
         .expect("failed to run Kiwi Control desktop");
 }
@@ -98,4 +128,18 @@ fn resolve_source_cli_script() -> Option<PathBuf> {
         .join("cli.js");
 
     candidate.exists().then_some(candidate)
+}
+
+fn resolve_launch_request_path() -> PathBuf {
+    std::env::temp_dir()
+        .join("kiwi-control")
+        .join("desktop-launch-request.json")
+}
+
+fn remove_launch_request(request_path: &Path) {
+    if let Err(error) = fs::remove_file(request_path) {
+        if error.kind() != std::io::ErrorKind::NotFound {
+            eprintln!("failed to clear desktop launch request at {}: {error}", request_path.display());
+        }
+    }
 }

@@ -1,3 +1,6 @@
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { spawn } from "node:child_process";
 import { PRODUCT_METADATA, isSourceProductCheckout } from "@shrey-junior/sj-core";
 import { buildRepoControlState } from "@shrey-junior/sj-core/core/ui-state.js";
@@ -16,6 +19,11 @@ interface DesktopLaunchCandidate {
   args: string[];
 }
 
+interface DesktopLaunchRequest {
+  targetRoot: string;
+  requestedAt: string;
+}
+
 const DESKTOP_BINARY_CANDIDATES = ["kiwi-control-ui", "kiwi-control-desktop"];
 
 export async function runUi(options: UiOptions): Promise<number> {
@@ -30,14 +38,14 @@ export async function runUi(options: UiOptions): Promise<number> {
     return 0;
   }
 
+  await writeDesktopLaunchRequest(options.targetRoot);
   const launched = await launchDesktopControlSurface();
   if (launched) {
-    options.logger.info(
-      `Launched ${PRODUCT_METADATA.desktop.appName}. Load repo-local state for ${options.targetRoot} from the Target repo field inside the desktop app.`
-    );
+    options.logger.info(`Launched ${PRODUCT_METADATA.desktop.appName} for ${options.targetRoot}. It will load this repo automatically.`);
     return 0;
   }
 
+  await clearDesktopLaunchRequest();
   options.logger.error(buildDesktopUnavailableMessage(options.repoRoot));
   return 1;
 }
@@ -77,6 +85,10 @@ export function buildDesktopLaunchCandidates(): DesktopLaunchCandidate[] {
   }
 
   return candidates;
+}
+
+export function resolveDesktopLaunchRequestPath(): string {
+  return path.join(os.tmpdir(), PRODUCT_METADATA.release.artifactPrefix, "desktop-launch-request.json");
 }
 
 async function launchDesktopControlSurface(): Promise<boolean> {
@@ -122,6 +134,20 @@ function buildDesktopCandidateFromEnvValue(value: string): DesktopLaunchCandidat
     command: value,
     args: []
   };
+}
+
+async function writeDesktopLaunchRequest(targetRoot: string): Promise<void> {
+  const requestPath = resolveDesktopLaunchRequestPath();
+  await fs.mkdir(path.dirname(requestPath), { recursive: true });
+  const request: DesktopLaunchRequest = {
+    targetRoot,
+    requestedAt: new Date().toISOString()
+  };
+  await fs.writeFile(requestPath, JSON.stringify(request, null, 2), "utf8");
+}
+
+async function clearDesktopLaunchRequest(): Promise<void> {
+  await fs.rm(resolveDesktopLaunchRequestPath(), { force: true });
 }
 
 async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate): Promise<boolean> {

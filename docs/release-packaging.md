@@ -87,7 +87,9 @@ For the first beta, public docs should teach this exact order:
 3. run `install.sh` or `install.ps1`
 4. `cd /path/to/repo`
 5. run `kiwi-control init`
-5. optionally install the matching Kiwi Control desktop bundle and run `kiwi-control ui`
+6. optionally install the matching Kiwi Control desktop bundle and run `kiwi-control ui`
+
+`kiwi-control ui` should launch Kiwi Control and load the current repo automatically. Do not teach manual repo pasting as the normal desktop path.
 
 Do not lead end users to contributor scripts such as `scripts/install-global.sh`.
 

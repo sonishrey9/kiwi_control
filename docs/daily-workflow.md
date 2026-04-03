@@ -69,13 +69,21 @@ kiwi-control init
 kiwi-control status
 ```
 
-5. Before serious work, use the active role and latest continuity artifacts instead of scanning the whole repo from scratch.
-6. Keep repo-local memory low-noise:
+5. Open the desktop app whenever you want the same repo-local state in a GUI:
+
+```bash
+kiwi-control ui
+```
+
+`kiwi-control ui` launches Kiwi Control and loads the current repo automatically. Manual repo switching inside the app is fallback-only.
+
+6. Before serious work, use the active role and latest continuity artifacts instead of scanning the whole repo from scratch.
+7. Keep repo-local memory low-noise:
    - `repo-facts.json` for durable repo facts
    - `current-focus.json` for the shortest continuity summary
    - `open-risks.json` for unresolved risk carry-forward
    - the Markdown memory files only for durable, reusable repo knowledge
-7. After meaningful work, record a checkpoint:
+8. After meaningful work, record a checkpoint:
 
 ```bash
 kiwi-control checkpoint "<milestone>"

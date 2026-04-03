@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { bootstrapTarget } from "@shrey-junior/sj-core/core/bootstrap.js";
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
 import { runSpecialists } from "../commands/specialists.js";
-import { buildDesktopUnavailableMessage, runUi } from "../commands/ui.js";
+import { buildDesktopUnavailableMessage, resolveDesktopLaunchRequestPath, runUi } from "../commands/ui.js";
 
 function repoRoot(): string {
   return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -165,10 +165,16 @@ test("ui command launches an env-configured desktop launcher when not in json mo
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-launcher-"));
   const markerPath = path.join(tempDir, "launched.txt");
   const launcherPath = path.join(tempDir, "desktop-launcher.js");
+  const launchRequestPath = resolveDesktopLaunchRequestPath();
+
+  await fs.rm(launchRequestPath, { force: true });
 
   await fs.writeFile(
     launcherPath,
-    `import { writeFileSync } from "node:fs"; writeFileSync(${JSON.stringify(markerPath)}, "launched\\n", "utf8");`,
+    `import { readFileSync, writeFileSync } from "node:fs";
+const requestPath = ${JSON.stringify(launchRequestPath)};
+const request = JSON.parse(readFileSync(requestPath, "utf8"));
+writeFileSync(${JSON.stringify(markerPath)}, \`\${request.targetRoot}\\n\`, "utf8");`,
     "utf8"
   );
 
@@ -203,9 +209,65 @@ test("ui command launches an env-configured desktop launcher when not in json mo
 
     const finalMarker = await fs.readFile(markerPath, "utf8");
     assert.equal(exitCode, 0);
-    assert.match(finalMarker, /launched/);
-    assert.match(logs.join("\n"), /Launched Kiwi Control/);
+    assert.equal(finalMarker.trim(), tempDir);
+    assert.match(logs.join("\n"), new RegExp(`Launched Kiwi Control for ${tempDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
   } finally {
+    await fs.rm(launchRequestPath, { force: true });
+    if (previousDesktopLauncher === undefined) {
+      delete process.env.KIWI_CONTROL_DESKTOP;
+    } else {
+      process.env.KIWI_CONTROL_DESKTOP = previousDesktopLauncher;
+    }
+  }
+});
+
+test("ui command refreshes the desktop launch request for repeated repo opens", async () => {
+  const firstTarget = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-first-"));
+  const secondTarget = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-second-"));
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-repeat-"));
+  const markerPath = path.join(tempDir, "launches.txt");
+  const launcherPath = path.join(tempDir, "desktop-launcher.js");
+  const launchRequestPath = resolveDesktopLaunchRequestPath();
+
+  await fs.rm(launchRequestPath, { force: true });
+  await fs.writeFile(
+    launcherPath,
+    `import { appendFileSync, readFileSync } from "node:fs";
+const request = JSON.parse(readFileSync(${JSON.stringify(launchRequestPath)}, "utf8"));
+appendFileSync(${JSON.stringify(markerPath)}, \`\${request.targetRoot}\\n\`, "utf8");`,
+    "utf8"
+  );
+
+  const previousDesktopLauncher = process.env.KIWI_CONTROL_DESKTOP;
+  process.env.KIWI_CONTROL_DESKTOP = launcherPath;
+
+  try {
+    const logger = {
+      info() {},
+      warn() {},
+      error() {}
+    } as never;
+
+    await runUi({
+      repoRoot: repoRoot(),
+      targetRoot: firstTarget,
+      logger
+    });
+
+    await waitForMarkerLines(markerPath, 1);
+
+    await runUi({
+      repoRoot: repoRoot(),
+      targetRoot: secondTarget,
+      logger
+    });
+
+    await waitForMarkerLines(markerPath, 2);
+
+    const launchLines = (await fs.readFile(markerPath, "utf8")).trim().split("\n");
+    assert.deepEqual(launchLines, [firstTarget, secondTarget]);
+  } finally {
+    await fs.rm(launchRequestPath, { force: true });
     if (previousDesktopLauncher === undefined) {
       delete process.env.KIWI_CONTROL_DESKTOP;
     } else {
@@ -221,3 +283,19 @@ test("desktop unavailable messaging distinguishes contributor checkouts from ins
   assert.match(contributorMessage, /npm run ui:dev/);
   assert.match(installedMessage, /Install the matching Kiwi Control desktop bundle from the GitHub Release/);
 });
+
+async function waitForMarkerLines(markerPath: string, expectedLineCount: number): Promise<void> {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    try {
+      const contents = await fs.readFile(markerPath, "utf8");
+      const lines = contents.trim().split("\n").filter(Boolean);
+      if (lines.length >= expectedLineCount) {
+        return;
+      }
+    } catch {}
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+
+  assert.fail(`Timed out waiting for ${expectedLineCount} launch marker lines in ${markerPath}`);
+}

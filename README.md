@@ -112,8 +112,11 @@ Repo-local continuity stays under:
 Install the matching Kiwi Control desktop bundle from the same GitHub Release, then either open the app from your OS launcher or run:
 
 ```bash
+cd /path/to/repo
 kiwi-control ui
 ```
+
+`kiwi-control ui` launches Kiwi Control and loads the current repo automatically. Manual repo switching stays available inside the app only when you want a different folder.
 
 The desktop app stays repo-backed and non-authoritative. It mirrors:
 
@@ -147,10 +150,11 @@ kc status
 ### Installed desktop users
 
 ```bash
+cd /path/to/repo
 kiwi-control ui
 ```
 
-If the desktop bundle is installed and CLI-launchable, Kiwi Control opens it directly. If it is not installed yet, the CLI tells you the next exact step instead of pretending the desktop path exists.
+If the desktop bundle is installed and CLI-launchable, Kiwi Control opens it directly and loads the repo you are standing in. If it is not installed yet, the CLI tells you the next exact step instead of pretending the desktop path exists.
 
 ### Source contributors
 

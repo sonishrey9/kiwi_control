@@ -77,6 +77,35 @@ body {
   box-shadow: var(--shadow);
 }
 
+.active-target {
+  flex: 1 1 280px;
+  display: grid;
+  gap: 6px;
+}
+
+.active-target span {
+  font: 600 0.78rem/1.4 "Geist Mono", "SFMono-Regular", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.active-target strong {
+  font-size: 1.05rem;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.active-target p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.active-target code {
+  font-family: "Geist Mono", "SFMono-Regular", monospace;
+}
+
 .repo-target {
   flex: 1 1 320px;
   display: grid;
@@ -210,6 +239,7 @@ body {
 .panel-row dd {
   margin: 0;
   line-height: 1.5;
+  word-break: break-word;
 }
 
 .panel-row-warn dd {
@@ -225,6 +255,10 @@ body {
   .shell {
     width: min(100vw - 24px, 1200px);
     padding-top: 28px;
+  }
+
+  .hero h1 {
+    max-width: 12ch;
   }
 
   .panel-row {

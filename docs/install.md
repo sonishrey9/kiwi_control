@@ -60,6 +60,7 @@ kiwi-control check
 kiwi-control specialists
 kiwi-control checkpoint "first local proof"
 kiwi-control handoff --to qa-specialist
+kiwi-control ui
 ```
 
 If you want machine-readable output:
@@ -85,9 +86,11 @@ Download the desktop bundle from the same GitHub Release as your CLI install:
 After install, you can:
 
 - open `Kiwi Control` from your OS application launcher
-- run `kiwi-control ui`
+- `cd /path/to/repo && kiwi-control ui`
 
-`kiwi-control ui` launches the desktop app when the desktop bundle is installed or otherwise CLI-launchable. If the desktop app is not available yet, the command fails clearly and tells you the next exact step.
+`kiwi-control ui` launches the desktop app when the desktop bundle is installed or otherwise CLI-launchable, then loads the repo you are standing in automatically. Manual repo switching stays available inside the app only when you want a different folder.
+
+If the desktop app is not available yet, the command fails clearly and tells you the next exact step.
 
 If your platform install does not register a CLI-launchable desktop app, set `KIWI_CONTROL_DESKTOP` to the installed launcher path so `kiwi-control ui` has a deterministic local desktop target.
 
