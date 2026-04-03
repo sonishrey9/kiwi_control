@@ -11,6 +11,8 @@ export interface ProjectOverlay {
     project_type?: string;
     profile_source?: string;
     specialist_suggestions?: string;
+    validation_hints?: string;
+    mcp_policy_hints?: string;
   };
   contract?: {
     generated_surfaces?: {

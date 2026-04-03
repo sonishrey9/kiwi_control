@@ -54,9 +54,11 @@ sj-init --target /path/to/repo
    - trusted repo authority files
    - `.agent/state/active-role-hints.json`
    - `.agent/state/current-phase.json`
+   - `.agent/memory/current-focus.json`
    - `.agent/state/checkpoints/latest.json`
    - latest packet, handoff, dispatch, and reconcile pointers if present
    - `.agent/context/commands.md`
+   - `.agent/context/specialists.md`
    - `.agent/context/tool-capabilities.md`
    - `.agent/context/mcp-capabilities.md`
    - relevant `.github/instructions/*.instructions.md`
@@ -69,7 +71,12 @@ shrey-junior status --target /path/to/repo
 ```
 
 5. Before serious work, use the active role and latest continuity artifacts instead of scanning the whole repo from scratch.
-6. After meaningful work, record a checkpoint:
+6. Keep repo-local memory low-noise:
+   - `repo-facts.json` for durable repo facts
+   - `current-focus.json` for the shortest continuity summary
+   - `open-risks.json` for unresolved risk carry-forward
+   - the Markdown memory files only for durable, reusable repo knowledge
+7. After meaningful work, record a checkpoint:
 
 ```bash
 shrey-junior checkpoint "<milestone>" --target /path/to/repo
@@ -114,14 +121,16 @@ Start here, not with broad repo exploration:
 2. `.agent/state/active-role-hints.json`
 3. `.agent/state/current-phase.json`
 4. `.agent/state/checkpoints/latest.json`
-5. `.agent/state/latest-task-packets.json`
-6. `.agent/state/handoff/latest.json`
-7. `.agent/state/reconcile/latest.json`
-8. `.agent/context/commands.md`
-9. `.agent/context/tool-capabilities.md`
-10. `.agent/context/mcp-capabilities.md`
-11. path-specific instruction files when relevant
-12. `.agent/checks.yaml`
+5. `.agent/memory/current-focus.json`
+6. `.agent/state/latest-task-packets.json`
+7. `.agent/state/handoff/latest.json`
+8. `.agent/state/reconcile/latest.json`
+9. `.agent/context/commands.md`
+10. `.agent/context/specialists.md`
+11. `.agent/context/tool-capabilities.md`
+12. `.agent/context/mcp-capabilities.md`
+13. path-specific instruction files when relevant
+14. `.agent/checks.yaml`
 
 The intent is to make the next useful read obvious and keep token spend low.
 
@@ -146,6 +155,16 @@ Each packet should tell the tool:
 - what checks to run
 - when to stop
 - when external lookup is justified
+
+Use `handoff` whenever the next tool should not need to guess:
+
+- who is handing off to whom
+- what changed
+- what evidence exists
+- what risks remain
+- what file to open next
+- what command to consider next
+- which MCP pack is the best fit
 
 Checkpoint after coherent work instead of relying on long session memory:
 
@@ -185,6 +204,8 @@ Use repo-local state for:
 - latest task packet
 - latest handoff
 - latest reconcile
+- current focus
+- repo facts and durable repo memory
 - checks and push expectations
 
 Use machine-global accelerators for:

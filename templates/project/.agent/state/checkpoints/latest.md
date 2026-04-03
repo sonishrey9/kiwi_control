@@ -11,5 +11,7 @@ Authority source: `{{profileSource}}`
 ## Next
 
 - next file: `{{bootstrapNextFileToRead}}`
+- next specialist: `{{recommendedSpecialist}}`
+- suggested MCP pack: `{{recommendedMcpPack}}`
 - next action: {{bootstrapNextAction}}
 - next command: {{bootstrapNextSuggestedCommand}}

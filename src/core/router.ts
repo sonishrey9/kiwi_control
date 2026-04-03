@@ -12,6 +12,7 @@ import {
   buildStopConditions,
   buildWriteTargets
 } from "./guidance.js";
+import { recommendMcpPack, recommendNextSpecialist } from "./recommendations.js";
 import type { RiskLevel } from "./risk.js";
 import type { ProfileSelection } from "./profiles.js";
 
@@ -161,11 +162,19 @@ export function selectPortableContract(config: LoadedConfig, context: TemplateCo
     ".agent/project.yaml",
     ".agent/checks.yaml",
     ".agent/context/commands.md",
+    ".agent/context/specialists.md",
     ".agent/context/tool-capabilities.md",
     ".agent/context/mcp-capabilities.md",
     ".agent/context/architecture.md",
     ".agent/context/conventions.md",
     ".agent/context/runbooks.md",
+    ".agent/memory/repo-facts.json",
+    ".agent/memory/architecture-decisions.md",
+    ".agent/memory/domain-glossary.md",
+    ".agent/memory/current-focus.json",
+    ".agent/memory/open-risks.json",
+    ".agent/memory/known-gotchas.md",
+    ".agent/memory/last-successful-patterns.md",
     ".agent/roles/README.md",
     ".agent/templates/role-result.md",
     ".agent/state/current-phase.json",
@@ -198,8 +207,11 @@ export function selectPortableContract(config: LoadedConfig, context: TemplateCo
     ".agent/project.yaml",
     ".agent/checks.yaml",
     ".agent/context/commands.md",
+    ".agent/context/specialists.md",
     ".agent/context/tool-capabilities.md",
     ".agent/context/mcp-capabilities.md",
+    ".agent/memory/current-focus.json",
+    ".agent/memory/repo-facts.json",
     ".agent/state/current-phase.json",
     ".agent/state/active-role-hints.json"
   ];
@@ -251,6 +263,17 @@ export function getPortableStateSpecs(config: LoadedConfig, context: TemplateCon
   const defaultChecksToRun = buildChecksToRun(parseCsvList(context.starterValidations));
   const defaultWriteTargets = buildWriteTargets(contract);
   const defaultStopConditions = buildStopConditions({ riskLevel: "low", taskType: "planning" });
+  const recommendedSpecialist = recommendNextSpecialist({
+    projectType: context.projectType,
+    taskType: "planning",
+    fileArea: "context"
+  });
+  const recommendedMcpPack = recommendMcpPack({
+    projectType: context.projectType,
+    taskType: "planning",
+    fileArea: "context",
+    starterMcpHints: parseCsvList(context.starterMcpHints)
+  });
   const defaultSearchGuidance = buildSearchGuidance({
     projectType: context.projectType,
     taskType: "planning",
@@ -276,6 +299,10 @@ export function getPortableStateSpecs(config: LoadedConfig, context: TemplateCon
     bootstrapNextFileToReadJson: renderJson(buildBootstrapNextFileToRead()),
     bootstrapNextSuggestedCommand: buildBootstrapNextSuggestedCommand(context.targetRoot),
     bootstrapNextSuggestedCommandJson: renderJson(buildBootstrapNextSuggestedCommand(context.targetRoot)),
+    recommendedSpecialist,
+    recommendedSpecialistJson: renderJson(recommendedSpecialist),
+    recommendedMcpPack,
+    recommendedMcpPackJson: renderJson(recommendedMcpPack),
     activeRoleReadNextJson: renderJson(defaultReadNext),
     activeRoleWriteTargetsJson: renderJson(defaultWriteTargets),
     activeRoleChecksToRunJson: renderJson(defaultChecksToRun),
@@ -287,6 +314,8 @@ export function getPortableStateSpecs(config: LoadedConfig, context: TemplateCon
     activeRoleNextFileToReadJson: renderJson(buildBootstrapNextFileToRead()),
     activeRoleNextSuggestedCommand: buildBootstrapNextSuggestedCommand(context.targetRoot),
     activeRoleNextSuggestedCommandJson: renderJson(buildBootstrapNextSuggestedCommand(context.targetRoot)),
+    activeRoleNextRecommendedSpecialistJson: renderJson(recommendedSpecialist),
+    activeRoleNextSuggestedMcpPackJson: renderJson(recommendedMcpPack),
     verifyRequiredFilesBash: renderBashArray([
       ...contract.coreSurfaces,
       ...contract.instructionSurfaces,
@@ -322,6 +351,12 @@ export function getPortableStateSpecs(config: LoadedConfig, context: TemplateCon
       outputPath: ".agent/context/commands.md"
     },
     {
+      logicalName: ".agent/context/specialists.md",
+      templatePath: config.routing.portable_state.context.specialists,
+      outputPath: ".agent/context/specialists.md",
+      templateValues: sharedTemplateValues
+    },
+    {
       logicalName: ".agent/context/tool-capabilities.md",
       templatePath: config.routing.portable_state.context.tool_capabilities,
       outputPath: ".agent/context/tool-capabilities.md"
@@ -345,6 +380,50 @@ export function getPortableStateSpecs(config: LoadedConfig, context: TemplateCon
       logicalName: ".agent/context/runbooks.md",
       templatePath: config.routing.portable_state.context.runbooks,
       outputPath: ".agent/context/runbooks.md"
+    },
+    {
+      logicalName: ".agent/memory/repo-facts.json",
+      templatePath: config.routing.portable_state.memory.repo_facts,
+      outputPath: ".agent/memory/repo-facts.json",
+      writeMode: "seed-only",
+      contentFormat: "raw",
+      templateValues: sharedTemplateValues
+    },
+    {
+      logicalName: ".agent/memory/architecture-decisions.md",
+      templatePath: config.routing.portable_state.memory.architecture_decisions,
+      outputPath: ".agent/memory/architecture-decisions.md"
+    },
+    {
+      logicalName: ".agent/memory/domain-glossary.md",
+      templatePath: config.routing.portable_state.memory.domain_glossary,
+      outputPath: ".agent/memory/domain-glossary.md"
+    },
+    {
+      logicalName: ".agent/memory/current-focus.json",
+      templatePath: config.routing.portable_state.memory.current_focus,
+      outputPath: ".agent/memory/current-focus.json",
+      writeMode: "seed-only",
+      contentFormat: "raw",
+      templateValues: sharedTemplateValues
+    },
+    {
+      logicalName: ".agent/memory/open-risks.json",
+      templatePath: config.routing.portable_state.memory.open_risks,
+      outputPath: ".agent/memory/open-risks.json",
+      writeMode: "seed-only",
+      contentFormat: "raw",
+      templateValues: sharedTemplateValues
+    },
+    {
+      logicalName: ".agent/memory/known-gotchas.md",
+      templatePath: config.routing.portable_state.memory.known_gotchas,
+      outputPath: ".agent/memory/known-gotchas.md"
+    },
+    {
+      logicalName: ".agent/memory/last-successful-patterns.md",
+      templatePath: config.routing.portable_state.memory.last_successful_patterns,
+      outputPath: ".agent/memory/last-successful-patterns.md"
     },
     {
       logicalName: ".agent/roles/README.md",

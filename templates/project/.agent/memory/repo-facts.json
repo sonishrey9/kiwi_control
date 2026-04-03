@@ -1,0 +1,11 @@
+{
+  "artifactType": "shrey-junior/repo-facts",
+  "version": 1,
+  "updatedAt": "{{generatedAt}}",
+  "projectName": "{{projectName}}",
+  "projectType": "{{projectType}}",
+  "profile": "{{profileName}}",
+  "authoritySource": "{{profileSource}}",
+  "activeRole": "{{activeRole}}",
+  "recommendedMcpPack": {{recommendedMcpPackJson}}
+}

@@ -174,8 +174,20 @@ export function renderTaskPacket(options: RenderPacketOptions): string {
   const latestCheckpoint = options.continuity?.latestCheckpoint;
   const latestPhase = options.continuity?.latestPhase;
   const latestHandoff = options.continuity?.latestHandoff;
-  if (latestCheckpoint || latestPhase || latestHandoff) {
+  const currentFocus = options.continuity?.currentFocus;
+  if (latestCheckpoint || latestPhase || latestHandoff || currentFocus) {
     lines.push("", "## Continuity", "");
+  }
+
+  if (currentFocus) {
+    lines.push(
+      `- current focus: ${currentFocus.currentFocus}`,
+      `- focus owner: \`${currentFocus.focusOwnerRole}\``,
+      `- focus next specialist: \`${currentFocus.nextRecommendedSpecialist}\``,
+      `- focus MCP pack: \`${currentFocus.nextSuggestedMcpPack}\``,
+      `- focus next file: \`${currentFocus.nextFileToRead}\``,
+      `- focus next command: ${currentFocus.nextSuggestedCommand}`
+    );
   }
 
   if (latestCheckpoint) {

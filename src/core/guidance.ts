@@ -29,6 +29,7 @@ export function chooseNextFileToRead(options: {
   latestHandoff?: string | null;
   latestReconcile?: string | null;
   latestDispatchManifest?: string | null;
+  latestCheckpoint?: string | null;
   fallback?: string;
 }): string {
   return (
@@ -36,6 +37,7 @@ export function chooseNextFileToRead(options: {
     options.latestHandoff ??
     options.latestReconcile ??
     options.latestDispatchManifest ??
+    options.latestCheckpoint ??
     options.fallback ??
     buildBootstrapNextFileToRead()
   );
@@ -77,15 +79,19 @@ export function buildCanonicalReadNext(options: {
   return uniqueStrings([
     ...authority,
     ".agent/state/current-phase.json",
+    ".agent/memory/current-focus.json",
     ".agent/state/checkpoints/latest.json",
     ".agent/state/latest-task-packets.json",
     ".agent/state/handoff/latest.json",
     ".agent/state/reconcile/latest.json",
     ".agent/state/dispatch/latest-manifest.json",
     ".agent/context/commands.md",
+    ".agent/context/specialists.md",
     ".agent/context/tool-capabilities.md",
     ".agent/context/mcp-capabilities.md",
     ".agent/context/architecture.md",
+    ".agent/memory/repo-facts.json",
+    ".agent/memory/open-risks.json",
     ...options.contract.instructionSurfaces,
     ".github/agents/shrey-junior.md",
     ...options.contract.agentSurfaces.filter((item) => item !== ".github/agents/shrey-junior.md"),
@@ -103,9 +109,12 @@ export function buildWriteTargets(contract: PortableContractLike, extraTargets: 
     ...extraTargets,
     ".agent/tasks/*",
     ".agent/state/current-phase.json",
+    ".agent/state/checkpoints/*",
     ".agent/state/handoff/*",
     ".agent/state/dispatch/*",
     ".agent/state/reconcile/*",
+    ".agent/memory/current-focus.json",
+    ".agent/memory/open-risks.json",
     ...contract.roleSurfaces
   ]);
 }

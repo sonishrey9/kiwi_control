@@ -33,6 +33,9 @@ if phase.get("status") != "complete":
     raise SystemExit("current-phase.json must describe a completed bootstrap-ready phase for CI")
 if not phase.get("validationsRun"):
     raise SystemExit("current-phase.json must record validationsRun before CI can pass")
+for key in ["latestMemoryFocus", "nextRecommendedSpecialist", "nextSuggestedMcpPack"]:
+    if not phase.get(key):
+        raise SystemExit(f"current-phase.json must include {key}")
 if phase.get("warnings"):
     raise SystemExit("current-phase.json still carries warnings")
 if phase.get("openIssues"):
@@ -51,6 +54,10 @@ if not active.get("nextFileToRead"):
     raise SystemExit("active-role-hints.json must include nextFileToRead")
 if not active.get("nextSuggestedCommand"):
     raise SystemExit("active-role-hints.json must include nextSuggestedCommand")
+if not active.get("nextRecommendedSpecialist"):
+    raise SystemExit("active-role-hints.json must include nextRecommendedSpecialist")
+if not active.get("nextSuggestedMcpPack"):
+    raise SystemExit("active-role-hints.json must include nextSuggestedMcpPack")
 if not active.get("checksToRun"):
     raise SystemExit("active-role-hints.json must include checksToRun")
 if not active.get("nextAction"):
@@ -61,7 +68,7 @@ if not isinstance(search_guidance, dict):
 if "inspectCodebaseFirst" not in search_guidance or "repoDocsFirst" not in search_guidance:
     raise SystemExit("active-role-hints.json searchGuidance is incomplete")
 
-for pointer_key in ["latestCheckpoint", "latestTaskPacket", "latestHandoff", "latestDispatchManifest", "latestReconcile"]:
+for pointer_key in ["latestMemoryFocus", "latestCheckpoint", "latestTaskPacket", "latestHandoff", "latestDispatchManifest", "latestReconcile"]:
     pointer_value = active.get(pointer_key)
     if pointer_value and not Path(pointer_value).exists():
         raise SystemExit(f"active-role-hints.json points to a missing file: {pointer_key} -> {pointer_value}")
@@ -72,6 +79,9 @@ if checkpoint.get("artifactType") != "shrey-junior/checkpoint":
 if checkpoint.get("schemaVersion") != 1:
     raise SystemExit("latest checkpoint must declare schemaVersion 1")
 for key in ["createdAt", "phase", "activeRole", "authoritySource", "summary", "nextRecommendedAction", "nextSuggestedCommand"]:
+    if not checkpoint.get(key):
+        raise SystemExit(f"latest checkpoint must include {key}")
+for key in ["latestMemoryFocus", "nextRecommendedSpecialist", "nextSuggestedMcpPack"]:
     if not checkpoint.get(key):
         raise SystemExit(f"latest checkpoint must include {key}")
 if not isinstance(checkpoint.get("taskContext"), dict):
@@ -86,6 +96,21 @@ if not checkpoint_markdown.exists():
     raise SystemExit("latest checkpoint markdown missing")
 if "# Checkpoint" not in checkpoint_markdown.read_text(encoding="utf-8"):
     raise SystemExit("latest checkpoint markdown must include a heading")
+
+repo_facts = json.loads(Path(".agent/memory/repo-facts.json").read_text(encoding="utf-8"))
+if repo_facts.get("artifactType") != "shrey-junior/repo-facts":
+    raise SystemExit("repo-facts.json has the wrong artifactType")
+current_focus = json.loads(Path(".agent/memory/current-focus.json").read_text(encoding="utf-8"))
+if current_focus.get("artifactType") != "shrey-junior/current-focus":
+    raise SystemExit("current-focus.json has the wrong artifactType")
+for key in ["currentFocus", "focusOwnerRole", "nextRecommendedSpecialist", "nextSuggestedMcpPack", "nextFileToRead", "nextSuggestedCommand"]:
+    if not current_focus.get(key):
+        raise SystemExit(f"current-focus.json must include {key}")
+open_risks = json.loads(Path(".agent/memory/open-risks.json").read_text(encoding="utf-8"))
+if open_risks.get("artifactType") != "shrey-junior/open-risks":
+    raise SystemExit("open-risks.json has the wrong artifactType")
+if not isinstance(open_risks.get("risks"), list):
+    raise SystemExit("open-risks.json must include a risks array")
 
 for pointer_path in required_pointer_paths:
     path = Path(pointer_path)

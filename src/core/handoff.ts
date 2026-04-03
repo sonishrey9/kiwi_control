@@ -2,7 +2,8 @@ import type { ExecutionMode, ToolName } from "./config.js";
 import type { CompiledContext } from "./context.js";
 import { buildChecksToRun, buildFirstReadContract, buildSearchGuidance, buildStopConditions, buildWriteTargets } from "./guidance.js";
 import type { GitState } from "./git.js";
-import type { CheckpointRecord, HandoffRecord, PhaseRecord } from "./state.js";
+import { recommendMcpPack, recommendNextSpecialist } from "./recommendations.js";
+import type { ActiveRoleHintsRecord, CheckpointRecord, HandoffRecord, PhaseRecord } from "./state.js";
 import { buildPhaseId } from "./state.js";
 
 export function buildHandoffRecord(options: {
@@ -10,6 +11,7 @@ export function buildHandoffRecord(options: {
   currentPhase: PhaseRecord | null;
   context: CompiledContext;
   gitState: GitState;
+  activeRoleHints?: ActiveRoleHintsRecord | null;
   latestCheckpoint?: CheckpointRecord | null;
 }): HandoffRecord {
   const now = new Date().toISOString();
@@ -23,18 +25,60 @@ export function buildHandoffRecord(options: {
     ...options.context.conflicts.map((conflict) => conflict.message)
   ];
   const whatChanged = currentPhase?.changedFilesSummary?.changedFiles ?? options.gitState.changedFiles.slice(0, 12);
+  const fromRole = options.activeRoleHints?.activeRole ?? currentPhase?.routingSummary.requiredRoles[0] ?? "handoff-editor";
+  const toRole =
+    options.activeRoleHints?.nextRecommendedSpecialist ??
+    recommendNextSpecialist({
+      projectType: options.activeRoleHints?.projectType ?? "generic",
+      taskType: currentPhase?.routingSummary.taskType ?? options.context.taskType,
+      fileArea: currentPhase?.routingSummary.fileArea ?? options.context.fileArea,
+      ...(currentPhase?.status === "blocked" ? { activeRole: "handoff-editor" } : {})
+    });
+  const recommendedMcpPack =
+    options.activeRoleHints?.nextSuggestedMcpPack ??
+    recommendMcpPack({
+      projectType: options.activeRoleHints?.projectType ?? "generic",
+      taskType: currentPhase?.routingSummary.taskType ?? options.context.taskType,
+      fileArea: currentPhase?.routingSummary.fileArea ?? options.context.fileArea,
+      authorityFiles: options.context.authorityOrder
+    });
+  const checkpointPointer = options.latestCheckpoint ? ".agent/state/checkpoints/latest.json" : null;
+  const nextCommand = currentPhase?.nextRecommendedStep
+    ? `shrey-junior status --target "${options.context.targetRoot}"`
+    : `shrey-junior checkpoint "<milestone>" --target "${options.context.targetRoot}"`;
+  const nextFile = options.activeRoleHints?.nextFileToRead ?? ".agent/state/active-role-hints.json";
 
   return {
     artifactType: "shrey-junior/handoff",
-    version: 1,
+    version: 2,
     createdAt: now,
     toTool: options.toTool,
+    fromRole,
+    toRole,
+    taskId: currentPhase?.phaseId ?? buildPhaseId(`handoff-to-${options.toTool}`, now),
     ...(currentPhase?.phaseId ? { fromPhaseId: currentPhase.phaseId } : {}),
     ...(currentPhase?.tool ? { previousTool: currentPhase.tool } : {}),
     summary: currentPhase?.label ?? "No checkpoint is recorded yet.",
     goal: currentPhase?.goal ?? "Continue the current repo-local work safely.",
     profile: currentPhase?.profile ?? options.context.profileName,
     mode: (currentPhase?.mode ?? options.context.executionMode) as ExecutionMode,
+    workCompleted: whatChanged.length > 0 ? whatChanged : ["No changed-file summary recorded yet."],
+    filesTouched: whatChanged,
+    checksRun: currentPhase?.validationsRun ?? [],
+    checksPassed: currentPhase?.validationsRun ?? [],
+    checksFailed: [],
+    evidence: [
+      ...(checkpointPointer ? [checkpointPointer] : []),
+      ...(options.activeRoleHints?.latestTaskPacket ? [options.activeRoleHints.latestTaskPacket] : []),
+      ...(options.activeRoleHints?.latestReconcile ? [options.activeRoleHints.latestReconcile] : []),
+      ...(options.activeRoleHints?.latestDispatchManifest ? [options.activeRoleHints.latestDispatchManifest] : [])
+    ],
+    openQuestions: validationsPending,
+    risks: risksRemaining,
+    nextFile,
+    nextCommand,
+    recommendedMcpPack,
+    checkpointPointer,
     readFirst: buildFirstReadContract({
       targetRoot: options.context.targetRoot,
       authorityOrder: options.context.authorityOrder,
@@ -106,6 +150,15 @@ export function renderHandoffMarkdown(handoff: HandoffRecord): string {
     "## What Changed",
     "",
     ...(handoff.whatChanged.length > 0 ? handoff.whatChanged.map((item) => `- ${item}`) : ["- no changed file summary recorded"]),
+    "",
+    "## Handoff Routing",
+    "",
+    `- from role: \`${handoff.fromRole}\``,
+    `- to role: \`${handoff.toRole}\``,
+    `- task id: \`${handoff.taskId}\``,
+    `- next file: \`${handoff.nextFile}\``,
+    `- next command: ${handoff.nextCommand}`,
+    `- recommended MCP pack: \`${handoff.recommendedMcpPack}\``,
     ...(handoff.latestCheckpoint
       ? [
           "",
@@ -143,6 +196,10 @@ export function renderHandoffMarkdown(handoff: HandoffRecord): string {
     "",
     ...(handoff.risksRemaining.length > 0 ? handoff.risksRemaining.map((item) => `- ${item}`) : ["- no known remaining risks"]),
     "",
+    "## Open Questions",
+    "",
+    ...(handoff.openQuestions.length > 0 ? handoff.openQuestions.map((item) => `- ${item}`) : ["- none recorded"]),
+    "",
     "## Next Step",
     "",
     `- ${handoff.nextStep}`
@@ -158,6 +215,8 @@ export function renderHandoffBrief(handoff: HandoffRecord): string {
     `Last phase: ${handoff.summary}`,
     `Goal: ${handoff.goal}`,
     `Next step: ${handoff.nextStep}`,
+    `Next role: ${handoff.toRole}`,
+    `Next command: ${handoff.nextCommand}`,
     "",
     "Priority reads:",
     ...handoff.readFirst.slice(0, 3).map((item) => `- \`${item}\``),

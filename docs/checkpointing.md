@@ -20,6 +20,9 @@ Each checkpoint captures:
 - git branch and commit-before / commit-after when available
 - dirty/staged state even before the first commit
 - related task packet, handoff, or reconcile artifacts
+- latest memory focus pointer
+- next recommended specialist
+- next suggested MCP pack
 - next recommended action and next suggested command
 
 Operational guidance:
@@ -27,5 +30,6 @@ Operational guidance:
 - Fresh repos start with a bootstrap seed checkpoint. Replace it after real work.
 - Prefer `shrey-junior checkpoint "<milestone>" --target <repo>` after non-trivial implementation.
 - Review and QA tools should read `active-role-hints.json`, then `current-phase.json`, then `checkpoints/latest.json`.
+- Review and QA tools should usually read `current-focus.json` immediately before or after the latest checkpoint.
 - Handoff and reconcile artifacts should point back to the latest checkpoint instead of repeating long histories.
 - Checkpoints are continuity aids, not commit substitutes. They should stay compact and factual.

@@ -9,7 +9,7 @@ Use it to keep tool expectations realistic.
 ## Codex
 
 - Best for: implementation, repo surgery, packet execution, and precise file changes when the repo-local contract is available.
-- Read first: repo authority, `.agent/state/active-role-hints.json`, `.agent/state/current-phase.json`, then the latest packet or checkpoint.
+- Read first: repo authority, `.agent/state/active-role-hints.json`, `.agent/state/current-phase.json`, `.agent/memory/current-focus.json`, then the latest packet, handoff, or checkpoint.
 - Proven: local repo reads, repo-local continuity, CLI-driven workflow, and precise file updates.
 - Structurally supported: following role specs, Copilot-style repo instructions, and portable repo-local state.
 - Unproven: cloud runtimes seeing machine-global files or behaving identically to local Codex.
@@ -17,7 +17,7 @@ Use it to keep tool expectations realistic.
 ## Claude
 
 - Best for: planning, QA, review, synthesis, and guarded handoff or reconcile work.
-- Read first: repo authority, active-role hints, current phase, latest checkpoint, latest handoff, then relevant instructions.
+- Read first: repo authority, active-role hints, current phase, current focus, latest checkpoint, latest handoff, then relevant instructions.
 - Proven: local repo-local continuity and CLI-guided workflow on this machine.
 - Structurally supported: repo-local role specs and specialist-aware QA routing.
 - Unproven: every Claude-style runtime treating repo role files as native subagent configs automatically.
@@ -25,7 +25,7 @@ Use it to keep tool expectations realistic.
 ## Copilot
 
 - Best for: inline suggestions, local scaffolding help, and light path-specific edits when repo instructions are concise.
-- Read first: `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, `.github/agents/*.md`, then repo-local Shrey Junior state.
+- Read first: `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, `.github/agents/*.md`, then repo-local Shrey Junior state and `.agent/context/specialists.md`.
 - Proven: repo-local instruction files can be generated and kept minimal.
 - Structurally supported: aligning suggestions with repo-local contract files.
 - Unproven: strict orchestration, guaranteed packet following, or direct tool/MCP parity with Codex or Claude.
@@ -43,3 +43,4 @@ Use it to keep tool expectations realistic.
 - QA / review lead: usually Claude.
 - Inline suggestion assist: Copilot.
 - Strongest portable contract: repo-local files, not machine-global accelerators.
+- Most reusable role definitions live in `.agent/context/specialists.md`; repo-specific role and agent files are narrower overlays when they exist.

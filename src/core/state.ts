@@ -10,6 +10,9 @@ import {
   buildStopConditions,
   type SearchGuidance
 } from "./guidance.js";
+import { loadCurrentFocus, syncCurrentFocusFromActiveHints } from "./memory.js";
+import type { CurrentFocusRecord } from "./memory.js";
+import { normalizeMcpPack } from "./recommendations.js";
 import { ensureDir, isIgnoredArtifactName, pathExists, readJson, relativeFrom, slugify, writeText } from "../utils/fs.js";
 
 export type PhaseStatus = "in-progress" | "complete" | "blocked";
@@ -35,7 +38,7 @@ export interface ChangedFilesSummary {
 
 export interface PhaseRecord {
   artifactType: "shrey-junior/current-phase";
-  version: number;
+  version: 3;
   timestamp: string;
   phaseId: string;
   label: string;
@@ -50,6 +53,9 @@ export interface PhaseRecord {
   validationsRun: string[];
   warnings: string[];
   openIssues: string[];
+  latestMemoryFocus: string;
+  nextRecommendedSpecialist: string;
+  nextSuggestedMcpPack: string;
   nextRecommendedStep: string;
   previousTool?: ToolName;
   previousPhaseId?: string;
@@ -57,7 +63,7 @@ export interface PhaseRecord {
 
 export interface ActiveRoleHintsRecord {
   artifactType: "shrey-junior/active-role-hints";
-  version: number;
+  version: 2;
   updatedAt: string;
   activeRole: string;
   supportingRoles: string[];
@@ -70,7 +76,10 @@ export interface ActiveRoleHintsRecord {
   checksToRun: string[];
   stopConditions: string[];
   nextAction: string;
+  nextRecommendedSpecialist: string;
+  nextSuggestedMcpPack: string;
   searchGuidance: SearchGuidance;
+  latestMemoryFocus: string | null;
   latestCheckpoint: string | null;
   latestTaskPacket: string | null;
   latestHandoff: string | null;
@@ -122,21 +131,39 @@ export interface CheckpointRecord {
   relatedTaskPacket: string | null;
   relatedHandoff: string | null;
   relatedReconcile: string | null;
+  latestMemoryFocus: string | null;
+  nextRecommendedSpecialist: string;
+  nextSuggestedMcpPack: string;
   nextRecommendedAction: string;
   nextSuggestedCommand: string;
 }
 
 export interface HandoffRecord {
   artifactType: "shrey-junior/handoff";
-  version: number;
+  version: 2;
   createdAt: string;
   toTool: ToolName;
+  fromRole: string;
+  toRole: string;
+  taskId: string;
   fromPhaseId?: string;
   previousTool?: ToolName;
   summary: string;
   goal: string;
   profile: string;
   mode: ExecutionMode;
+  workCompleted: string[];
+  filesTouched: string[];
+  checksRun: string[];
+  checksPassed: string[];
+  checksFailed: string[];
+  evidence: string[];
+  openQuestions: string[];
+  risks: string[];
+  nextFile: string;
+  nextCommand: string;
+  recommendedMcpPack: string;
+  checkpointPointer: string | null;
   readFirst: string[];
   writeTargets: string[];
   checksToRun: string[];
@@ -169,6 +196,7 @@ export interface ContinuitySnapshot {
   latestPhase: PhaseRecord | null;
   latestHandoff: HandoffRecord | null;
   latestCheckpoint: CheckpointRecord | null;
+  currentFocus: CurrentFocusRecord | null;
 }
 
 export function getStatePaths(targetRoot: string): {
@@ -240,6 +268,7 @@ export async function loadActiveRoleHints(targetRoot: string): Promise<ActiveRol
 export async function writeActiveRoleHints(targetRoot: string, record: ActiveRoleHintsRecord): Promise<string> {
   const paths = await ensureStateLayout(targetRoot);
   await writeText(paths.activeRoleHints, `${JSON.stringify(record, null, 2)}\n`);
+  await syncCurrentFocusFromActiveHints(targetRoot, record);
   return paths.activeRoleHints;
 }
 
@@ -249,7 +278,7 @@ export async function updateActiveRoleHints(
 ): Promise<string> {
   const current = (await loadActiveRoleHints(targetRoot)) ?? {
     artifactType: "shrey-junior/active-role-hints" as const,
-    version: 1,
+    version: 2,
     updatedAt: new Date().toISOString(),
     activeRole: patch.activeRole,
     supportingRoles: [],
@@ -271,9 +300,12 @@ export async function updateActiveRoleHints(
     checksToRun: buildChecksToRun(),
     stopConditions: buildStopConditions(),
     nextAction: buildBootstrapNextAction(),
+    nextRecommendedSpecialist: patch.activeRole,
+    nextSuggestedMcpPack: "core-pack",
     searchGuidance: buildSearchGuidance({
       projectType: patch.projectType
     }),
+    latestMemoryFocus: ".agent/memory/current-focus.json",
     latestCheckpoint: null,
     latestTaskPacket: null,
     latestHandoff: null,
@@ -293,7 +325,10 @@ export async function updateActiveRoleHints(
     checksToRun: patch.checksToRun ?? current.checksToRun,
     stopConditions: patch.stopConditions ?? current.stopConditions,
     nextAction: patch.nextAction ?? current.nextAction,
+    nextRecommendedSpecialist: patch.nextRecommendedSpecialist ?? current.nextRecommendedSpecialist,
+    nextSuggestedMcpPack: patch.nextSuggestedMcpPack ? normalizeMcpPack(patch.nextSuggestedMcpPack) : current.nextSuggestedMcpPack,
     searchGuidance: patch.searchGuidance ?? current.searchGuidance,
+    latestMemoryFocus: patch.latestMemoryFocus ?? current.latestMemoryFocus ?? ".agent/memory/current-focus.json",
     latestCheckpoint: patch.latestCheckpoint ?? current.latestCheckpoint
   };
   return writeActiveRoleHints(targetRoot, next);
@@ -465,7 +500,8 @@ export async function loadContinuitySnapshot(targetRoot: string, toTool?: ToolNa
   return {
     latestPhase: await loadCurrentPhase(targetRoot),
     latestHandoff: await loadLatestHandoff(targetRoot, toTool),
-    latestCheckpoint: await loadLatestCheckpoint(targetRoot)
+    latestCheckpoint: await loadLatestCheckpoint(targetRoot),
+    currentFocus: await loadCurrentFocus(targetRoot)
   };
 }
 
@@ -517,6 +553,9 @@ export function renderCheckpointMarkdown(record: CheckpointRecord): string {
     "",
     "## Next",
     "",
+    `- next specialist: ${record.nextRecommendedSpecialist}`,
+    `- suggested MCP pack: ${record.nextSuggestedMcpPack}`,
+    ...(record.latestMemoryFocus ? [`- latest memory focus: \`${record.latestMemoryFocus}\``] : []),
     `- next action: ${record.nextRecommendedAction}`,
     `- next command: ${record.nextSuggestedCommand}`
   ];

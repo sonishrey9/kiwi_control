@@ -58,7 +58,8 @@ async function makeManifest(repoRoot: string) {
     continuity: {
       latestPhase: null,
       latestHandoff: null,
-      latestCheckpoint: null
+      latestCheckpoint: null,
+      currentFocus: null
     },
     packetRelativePaths: {
       planner: ".agent/tasks/fanout-1/planner.md",

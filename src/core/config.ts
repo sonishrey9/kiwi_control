@@ -75,10 +75,20 @@ export interface RoutingConfig {
     context: {
       architecture: string;
       commands: string;
+      specialists: string;
       conventions: string;
       tool_capabilities: string;
       mcp_capabilities: string;
       runbooks: string;
+    };
+    memory: {
+      repo_facts: string;
+      architecture_decisions: string;
+      domain_glossary: string;
+      current_focus: string;
+      open_risks: string;
+      known_gotchas: string;
+      last_successful_patterns: string;
     };
     roles: {
       readme: string;

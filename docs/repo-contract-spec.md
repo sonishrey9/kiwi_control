@@ -28,10 +28,18 @@ These are installed in every bootstrapped or standardized repo:
 - `.agent/checks.yaml`
 - `.agent/context/architecture.md`
 - `.agent/context/commands.md`
+- `.agent/context/specialists.md`
 - `.agent/context/tool-capabilities.md`
 - `.agent/context/mcp-capabilities.md`
 - `.agent/context/conventions.md`
 - `.agent/context/runbooks.md`
+- `.agent/memory/repo-facts.json`
+- `.agent/memory/architecture-decisions.md`
+- `.agent/memory/domain-glossary.md`
+- `.agent/memory/current-focus.json`
+- `.agent/memory/open-risks.json`
+- `.agent/memory/known-gotchas.md`
+- `.agent/memory/last-successful-patterns.md`
 - `.agent/templates/role-result.md`
 - `.agent/state/current-phase.json`
 - `.agent/state/active-role-hints.json`
@@ -60,12 +68,13 @@ For a bootstrapped or standardized repo, the intended read order is:
 2. promoted canonical repo docs referenced by that authority
 3. `.agent/state/active-role-hints.json`
 4. `.agent/state/current-phase.json`
-5. `.agent/state/checkpoints/latest.json`
-6. latest packet, handoff, dispatch, and reconcile pointers
-7. `.agent/context/commands.md`, `.agent/context/tool-capabilities.md`, and `.agent/context/mcp-capabilities.md`
-8. relevant path-specific instruction files
-9. `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
-10. `.agent/project.yaml` for the installed contract shape
+5. `.agent/memory/current-focus.json`
+6. `.agent/state/checkpoints/latest.json`
+7. latest packet, handoff, dispatch, and reconcile pointers
+8. `.agent/context/commands.md`, `.agent/context/specialists.md`, `.agent/context/tool-capabilities.md`, and `.agent/context/mcp-capabilities.md`
+9. relevant path-specific instruction files
+10. `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
+11. `.agent/project.yaml` for the installed contract shape
 
 ## Required Repo-Local Surfaces
 
@@ -79,8 +88,10 @@ For a bootstrapped or standardized repo, the intended read order is:
 | `.agent/project.yaml` | Portable repo contract metadata | Generated contract |
 | `.agent/checks.yaml` | Required validation/readiness checks | Generated contract |
 | `.agent/context/commands.md` | Command discovery and next-step guidance | Generated starter context |
+| `.agent/context/specialists.md` | Curated specialist registry and routing aid | Generated starter context |
 | `.agent/context/tool-capabilities.md` | Honest tool-family capability matrix | Generated starter context |
 | `.agent/context/mcp-capabilities.md` | MCP and external lookup decision guide | Generated starter context |
+| `.agent/memory/*.json`, `.agent/memory/*.md` | Portable shared memory bank | Generated starter context plus runtime updates |
 | `.agent/context/architecture.md`, `.agent/context/conventions.md`, `.agent/context/runbooks.md` | Human-readable repo context | Generated starter context |
 | `.agent/roles/*.md` | Specialist role definitions | Generated contract |
 | `.agent/templates/role-result.md` | Structured role result schema | Generated contract |
@@ -129,4 +140,5 @@ If a tool can only see the repo, the repo-local contract should still let it:
 - read current phase and latest handoff
 - read the latest task packet set
 - understand specialist roles
+- inspect portable repo-local memory without depending on hidden session state
 - see required checks before push or review

@@ -19,15 +19,16 @@ Before medium/high complexity work or resuming a prior phase:
 1. read the existing repo authority files and any promoted canonical docs they reference
 2. read `.agent/state/active-role-hints.json`
 3. read `.agent/state/current-phase.json`
-4. read the latest task packet, latest handoff, latest reconcile, and latest dispatch manifest when present
-5. read the relevant `.github/instructions/*.instructions.md`
-6. read relevant `.github/agents/*.md`, `.agent/roles/*.md`, and `.agent/templates/role-result.md`
-7. read `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
-8. read `.agent/project.yaml`
-9. read `.agent/context/commands.md`, `.agent/context/tool-capabilities.md`, and `.agent/context/mcp-capabilities.md`
-10. read `.agent/context/architecture.md`
-11. read `.agent/context/conventions.md`
-12. read `.agent/tasks/` packets when present
+4. read `.agent/memory/current-focus.json` and `.agent/state/checkpoints/latest.json`
+5. read the latest task packet, latest handoff, latest reconcile, and latest dispatch manifest when present
+6. read `.agent/context/commands.md`, `.agent/context/specialists.md`, `.agent/context/tool-capabilities.md`, and `.agent/context/mcp-capabilities.md`
+7. read the relevant `.github/instructions/*.instructions.md`
+8. read relevant `.github/agents/*.md`, `.agent/roles/*.md`, and `.agent/templates/role-result.md`
+9. read `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
+10. read `.agent/project.yaml`
+11. read `.agent/context/architecture.md`
+12. read `.agent/context/conventions.md`
+13. read `.agent/tasks/` packets when present
 
 Do not rely on machine-local `.claude/*` files as portable authority unless the repo explicitly routes to them.
 Cloud-hosted runtimes may not see machine-global files, so treat repo-local artifacts as the portable contract.
@@ -41,7 +42,8 @@ Workflow rules:
 - require `checkpoint` and `handoff` when Claude is taking over after another tool or handing work back
 - consult `push-check` before recommending push on non-trivial or guarded work
 - consult `release-check` or `phase-close` when closing a phase or approaching release readiness
-- treat `.agent/state/active-role-hints.json` as the quickest repo-local pointer for current role focus, next file to open, next command to consider, and latest continuity artifacts
+- treat `.agent/state/active-role-hints.json` as the quickest repo-local pointer for current role focus, next file to open, next command to consider, latest continuity artifacts, next specialist, and suggested MCP pack
+- treat `.agent/memory/current-focus.json` as the smallest portable continuity summary when resuming
 
 Gate behavior:
 
@@ -51,5 +53,5 @@ Gate behavior:
 
 Specialists and MCP:
 
-- prefer specialist-aware routing when the task clearly maps to frontend, backend, fullstack, python, data-platform, QA, security, docs, refactor, architecture, or push/release work
+- prefer the curated specialist registry in `.agent/context/specialists.md` when the task clearly maps to implementation, QA, security, performance, docs, handoff, reconcile, or release-readiness work
 - MCP usage follows policy, capability, trust, profile, specialist, and approval rules; do not call MCP tools opportunistically

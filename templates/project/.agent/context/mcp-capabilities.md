@@ -6,6 +6,14 @@ Detected project type: `{{projectType}}`
 
 Use it to decide when external lookup is justified and when repo inspection should win.
 
+Recommended pack pointer:
+- `core-pack`: repo inspection, git, local validation, issue/PR context.
+- `research-pack`: docs lookup and careful external research.
+- `web-qa-pack`: browser/UI verification when the repo actually has a web surface.
+- `aws-pack`: AWS-specific repos only.
+- `ios-pack`: iOS/macOS work when Xcode-capable tooling is actually available.
+- `android-pack`: Android work should still rely primarily on repo-local build/test/tooling; do not imply Android MCP parity.
+
 ## Capability Categories
 
 - Docs lookup: useful for version-sensitive framework or provider behavior.
@@ -19,6 +27,9 @@ Use it to decide when external lookup is justified and when repo inspection shou
 - Codex and Claude local workflows may be able to use MCP or tool integrations directly when the environment exposes them.
 - Copilot should treat MCP notes as routing context, not as a promise that it can invoke those tools itself.
 - Cloud-hosted runtimes may not see machine-global MCP config even when repo-local guidance mentions capability categories.
+- GitHub MCP-style tooling is usually strongest for repo, PR, issue, and workflow context.
+- Playwright-style tooling is strongest for browser/UI verification, not for deciding repo truth.
+- AWS-specific tooling should not be suggested for non-AWS repos.
 
 ## Search Discipline
 

@@ -29,6 +29,8 @@ Outcome:
 - full portable repo contract installed
 - starter profile chosen from safe metadata and defaults
 - specialist suggestions seeded
+- repo-local memory bank seeded under `.agent/memory/`
+- curated specialist registry seeded at `.agent/context/specialists.md`
 - generic repos stay quiet by default and do not install backend/frontend instruction noise unless real repo signals justify them
 - the next useful file is usually `.agent/context/architecture.md`
 - the next useful command is usually `shrey-junior checkpoint "<milestone>" --target <repo>` after you seed real repo context
@@ -46,7 +48,8 @@ Outcome:
 
 - existing repo gains the portable contract without pretending it is a fresh project
 - backups are kept for touched repo-local files where applicable
-- `commands.md`, `tool-capabilities.md`, and `mcp-capabilities.md` make the operating model visible to tools that only see the repo
+- `commands.md`, `specialists.md`, `tool-capabilities.md`, and `mcp-capabilities.md` make the operating model visible to tools that only see the repo
+- the shared memory bank gives a portable place for repo facts, current focus, risks, and durable gotchas
 
 ## 3. External Cloned Repo
 
@@ -84,6 +87,7 @@ At each serious boundary, the shortest continuity path is:
 
 1. `.agent/state/active-role-hints.json`
 2. `.agent/state/current-phase.json`
-3. `.agent/state/checkpoints/latest.json`
-4. latest packet / handoff / reconcile pointers
-5. `.agent/context/commands.md`
+3. `.agent/memory/current-focus.json`
+4. `.agent/state/checkpoints/latest.json`
+5. latest packet / handoff / reconcile pointers
+6. `.agent/context/commands.md`

@@ -1,47 +1,35 @@
 # Specialists
 
-Shrey Junior specialists are the portable, repo-safe abstraction layer above machine-local skills.
+Shrey Junior now uses a smaller curated portable specialist vocabulary for repo-local routing:
 
-## Core specialists
-
-- `python-specialist`: Python and backend implementation with safe validation boundaries
-- `backend-specialist`: service, API, persistence, and contract-aware backend work
-- `frontend-specialist`: UI, browser, and design-aware frontend work
-- `fullstack-specialist`: balanced implementation for app and web repos crossing frontend and backend boundaries
-- `qa-specialist`: tester evidence, validation coverage, and acceptance confidence
-- `review-specialist`: general engineering review and regression risk assessment
-- `push-specialist`: push-readiness and review gating
-- `release-specialist`: release and phase-close discipline
-- `refactor-specialist`: bounded restructures and contract-safe change grouping
-- `security-specialist`: auth, permissions, data exposure, and unsafe assumptions
-- `docs-specialist`: documentation, summaries, onboarding, and authority flow
-- `architecture-specialist`: planning, decomposition, sequencing, and boundary analysis
-- `mcp-specialist`: capability-aware MCP routing and policy discipline
+- `python-implementer`
+- `typescript-implementer`
+- `sql-specialist`
+- `android-specialist`
+- `ios-specialist`
+- `qa-specialist`
+- `security-reviewer`
+- `performance-reviewer`
+- `docs-specialist`
+- `dispatcher`
+- `reconciler`
+- `handoff-editor`
+- `release-readiness`
 
 ## Why specialists exist
 
 - machine-local skills are rich but not portable
 - specialists let Shrey Junior speak one stable routing language across Codex, Claude, Copilot, and future tools
-- specialists keep validation expectations, MCP eligibility, and escalation rules explicit
+- specialists keep validation expectations, MCP-pack guidance, handoff rules, and escalation rules explicit
 
-## Relationship to roles
+## Practical routing
 
-- planner usually maps to `architecture-specialist`
-- implementer usually maps to `fullstack-specialist` unless a more specific specialist is chosen
-- reviewer usually maps to `review-specialist`
-- tester usually maps to `qa-specialist`
-- security maps to `security-specialist`
-- summarizer maps to `docs-specialist`
+- Python repos usually bias toward `python-implementer`
+- Node or app repos usually bias toward `typescript-implementer`
+- data and migration work usually biases toward `sql-specialist`
+- review and validation work usually biases toward `qa-specialist`
+- docs and repo-context cleanup usually biases toward `docs-specialist`
+- cross-role routing and restart logic usually biases toward `dispatcher`, `reconciler`, or `handoff-editor`
+- push discussion should bias toward `release-readiness`
 
-## Relationship to project types
-
-- Python repos bias toward `python-specialist` and `backend-specialist`
-- Node or app repos bias toward `fullstack-specialist` and `frontend-specialist`
-- Docs-heavy repos bias toward `docs-specialist`
-- Data-platform repos bias toward `backend-specialist`, `qa-specialist`, and `security-specialist`
-
-## Escalation guidance
-
-- use a more specific specialist when the task is clearly domain-shaped
-- use `review-specialist` when correctness and regression risk matter more than domain depth
-- use `mcp-specialist` when tool or capability eligibility is unclear
+The portable source of truth for day-to-day use is `.agent/context/specialists.md` inside each initialized repo.

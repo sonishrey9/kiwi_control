@@ -41,6 +41,9 @@
   "relatedTaskPacket": null,
   "relatedHandoff": null,
   "relatedReconcile": null,
+  "latestMemoryFocus": ".agent/memory/current-focus.json",
+  "nextRecommendedSpecialist": {{recommendedSpecialistJson}},
+  "nextSuggestedMcpPack": {{recommendedMcpPackJson}},
   "nextRecommendedAction": {{bootstrapNextActionJson}},
   "nextSuggestedCommand": {{bootstrapNextSuggestedCommandJson}}
 }

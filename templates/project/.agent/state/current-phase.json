@@ -1,6 +1,6 @@
 {
   "artifactType": "shrey-junior/current-phase",
-  "version": 2,
+  "version": 3,
   "timestamp": "{{generatedAt}}",
   "phaseId": "bootstrap-initialized",
   "label": "bootstrap initialized",
@@ -23,5 +23,8 @@
   ],
   "warnings": [],
   "openIssues": [],
+  "latestMemoryFocus": ".agent/memory/current-focus.json",
+  "nextRecommendedSpecialist": {{recommendedSpecialistJson}},
+  "nextSuggestedMcpPack": {{recommendedMcpPackJson}},
   "nextRecommendedStep": "{{bootstrapNextAction}}"
 }

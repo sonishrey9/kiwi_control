@@ -26,7 +26,7 @@ test("state ledger stores current phase and latest tool-specific handoff", async
 
   const phase: PhaseRecord = {
     artifactType: "shrey-junior/current-phase",
-    version: 1,
+    version: 3,
     timestamp: "2026-04-02T12:00:00.000Z",
     phaseId: "20260402-120000-phase-1",
     label: "phase 1 complete",
@@ -48,6 +48,9 @@ test("state ledger stores current phase and latest tool-specific handoff", async
     validationsRun: ["npm test"],
     warnings: [],
     openIssues: [],
+    latestMemoryFocus: ".agent/memory/current-focus.json",
+    nextRecommendedSpecialist: "qa-specialist",
+    nextSuggestedMcpPack: "web-qa-pack",
     nextRecommendedStep: "handoff to claude for review"
   };
   await writePhaseRecord(repoRoot, phase);
@@ -99,6 +102,9 @@ test("state ledger stores current phase and latest tool-specific handoff", async
     relatedTaskPacket: null,
     relatedHandoff: null,
     relatedReconcile: null,
+    latestMemoryFocus: ".agent/memory/current-focus.json",
+    nextRecommendedSpecialist: "qa-specialist",
+    nextSuggestedMcpPack: "web-qa-pack",
     nextRecommendedAction: "handoff to claude for review",
     nextSuggestedCommand: 'shrey-junior handoff --target <repo> --to-tool claude'
   };
@@ -106,15 +112,30 @@ test("state ledger stores current phase and latest tool-specific handoff", async
 
   const claudeHandoff: HandoffRecord = {
     artifactType: "shrey-junior/handoff",
-    version: 1,
+    version: 2,
     createdAt: "2026-04-02T12:30:00.000Z",
     toTool: "claude",
+    fromRole: "backend-specialist",
+    toRole: "qa-specialist",
+    taskId: phase.phaseId,
     fromPhaseId: phase.phaseId,
     previousTool: "codex",
     summary: "phase 1 complete",
     goal: phase.goal,
     profile: phase.profile,
     mode: phase.mode,
+    workCompleted: ["src/core/router.ts"],
+    filesTouched: ["src/core/router.ts"],
+    checksRun: ["npm test"],
+    checksPassed: ["npm test"],
+    checksFailed: [],
+    evidence: [".agent/state/checkpoints/latest.json"],
+    openQuestions: ["manual review"],
+    risks: [],
+    nextFile: ".agent/context/architecture.md",
+    nextCommand: 'shrey-junior status --target <repo>',
+    recommendedMcpPack: "web-qa-pack",
+    checkpointPointer: ".agent/state/checkpoints/latest.json",
     readFirst: ["AGENTS.md"],
     writeTargets: ["src/core/router.ts"],
     checksToRun: ["npm test", "bash .agent/scripts/verify-contract.sh"],
@@ -173,6 +194,8 @@ test("state ledger stores current phase and latest tool-specific handoff", async
   assert.equal(activeRoleHints?.latestHandoff, ".agent/state/handoff/latest.json");
   assert.equal(activeRoleHints?.nextFileToRead, ".agent/context/architecture.md");
   assert.match(activeRoleHints?.nextSuggestedCommand ?? "", /checkpoint/);
+  assert.equal(activeRoleHints?.latestMemoryFocus, ".agent/memory/current-focus.json");
   assert.equal(activeRoleHints?.readNext.length !== 0, true);
   assert.equal(activeRoleHints?.checksToRun.length !== 0, true);
+  assert.equal(allSnapshot.currentFocus?.artifactType, "shrey-junior/current-focus");
 });

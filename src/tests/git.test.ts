@@ -30,7 +30,7 @@ test("git inspection summarizes staged, unstaged, and untracked files", async ()
 
   const assessment = assessPushReadiness(gitState, {
     artifactType: "shrey-junior/current-phase",
-    version: 1,
+    version: 3,
     timestamp: "2026-04-02T12:00:00.000Z",
     phaseId: "phase-2",
     label: "phase 2 complete",
@@ -52,6 +52,9 @@ test("git inspection summarizes staged, unstaged, and untracked files", async ()
     validationsRun: ["npm test"],
     warnings: [],
     openIssues: [],
+    latestMemoryFocus: ".agent/memory/current-focus.json",
+    nextRecommendedSpecialist: "qa-specialist",
+    nextSuggestedMcpPack: "web-qa-pack",
     nextRecommendedStep: "review and commit"
   });
   assert.equal(assessment.result, "review-required");

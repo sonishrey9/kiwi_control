@@ -59,9 +59,24 @@ export async function runStatus(options: StatusOptions): Promise<number> {
     activeRoleHints
       ? `active role hints: ${activeRoleHints.activeRole}${activeRoleHints.supportingRoles.length > 0 ? ` | supporting=${activeRoleHints.supportingRoles.join(", ")}` : ""}`
       : "active role hints: none recorded",
+    activeRoleHints?.nextRecommendedSpecialist
+      ? `next specialist: ${activeRoleHints.nextRecommendedSpecialist}`
+      : "next specialist: none recorded",
+    activeRoleHints?.nextSuggestedMcpPack
+      ? `suggested MCP pack: ${activeRoleHints.nextSuggestedMcpPack}`
+      : "suggested MCP pack: none recorded",
     activeRoleHints?.nextFileToRead ? `next file: ${activeRoleHints.nextFileToRead}` : "next file: none recorded",
     activeRoleHints?.nextSuggestedCommand ? `next command: ${activeRoleHints.nextSuggestedCommand}` : "next command: none recorded",
     activeRoleHints?.nextAction ? `next action: ${activeRoleHints.nextAction}` : "next action: none recorded",
+    continuity.currentFocus
+      ? `current focus: ${continuity.currentFocus.currentFocus} [owner=${continuity.currentFocus.focusOwnerRole}]`
+      : "current focus: none recorded",
+    continuity.currentFocus?.nextFileToRead
+      ? `focus next file: ${continuity.currentFocus.nextFileToRead}`
+      : "focus next file: none recorded",
+    continuity.currentFocus?.nextSuggestedCommand
+      ? `focus next command: ${continuity.currentFocus.nextSuggestedCommand}`
+      : "focus next command: none recorded",
     activeRoleHints?.readNext?.length
       ? `read next: ${activeRoleHints.readNext.slice(0, 5).join(" -> ")}`
       : "read next: none recorded",
@@ -76,7 +91,7 @@ export async function runStatus(options: StatusOptions): Promise<number> {
       : "latest checkpoint: none recorded",
     continuity.latestPhase?.tool ? `previous tool: ${continuity.latestPhase.tool}` : "previous tool: none recorded",
     continuity.latestHandoff
-      ? `latest handoff: ${continuity.latestHandoff.summary} -> ${continuity.latestHandoff.toTool} [${continuity.latestHandoff.status}]`
+      ? `latest handoff: ${continuity.latestHandoff.summary} -> ${continuity.latestHandoff.toRole}/${continuity.latestHandoff.toTool} [${continuity.latestHandoff.status}]`
       : "latest handoff: none recorded",
     latestDispatch
       ? `latest dispatch: ${latestDispatch.dispatchId} [${latestDispatch.status}]`
@@ -98,6 +113,7 @@ export async function runStatus(options: StatusOptions): Promise<number> {
       ? `latest task packet set: ${latestTaskPacketSet.packetSet} (${latestTaskPacketSet.files.length} files)`
       : "latest task packet set: none recorded",
     activeRoleHints?.latestCheckpoint ? `active latest checkpoint pointer: ${activeRoleHints.latestCheckpoint}` : "active latest checkpoint pointer: none recorded",
+    activeRoleHints?.latestMemoryFocus ? `active latest memory focus pointer: ${activeRoleHints.latestMemoryFocus}` : "active latest memory focus pointer: none recorded",
     activeRoleHints?.latestTaskPacket ? `active latest task packet pointer: ${activeRoleHints.latestTaskPacket}` : "active latest task packet pointer: none recorded",
     activeRoleHints?.latestHandoff ? `active latest handoff pointer: ${activeRoleHints.latestHandoff}` : "active latest handoff pointer: none recorded",
     activeRoleHints?.latestDispatchManifest ? `active latest dispatch pointer: ${activeRoleHints.latestDispatchManifest}` : "active latest dispatch pointer: none recorded",

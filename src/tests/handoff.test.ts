@@ -8,7 +8,7 @@ import type { PhaseRecord } from "../core/state.js";
 test("handoff rendering preserves the previous phase summary and remaining risks", () => {
   const phase: PhaseRecord = {
     artifactType: "shrey-junior/current-phase",
-    version: 1,
+    version: 3,
     timestamp: "2026-04-02T12:00:00.000Z",
     phaseId: "phase-1",
     label: "worker normalization done",
@@ -30,6 +30,9 @@ test("handoff rendering preserves the previous phase summary and remaining risks
     validationsRun: ["npm test"],
     warnings: ["follow-up docs review needed"],
     openIssues: ["review packet not signed off"],
+    latestMemoryFocus: ".agent/memory/current-focus.json",
+    nextRecommendedSpecialist: "qa-specialist",
+    nextSuggestedMcpPack: "web-qa-pack",
     nextRecommendedStep: "handoff to claude for guarded review"
   };
   const context: CompiledContext = {

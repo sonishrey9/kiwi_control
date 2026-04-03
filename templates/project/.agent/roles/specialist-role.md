@@ -56,5 +56,6 @@ Canonical role spec for `{{specialistId}}`.
 ## Usage Notes
 
 - treat this as a portable repo-local contract, not as stronger authority than explicit repo instructions
-- use this role spec together with `.agent/state/active-role-hints.json`, current phase state, latest task packet, latest handoff, latest reconcile, `.agent/checks.yaml`, and `.agent/project.yaml`
+- use this role spec together with `.agent/state/active-role-hints.json`, `.agent/state/current-phase.json`, `.agent/memory/current-focus.json`, latest task packet, latest handoff, latest reconcile, `.agent/checks.yaml`, and `.agent/project.yaml`
+- when handing off, leave evidence, open questions, next file, next command, and checkpoint pointer explicit
 - if this role conflicts with explicit repo authority, repo authority wins

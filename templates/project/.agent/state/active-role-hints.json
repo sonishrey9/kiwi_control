@@ -1,6 +1,6 @@
 {
   "artifactType": "shrey-junior/active-role-hints",
-  "version": 1,
+  "version": 2,
   "updatedAt": "{{generatedAt}}",
   "activeRole": "{{activeRole}}",
   "supportingRoles": {{supportingRolesJson}},
@@ -13,7 +13,10 @@
   "checksToRun": {{activeRoleChecksToRunJson}},
   "stopConditions": {{activeRoleStopConditionsJson}},
   "nextAction": {{activeRoleNextActionJson}},
+  "nextRecommendedSpecialist": {{activeRoleNextRecommendedSpecialistJson}},
+  "nextSuggestedMcpPack": {{activeRoleNextSuggestedMcpPackJson}},
   "searchGuidance": {{activeRoleSearchGuidanceJson}},
+  "latestMemoryFocus": ".agent/memory/current-focus.json",
   "latestCheckpoint": ".agent/state/checkpoints/latest.json",
   "latestTaskPacket": null,
   "latestHandoff": null,

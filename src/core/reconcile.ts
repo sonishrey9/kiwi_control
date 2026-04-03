@@ -2,6 +2,7 @@ import path from "node:path";
 import type { CompiledContext } from "./context.js";
 import type { DispatchCollection, DispatchManifest, DispatchRole, DispatchRoleResult } from "./dispatch.js";
 import { ensureDispatchLayout, getDispatchPaths, listDispatchManifests } from "./dispatch.js";
+import { recommendMcpPack, recommendNextSpecialist } from "./recommendations.js";
 import { loadActiveRoleHints, updateActiveRoleHints } from "./state.js";
 import { pathExists, readJson, renderDisplayPath, writeText } from "../utils/fs.js";
 
@@ -152,11 +153,30 @@ export async function writeReconcileArtifacts(targetRoot: string, dispatchId: st
   await writeText(latestMarkdownPath, markdown);
   const activeRoleHints = await loadActiveRoleHints(targetRoot);
   if (activeRoleHints) {
+    const nextSuggestedCommand = report.status === "ready-for-next-phase"
+      ? `shrey-junior checkpoint "reconcile ${report.dispatchId}" --target "${targetRoot}"`
+      : `shrey-junior status --target "${targetRoot}"`;
     await updateActiveRoleHints(targetRoot, {
       activeRole: activeRoleHints.activeRole,
       authoritySource: activeRoleHints.authoritySource,
       projectType: activeRoleHints.projectType,
       supportingRoles: activeRoleHints.supportingRoles,
+      nextFileToRead: ".agent/state/reconcile/latest.json",
+      nextSuggestedCommand,
+      nextAction: report.recommendedNextStep,
+      nextRecommendedSpecialist: report.status === "ready-for-next-phase"
+        ? "release-readiness"
+        : recommendNextSpecialist({
+            activeRole: "reconciler",
+            projectType: activeRoleHints.projectType,
+            taskType: "review",
+            fileArea: "context"
+          }),
+      nextSuggestedMcpPack: recommendMcpPack({
+        projectType: activeRoleHints.projectType,
+        taskType: report.status === "ready-for-next-phase" ? "release-readiness" : "review",
+        fileArea: "context"
+      }),
       latestReconcile: renderDisplayPath(targetRoot, latestJsonPath)
     });
   }

@@ -11,8 +11,13 @@ Shrey Junior coordinates through files so humans and tools can inspect the same 
 | `.agent/project.yaml` | Repo profile, contract metadata, precedence summary | `bootstrap`, `sync`, `standardize` | `status`, `check`, packet builders, humans | Required | Repo-local generated overlay | Cloud-visible | Human-readable YAML |
 | `.agent/checks.yaml` | Required checks and contract expectations | `bootstrap`, `sync`, `standardize` | `status`, `check`, humans | Required | Repo-local generated overlay | Cloud-visible | Human-readable YAML |
 | `.agent/context/commands.md` | Command discovery and next-step guidance | `bootstrap`, `sync`, `standardize` | `active-role-hints`, humans, cooperative tools | Required | Repo-local generated overlay | Cloud-visible | Human-readable Markdown |
+| `.agent/context/specialists.md` | Curated specialist registry and routing guide | `bootstrap`, `sync`, `standardize` | `active-role-hints`, humans, cooperative tools | Required | Repo-local generated overlay | Cloud-visible | Human-readable Markdown |
 | `.agent/context/tool-capabilities.md` | Honest tool-family capability matrix | `bootstrap`, `sync`, `standardize` | humans and cooperative tools | Required | Repo-local generated overlay | Cloud-visible | Human-readable Markdown |
 | `.agent/context/mcp-capabilities.md` | External lookup and MCP decision guide | `bootstrap`, `sync`, `standardize` | packets, humans, cooperative tools | Required | Repo-local generated overlay | Cloud-visible | Human-readable Markdown |
+| `.agent/memory/repo-facts.json` | Stable repo facts and baseline routing metadata | bootstrap seed, runtime updates when needed | humans, tools, validators | Required | Runtime artifact | Cloud-visible | Structured JSON |
+| `.agent/memory/current-focus.json` | Smallest portable continuity summary for resume and handoff | bootstrap seed, active-role-hints updates | `status`, packets, humans, cooperative tools | Required | Runtime artifact | Cloud-visible | Structured JSON |
+| `.agent/memory/open-risks.json` | Low-noise unresolved-risk carry-forward | bootstrap seed, `checkpoint`, `handoff` | QA, review, release-readiness | Required | Runtime artifact | Cloud-visible | Structured JSON |
+| `.agent/memory/*.md` | Durable repo knowledge that should outlive a single task | humans, docs work | humans and cooperative tools | Required | Repo-local generated overlay | Cloud-visible | Markdown |
 | `.agent/state/current-phase.json` | Latest phase continuity record | `checkpoint`, bootstrap seed | `status`, `handoff`, agents, humans | Required | Runtime artifact | Cloud-visible | Structured JSON |
 | `.agent/state/active-role-hints.json` | Current lead role, next reads, next writes, checks, stop conditions, and latest continuity pointers | bootstrap seed, `run`, `fanout`, `dispatch`, `checkpoint`, `handoff`, `reconcile` | `status`, cooperative runtimes, humans | Required | Runtime artifact | Cloud-visible | Structured JSON |
 | `.agent/state/checkpoints/latest.json` | Latest git-aware checkpoint for resume, QA, and handoff | bootstrap seed, `checkpoint` | `status`, `handoff`, packets, humans | Required | Runtime artifact | Cloud-visible | Structured JSON |
@@ -47,6 +52,7 @@ Stable latest-pointer files exist so a tool can recover context without scanning
 
 - `active-role-hints.json`
 - `checkpoints/latest.json`
+- `memory/current-focus.json`
 - `handoff/latest.json`
 - `dispatch/latest-manifest.json`
 - `dispatch/latest-collect.json`
@@ -60,6 +66,7 @@ These are portability helpers rather than stronger authority than the underlying
 The runtime artifacts are designed to reduce unnecessary exploration:
 
 - `active-role-hints.json` should answer “who acts now, what should be read next, what should be written next, and which checks matter”
+- `current-focus.json` should answer “what is the smallest truthful resume summary right now”
 - `checkpoints/latest.json` should answer “what changed most recently, under which role, against which git state, and what the next command should be”
 - task packets should answer “what is in scope, what is out of scope, and when to stop”
 - handoff and reconcile artifacts should answer “what changed, what is still risky, and what the next tool should do”

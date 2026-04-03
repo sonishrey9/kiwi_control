@@ -11,6 +11,10 @@ This document records the final productization pass that moved Shrey Junior towa
 - repo-local specialist role specs
 - repo-local command and capability discovery docs
 - git-aware checkpointing with latest JSON and Markdown pointers
+- handoff-native continuity with richer next-step routing
+- repo-local shared memory bank under `.agent/memory/`
+- curated specialist registry and next-specialist routing
+- curated MCP pack guidance
 - latest continuity pointer artifacts
 - `standardize` support for existing repos
 - global `sj-init` Bash entrypoint for one-command repo preparation
@@ -68,6 +72,10 @@ sj-init --target "/tmp/shrey-junior-smoke" --dry-run
 - first-read contract: PASS, with repo templates, active-role hints, packets, and machine-global accelerators all pointing tools to the same shortest repo-local read path
 - machine-global accelerators: PASS, now covering Codex config, Claude settings, and Claude helper commands while explicitly deferring to repo-local truth
 - `sj-init`: PASS, including dry-run bootstrap selection for empty folders, dry-run standardize selection for existing repos, opt-out stand-down, readable failure paths, a real installer run, and global launcher coverage for `~/.local/bin/sj-init`
+- handoff v2: PASS, including role-to-role continuity fields, evidence, next file, next command, checkpoint pointer, and recommended MCP pack
+- shared memory bank: PASS, including seeded repo facts, current focus, open risks, and durable Markdown memory surfaces in the portable contract
+- specialist registry: PASS, including generated `.agent/context/specialists.md` and runtime next-specialist hints
+- MCP pack guidance: PASS, including repo-local pack descriptions that stay honest about tool/runtime asymmetry
 - control-plane validator coverage: PASS, now requiring the new minimization and active-role-hints architecture docs in addition to the portable contract templates and scripts
 
 ## Proven In This Pass
@@ -80,9 +88,14 @@ sj-init --target "/tmp/shrey-junior-smoke" --dry-run
 - active-role-hints gives cooperative runtimes one repo-local file to read first for current role and latest pointers
 - active-role-hints now also gives the next read set, checks to run, search guidance, stop conditions, and next action
 - active-role-hints now points at the latest checkpoint and the next suggested command
+- active-role-hints now also points at latest memory focus, next recommended specialist, and next suggested MCP pack
 - checkpoints capture git branch, staged/dirty state, files touched, related continuity artifacts, and next action without requiring a commit to exist
+- checkpoints now also capture latest memory focus, next recommended specialist, and next suggested MCP pack
+- handoffs now carry from-role, to-role, task id, work completed, evidence, open questions, next file, next command, and checkpoint pointer
+- a repo-local shared memory bank now gives tools a portable place to read repo facts, current focus, durable glossary/decisions, risks, and successful patterns
 - latest continuity pointers for handoff, dispatch, reconcile, and task packets are written in stable locations
 - command and capability discovery docs are now part of the repo-local contract instead of being implied only by higher-level docs
+- a curated specialist registry and MCP pack guide are now part of the repo-local contract
 - repo-local contract validation covers the expanded surfaces
 - repo-local CI verification now enforces behavioral state constraints, not just existence
 - repo-local CI verification now acts as a portable push gate and also runs `push-check` when the CLI is available

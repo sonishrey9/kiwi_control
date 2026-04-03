@@ -1,0 +1,16 @@
+{
+  "artifactType": "shrey-junior/current-focus",
+  "version": 1,
+  "updatedAt": "{{generatedAt}}",
+  "currentFocus": {{bootstrapNextActionJson}},
+  "focusOwnerRole": "{{activeRole}}",
+  "nextRecommendedSpecialist": {{recommendedSpecialistJson}},
+  "nextSuggestedMcpPack": {{recommendedMcpPackJson}},
+  "nextFileToRead": {{bootstrapNextFileToReadJson}},
+  "nextSuggestedCommand": {{bootstrapNextSuggestedCommandJson}},
+  "latestCheckpoint": ".agent/state/checkpoints/latest.json",
+  "latestTaskPacket": null,
+  "latestHandoff": null,
+  "latestDispatchManifest": null,
+  "latestReconcile": null
+}

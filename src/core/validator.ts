@@ -1,6 +1,7 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import type { LoadedConfig } from "./config.js";
+import { getMemoryPaths, loadCurrentFocus, loadOpenRisks } from "./memory.js";
 import type { ProfileSelection, ProjectOverlay } from "./profiles.js";
 import { compileRepoContext } from "./context.js";
 import { loadLatestDispatchCollection, loadLatestDispatchManifest } from "./dispatch.js";
@@ -97,9 +98,17 @@ export async function validateControlPlane(repoRoot: string, config: LoadedConfi
     "templates/project/.agent/context/architecture.md",
     "templates/project/.agent/context/commands.md",
     "templates/project/.agent/context/conventions.md",
+    "templates/project/.agent/context/specialists.md",
     "templates/project/.agent/context/tool-capabilities.md",
     "templates/project/.agent/context/mcp-capabilities.md",
     "templates/project/.agent/context/runbooks.md",
+    "templates/project/.agent/memory/repo-facts.json",
+    "templates/project/.agent/memory/architecture-decisions.md",
+    "templates/project/.agent/memory/domain-glossary.md",
+    "templates/project/.agent/memory/current-focus.json",
+    "templates/project/.agent/memory/open-risks.json",
+    "templates/project/.agent/memory/known-gotchas.md",
+    "templates/project/.agent/memory/last-successful-patterns.md",
     "templates/project/.agent/roles/README.md",
     "templates/project/.agent/roles/specialist-role.md",
     "templates/project/.agent/templates/role-result.md",
@@ -440,6 +449,15 @@ export async function validateTargetRepo(
           filePath: statePaths.currentPhase
         });
       }
+      for (const key of ["latestMemoryFocus", "nextRecommendedSpecialist", "nextSuggestedMcpPack"] as const) {
+        if (typeof currentPhase[key] !== "string" || !String(currentPhase[key]).trim()) {
+          issues.push({
+            level: "error",
+            message: `current phase must declare ${key}`,
+            filePath: statePaths.currentPhase
+          });
+        }
+      }
     } catch (error) {
       issues.push({
         level: "error",
@@ -518,6 +536,20 @@ export async function validateTargetRepo(
         filePath: statePaths.activeRoleHints
       });
     }
+    if (typeof activeRoleHints.nextRecommendedSpecialist !== "string" || !activeRoleHints.nextRecommendedSpecialist.trim()) {
+      issues.push({
+        level: "error",
+        message: "active role hints must declare nextRecommendedSpecialist",
+        filePath: statePaths.activeRoleHints
+      });
+    }
+    if (typeof activeRoleHints.nextSuggestedMcpPack !== "string" || !activeRoleHints.nextSuggestedMcpPack.trim()) {
+      issues.push({
+        level: "error",
+        message: "active role hints must declare nextSuggestedMcpPack",
+        filePath: statePaths.activeRoleHints
+      });
+    }
     if (!activeRoleHints.searchGuidance || typeof activeRoleHints.searchGuidance !== "object") {
       issues.push({
         level: "error",
@@ -526,6 +558,7 @@ export async function validateTargetRepo(
       });
     }
     for (const [field, value] of Object.entries({
+      latestMemoryFocus: activeRoleHints.latestMemoryFocus,
       latestCheckpoint: activeRoleHints.latestCheckpoint,
       latestTaskPacket: activeRoleHints.latestTaskPacket,
       latestHandoff: activeRoleHints.latestHandoff,
@@ -596,6 +629,15 @@ export async function validateTargetRepo(
           filePath: statePaths.latestCheckpointJson
         });
       }
+      for (const key of ["nextRecommendedSpecialist", "nextSuggestedMcpPack"] as const) {
+        if (typeof checkpoint[key] !== "string" || !String(checkpoint[key]).trim()) {
+          issues.push({
+            level: "error",
+            message: `latest checkpoint must declare ${key}`,
+            filePath: statePaths.latestCheckpointJson
+          });
+        }
+      }
     } catch (error) {
       issues.push({
         level: "error",
@@ -654,6 +696,24 @@ export async function validateTargetRepo(
             filePath: fullPath
           });
         }
+        for (const key of ["fromRole", "toRole", "taskId", "summary", "nextFile", "nextCommand", "recommendedMcpPack"] as const) {
+          if (typeof handoff[key] !== "string" || !String(handoff[key]).trim()) {
+            issues.push({
+              level: "error",
+              message: `handoff artifacts must declare ${key}`,
+              filePath: fullPath
+            });
+          }
+        }
+        for (const key of ["workCompleted", "filesTouched", "checksRun", "checksPassed", "checksFailed", "evidence", "openQuestions", "risks", "stopConditions"] as const) {
+          if (!Array.isArray(handoff[key])) {
+            issues.push({
+              level: "error",
+              message: `handoff artifacts must declare ${key} as an array`,
+              filePath: fullPath
+            });
+          }
+        }
       } catch (error) {
         issues.push({
           level: "error",
@@ -662,6 +722,96 @@ export async function validateTargetRepo(
         });
       }
     }
+  }
+
+  const memoryPaths = getMemoryPaths(targetRoot);
+  const requiredMemoryFiles = [
+    memoryPaths.repoFacts,
+    memoryPaths.architectureDecisions,
+    memoryPaths.domainGlossary,
+    memoryPaths.currentFocus,
+    memoryPaths.openRisks,
+    memoryPaths.knownGotchas,
+    memoryPaths.lastSuccessfulPatterns
+  ];
+  for (const filePath of requiredMemoryFiles) {
+    if (!(await pathExists(filePath))) {
+      issues.push({
+        level: inspection.alreadyInitialized ? "error" : "warn",
+        message: "repo-local memory file missing",
+        filePath
+      });
+    }
+  }
+  if (await pathExists(memoryPaths.repoFacts)) {
+    try {
+      const repoFacts = await readJson<Record<string, unknown>>(memoryPaths.repoFacts);
+      for (const key of ["artifactType", "updatedAt", "projectName", "projectType", "profile", "authoritySource", "activeRole", "recommendedMcpPack"] as const) {
+        if ((key === "artifactType" && repoFacts[key] !== "shrey-junior/repo-facts") || (key !== "artifactType" && (typeof repoFacts[key] !== "string" || !String(repoFacts[key]).trim()))) {
+          issues.push({
+            level: "error",
+            message: `repo-facts.json must declare ${key}`,
+            filePath: memoryPaths.repoFacts
+          });
+        }
+      }
+    } catch (error) {
+      issues.push({
+        level: "error",
+        message: `invalid repo-facts json: ${(error as Error).message}`,
+        filePath: memoryPaths.repoFacts
+      });
+    }
+  }
+  try {
+    const currentFocus = await loadCurrentFocus(targetRoot);
+    if (currentFocus) {
+      for (const key of ["currentFocus", "focusOwnerRole", "nextRecommendedSpecialist", "nextSuggestedMcpPack", "nextFileToRead", "nextSuggestedCommand"] as const) {
+        if (typeof currentFocus[key] !== "string" || !String(currentFocus[key]).trim()) {
+          issues.push({
+            level: "error",
+            message: `current-focus.json must declare ${key}`,
+            filePath: memoryPaths.currentFocus
+          });
+        }
+      }
+    } else if (inspection.alreadyInitialized) {
+      issues.push({
+        level: "error",
+        message: "current-focus.json missing or invalid",
+        filePath: memoryPaths.currentFocus
+      });
+    }
+  } catch (error) {
+    issues.push({
+      level: "error",
+      message: `invalid current-focus json: ${(error as Error).message}`,
+      filePath: memoryPaths.currentFocus
+    });
+  }
+  try {
+    const openRisks = await loadOpenRisks(targetRoot);
+    if (openRisks) {
+      if (openRisks.artifactType !== "shrey-junior/open-risks" || !Array.isArray(openRisks.risks)) {
+        issues.push({
+          level: "error",
+          message: "open-risks.json must declare the correct artifactType and risks array",
+          filePath: memoryPaths.openRisks
+        });
+      }
+    } else if (inspection.alreadyInitialized) {
+      issues.push({
+        level: "error",
+        message: "open-risks.json missing or invalid",
+        filePath: memoryPaths.openRisks
+      });
+    }
+  } catch (error) {
+    issues.push({
+      level: "error",
+      message: `invalid open-risks json: ${(error as Error).message}`,
+      filePath: memoryPaths.openRisks
+    });
   }
 
   if (await pathExists(statePaths.latestTaskPackets)) {

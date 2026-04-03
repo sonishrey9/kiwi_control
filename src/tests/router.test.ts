@@ -103,9 +103,19 @@ test("portable state specs include repo-first role, Copilot, and CI contract sur
           architecture: "templates/project/.agent/context/architecture.md",
           commands: "templates/project/.agent/context/commands.md",
           conventions: "templates/project/.agent/context/conventions.md",
+          specialists: "templates/project/.agent/context/specialists.md",
           tool_capabilities: "templates/project/.agent/context/tool-capabilities.md",
           mcp_capabilities: "templates/project/.agent/context/mcp-capabilities.md",
           runbooks: "templates/project/.agent/context/runbooks.md"
+        },
+        memory: {
+          repo_facts: "templates/project/.agent/memory/repo-facts.json",
+          architecture_decisions: "templates/project/.agent/memory/architecture-decisions.md",
+          domain_glossary: "templates/project/.agent/memory/domain-glossary.md",
+          current_focus: "templates/project/.agent/memory/current-focus.json",
+          open_risks: "templates/project/.agent/memory/open-risks.json",
+          known_gotchas: "templates/project/.agent/memory/known-gotchas.md",
+          last_successful_patterns: "templates/project/.agent/memory/last-successful-patterns.md"
         },
         roles: {
           readme: "templates/project/.agent/roles/README.md",
@@ -262,8 +272,11 @@ test("portable state specs include repo-first role, Copilot, and CI contract sur
   const specs = getPortableStateSpecs(config, context);
   const outputPaths = specs.map((spec) => spec.outputPath);
   assert.equal(outputPaths.includes(".agent/context/commands.md"), true);
+  assert.equal(outputPaths.includes(".agent/context/specialists.md"), true);
   assert.equal(outputPaths.includes(".agent/context/tool-capabilities.md"), true);
   assert.equal(outputPaths.includes(".agent/context/mcp-capabilities.md"), true);
+  assert.equal(outputPaths.includes(".agent/memory/repo-facts.json"), true);
+  assert.equal(outputPaths.includes(".agent/memory/current-focus.json"), true);
   assert.equal(outputPaths.includes(".github/instructions/backend.instructions.md"), true);
   assert.equal(outputPaths.includes(".github/instructions/frontend.instructions.md"), true);
   assert.equal(outputPaths.includes(".github/instructions/docs.instructions.md"), false);

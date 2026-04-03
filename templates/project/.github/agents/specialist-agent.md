@@ -42,10 +42,11 @@ Read first:
 2. promoted canonical docs
 3. `.agent/state/active-role-hints.json`
 4. `.agent/state/current-phase.json`
-5. `{{specialistRoleSpecPath}}`
-6. latest task packet, latest handoff, and latest reconcile
-7. `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
-8. `.agent/project.yaml`
+5. `.agent/memory/current-focus.json`
+6. `{{specialistRoleSpecPath}}`
+7. latest task packet, latest handoff, and latest reconcile
+8. `.agent/checks.yaml` and `.agent/scripts/verify-contract.sh`
+9. `.agent/project.yaml`
 
 Limit:
 

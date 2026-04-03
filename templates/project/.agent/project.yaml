@@ -24,8 +24,11 @@ contract:
     - .agent/project.yaml
     - .agent/checks.yaml
     - .agent/context/commands.md
+    - .agent/context/specialists.md
     - .agent/context/tool-capabilities.md
     - .agent/context/mcp-capabilities.md
+    - .agent/memory/current-focus.json
+    - .agent/memory/repo-facts.json
     - .github/copilot-instructions.md
     - .github/instructions/*.instructions.md
     - .github/agents/*.md
@@ -69,8 +72,13 @@ surfaces:
 paths:
   context: .agent/context
   commands: .agent/context/commands.md
+  specialists: .agent/context/specialists.md
   tool_capabilities: .agent/context/tool-capabilities.md
   mcp_capabilities: .agent/context/mcp-capabilities.md
+  memory: .agent/memory
+  repo_facts: .agent/memory/repo-facts.json
+  current_focus: .agent/memory/current-focus.json
+  open_risks: .agent/memory/open-risks.json
   tasks: .agent/tasks
   state: .agent/state
   active_role_hints: .agent/state/active-role-hints.json

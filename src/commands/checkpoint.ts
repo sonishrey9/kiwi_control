@@ -1,10 +1,12 @@
 import { loadCanonicalConfig } from "../core/config.js";
 import { compileRepoContext } from "../core/context.js";
-import { buildBootstrapNextFileToRead, buildCanonicalReadNext, buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets } from "../core/guidance.js";
+import { buildBootstrapNextFileToRead, buildCanonicalReadNext, buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets, chooseNextFileToRead } from "../core/guidance.js";
 import { inspectGitState } from "../core/git.js";
+import { getMemoryPaths, writeOpenRisksRecord } from "../core/memory.js";
 import { loadLatestReconcileReport } from "../core/reconcile.js";
 import { inspectBootstrapTarget } from "../core/project-detect.js";
 import { loadProjectOverlay, resolveExecutionMode, resolvePrimaryToolOverride, resolveProfileSelection } from "../core/profiles.js";
+import { recommendMcpPack, recommendNextSpecialist } from "../core/recommendations.js";
 import { assessGoalRisk } from "../core/risk.js";
 import { buildTemplateContext, resolveRoutingDecision, selectPortableContract } from "../core/router.js";
 import { buildPhaseId, loadActiveRoleHints, loadLatestCheckpoint, parseCsvFlag, type CheckpointRecord, type PhaseStatus, type PhaseRecord, updateActiveRoleHints, writeCheckpointArtifacts, writePhaseRecord } from "../core/state.js";
@@ -60,15 +62,41 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
   });
   const gitState = await inspectGitState(options.targetRoot);
   const latestReconcile = await loadLatestReconcileReport(options.targetRoot);
+  const memoryPaths = getMemoryPaths(options.targetRoot);
   const generatedAt = buildTemplateContext(options.targetRoot, config, {
     profileName: selection.profileName,
     executionMode,
     projectType: overlay?.bootstrap?.project_type ?? inspection.projectType,
     profileSource: selection.source
   }).generatedAt;
+  const currentActiveRoleHints = await loadActiveRoleHints(options.targetRoot);
+  const contract = selectPortableContract(
+    config,
+    buildTemplateContext(options.targetRoot, config, {
+      profileName: selection.profileName,
+      executionMode,
+      projectType: overlay?.bootstrap?.project_type ?? inspection.projectType,
+      profileSource: selection.source
+    })
+  );
+  const nextRecommendedSpecialist = recommendNextSpecialist({
+    activeRole: currentActiveRoleHints?.activeRole ?? contract.activeRole,
+    projectType: overlay?.bootstrap?.project_type ?? inspection.projectType,
+    fileArea: decision.fileArea,
+    taskType: decision.taskType
+  });
+  const nextSuggestedMcpPack = recommendMcpPack({
+    projectType: overlay?.bootstrap?.project_type ?? inspection.projectType,
+    taskType: decision.taskType,
+    fileArea: decision.fileArea,
+    starterMcpHints: (overlay?.bootstrap?.mcp_policy_hints ?? "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+  });
   const record: PhaseRecord = {
     artifactType: "shrey-junior/current-phase",
-    version: 1,
+    version: 3,
     timestamp: generatedAt,
     phaseId: buildPhaseId(options.label, generatedAt),
     label: options.label,
@@ -98,6 +126,9 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
     validationsRun: dedupeList(parseCsvFlag(options.validations)),
     warnings: dedupeList(parseCsvFlag(options.warnings)),
     openIssues: dedupeList(parseCsvFlag(options.openIssues)),
+    latestMemoryFocus: relativeFrom(options.targetRoot, memoryPaths.currentFocus),
+    nextRecommendedSpecialist,
+    nextSuggestedMcpPack,
     nextRecommendedStep:
       options.nextStep ??
       (decision.requiredRoles.length > 0
@@ -107,16 +138,6 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
     ...(previousPhase?.phaseId ? { previousPhaseId: previousPhase.phaseId } : {})
   };
   const paths = await writePhaseRecord(options.targetRoot, record);
-  const currentActiveRoleHints = await loadActiveRoleHints(options.targetRoot);
-  const contract = selectPortableContract(
-    config,
-    buildTemplateContext(options.targetRoot, config, {
-      profileName: selection.profileName,
-      executionMode,
-      projectType: overlay?.bootstrap?.project_type ?? inspection.projectType,
-      profileSource: selection.source
-    })
-  );
   const nextSuggestedCommand =
     record.status === "blocked"
       ? `shrey-junior status --target "${options.targetRoot}"`
@@ -163,15 +184,20 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
     relatedTaskPacket: currentActiveRoleHints?.latestTaskPacket ?? null,
     relatedHandoff: currentActiveRoleHints?.latestHandoff ?? null,
     relatedReconcile: currentActiveRoleHints?.latestReconcile ?? renderRelatedReconcilePointer(latestReconcile?.dispatchId),
+    latestMemoryFocus: relativeFrom(options.targetRoot, memoryPaths.currentFocus),
+    nextRecommendedSpecialist,
+    nextSuggestedMcpPack,
     nextRecommendedAction: record.nextRecommendedStep,
     nextSuggestedCommand
   };
   const checkpointArtifacts = await writeCheckpointArtifacts(options.targetRoot, checkpoint);
-  const nextFileToRead =
-    currentActiveRoleHints?.latestTaskPacket ??
-    currentActiveRoleHints?.latestHandoff ??
-    currentActiveRoleHints?.latestReconcile ??
-    buildBootstrapNextFileToRead();
+  const nextFileToRead = chooseNextFileToRead({
+    latestTaskPacket: currentActiveRoleHints?.latestTaskPacket ?? null,
+    latestHandoff: currentActiveRoleHints?.latestHandoff ?? null,
+    latestReconcile: currentActiveRoleHints?.latestReconcile ?? renderRelatedReconcilePointer(latestReconcile?.dispatchId),
+    latestCheckpoint: relativeFrom(options.targetRoot, checkpointArtifacts.latestJsonPath)
+  });
+  await writeOpenRisksRecord(options.targetRoot, "checkpoint", record.openIssues);
   await updateActiveRoleHints(options.targetRoot, {
     activeRole: currentActiveRoleHints?.activeRole ?? contract.activeRole,
     supportingRoles: currentActiveRoleHints?.supportingRoles ?? contract.supportingRoles,
@@ -192,10 +218,13 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
     nextFileToRead,
     nextSuggestedCommand,
     nextAction: record.nextRecommendedStep,
+    nextRecommendedSpecialist,
+    nextSuggestedMcpPack,
     searchGuidance: buildSearchGuidance({
       taskType: decision.taskType,
       fileArea: decision.fileArea
     }),
+    latestMemoryFocus: relativeFrom(options.targetRoot, memoryPaths.currentFocus),
     latestCheckpoint: relativeFrom(options.targetRoot, checkpointArtifacts.latestJsonPath)
   });
   options.logger.info(`checkpoint recorded: ${paths.currentPhasePath}`);

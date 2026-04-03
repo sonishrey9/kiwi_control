@@ -22,6 +22,10 @@ This document distinguishes:
 | Latest continuity pointer files | Proven | handoff, dispatch, reconcile, and latest packet pointers are written/read locally |
 | Active role hints | Proven | `active-role-hints.json` is seeded and updated by runtime commands |
 | Command and capability discovery docs | Proven | repo-local command, tool-capability, and MCP-capability docs are generated into every initialized repo |
+| Shared memory bank | Proven | repo-local memory files now seed durable facts, current focus, and low-noise risk carry-forward |
+| Curated specialist registry | Proven | `.agent/context/specialists.md` defines the portable specialist vocabulary without forcing every role file into every repo |
+| Handoff-native continuity | Proven | handoff v2 records next file, next command, evidence, checkpoint pointer, and recommended MCP pack |
+| Curated MCP pack guidance | Proven | repo-local MCP docs now describe packs as routing guidance rather than fake universal tool access |
 | Git-aware checkpoints | Proven | bootstrap seeds a checkpoint and `checkpoint` records git-aware continuity even before the first commit |
 | First-read contract across repo-local and machine-global surfaces | Proven | templates and global accelerators now point tools at the same repo-local read order |
 | Global preference layers with rollback and idempotency | Proven | verified by global verification scripts |
@@ -54,6 +58,7 @@ This document distinguishes:
 - `.agent/project.yaml`
 - `.agent/checks.yaml`
 - `.agent/context/*`
+- `.agent/memory/*`
 - `.agent/roles/*.md`
 - `.agent/templates/role-result.md`
 - `.agent/scripts/verify-contract.sh`
@@ -103,10 +108,12 @@ flowchart TB
     subgraph Repo["Portable repo contract"]
         R1["AGENTS.md / CLAUDE.md / Copilot surfaces"]
         R2[".agent/project.yaml + checks.yaml"]
-        R3[".agent/roles/* + .github/agents/*"]
-        R4[".agent/tasks/*"]
-        R5[".agent/state/current-phase.json + active-role-hints.json + latest pointers"]
-        R6[".agent/scripts/verify-contract.sh + .github/workflows/shrey-junior-contract.yml"]
+        R3[".agent/context/specialists.md + tool/mcp docs"]
+        R4[".agent/memory/*"]
+        R5[".agent/roles/* + .github/agents/*"]
+        R6[".agent/tasks/*"]
+        R7[".agent/state/current-phase.json + active-role-hints.json + latest pointers"]
+        R8[".agent/scripts/verify-contract.sh + .github/workflows/shrey-junior-contract.yml"]
     end
 
     subgraph Tools["Cooperative runtimes"]
@@ -152,12 +159,13 @@ sequenceDiagram
 
 1. `status` compiles authority, continuity, and current routing state.
 2. `run`, `fanout`, or `dispatch` produce task packets and refresh active-role hints.
-3. `checkpoint` records the latest git-aware continuity summary.
-4. role workers write results against the packet and role-result contract.
-5. `collect` reads dispatch outputs.
-6. `reconcile` writes the conflict and agreement summary.
-7. `handoff` persists cross-tool continuity.
-8. `push-check` evaluates readiness using git state and latest reconcile state.
+3. active-role-hints refreshes `current-focus.json`.
+4. `checkpoint` records the latest git-aware continuity summary.
+5. role workers write results against the packet and role-result contract.
+6. `collect` reads dispatch outputs.
+7. `reconcile` writes the conflict and agreement summary and updates next-step routing.
+8. `handoff` persists cross-tool continuity with evidence and next-command guidance.
+9. `push-check` evaluates readiness using git state and latest reconcile state.
 
 The practical first read for any cooperative runtime is:
 

@@ -6,6 +6,11 @@ Detected project type: `{{projectType}}`
 
 Use this file when you need the shortest map of what the control-plane commands do.
 
+Read alongside:
+- `.agent/state/active-role-hints.json`
+- `.agent/memory/current-focus.json`
+- `.agent/context/specialists.md`
+
 ## Bootstrap
 
 - `sj-init`: default one-command entrypoint from any folder. Use it when you do not want to decide `bootstrap` versus `standardize` manually. Do not use it when you explicitly need a lower-level dry-run comparison.
@@ -23,7 +28,7 @@ Use this file when you need the shortest map of what the control-plane commands 
 
 - `shrey-junior check --target <repo>`: validate repo-local contract, continuity artifacts, and portable state. Use it before medium/high-risk work and before review or push.
 - `shrey-junior checkpoint "<milestone>" --target <repo>`: record a git-aware continuity snapshot at a meaningful phase boundary. Use it after coherent work, before handoff, or before push-readiness discussion. Do not use it as a diary entry for every tiny edit.
-- `shrey-junior handoff --target <repo> --to-tool <tool>`: create a compact repo-local handoff to another tool. Use it when work is switching from implementation to QA or between Codex, Claude, and Copilot-assisted review.
+- `shrey-junior handoff --target <repo> --to-tool <tool>`: create a compact repo-local handoff to another tool. Use it when work is switching from implementation to QA or between Codex, Claude, and Copilot-assisted review. A good handoff should leave `next file`, `next command`, `checkpoint`, and evidence obvious.
 - `shrey-junior reconcile --target <repo>`: synthesize multi-role results after collect/dispatch work. Use it before checkpointing or trusting coordinated outputs.
 
 ## Release
