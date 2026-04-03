@@ -5,6 +5,7 @@ import { inspectGitState } from "@shrey-junior/sj-core/core/git.js";
 import { buildHandoffBaseName, buildHandoffRecord, renderHandoffBrief, renderHandoffMarkdown } from "@shrey-junior/sj-core/core/handoff.js";
 import { writeOpenRisksRecord } from "@shrey-junior/sj-core/core/memory.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "@shrey-junior/sj-core/core/profiles.js";
+import { PRODUCT_METADATA } from "@shrey-junior/sj-core/core/product.js";
 import { recommendMcpPack } from "@shrey-junior/sj-core/core/recommendations.js";
 import { recommendNextSpecialist } from "@shrey-junior/sj-core/core/specialists.js";
 import { loadActiveRoleHints, loadCurrentPhase, loadLatestCheckpoint, updateActiveRoleHints, writeHandoffArtifacts } from "@shrey-junior/sj-core/core/state.js";
@@ -98,7 +99,7 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
     nextFileToRead: chooseNextFileToRead({
       latestHandoff: ".agent/state/handoff/latest.json"
     }),
-    nextSuggestedCommand: `shrey-junior status --target "${options.targetRoot}"`,
+    nextSuggestedCommand: `${PRODUCT_METADATA.cli.primaryCommand} status --target "${options.targetRoot}"`,
     writeTargets: buildWriteTargets(contract, handoff.whatChanged.length > 0 ? handoff.whatChanged : [".agent/state/handoff/latest.json"]),
     checksToRun: buildChecksToRun(compiledContext.validationSteps),
     stopConditions: buildStopConditions({

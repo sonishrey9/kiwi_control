@@ -95,7 +95,7 @@ Configured in `~/.claude/ecc/mcp-configs/mcp-servers.json` by server name:
 
 ## Canonical registry status
 
-Before this phase, Shrey Junior only tracked a narrow subset of six MCPs.
+Before this phase, Kiwi Control only tracked a narrow subset of six MCPs.
 After hardening, the canonical registry includes the core engineering set:
 
 - `context7`
@@ -130,7 +130,7 @@ After hardening, the canonical registry includes the core engineering set:
 
 ## Recommended canonical vs reference-only split
 
-Should be in Shrey Junior canonical registry:
+Should be in Kiwi Control canonical registry:
 
 - `context7`
 - `filesystem`

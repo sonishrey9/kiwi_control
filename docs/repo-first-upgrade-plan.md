@@ -2,7 +2,7 @@
 
 ## Goal
 
-Move Shrey Junior from a machine-accelerated workflow helper toward a portable repo-first agent contract that cooperative tools can consume even when machine-global files are unavailable.
+Move Kiwi Control from a machine-accelerated workflow helper toward a portable repo-first agent contract that cooperative tools can consume even when machine-global files are unavailable.
 
 ## Gap Map
 

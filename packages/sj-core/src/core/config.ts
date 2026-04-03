@@ -321,7 +321,7 @@ export async function loadCanonicalConfig(repoRoot: string): Promise<LoadedConfi
 }
 
 export function getGlobalHomeRoot(): string {
-  return process.env.SHREY_JUNIOR_HOME || path.join(os.homedir(), ".shrey-junior");
+  return process.env.KIWI_CONTROL_HOME || process.env.SHREY_JUNIOR_HOME || path.join(os.homedir(), ".shrey-junior");
 }
 
 export function getGlobalHomePaths(root = getGlobalHomeRoot()): GlobalHomePaths {

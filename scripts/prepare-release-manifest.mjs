@@ -1,42 +1,395 @@
 import path from "node:path";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { chmod, cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const rootPackage = JSON.parse(await readFile(path.join(repoRoot, "package.json"), "utf8"));
+const { PRODUCT_METADATA } = await import(
+  pathToFileURL(path.join(repoRoot, "packages", "sj-core", "dist", "core", "product.js")).href
+);
+
 const version = rootPackage.version;
 const releaseDir = path.join(repoRoot, "dist", "release");
 const manifestPath = path.join(releaseDir, "release-manifest.json");
+const channel = version.includes("beta") ? "beta" : "stable";
+const artifactPrefix = PRODUCT_METADATA.release.artifactPrefix;
+const cliBundleRelativePath = "dist/release/cli-bundle";
+const cliBundlePath = path.join(repoRoot, cliBundleRelativePath);
+
+await mkdir(releaseDir, { recursive: true });
+await stageCliBundle({
+  bundlePath: cliBundlePath,
+  version,
+  repoRoot
+});
+
+const cliArtifacts = [
+  {
+    platform: "macos",
+    arch: "aarch64",
+    artifactType: "cli",
+    description: "Installable Kiwi Control CLI bundle with kiwi-control, kc, and beta compatibility aliases",
+    fileName: `${artifactPrefix}-cli-${version}-macos-aarch64.tar.gz`,
+    sourcePath: cliBundleRelativePath,
+    checksumAlgorithm: "sha256"
+  },
+  {
+    platform: "macos",
+    arch: "x64",
+    artifactType: "cli",
+    description: "Installable Kiwi Control CLI bundle with kiwi-control, kc, and beta compatibility aliases",
+    fileName: `${artifactPrefix}-cli-${version}-macos-x64.tar.gz`,
+    sourcePath: cliBundleRelativePath,
+    checksumAlgorithm: "sha256"
+  },
+  {
+    platform: "linux",
+    arch: "x64",
+    artifactType: "cli",
+    description: "Installable Kiwi Control CLI bundle with kiwi-control, kc, and beta compatibility aliases",
+    fileName: `${artifactPrefix}-cli-${version}-linux-x64.tar.gz`,
+    sourcePath: cliBundleRelativePath,
+    checksumAlgorithm: "sha256"
+  },
+  {
+    platform: "windows",
+    arch: "x64",
+    artifactType: "cli",
+    description: "Installable Kiwi Control CLI bundle with kiwi-control, kc, and beta compatibility aliases",
+    fileName: `${artifactPrefix}-cli-${version}-windows-x64.zip`,
+    sourcePath: cliBundleRelativePath,
+    checksumAlgorithm: "sha256"
+  }
+];
+
+const platformBundles = [
+  {
+    platform: "macos",
+    arch: "aarch64",
+    artifactType: "desktop",
+    fileName: `${artifactPrefix}-${version}-macos-aarch64.app.tar.gz`,
+    localBuildCommand: "npm run ui:desktop:build",
+    bundlePath: "apps/sj-ui/src-tauri/target/release/bundle/macos"
+  },
+  {
+    platform: "macos",
+    arch: "x64",
+    artifactType: "desktop",
+    fileName: `${artifactPrefix}-${version}-macos-x64.app.tar.gz`,
+    localBuildCommand: "npm run ui:desktop:build",
+    bundlePath: "apps/sj-ui/src-tauri/target/release/bundle/macos"
+  },
+  {
+    platform: "windows",
+    arch: "x64",
+    artifactType: "desktop",
+    fileName: `${artifactPrefix}-${version}-windows-x64.msi.zip`,
+    localBuildCommand: "npm run ui:desktop:build",
+    bundlePath: "apps/sj-ui/src-tauri/target/release/bundle/msi"
+  },
+  {
+    platform: "linux",
+    arch: "x64",
+    artifactType: "desktop",
+    fileName: `${artifactPrefix}-${version}-linux-x64.AppImage.tar.gz`,
+    localBuildCommand: "npm run ui:desktop:build",
+    bundlePath: "apps/sj-ui/src-tauri/target/release/bundle/appimage"
+  }
+];
 
 const manifest = {
-  product: "shrey-junior",
+  product: artifactPrefix,
+  displayName: PRODUCT_METADATA.displayName,
+  repoCompatibilityName: PRODUCT_METADATA.repoCompatibilityName,
   version,
-  channel: version.includes("beta") ? "beta" : "stable",
+  channel,
   generatedAt: new Date().toISOString(),
-  artifactNaming: {
-    cli: `shrey-junior-cli-\${version}-\${os}-\${arch}.tar.gz`,
-    runtime: `shrey-junior-runtime-\${version}-\${os}-\${arch}.tar.gz`,
-    uiWeb: `shrey-junior-ui-web-\${version}-\${os}-\${arch}.tar.gz`,
-    uiDesktop: `shrey-junior-desktop-\${version}-\${os}-\${arch}.\${ext}`
+  commands: {
+    primary: PRODUCT_METADATA.cli.primaryCommand,
+    aliases: [
+      PRODUCT_METADATA.cli.shortCommand,
+      ...PRODUCT_METADATA.cli.compatibilityCommands
+    ]
   },
-  releaseTargets: ["github-releases", "homebrew", "winget", "manual-desktop-download"],
+  artifactNaming: {
+    cliMacLinux: `${artifactPrefix}-cli-\${version}-\${os}-\${arch}.tar.gz`,
+    cliWindows: `${artifactPrefix}-cli-\${version}-windows-\${arch}.zip`,
+    runtime: `${artifactPrefix}-runtime-\${version}-\${os}-\${arch}.tar.gz`,
+    uiWeb: `${artifactPrefix}-ui-web-\${version}-\${os}-\${arch}.tar.gz`,
+    desktop: `${artifactPrefix}-\${version}-\${os}-\${arch}.\${ext}`
+  },
+  releaseTargets: [
+    "github-releases",
+    "homebrew",
+    "winget",
+    "manual-desktop-download"
+  ],
+  artifacts: [
+    ...cliArtifacts,
+    {
+      artifactType: "runtime",
+      description: "Bundled runtime assets copied from canonical configs, prompts, templates, docs, and scripts",
+      fileName: `${artifactPrefix}-runtime-${version}-\${os}-\${arch}.tar.gz`,
+      sourcePath: "packages/sj-core/dist/runtime",
+      checksumAlgorithm: "sha256"
+    },
+    {
+      artifactType: "ui-web",
+      description: "Built web assets for the Kiwi Control desktop shell frontend",
+      fileName: `${artifactPrefix}-ui-web-${version}-\${os}-\${arch}.tar.gz`,
+      sourcePath: "apps/sj-ui/dist",
+      checksumAlgorithm: "sha256"
+    },
+    ...platformBundles
+  ],
+  distribution: {
+    homebrew: {
+      formulaTemplate: "packaging/homebrew/kiwi-control.rb.template",
+      formulaName: PRODUCT_METADATA.release.homebrewFormula,
+      binaryName: PRODUCT_METADATA.cli.primaryCommand,
+      compatibilityAliases: [
+        PRODUCT_METADATA.cli.shortCommand,
+        ...PRODUCT_METADATA.cli.compatibilityCommands
+      ]
+    },
+    winget: {
+      template: "packaging/winget/kiwi-control.installer.yaml.template",
+      packageIdentifier: PRODUCT_METADATA.release.wingetIdentifier,
+      installerType: "zip",
+      binaryName: PRODUCT_METADATA.cli.primaryCommand
+    },
+    githubReleases: {
+      releaseTagFormat: "v<version>",
+      notes: [
+        "Attach the staged CLI bundle, runtime bundle, UI web bundle, desktop bundles, checksums, and release manifest.",
+        "The CLI bundle includes install.sh and install.ps1 for end-user local installs.",
+        "Do not claim signed desktop trust until signing and notarization steps were completed for that release."
+      ]
+    }
+  },
   updateMetadata: {
-    tauriUpdaterManifest: "apps/sj-ui/src-tauri/updater.json",
-    signingPlaceholders: [
+    tauriUpdaterManifest: PRODUCT_METADATA.release.updaterManifestPath,
+    checksumFiles: ["SHA256SUMS.txt"],
+    signingInputs: [
       "TAURI_SIGNING_PRIVATE_KEY",
       "TAURI_SIGNING_PRIVATE_KEY_PASSWORD",
       "APPLE_SIGNING_IDENTITY",
+      "APPLE_TEAM_ID",
+      "APPLE_ID",
+      "APPLE_APP_SPECIFIC_PASSWORD",
       "WINDOWS_CODESIGN_CERT_SHA1",
       "WINDOWS_CODESIGN_PASSWORD"
     ]
   },
-  notes: [
-    "Core operation stays local-first and repo-first with no mandatory cloud backend.",
-    "Desktop bundles remain optional until platform signing secrets are configured."
-  ]
+  trustChecklist: {
+    manualSteps: [
+      "Run the local verification commands before packaging.",
+      "Sign and notarize macOS bundles before marking them trusted.",
+      "Apply Windows code signing before publishing MSI artifacts.",
+      "Publish SHA256 checksums alongside the release manifest.",
+      "Only enable updater distribution after desktop signing inputs are configured."
+    ],
+    verificationNotes: [
+      "Core operation stays local-first and repo-first with no mandatory cloud backend.",
+      "Repo-local artifact schemas remain backward compatible as shrey-junior/* during the beta rebrand.",
+      "The public CLI bundle stays Node-backed during beta, so end-user install docs must state the Node 22+ requirement honestly."
+    ]
+  }
 };
 
-await mkdir(releaseDir, { recursive: true });
 await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 
 console.log(`wrote release manifest to ${manifestPath}`);
+
+async function stageCliBundle(options) {
+  const cliDistDir = path.join(options.repoRoot, "packages", "sj-cli", "dist");
+  const sjCorePackageDir = path.join(options.bundlePath, "node_modules", "@shrey-junior", "sj-core");
+  const yamlPackageDir = path.join(options.bundlePath, "node_modules", "yaml");
+  const binDir = path.join(options.bundlePath, "bin");
+  const libDir = path.join(options.bundlePath, "lib");
+
+  await rm(options.bundlePath, { recursive: true, force: true });
+  await mkdir(binDir, { recursive: true });
+  await mkdir(libDir, { recursive: true });
+  await mkdir(sjCorePackageDir, { recursive: true });
+  await mkdir(yamlPackageDir, { recursive: true });
+
+  await cp(cliDistDir, libDir, { recursive: true });
+  await cp(path.join(options.repoRoot, "packages", "sj-core", "dist"), path.join(sjCorePackageDir, "dist"), {
+    recursive: true
+  });
+  await cp(path.join(options.repoRoot, "packages", "sj-core", "package.json"), path.join(sjCorePackageDir, "package.json"));
+  await cp(path.join(options.repoRoot, "node_modules", "yaml"), yamlPackageDir, { recursive: true });
+
+  const posixLaunchers = [
+    PRODUCT_METADATA.cli.primaryCommand,
+    PRODUCT_METADATA.cli.shortCommand,
+    ...PRODUCT_METADATA.cli.compatibilityCommands
+  ];
+
+  for (const launcherName of posixLaunchers) {
+    const launcherPath = path.join(binDir, launcherName);
+    await writeFile(launcherPath, renderPosixCliLauncher(), "utf8");
+    await chmod(launcherPath, 0o755);
+  }
+
+  for (const launcherName of posixLaunchers) {
+    await writeFile(path.join(binDir, `${launcherName}.cmd`), renderWindowsCliLauncher(), "utf8");
+  }
+
+  await writeFile(path.join(options.bundlePath, "README.md"), renderCliBundleReadme(options.version), "utf8");
+  await writeFile(path.join(options.bundlePath, "install.sh"), renderCliBundleInstaller(options.version), "utf8");
+  await chmod(path.join(options.bundlePath, "install.sh"), 0o755);
+  await writeFile(path.join(options.bundlePath, "install.ps1"), renderCliBundleInstallerPs1(options.version), "utf8");
+  await removeAppleDoubleFiles(options.bundlePath);
+}
+
+function renderPosixCliLauncher() {
+  return `#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+exec node "$SCRIPT_DIR/../lib/cli.js" "$@"
+`;
+}
+
+function renderWindowsCliLauncher() {
+  return `@echo off
+set SCRIPT_DIR=%~dp0
+node "%SCRIPT_DIR%..\\lib\\cli.js" %*
+`;
+}
+
+function renderCliBundleReadme(version) {
+  return `# Kiwi Control CLI bundle
+
+This bundle installs the public Kiwi Control commands:
+
+- ${PRODUCT_METADATA.cli.primaryCommand}
+- ${PRODUCT_METADATA.cli.shortCommand}
+
+Beta compatibility aliases are also included:
+
+- ${PRODUCT_METADATA.cli.compatibilityCommands.join("\n- ")}
+
+## Install on macOS or Linux
+
+Run:
+
+\`\`\`bash
+./install.sh
+\`\`\`
+
+## Install on Windows
+
+Run in PowerShell:
+
+\`\`\`powershell
+.\\install.ps1
+\`\`\`
+
+## After install
+
+Run:
+
+\`\`\`bash
+${PRODUCT_METADATA.cli.primaryCommand} --help
+\`\`\`
+
+This beta CLI bundle stays Node-backed. Install Node.js 22 or newer before using the installed commands.
+
+Version: ${version}
+`;
+}
+
+function renderCliBundleInstaller(version) {
+  return `#!/usr/bin/env bash
+set -euo pipefail
+
+BUNDLE_ROOT="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+GLOBAL_HOME="\${KIWI_CONTROL_HOME:-\${SHREY_JUNIOR_HOME:-$HOME/.shrey-junior}}"
+PATH_BIN="\${KIWI_CONTROL_PATH_BIN:-\${SHREY_JUNIOR_PATH_BIN:-$HOME/.local/bin}}"
+INSTALL_ROOT="$GLOBAL_HOME/releases/${artifactPrefix}-${version}"
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "${PRODUCT_METADATA.displayName} CLI install error: Node.js 22+ is required for the beta CLI bundle." >&2
+  exit 1
+fi
+
+mkdir -p "$GLOBAL_HOME/releases" "$PATH_BIN"
+rm -rf "$INSTALL_ROOT"
+cp -R "$BUNDLE_ROOT" "$INSTALL_ROOT"
+
+chmod +x "$INSTALL_ROOT/bin/${PRODUCT_METADATA.cli.primaryCommand}" "$INSTALL_ROOT/bin/${PRODUCT_METADATA.cli.shortCommand}" "$INSTALL_ROOT/bin/${PRODUCT_METADATA.cli.compatibilityCommands[0]}" "$INSTALL_ROOT/bin/${PRODUCT_METADATA.cli.compatibilityCommands[1]}"
+
+write_wrapper() {
+  local wrapper_path="$1"
+  printf '%s\n' '#!/usr/bin/env bash' 'set -euo pipefail' "exec node \\\"$INSTALL_ROOT/lib/cli.js\\\" \\\"\\$@\\\"" >"$wrapper_path"
+  chmod +x "$wrapper_path"
+}
+
+write_wrapper "$PATH_BIN/${PRODUCT_METADATA.cli.primaryCommand}"
+write_wrapper "$PATH_BIN/${PRODUCT_METADATA.cli.shortCommand}"
+write_wrapper "$PATH_BIN/${PRODUCT_METADATA.cli.compatibilityCommands[0]}"
+write_wrapper "$PATH_BIN/${PRODUCT_METADATA.cli.compatibilityCommands[1]}"
+
+printf '%s\n' "${PRODUCT_METADATA.displayName} CLI installed."
+printf '%s\n' "Primary command: $PATH_BIN/${PRODUCT_METADATA.cli.primaryCommand}"
+printf '%s\n' "Short alias: $PATH_BIN/${PRODUCT_METADATA.cli.shortCommand}"
+printf '%s\n' "Compatibility aliases: $PATH_BIN/${PRODUCT_METADATA.cli.compatibilityCommands[0]}, $PATH_BIN/${PRODUCT_METADATA.cli.compatibilityCommands[1]}"
+printf '%s\n' "Add $PATH_BIN to PATH if needed, then run ${PRODUCT_METADATA.cli.primaryCommand} --help."
+`;
+}
+
+function renderCliBundleInstallerPs1(version) {
+  return `param()
+
+$BundleRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$GlobalHome = if ($env:KIWI_CONTROL_HOME) { $env:KIWI_CONTROL_HOME } elseif ($env:SHREY_JUNIOR_HOME) { $env:SHREY_JUNIOR_HOME } else { Join-Path $HOME ".shrey-junior" }
+$PathBin = if ($env:KIWI_CONTROL_PATH_BIN) { $env:KIWI_CONTROL_PATH_BIN } elseif ($env:SHREY_JUNIOR_PATH_BIN) { $env:SHREY_JUNIOR_PATH_BIN } else { Join-Path $HOME ".local/bin" }
+$InstallRoot = Join-Path $GlobalHome "releases\\${artifactPrefix}-${version}"
+
+if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+  Write-Error "${PRODUCT_METADATA.displayName} CLI install error: Node.js 22+ is required for the beta CLI bundle."
+  exit 1
+}
+
+New-Item -ItemType Directory -Force -Path (Join-Path $GlobalHome "releases") | Out-Null
+New-Item -ItemType Directory -Force -Path $PathBin | Out-Null
+
+if (Test-Path $InstallRoot) {
+  Remove-Item -Recurse -Force $InstallRoot
+}
+
+Copy-Item -Recurse -Force $BundleRoot $InstallRoot
+
+$PrimaryWrapper = "@echo off\`r\`nnode \`"$InstallRoot\\lib\\cli.js\`" %*\`r\`n"
+$CompatibilityWrapper = $PrimaryWrapper
+
+Set-Content -Path (Join-Path $PathBin "${PRODUCT_METADATA.cli.primaryCommand}.cmd") -Value $PrimaryWrapper -NoNewline
+Set-Content -Path (Join-Path $PathBin "${PRODUCT_METADATA.cli.shortCommand}.cmd") -Value $PrimaryWrapper -NoNewline
+Set-Content -Path (Join-Path $PathBin "${PRODUCT_METADATA.cli.compatibilityCommands[0]}.cmd") -Value $CompatibilityWrapper -NoNewline
+Set-Content -Path (Join-Path $PathBin "${PRODUCT_METADATA.cli.compatibilityCommands[1]}.cmd") -Value $CompatibilityWrapper -NoNewline
+
+Write-Host "${PRODUCT_METADATA.displayName} CLI installed."
+Write-Host "Primary command: $PathBin\\${PRODUCT_METADATA.cli.primaryCommand}.cmd"
+Write-Host "Short alias: $PathBin\\${PRODUCT_METADATA.cli.shortCommand}.cmd"
+Write-Host "Compatibility aliases: $PathBin\\${PRODUCT_METADATA.cli.compatibilityCommands[0]}.cmd, $PathBin\\${PRODUCT_METADATA.cli.compatibilityCommands[1]}.cmd"
+Write-Host "Add $PathBin to PATH if needed, then run ${PRODUCT_METADATA.cli.primaryCommand} --help."
+`;
+}
+
+async function removeAppleDoubleFiles(rootPath) {
+  const entries = await readdir(rootPath, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const entryPath = path.join(rootPath, entry.name);
+    if (entry.name.startsWith("._")) {
+      await rm(entryPath, { force: true, recursive: entry.isDirectory() });
+      continue;
+    }
+
+    if (entry.isDirectory()) {
+      await removeAppleDoubleFiles(entryPath);
+    }
+  }
+}

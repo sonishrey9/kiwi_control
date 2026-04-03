@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The portable repo contract is the smallest set of repo-local files Shrey Junior installs so a cooperative tool can orient, route work, preserve continuity, and understand required checks without relying on machine-global configuration.
+The portable repo contract is the smallest set of repo-local files Kiwi Control installs so a cooperative tool can orient, route work, preserve continuity, and understand required checks without relying on machine-global configuration.
 
 ## Authority Model
 
@@ -13,7 +13,7 @@ Authority order:
 3. User-global accelerators such as `~/.codex/AGENTS.md`, `~/.claude/CLAUDE.md`, and editor prompt surfaces
 4. Fallback templates and defaults
 
-Repo-local explicit opt-out or conflict guidance still wins over generated Shrey Junior contract files.
+Repo-local explicit opt-out or conflict guidance still wins over generated Kiwi Control contract files.
 
 ## Universal Core Versus Selective Surfaces
 

@@ -2,6 +2,7 @@ import type { ExecutionMode, ToolName } from "./config.js";
 import type { CompiledContext } from "./context.js";
 import { buildChecksToRun, buildFirstReadContract, buildSearchGuidance, buildStopConditions, buildWriteTargets } from "./guidance.js";
 import type { GitState } from "./git.js";
+import { PRODUCT_METADATA } from "./product.js";
 import type { ActiveRoleHintsRecord, CheckpointRecord, HandoffRecord, PhaseRecord } from "./state.js";
 import { buildPhaseId } from "./state.js";
 
@@ -31,8 +32,8 @@ export function buildHandoffRecord(options: {
   const recommendedMcpPack = options.recommendedMcpPack;
   const checkpointPointer = options.latestCheckpoint ? ".agent/state/checkpoints/latest.json" : null;
   const nextCommand = currentPhase?.nextRecommendedStep
-    ? `shrey-junior status --target "${options.context.targetRoot}"`
-    : `shrey-junior checkpoint "<milestone>" --target "${options.context.targetRoot}"`;
+    ? `${PRODUCT_METADATA.cli.primaryCommand} status --target "${options.context.targetRoot}"`
+    : `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "<milestone>" --target "${options.context.targetRoot}"`;
   const nextFile = options.activeRoleHints?.nextFileToRead ?? ".agent/state/active-role-hints.json";
 
   return {

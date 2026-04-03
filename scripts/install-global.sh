@@ -2,8 +2,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-GLOBAL_HOME="${SHREY_JUNIOR_HOME:-$HOME/.shrey-junior}"
-PATH_BIN="${SHREY_JUNIOR_PATH_BIN:-$HOME/.local/bin}"
+GLOBAL_HOME="${KIWI_CONTROL_HOME:-${SHREY_JUNIOR_HOME:-$HOME/.shrey-junior}}"
+PATH_BIN="${KIWI_CONTROL_PATH_BIN:-${SHREY_JUNIOR_PATH_BIN:-$HOME/.local/bin}}"
+CLI_ENTRYPOINT="$ROOT/packages/sj-cli/dist/cli.js"
 TIMESTAMP="$(date +"%Y%m%d-%H%M%S")"
 BACKUP_DIR="$GLOBAL_HOME/backups/install-$TIMESTAMP"
 DRY_RUN=0
@@ -19,6 +20,11 @@ for arg in "$@"; do
       ;;
   esac
 done
+
+if [[ "$DRY_RUN" -eq 0 && ! -f "$CLI_ENTRYPOINT" ]]; then
+  echo "Kiwi Control global install error: $CLI_ENTRYPOINT is missing. Run 'npm run build' first." >&2
+  exit 1
+fi
 
 log() {
   printf '%s\n' "$1"
@@ -116,7 +122,10 @@ if [[ "$DRY_RUN" -eq 0 ]]; then
 fi
 
 for existing in \
+  "$GLOBAL_HOME/bin/kiwi-control" \
+  "$GLOBAL_HOME/bin/kc" \
   "$GLOBAL_HOME/bin/shrey-junior" \
+  "$GLOBAL_HOME/bin/sj" \
   "$GLOBAL_HOME/bin/sj-init" \
   "$GLOBAL_HOME/defaults/bootstrap.yaml" \
   "$GLOBAL_HOME/specialists/specialists.yaml" \
@@ -124,20 +133,26 @@ for existing in \
   "$GLOBAL_HOME/mcp/mcp.servers.json" \
   "$GLOBAL_HOME/adapters/tool-awareness.md" \
   "$GLOBAL_HOME/adapters/global-adapter-strategy.md" \
+  "$PATH_BIN/kiwi-control" \
+  "$PATH_BIN/kc" \
   "$PATH_BIN/shrey-junior" \
+  "$PATH_BIN/sj" \
   "$PATH_BIN/sj-init"; do
   backup_if_exists "$existing"
 done
 
 LAUNCHER_CONTENT=$(cat <<EOF
 #!/usr/bin/env bash
-exec node "$ROOT/dist/cli.js" "\$@"
+exec node "$CLI_ENTRYPOINT" "\$@"
 EOF
 )
-write_file "$GLOBAL_HOME/bin/shrey-junior" "$LAUNCHER_CONTENT"
+write_file "$GLOBAL_HOME/bin/kiwi-control" "$LAUNCHER_CONTENT"
 if [[ "$DRY_RUN" -eq 0 ]]; then
-  chmod +x "$GLOBAL_HOME/bin/shrey-junior"
+  chmod +x "$GLOBAL_HOME/bin/kiwi-control"
 fi
+ensure_symlink "$GLOBAL_HOME/bin/kiwi-control" "$GLOBAL_HOME/bin/kc"
+ensure_symlink "$GLOBAL_HOME/bin/kiwi-control" "$GLOBAL_HOME/bin/shrey-junior"
+ensure_symlink "$GLOBAL_HOME/bin/kiwi-control" "$GLOBAL_HOME/bin/sj"
 
 SJ_INIT_CONTENT=$(cat <<EOF
 #!/usr/bin/env bash
@@ -151,13 +166,16 @@ fi
 
 PATH_WRAPPER=$(cat <<EOF
 #!/usr/bin/env bash
-exec "$GLOBAL_HOME/bin/shrey-junior" "\$@"
+exec "$GLOBAL_HOME/bin/kiwi-control" "\$@"
 EOF
 )
-write_file "$PATH_BIN/shrey-junior" "$PATH_WRAPPER"
+write_file "$PATH_BIN/kiwi-control" "$PATH_WRAPPER"
 if [[ "$DRY_RUN" -eq 0 ]]; then
-  chmod +x "$PATH_BIN/shrey-junior"
+  chmod +x "$PATH_BIN/kiwi-control"
 fi
+ensure_symlink "$PATH_BIN/kiwi-control" "$PATH_BIN/kc"
+ensure_symlink "$PATH_BIN/kiwi-control" "$PATH_BIN/shrey-junior"
+ensure_symlink "$PATH_BIN/kiwi-control" "$PATH_BIN/sj"
 ensure_symlink "$GLOBAL_HOME/bin/sj-init" "$PATH_BIN/sj-init"
 
 copy_file "$ROOT/configs/specialists.yaml" "$GLOBAL_HOME/specialists/specialists.yaml"
@@ -201,10 +219,12 @@ EOF
 )
 write_file "$GLOBAL_HOME/defaults/bootstrap.yaml" "$BOOTSTRAP_DEFAULTS"
 
-log "global bootstrap home: $GLOBAL_HOME"
-log "PATH-visible launcher: $PATH_BIN/shrey-junior"
+log "Kiwi Control global bootstrap home: $GLOBAL_HOME"
+log "PATH-visible launcher: $PATH_BIN/kiwi-control"
+log "PATH-visible aliases: $PATH_BIN/kc, $PATH_BIN/shrey-junior, $PATH_BIN/sj"
 log "PATH-visible sj-init: $PATH_BIN/sj-init"
-log "home launcher: $GLOBAL_HOME/bin/shrey-junior"
+log "home launcher: $GLOBAL_HOME/bin/kiwi-control"
+log "home compatibility aliases: $GLOBAL_HOME/bin/kc, $GLOBAL_HOME/bin/shrey-junior, $GLOBAL_HOME/bin/sj"
 log "home sj-init: $GLOBAL_HOME/bin/sj-init"
 if [[ "$DRY_RUN" -eq 0 ]]; then
   log "backup dir: $BACKUP_DIR"

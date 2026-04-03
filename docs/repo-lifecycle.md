@@ -14,7 +14,7 @@ Then, from any folder:
 sj-init
 ```
 
-Use `sj-init` when you want Shrey Junior to decide between `bootstrap` and `standardize` automatically. It preserves repo-authority precedence, stands down on explicit opt-out, and runs `status` plus `check` after a real apply unless `--no-check` is passed.
+Use `sj-init` when you want Kiwi Control to decide between `bootstrap` and `standardize` automatically. It preserves repo-authority precedence, stands down on explicit opt-out, and runs `status` plus `check` after a real apply unless `--no-check` is passed.
 
 ## 1. New Project
 
@@ -33,7 +33,7 @@ Outcome:
 - curated specialist registry seeded at `.agent/context/specialists.md`
 - generic repos stay quiet by default and do not install backend/frontend instruction noise unless real repo signals justify them
 - the next useful file is usually `.agent/context/architecture.md`
-- the next useful command is usually `shrey-junior checkpoint "<milestone>" --target <repo>` after you seed real repo context
+- the next useful command is usually `kiwi-control checkpoint "<milestone>" --target <repo>` after you seed real repo context
 
 ## 2. Existing Project Or Existing Repo
 
@@ -73,14 +73,14 @@ If only the repo is visible:
 Recommended sequence:
 
 ```bash
-shrey-junior status --target <repo>
-shrey-junior check --target <repo>
-shrey-junior run|fanout|dispatch ...
-shrey-junior collect --target <repo>
-shrey-junior reconcile --target <repo>
-shrey-junior checkpoint "<milestone>" --target <repo>
-shrey-junior handoff --target <repo> --to <tool>
-shrey-junior push-check --target <repo>
+kiwi-control status --target <repo>
+kiwi-control check --target <repo>
+kiwi-control run|fanout|dispatch ...
+kiwi-control collect --target <repo>
+kiwi-control reconcile --target <repo>
+kiwi-control checkpoint "<milestone>" --target <repo>
+kiwi-control handoff --target <repo> --to <tool>
+kiwi-control push-check --target <repo>
 ```
 
 At each serious boundary, the shortest continuity path is:

@@ -10,6 +10,7 @@ import { assessGoalRisk } from "@shrey-junior/sj-core/core/risk.js";
 import { loadLatestReconcileReport } from "@shrey-junior/sj-core/core/reconcile.js";
 import { loadProjectOverlay, resolveExecutionMode, resolvePrimaryToolOverride, resolveProfileSelection } from "@shrey-junior/sj-core/core/profiles.js";
 import { inspectBootstrapTarget } from "@shrey-junior/sj-core/core/project-detect.js";
+import { PRODUCT_METADATA } from "@shrey-junior/sj-core/core/product.js";
 import { loadContinuitySnapshot, updateActiveRoleHints } from "@shrey-junior/sj-core/core/state.js";
 import { resolveSpecialist } from "@shrey-junior/sj-core/core/specialists.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
@@ -113,7 +114,7 @@ export async function runRun(options: RunOptions): Promise<number> {
     nextFileToRead: chooseNextFileToRead({
       latestTaskPacket: packets[0]?.relativePath ?? null
     }),
-    nextSuggestedCommand: `shrey-junior checkpoint "<milestone>" --target "${options.targetRoot}"`,
+    nextSuggestedCommand: `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "<milestone>" --target "${options.targetRoot}"`,
     writeTargets: buildWriteTargets(contract, packets.map((packet) => packet.relativePath)),
     checksToRun: buildChecksToRun(compiledContext.validationSteps),
     stopConditions: buildStopConditions({

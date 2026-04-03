@@ -1,67 +1,16 @@
 import "./styles.css";
-const demoState = {
-    repoOverview: [
-        { label: "Project type", value: "node" },
-        { label: "Active role", value: "fullstack-specialist" },
-        { label: "Next file", value: ".agent/context/architecture.md" },
-        { label: "Next command", value: "shrey-junior checkpoint \"beta package split\" --target <repo>" },
-        { label: "Validation", value: "warnings only", tone: "warn" },
-        { label: "Current phase", value: "package extraction" }
-    ],
-    continuity: [
-        { label: "Latest checkpoint", value: "package split / in-progress" },
-        { label: "Latest handoff", value: "review-specialist -> qa-specialist" },
-        { label: "Latest reconcile", value: "dispatch-2026-04-03 / aligned" },
-        { label: "Current focus", value: "ship workspace split without breaking repo-local truth" },
-        { label: "Open risks", value: "desktop bridge still uses scaffold data", tone: "warn" }
-    ],
-    memoryBank: [
-        { label: "Repo facts", path: ".agent/memory/repo-facts.json", present: true },
-        { label: "Architecture decisions", path: ".agent/memory/architecture-decisions.md", present: true },
-        { label: "Glossary", path: ".agent/memory/domain-glossary.md", present: true },
-        { label: "Known gotchas", path: ".agent/memory/known-gotchas.md", present: true },
-        { label: "Successful patterns", path: ".agent/memory/last-successful-patterns.md", present: true }
-    ],
-    specialists: {
-        recommendedSpecialist: "review-specialist",
-        handoffTargets: ["qa-specialist", "docs-specialist"],
-        safeParallelHint: "split by disjoint file ownership"
-    },
-    mcpPacks: {
-        suggestedPack: {
-            id: "web-qa-pack",
-            description: "Browser and verification guidance for web apps, UI review, and smoke testing."
-        },
-        available: [
-            {
-                id: "core-pack",
-                description: "Default repo-first pack for filesystem, git-aware reasoning, and contract inspection.",
-                realismNotes: ["Pack guidance is curated advice, not a universal runtime guarantee"]
-            },
-            {
-                id: "web-qa-pack",
-                description: "Browser and verification guidance for web apps, UI review, and smoke testing.",
-                realismNotes: ["Playwright MCP strength depends on the active runtime and installed tooling"]
-            }
-        ]
-    },
-    validation: {
-        ok: true,
-        errors: 0,
-        warnings: 1
-    }
-};
 const app = document.querySelector("#app");
 if (!app) {
     throw new Error("App root not found");
 }
+const initialState = buildBridgeUnavailableState("");
 app.innerHTML = `
   <main class="shell">
     <header class="hero">
-      <p class="eyebrow">Shrey Junior</p>
+      <p class="eyebrow">Kiwi Control</p>
       <h1>Repo-first local control for coding agents</h1>
       <p class="lede">
-        The desktop shell reads repo-local artifacts, mirrors the CLI contract, and stays honest about what each runtime can and cannot do.
+        Kiwi Control reads repo-local artifacts, mirrors the CLI contract, and stays honest about what each runtime can and cannot do.
       </p>
     </header>
     <section class="control-bar">
@@ -70,13 +19,14 @@ app.innerHTML = `
         <input id="target-root" type="text" placeholder="/path/to/repo" />
       </label>
       <button id="load-state" type="button">Load repo state</button>
-      <p id="bridge-note" class="bridge-note">Desktop bridge not detected. Showing scaffold data.</p>
+      <p id="bridge-note" class="bridge-note">
+        The desktop app is a local control surface. Repo-local artifacts under <code>.agent/</code> stay authoritative.
+      </p>
     </section>
-    <section class="grid">
-      ${renderPanels(demoState)}
-    </section>
+    <section id="repo-state-banner" class="repo-state-banner"></section>
+    <section class="grid"></section>
     <footer class="footer">
-      <p>This shell is designed to consume repo-local artifacts and a thin local backend. It must never replace repo-local truth with hidden app state.</p>
+      <p id="source-of-truth-note">${initialState.repoState.sourceOfTruthNote}</p>
     </footer>
   </main>
 `;
@@ -84,21 +34,39 @@ const targetInput = document.querySelector("#target-root");
 const loadButton = document.querySelector("#load-state");
 const bridgeNote = document.querySelector("#bridge-note");
 const grid = document.querySelector(".grid");
-if (!targetInput || !loadButton || !bridgeNote || !grid) {
+const repoStateBanner = document.querySelector("#repo-state-banner");
+const sourceOfTruthNote = document.querySelector("#source-of-truth-note");
+if (!targetInput || !loadButton || !bridgeNote || !grid || !repoStateBanner || !sourceOfTruthNote) {
     throw new Error("UI shell is missing required elements");
 }
+const gridElement = grid;
+const repoStateBannerElement = repoStateBanner;
+const sourceOfTruthNoteElement = sourceOfTruthNote;
+renderState(initialState);
 loadButton.addEventListener("click", async () => {
     const targetRoot = targetInput.value.trim();
     if (!targetRoot) {
         bridgeNote.textContent = "Enter a target repo path to load real repo-local state.";
         return;
     }
+    bridgeNote.textContent = `Loading repo-local state for ${targetRoot}...`;
     const state = await loadRepoControlState(targetRoot);
-    grid.innerHTML = renderPanels(state);
-    bridgeNote.textContent = isDemoState(state)
-        ? "Desktop bridge unavailable. Showing scaffold data until the local bridge is active."
-        : `Loaded repo-local state from ${targetRoot}`;
+    renderState(state);
+    bridgeNote.textContent =
+        state.repoState.mode === "bridge-unavailable"
+            ? "Kiwi Control could not reach the local CLI bridge. The shell is showing a bridge-unavailable fallback instead of repo-local state."
+            : `Loaded repo-local state from ${state.targetRoot}`;
 });
+function renderState(state) {
+    gridElement.innerHTML = renderPanels(state);
+    repoStateBannerElement.className = `repo-state-banner repo-state-${state.repoState.mode}`;
+    repoStateBannerElement.innerHTML = `
+    <p class="repo-state-kicker">Repo state</p>
+    <h2>${state.repoState.title}</h2>
+    <p>${state.repoState.detail}</p>
+  `;
+    sourceOfTruthNoteElement.textContent = state.repoState.sourceOfTruthNote;
+}
 function renderPanels(state) {
     return [
         renderPanel("Repo Overview", state.repoOverview),
@@ -153,9 +121,71 @@ async function loadRepoControlState(targetRoot) {
         return await invoke("load_repo_control_state", { targetRoot });
     }
     catch {
-        return demoState;
+        return buildBridgeUnavailableState(targetRoot);
     }
 }
-function isDemoState(state) {
-    return state.continuity.some((item) => item.value.includes("desktop bridge still uses scaffold data"));
+function buildBridgeUnavailableState(targetRoot) {
+    const resolvedTargetRoot = targetRoot || "no target loaded";
+    return {
+        targetRoot: resolvedTargetRoot,
+        profileName: "default",
+        executionMode: "local",
+        projectType: "unknown",
+        repoState: {
+            mode: "bridge-unavailable",
+            title: "Local CLI bridge unavailable",
+            detail: "Kiwi Control could not reach the local CLI bridge. Contributors should run `npm run build` and `npm run ui:dev`. Installed users should confirm `kiwi-control --help` works in a terminal, or set `KIWI_CONTROL_CLI` to the installed CLI launcher path.",
+            sourceOfTruthNote: "Repo-local artifacts under .agent/ and promoted repo instruction files remain the source of truth. The desktop app never replaces that state with hidden app-owned storage."
+        },
+        repoOverview: [
+            { label: "Project type", value: "unknown (bridge unavailable)", tone: "warn" },
+            { label: "Active role", value: "none recorded" },
+            { label: "Next file", value: ".agent/project.yaml" },
+            { label: "Next command", value: "npm run build" },
+            { label: "Validation state", value: "bridge unavailable", tone: "warn" },
+            { label: "Current phase", value: "desktop setup" }
+        ],
+        continuity: [
+            { label: "Latest checkpoint", value: "none recorded" },
+            { label: "Latest handoff", value: "none recorded" },
+            { label: "Latest reconcile", value: "none recorded" },
+            { label: "Current focus", value: `connect the desktop bridge for ${resolvedTargetRoot}` },
+            { label: "Open risks", value: "The desktop shell cannot read repo-local state until the local CLI bridge is available.", tone: "warn" }
+        ],
+        memoryBank: [
+            { label: "Repo Facts", path: ".agent/memory/repo-facts.json", present: false },
+            { label: "Architecture Decisions", path: ".agent/memory/architecture-decisions.md", present: false },
+            { label: "Domain Glossary", path: ".agent/memory/domain-glossary.md", present: false },
+            { label: "Known Gotchas", path: ".agent/memory/known-gotchas.md", present: false },
+            { label: "Last Successful Patterns", path: ".agent/memory/last-successful-patterns.md", present: false }
+        ],
+        specialists: {
+            recommendedSpecialist: "architecture-specialist",
+            handoffTargets: ["review-specialist", "docs-specialist"],
+            safeParallelHint: "Do not fan out work yet. First restore the local CLI bridge so repo-local continuity, specialists, and validation can be read from the target repo."
+        },
+        mcpPacks: {
+            suggestedPack: {
+                id: "core-pack",
+                description: "Default repo-first pack for filesystem, git-aware reasoning, and contract inspection."
+            },
+            available: [
+                {
+                    id: "core-pack",
+                    description: "Default repo-first pack for filesystem, git-aware reasoning, and contract inspection.",
+                    realismNotes: ["Pack guidance is curated advice, not a universal runtime guarantee."]
+                },
+                {
+                    id: "web-qa-pack",
+                    description: "Browser and verification guidance for web apps, UI review, and smoke testing.",
+                    realismNotes: ["Playwright MCP strength depends on the active runtime and installed tooling."]
+                }
+            ]
+        },
+        validation: {
+            ok: false,
+            errors: 1,
+            warnings: 0
+        }
+    };
 }

@@ -137,13 +137,18 @@ PY
 
 echo "portable push gate: artifact-backed checks passed"
 
-if command -v shrey-junior >/dev/null 2>&1; then
-  echo "portable push gate: running shrey-junior check"
+if command -v kiwi-control >/dev/null 2>&1; then
+  echo "portable push gate: running kiwi-control check"
+  kiwi-control check --target "$REPO_ROOT"
+  echo "portable push gate: running kiwi-control push-check"
+  kiwi-control push-check --target "$REPO_ROOT"
+elif command -v shrey-junior >/dev/null 2>&1; then
+  echo "portable push gate: kiwi-control unavailable, using shrey-junior compatibility alias for check"
   shrey-junior check --target "$REPO_ROOT"
-  echo "portable push gate: running shrey-junior push-check"
+  echo "portable push gate: kiwi-control unavailable, using shrey-junior compatibility alias for push-check"
   shrey-junior push-check --target "$REPO_ROOT"
 else
-  echo "portable push gate: shrey-junior CLI unavailable, relying on repo-local artifact checks"
+  echo "portable push gate: Kiwi Control CLI unavailable, relying on repo-local artifact checks"
 fi
 
 mapfile -t repo_specific_commands < <(python3 - <<'PY'

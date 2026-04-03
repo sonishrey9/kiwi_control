@@ -82,4 +82,4 @@ risk: follow up on packet verbosity
 next_step: ask tester to confirm
 ```
 
-This still works, but Shrey Junior will explicitly report that the result used heuristic parsing.
+This still works, but Kiwi Control will explicitly report that the result used heuristic parsing.

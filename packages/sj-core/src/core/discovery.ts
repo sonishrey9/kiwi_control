@@ -3,6 +3,7 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import { isMetadataOnlyPath, isSensitivePath, redactText, summarizeObjectKeys } from "../utils/redact.js";
 import { pathExists, readJson, readText } from "../utils/fs.js";
+import { PRODUCT_METADATA } from "./product.js";
 
 export interface InventoryRow {
   path: string;
@@ -249,7 +250,7 @@ function ownerToolForPath(filePath: string): string {
     return "Claude";
   }
   if (normalized.includes("/.agent/")) {
-    return "Shrey Junior";
+    return PRODUCT_METADATA.displayName;
   }
   return "Codex";
 }
@@ -320,4 +321,3 @@ function buildRisks(rows: InventoryRow[]): string[] {
   }
   return risks;
 }
-

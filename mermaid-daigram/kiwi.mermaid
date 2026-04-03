@@ -4,8 +4,8 @@ flowchart TB
     %% =========================
     USER[Developer / User]
 
-    USER --> CLI[sj-cli]
-    USER --> UI[sj-ui Desktop App]
+    USER --> CLI["Kiwi Control CLI (sj-cli)"]
+    USER --> UI["Kiwi Control Desktop (sj-ui)"]
 
     %% =========================
     %% PRODUCT LAYERS
@@ -217,34 +217,40 @@ flowchart TB
     %% =========================
     subgraph SPECIALISTS["Canonical Specialists"]
         direction LR
-        DISP[dispatcher]
-        RECON[reconciler]
-        PY[python-implementer]
-        TS[typescript-implementer]
-        SQL[sql-specialist]
+        ARCHSPEC[architecture-specialist]
+        REVIEWSPEC[review-specialist]
+        PY[python-specialist]
+        FULLSTACK[fullstack-specialist]
+        DATA[data-platform-specialist]
+        BACKEND[backend-specialist]
+        FRONTEND[frontend-specialist]
         ANDROID[android-specialist]
         IOS[ios-specialist]
         QA[qa-specialist]
-        SEC[security-reviewer]
-        PERF[performance-reviewer]
+        SEC[security-specialist]
+        REFACTOR[refactor-specialist]
         DOCS[docs-specialist]
-        HEDIT[handoff-editor]
-        RELEASE[release-readiness]
+        RELEASE[release-specialist]
+        MCPSPECIALIST[mcp-specialist]
+        PUSH[push-specialist]
     end
 
-    SPECREG --> DISP
-    SPECREG --> RECON
+    SPECREG --> ARCHSPEC
+    SPECREG --> REVIEWSPEC
     SPECREG --> PY
-    SPECREG --> TS
-    SPECREG --> SQL
+    SPECREG --> FULLSTACK
+    SPECREG --> DATA
+    SPECREG --> BACKEND
+    SPECREG --> FRONTEND
     SPECREG --> ANDROID
     SPECREG --> IOS
     SPECREG --> QA
     SPECREG --> SEC
-    SPECREG --> PERF
+    SPECREG --> REFACTOR
     SPECREG --> DOCS
-    SPECREG --> HEDIT
     SPECREG --> RELEASE
+    SPECREG --> MCPSPECIALIST
+    SPECREG --> PUSH
 
     RECOMMEND --> SPECIALISTS
     ORCH --> SPECIALISTS

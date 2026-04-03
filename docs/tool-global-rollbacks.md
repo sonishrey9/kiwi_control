@@ -67,9 +67,9 @@ Interpretation:
 - pass: the marked blocks exist exactly once, the prompt file exists, `mcp.json` parses, and the restore script is executable
 - fail: inspect the backed up files and rerun restore before any further mutation
 
-## Remove Shrey Junior global install
+## Remove Kiwi Control global install
 
-If you also want to remove global Shrey Junior discoverability:
+If you also want to remove global Kiwi Control discoverability:
 
 ```bash
 rm -f ~/.local/bin/shrey-junior

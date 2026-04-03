@@ -3,6 +3,7 @@ import { getGlobalHomeRoot, loadGlobalBootstrapDefaults } from "./config.js";
 import { initOrSyncTarget, summarizeWrites } from "./executor.js";
 import { buildBootstrapNextAction, buildBootstrapNextFileToRead, buildBootstrapNextSuggestedCommand, buildChecksToRun, buildFirstReadContract } from "./guidance.js";
 import { inspectBootstrapTarget, type BootstrapInspection } from "./project-detect.js";
+import { PRODUCT_METADATA } from "./product.js";
 import { loadProjectOverlay, resolveExecutionMode, type ProfileSelection } from "./profiles.js";
 import { buildTemplateContext, selectPortableContract, type TemplateContext } from "./router.js";
 import type { WriteResult } from "../utils/fs.js";
@@ -128,8 +129,8 @@ export async function bootstrapTarget(options: BootstrapOptions, config: LoadedC
   const recommendedNextCommand = inspection.authorityOptOut
     ? `Review ${inspection.authorityOptOut} and only bootstrap if the repo explicitly opts in.`
     : hasConflicts
-      ? `node dist/cli.js sync --target "${options.targetRoot}" --dry-run --diff-summary`
-      : `node dist/cli.js status --target "${options.targetRoot}"`;
+      ? `${PRODUCT_METADATA.cli.primaryCommand} sync --target "${options.targetRoot}" --dry-run --diff-summary`
+      : `${PRODUCT_METADATA.cli.primaryCommand} status --target "${options.targetRoot}"`;
   const nextSuggestedCommand = inspection.authorityOptOut
     ? recommendedNextCommand
     : hasConflicts
@@ -328,7 +329,7 @@ function buildBootstrapWarnings(
     warnings.push(`explicit profile ${explicitProfileName} was not used because repo authority already points to ${inspection.authorityProfileHint}`);
   }
   if (inspection.alreadyInitialized) {
-    warnings.push("target already contains Shrey Junior state; bootstrap is acting like a safe sync/update");
+    warnings.push("target already contains Kiwi Control state; bootstrap is acting like a safe sync/update");
   }
   if (inspection.authorityOptOut) {
     warnings.push(`repo authority requests repo-local-only behavior; bootstrap stood down (${inspection.authorityOptOut})`);
@@ -364,11 +365,11 @@ const genericStarterSpecialists = new Set([
 ]);
 
 const fallbackValidationsByProjectType: Record<ProjectType, string[]> = {
-  python: ["ruff", "mypy", "pytest", "node dist/cli.js check"],
-  node: ["npm test", "npm run build", "node dist/cli.js check"],
-  docs: ["docs preview/build", "node dist/cli.js check"],
-  "data-platform": ["unit or transform tests", "migration review", "node dist/cli.js check"],
-  generic: ["project tests", "node dist/cli.js check"]
+  python: ["ruff", "mypy", "pytest", `${PRODUCT_METADATA.cli.primaryCommand} check`],
+  node: ["npm test", "npm run build", `${PRODUCT_METADATA.cli.primaryCommand} check`],
+  docs: ["docs preview/build", `${PRODUCT_METADATA.cli.primaryCommand} check`],
+  "data-platform": ["unit or transform tests", "migration review", `${PRODUCT_METADATA.cli.primaryCommand} check`],
+  generic: ["project tests", `${PRODUCT_METADATA.cli.primaryCommand} check`]
 };
 
 function trustWeight(level: "low" | "medium" | "high"): number {

@@ -8,7 +8,7 @@ function hasCanonicalConfigs(root: string): boolean {
 
 export function resolveShreyJuniorProductRoot(fromImportMetaUrl = import.meta.url): string {
   const baseDir = path.dirname(fileURLToPath(fromImportMetaUrl));
-  const overrideRoot = process.env.SHREY_JUNIOR_PRODUCT_ROOT;
+  const overrideRoot = process.env.KIWI_CONTROL_PRODUCT_ROOT || process.env.SHREY_JUNIOR_PRODUCT_ROOT;
   const candidates = [
     overrideRoot,
     path.resolve(baseDir, "runtime"),
@@ -22,4 +22,20 @@ export function resolveShreyJuniorProductRoot(fromImportMetaUrl = import.meta.ur
   }
 
   return path.resolve(baseDir, "runtime");
+}
+
+export function resolveSourceCliEntrypoint(productRoot = resolveShreyJuniorProductRoot()): string {
+  return path.join(productRoot, "packages", "sj-cli", "dist", "cli.js");
+}
+
+export function resolveSourceUiDevEntrypoint(productRoot = resolveShreyJuniorProductRoot()): string {
+  return path.join(productRoot, "scripts", "run-ui-dev.mjs");
+}
+
+export function isSourceProductCheckout(productRoot = resolveShreyJuniorProductRoot()): boolean {
+  return (
+    hasCanonicalConfigs(productRoot) &&
+    existsSync(resolveSourceUiDevEntrypoint(productRoot)) &&
+    existsSync(path.join(productRoot, "apps", "sj-ui", "package.json"))
+  );
 }

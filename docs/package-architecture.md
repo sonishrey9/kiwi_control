@@ -1,76 +1,133 @@
-# Package Architecture
+# Kiwi Control Package Architecture
 
 ## Goal
 
-Turn Shrey Junior into an installable local software product without giving up the repo-first model.
+Make Kiwi Control a real local product without giving up the repo-first model.
 
-## Packages
+## User-facing product identity
+
+- product name: `Kiwi Control`
+- primary CLI command: `kiwi-control`
+- short alias: `kc`
+- compatibility aliases: `shrey-junior`, `sj`
+- desktop app title: `Kiwi Control`
+- installed-user docs should lead with `kiwi-control` and `kc`, not `npm run ...`
+
+This is a visible rebrand only for `0.2.0-beta.1`. Repo-local schema and artifact IDs remain `shrey-junior/*` for compatibility.
+
+## Compatibility note
+
+- internal packages remain `sj-core`, `sj-cli`, `sj-ui`
+- repo-local schema and artifact IDs remain `shrey-junior/*`
+- `sj` and `shrey-junior` still work temporarily
+- `kiwi-control` and `kc` are the primary public commands
+
+## Internal package boundaries
 
 ### `packages/sj-core`
 
 Owns:
 
 - artifact schemas
-- specialist registry
-- MCP pack registry
-- routing
-- handoff logic
-- checkpoints
-- repo memory bank
+- canonical specialist registry
+- curated MCP pack registry
+- routing and recommendations
+- checkpoints and handoffs
+- repo memory bank handling
 - validation
 - repo contract generation
-- product runtime assets copied from `configs/`, `prompts/`, `templates/`, `docs/`, `examples/`, and `scripts/`
+- product metadata used by CLI, UI, and release outputs
+- runtime assets copied from canonical repo sources
 
-`sj-core` is the business-logic layer used by both the CLI and the desktop shell.
+`sj-core` is the platform-neutral business-logic layer.
 
 ### `packages/sj-cli`
 
 Owns:
 
 - installable command surface
-- thin command wrappers over `sj-core`
 - human-readable output
 - JSON output for automation and the desktop bridge
+- thin wrappers over `sj-core`
 
-The CLI is intentionally thin. It does not become a second authority layer.
+The CLI is intentionally thin. It must not become a second authority layer.
 
 ### `apps/sj-ui`
 
 Owns:
 
 - local desktop control surface
-- repo overview
-- continuity views
-- memory bank visibility
-- specialist and MCP-pack guidance views
-- Tauri packaging scaffold
+- Repo Overview
+- Continuity
+- Memory Bank
+- Specialists
+- MCP Packs
+- Validation
+- local Tauri packaging configuration
 
-The UI must read repo-local truth and avoid creating hidden authoritative state.
+The UI reads repo-local truth through the local CLI bridge. It does not own hidden authoritative state.
 
-## Contract continuity
+## Repo-local continuity contract
 
-Repo-local continuity remains the same:
+Portable continuity remains inside the target repo:
 
 - `.agent/state/`
 - `.agent/memory/`
-- native repo instruction surfaces
-- generated role and workflow files
+- native repo instruction surfaces such as `AGENTS.md`
+- generated selective role and workflow files
 
 The package split does not move authority out of the repo.
 
-## Runtime assets
+## Memory bank model
 
-The source repo keeps canonical truth in:
+Baseline repo-local memory surfaces:
 
-- `configs/`
-- `prompts/`
-- `templates/`
+- `.agent/memory/repo-facts.json`
+- `.agent/memory/current-focus.json`
+- `.agent/memory/open-risks.json`
+- `.agent/memory/architecture-decisions.md`
+- `.agent/memory/domain-glossary.md`
+- `.agent/memory/known-gotchas.md`
+- `.agent/memory/last-successful-patterns.md`
 
-During `sj-core` build, those sources are copied into the package runtime payload so the installed CLI can behave like a real product without depending on the source checkout.
+Repo-local memory is authoritative. MCP memory and machine-global memory remain accelerators only.
 
-## Design constraints
+## Specialist model
 
-- repo-first always beats machine-global convenience
+Kiwi Control uses one canonical specialist registry end to end.
+
+That registry feeds:
+
+- routing
+- active-role hints
+- current phase
+- next recommended specialist
+- handoff `fromRole` / `toRole`
+- selective role generation
+- UI labels
+- CLI output
+- docs
+
+Legacy naming can remain as compatibility aliases inside the registry, but user-facing surfaces should show the canonical specialist IDs and names.
+
+## MCP pack model
+
+Curated packs are advisory and runtime-dependent:
+
+- `core-pack`
+- `research-pack`
+- `web-qa-pack`
+- `aws-pack`
+- `ios-pack`
+- `android-pack`
+
+The architecture intentionally does not claim universal MCP parity across runtimes.
+
+## Runtime design constraints
+
+- repo-first beats machine-global convenience
 - CI is the enforcement layer
-- MCP guidance must stay honest about runtime differences
-- desktop UX must remain optional; CLI remains complete on its own
+- desktop UX is optional; the CLI remains complete on its own
+- no hidden cloud backend is required for core operation
+- no destructive automation
+- generic repos stay quiet until explicitly initialized

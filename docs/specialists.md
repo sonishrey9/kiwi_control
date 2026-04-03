@@ -1,6 +1,6 @@
 # Specialists
 
-Shrey Junior uses one canonical specialist registry end to end. The runtime, repo-local artifacts, CLI, UI, and generated docs should all emit these IDs:
+Kiwi Control uses one canonical specialist registry end to end. The runtime, repo-local artifacts, CLI, UI, and generated docs should all emit these IDs:
 
 - `architecture-specialist`
 - `backend-specialist`
@@ -22,7 +22,7 @@ Shrey Junior uses one canonical specialist registry end to end. The runtime, rep
 ## Why specialists exist
 
 - machine-local skills are rich but not portable
-- specialists let Shrey Junior speak one stable routing language across Codex, Claude, Copilot, desktop UI surfaces, and future tools
+- specialists let Kiwi Control speak one stable routing language across Codex, Claude, Copilot, desktop UI surfaces, and future tools
 - specialists keep validation expectations, MCP-pack guidance, handoff rules, and escalation rules explicit
 - legacy aliases still normalize for compatibility, but canonical IDs are what new artifacts should store
 

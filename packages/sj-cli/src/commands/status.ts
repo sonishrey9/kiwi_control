@@ -20,12 +20,14 @@ export interface StatusOptions {
 }
 
 export async function runStatus(options: StatusOptions): Promise<number> {
+  const controlState = await buildRepoControlState({
+    repoRoot: options.repoRoot,
+    targetRoot: options.targetRoot,
+    ...(options.profileName ? { profileName: options.profileName } : {})
+  });
+
   if (options.json) {
-    const state = await buildRepoControlState({
-      repoRoot: options.repoRoot,
-      targetRoot: options.targetRoot,
-      ...(options.profileName ? { profileName: options.profileName } : {})
-    });
+    const state = controlState;
     options.logger.info(JSON.stringify(state, null, 2));
     return state.validation.ok ? 0 : 1;
   }
@@ -73,6 +75,8 @@ export async function runStatus(options: StatusOptions): Promise<number> {
   };
 
   const lines = [
+    `repo state: ${controlState.repoState.title}`,
+    `repo detail: ${controlState.repoState.detail}`,
     `profile: ${selection.profileName} (${selection.source})`,
     `project type: ${inspection.projectType} (${inspection.projectTypeSource})`,
     `execution mode: ${executionMode}`,
@@ -86,7 +90,9 @@ export async function runStatus(options: StatusOptions): Promise<number> {
       ? `suggested MCP pack: ${activeRoleHints.nextSuggestedMcpPack}`
       : "suggested MCP pack: none recorded",
     activeRoleHints?.nextFileToRead ? `next file: ${activeRoleHints.nextFileToRead}` : "next file: none recorded",
-    activeRoleHints?.nextSuggestedCommand ? `next command: ${activeRoleHints.nextSuggestedCommand}` : "next command: none recorded",
+    activeRoleHints?.nextSuggestedCommand
+      ? `next command: ${activeRoleHints.nextSuggestedCommand}`
+      : `next command: ${controlState.repoOverview.find((item) => item.label === "Next command")?.value ?? "none recorded"}`,
     activeRoleHints?.nextAction ? `next action: ${activeRoleHints.nextAction}` : "next action: none recorded",
     continuity.currentFocus
       ? `current focus: ${continuity.currentFocus.currentFocus} [owner=${focusOwnerRole ?? continuity.currentFocus.focusOwnerRole}]`

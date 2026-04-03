@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Shrey Junior coordinates through files so humans and tools can inspect the same state. The table below documents the main artifact contracts.
+Kiwi Control coordinates through files so humans and tools can inspect the same state. The table below documents the main artifact contracts.
 
 ## Artifact Contract Table
 

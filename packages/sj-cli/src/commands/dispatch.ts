@@ -7,6 +7,7 @@ import { writeTaskPackets, summarizeWrites } from "@shrey-junior/sj-core/core/ex
 import { buildCanonicalReadNext, buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets, chooseNextFileToRead } from "@shrey-junior/sj-core/core/guidance.js";
 import { buildFanoutPackets } from "@shrey-junior/sj-core/core/planner.js";
 import { evaluatePolicyPoint } from "@shrey-junior/sj-core/core/policies.js";
+import { PRODUCT_METADATA } from "@shrey-junior/sj-core/core/product.js";
 import { loadContinuitySnapshot, updateActiveRoleHints } from "@shrey-junior/sj-core/core/state.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "@shrey-junior/sj-core/core/profiles.js";
 import { inspectBootstrapTarget } from "@shrey-junior/sj-core/core/project-detect.js";
@@ -176,7 +177,7 @@ export async function runDispatch(options: DispatchOptions): Promise<number> {
     nextFileToRead: chooseNextFileToRead({
       latestDispatchManifest: ".agent/state/dispatch/latest-manifest.json"
     }),
-    nextSuggestedCommand: `shrey-junior collect --target "${options.targetRoot}"`,
+    nextSuggestedCommand: `${PRODUCT_METADATA.cli.primaryCommand} collect --target "${options.targetRoot}"`,
     writeTargets: buildWriteTargets(contract, [
       ...packets.map((packet) => packet.relativePath),
       ".agent/state/dispatch/latest-manifest.json"

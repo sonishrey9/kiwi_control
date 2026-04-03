@@ -1,6 +1,6 @@
 # Project Agent Routing
 
-This repository uses Shrey Junior as the repo-local control plane.
+This repository uses Kiwi Control as the repo-local control plane.
 Profile: `{{profileName}}`
 Execution mode: `{{executionMode}}`
 
@@ -38,7 +38,7 @@ Safety rules:
 Workflow thresholds:
 
 - trivial work may stay direct when it is a typo, wording fix, one-line local change, or low-risk formatting with no contract, auth, data, security, release, or multi-file impact
-- non-trivial work should use Shrey Junior framing when it touches multiple files, changes interfaces or stable contracts, is guarded or cross-cutting, affects auth/data/security/release behavior, or benefits from reviewer/tester separation
+- non-trivial work should use Kiwi Control framing when it touches multiple files, changes interfaces or stable contracts, is guarded or cross-cutting, affects auth/data/security/release behavior, or benefits from reviewer/tester separation
 
 Use the control plane like this:
 

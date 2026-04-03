@@ -1,12 +1,12 @@
-# Shrey Junior
+# Kiwi Control
 
-Shrey Junior is a local-first, repo-first control plane for coding agents.
+Kiwi Control is a local-first, repo-first control plane for coding agents.
 
-It helps developers keep repo-local artifacts as the portable source of truth while still working across different runtimes, tools, and local setups. Machine-global files are accelerators only. CI is the hard enforcement layer.
+It gives developers one installable CLI and desktop control surface while keeping the real authority inside the repo. Repo-local artifacts are the portable source of truth. Machine-global files are accelerators only. CI remains the hard enforcement layer.
 
 ## Product thesis
 
-Shrey Junior is not a generic AI wrapper.
+Kiwi Control is not a generic AI tooling wrapper.
 
 It is a repo-first control plane for coding agents:
 
@@ -20,14 +20,14 @@ It is a repo-first control plane for coding agents:
 
 ## Package architecture
 
-The product is now split into three installable layers:
+The product is split into three installable layers:
 
 - `sj-core`
-  Platform-neutral business logic, artifact schemas, routing, checkpoints, handoffs, repo memory, validation, and repo contract generation.
+  Platform-neutral business logic, schemas, routing, checkpoints, handoffs, repo memory, validation, recommendations, and repo contract generation.
 - `sj-cli`
-  Stable command-line surface over `sj-core` with human-readable and JSON output paths.
+  Stable command-line surface over `sj-core` with human-readable and JSON output.
 - `sj-ui`
-  A local desktop shell with a Tauri-based packaging scaffold. It is designed to read repo-local state through a thin local bridge rather than inventing hidden authoritative state.
+  A local Tauri desktop shell that reads repo-local state through a thin local bridge.
 
 Canonical authority in this repo still lives only in:
 
@@ -37,121 +37,169 @@ Canonical authority in this repo still lives only in:
 
 Generated repo artifacts remain outputs, not authority.
 
-## What works today
+## Visible rebrand, compatible beta contract
 
-- repo initialization, standardization, sync, packets, dispatch, collect, reconcile, checkpoints, handoffs, and push-readiness checks
-- canonical specialist registry used across routing, continuity, docs, and CLI output
-- repo-local memory bank under `.agent/memory/`
-- curated MCP pack guidance with explicit realism notes
-- workspace builds for `sj-core`, `sj-cli`, and `sj-ui`
-- a desktop UI shell and Tauri packaging scaffold
-- source and smoke-test coverage for the repo-first operating model
+This beta uses a visible rebrand only:
 
-## What is intentionally honest
+- the product name is `Kiwi Control`
+- the primary CLI command is `kiwi-control`
+- the short alias is `kc`
+- compatibility aliases `shrey-junior` and `sj` still work
+- repo-local schema and artifact IDs remain `shrey-junior/*` during `0.2.0-beta.1`
+- package boundaries stay `sj-core`, `sj-cli`, and `sj-ui`
 
-- MCP packs are guidance, not guaranteed runtime capability
-- desktop packaging still needs platform signing and updater keys before public release
-- Homebrew and winget scaffolding is included, but live publication is still a release step
-- the UI shell exists now, but the local runtime bridge should keep evolving until it is fully release-ready
+## Quickstart
 
-## Install and run
+### Install the CLI
 
-### From source
+For `0.2.0-beta.1`, GitHub Releases is the primary install path.
+
+1. Download the matching Kiwi Control CLI bundle from GitHub Releases.
+2. Extract it.
+3. Run the included installer:
+
+```bash
+./install.sh
+```
+
+On Windows:
+
+```powershell
+.\install.ps1
+```
+
+The beta CLI bundle stays Node-backed. Install Node.js 22 or newer before running the installed commands.
+
+After install, use:
+
+```bash
+kiwi-control --help
+kc --help
+```
+
+### First repo workflow
+
+```bash
+kiwi-control init --target /path/to/repo
+kiwi-control status --target /path/to/repo
+kiwi-control check --target /path/to/repo
+```
+
+If the repo is generic and not initialized yet, Kiwi Control stays quiet until you opt in.
+
+### Continue work with checkpoints and handoffs
+
+```bash
+kiwi-control checkpoint "finish contract pass" --target /path/to/repo
+kiwi-control handoff --target /path/to/repo --to claude
+```
+
+Repo-local continuity stays under:
+
+- `.agent/state/`
+- `.agent/memory/`
+- native repo instruction surfaces
+
+### Open the desktop app
+
+Install the matching Kiwi Control desktop bundle from the same GitHub Release, then either open the app from your OS launcher or run:
+
+```bash
+kiwi-control ui
+```
+
+The desktop app stays repo-backed and non-authoritative. It mirrors:
+
+- Repo Overview
+- Continuity
+- Memory Bank
+- Specialists
+- MCP Packs
+- Validation
+
+## How to use Kiwi Control
+
+### Installed CLI users
+
+```bash
+kiwi-control init --target /path/to/repo
+kiwi-control status --target /path/to/repo
+kiwi-control check --target /path/to/repo
+kiwi-control specialists
+kiwi-control checkpoint "beta handoff ready" --target /path/to/repo
+kiwi-control handoff --target /path/to/repo --to claude
+```
+
+Use `kc` when you want the short alias:
+
+```bash
+kc status --target /path/to/repo
+```
+
+### Installed desktop users
+
+```bash
+kiwi-control ui
+```
+
+If the desktop bundle is installed and CLI-launchable, Kiwi Control opens it directly. If it is not installed yet, the CLI tells you the next exact step instead of pretending the desktop path exists.
+
+### Source contributors
 
 ```bash
 npm install
 npm run build
 npm test
 bash scripts/smoke-test.sh
-```
-
-CLI examples:
-
-```bash
-node packages/sj-cli/dist/cli.js check --target "/path/to/repo"
-node packages/sj-cli/dist/cli.js status --target "/path/to/repo"
-node packages/sj-cli/dist/cli.js specialists --json
-node packages/sj-cli/dist/cli.js ui --target "/path/to/repo" --json
-```
-
-Desktop shell from source:
-
-```bash
+npm run cli -- status --target .
 npm run ui:dev
 ```
 
-See [docs/install.md](docs/install.md) for the local install and packaging channels plan.
+Contributor-only `npm run ...` commands stay documented, but they are not the primary end-user story.
 
-## Command surface
+## Public command surface
 
-Core CLI commands:
+Core public commands:
 
-- `bootstrap`
-- `standardize`
-- `audit`
-- `check`
-- `init`
-- `sync`
-- `run`
-- `fanout`
-- `checkpoint`
-- `handoff`
-- `status`
-- `specialists`
-- `ui`
-- `push-check`
-- `dispatch`
-- `collect`
-- `reconcile`
+- `kiwi-control init`
+- `kiwi-control status`
+- `kiwi-control check`
+- `kiwi-control specialists`
+- `kiwi-control checkpoint`
+- `kiwi-control handoff`
+- `kiwi-control ui`
 
-Use `--json` on `check`, `status`, `specialists`, and `ui` when a machine-readable payload is more useful than plain text.
+Use `--json` on `status`, `check`, `specialists`, and `ui` when machine-readable output is more useful than plain text.
 
-## Repo-local continuity
+Advanced control-plane commands still exist, but they are intentionally secondary to the core public workflow. Use `kiwi-control --help` for the full surface.
 
-Repo continuity is first-class and stays local:
+## What works now
 
-- `.agent/state/current-phase.json`
-- `.agent/state/active-role-hints.json`
-- `.agent/state/checkpoints/latest.json`
-- `.agent/state/handoff/`
-- `.agent/memory/repo-facts.json`
-- `.agent/memory/current-focus.json`
-- `.agent/memory/open-risks.json`
+- installed CLI naming with `kiwi-control` as the primary command and `kc` as the short alias
+- source contributor workflow with `npm run cli -- ...` and `npm run ui:dev`
+- repo initialization, status, validation, checkpoints, handoffs, routing, and continuity
+- canonical specialist registry across CLI, UI, docs, and routing
+- repo-local memory bank under `.agent/memory/`
+- curated MCP pack guidance with explicit realism notes
+- release manifest generation plus a staged CLI bundle with public install wrappers
+- Homebrew and winget templates aligned with Kiwi Control artifact names
 
-The compact memory bank remains the portable continuity layer. MCP memory and machine-global memory are accelerators only.
+## What is still manual before a public release
 
-## MCP packs
-
-Curated packs included today:
-
-- `core-pack`
-- `research-pack`
-- `web-qa-pack`
-- `aws-pack`
-- `ios-pack`
-- `android-pack`
-
-These packs shape routing and guidance. They do not promise universal tool parity.
-
-## Public beta readiness
-
-The repo now contains:
-
-- workspace package boundaries
-- Tauri desktop scaffolding
-- release manifest generation
-- CI workflow scaffolding
-- Homebrew and winget templates
-- issue templates and community docs
-- roadmap and contribution guidance
+- publishing the GitHub Release assets
+- macOS signing and notarization
+- Windows signing
+- Tauri updater signing and activation
+- Homebrew publication
+- winget publication
 
 See:
 
-- [docs/package-architecture.md](docs/package-architecture.md)
-- [docs/release-packaging.md](docs/release-packaging.md)
-- [ROADMAP.md](ROADMAP.md)
-- [CONTRIBUTING.md](CONTRIBUTING.md)
-- [SUPPORT.md](SUPPORT.md)
+- [docs/install.md](/Volumes/shrey%20ssd/shrey-junior/docs/install.md)
+- [docs/package-architecture.md](/Volumes/shrey%20ssd/shrey-junior/docs/package-architecture.md)
+- [docs/release-packaging.md](/Volumes/shrey%20ssd/shrey-junior/docs/release-packaging.md)
+- [docs/beta-readiness-checklist.md](/Volumes/shrey%20ssd/shrey-junior/docs/beta-readiness-checklist.md)
+- [packaging/signing/README.md](/Volumes/shrey%20ssd/shrey-junior/packaging/signing/README.md)
 
 ## Non-goals
 

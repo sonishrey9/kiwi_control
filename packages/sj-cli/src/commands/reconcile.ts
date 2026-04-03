@@ -4,6 +4,7 @@ import { collectDispatchOutputs, loadLatestDispatchCollection, loadLatestDispatc
 import { buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets, chooseNextFileToRead } from "@shrey-junior/sj-core/core/guidance.js";
 import { buildReconcileReport, writeReconcileArtifacts } from "@shrey-junior/sj-core/core/reconcile.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "@shrey-junior/sj-core/core/profiles.js";
+import { PRODUCT_METADATA } from "@shrey-junior/sj-core/core/product.js";
 import { recommendMcpPack } from "@shrey-junior/sj-core/core/recommendations.js";
 import { recommendNextSpecialist } from "@shrey-junior/sj-core/core/specialists.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
@@ -73,8 +74,8 @@ export async function runReconcile(options: ReconcileOptions): Promise<number> {
     }),
     nextSuggestedCommand:
       report.status === "ready-for-next-phase"
-        ? `shrey-junior checkpoint "<milestone>" --target "${options.targetRoot}"`
-        : `shrey-junior collect --target "${options.targetRoot}"`,
+        ? `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "<milestone>" --target "${options.targetRoot}"`
+        : `${PRODUCT_METADATA.cli.primaryCommand} collect --target "${options.targetRoot}"`,
     checksToRun: buildChecksToRun(context.validationSteps),
     writeTargets: buildWriteTargets(contract, [renderDisplayPath(options.targetRoot, artifacts.jsonPath)]),
     stopConditions: buildStopConditions({

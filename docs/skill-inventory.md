@@ -79,9 +79,9 @@ Machine inventory captured safely on 2026-04-02 using directory metadata and ski
 - `prompt-optimizer`
 - `notion-*`
 
-## Shrey Junior integration status
+## Kiwi Control integration status
 
-Before this phase, Shrey Junior had a narrow specialist layer centered around:
+Before this phase, Kiwi Control had a narrow specialist layer centered around:
 
 - `python-specialist`
 - `qa-specialist`
@@ -93,7 +93,7 @@ Before this phase, Shrey Junior had a narrow specialist layer centered around:
 - `release-specialist`
 - `mcp-specialist`
 
-After hardening, Shrey Junior now formalizes the missing universal engineering specialists:
+After hardening, Kiwi Control now formalizes the missing universal engineering specialists:
 
 - `frontend-specialist`
 - `backend-specialist`
@@ -103,7 +103,7 @@ After hardening, Shrey Junior now formalizes the missing universal engineering s
 ## Portable vs non-portable
 
 - Codex and Claude skill directories are rich but machine-local
-- Shrey Junior specialists are portable because they live in canonical repo config
+- Kiwi Control specialists are portable because they live in canonical repo config
 - local agent skills under `~/.agents/skills` are useful reference material, but not automatically portable
 
 ## Gaps before hardening
@@ -118,4 +118,4 @@ After hardening, Shrey Junior now formalizes the missing universal engineering s
 
 - mobile-native specialist coverage is still indirect rather than explicit
 - data-platform specialist behavior is still represented mainly through profiles plus backend/security/release specialists
-- there is still no one-to-one bridge from machine-local skill names to Shrey Junior specialists; that remains an intentional abstraction layer
+- there is still no one-to-one bridge from machine-local skill names to Kiwi Control specialists; that remains an intentional abstraction layer

@@ -2,7 +2,7 @@
 
 ## Scope
 
-Shrey Junior integrates with Copilot-style workflows through repo-local GitHub surfaces rather than relying on personal editor prompts alone.
+Kiwi Control integrates with Copilot-style workflows through repo-local GitHub surfaces rather than relying on personal editor prompts alone.
 
 ## Repo-Local Copilot Surfaces
 
@@ -29,7 +29,7 @@ Shrey Junior integrates with Copilot-style workflows through repo-local GitHub s
 
 ## Structurally Supported Behavior
 
-- A Copilot runtime that reads repo-local GitHub instruction surfaces can align more closely with the Shrey Junior contract.
+- A Copilot runtime that reads repo-local GitHub instruction surfaces can align more closely with the Kiwi Control contract.
 - Specialist agent docs provide a repo-local role contract Copilot-like tools can read.
 
 ## Unproven Behavior

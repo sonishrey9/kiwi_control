@@ -10,11 +10,11 @@ function repoRoot(): string {
   return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 }
 
-async function createShreyJuniorWrapper(root: string, tempDir: string): Promise<string> {
-  const wrapperPath = path.join(tempDir, "shrey-junior");
+async function createCliWrapper(root: string, tempDir: string, commandName = "kiwi-control"): Promise<string> {
+  const wrapperPath = path.join(tempDir, commandName);
   await fs.writeFile(
     wrapperPath,
-    `#!/usr/bin/env bash\nexec node "${path.join(root, "dist", "cli.js")}" "$@"\n`,
+    `#!/usr/bin/env bash\nexec node "${path.join(root, "packages", "sj-cli", "dist", "cli.js")}" "$@"\n`,
     "utf8"
   );
   await fs.chmod(wrapperPath, 0o755);
@@ -54,20 +54,20 @@ test("sj-init help output is available", async () => {
   const result = runBashScript(path.join(root, "scripts", "sj-init.sh"), ["--help"]);
 
   assert.equal(result.code, 0);
-  assert.match(result.stdout, /Make the target folder Shrey Junior-ready/);
+  assert.match(result.stdout, /Make the target folder Kiwi Control-ready/);
   assert.match(result.stdout, /--dry-run/);
 });
 
 test("sj-init chooses bootstrap for an empty folder and runs status plus check", async () => {
   const root = repoRoot();
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-init-"));
-  const wrapper = await createShreyJuniorWrapper(root, tempDir);
+  const wrapper = await createCliWrapper(root, tempDir);
   const target = path.join(tempDir, "new-repo");
   await fs.mkdir(target, { recursive: true });
 
   const result = runBashScript(path.join(root, "scripts", "sj-init.sh"), ["--target", target], {
     env: {
-      SHREY_JUNIOR_BIN: wrapper
+      KIWI_CONTROL_BIN: wrapper
     }
   });
 
@@ -83,14 +83,14 @@ test("sj-init chooses bootstrap for an empty folder and runs status plus check",
 test("sj-init chooses standardize for an existing repo", async () => {
   const root = repoRoot();
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-init-"));
-  const wrapper = await createShreyJuniorWrapper(root, tempDir);
+  const wrapper = await createCliWrapper(root, tempDir);
   const target = path.join(tempDir, "existing-repo");
   await fs.mkdir(path.join(target, ".git"), { recursive: true });
   await fs.writeFile(path.join(target, "package.json"), '{\n  "name": "existing-repo"\n}\n', "utf8");
 
   const result = runBashScript(path.join(root, "scripts", "sj-init.sh"), ["--target", target, "--dry-run"], {
     env: {
-      SHREY_JUNIOR_BIN: wrapper
+      KIWI_CONTROL_BIN: wrapper
     }
   });
 
@@ -102,7 +102,7 @@ test("sj-init chooses standardize for an existing repo", async () => {
 test("sj-init stands down cleanly when repo authority opts out", async () => {
   const root = repoRoot();
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-init-"));
-  const wrapper = await createShreyJuniorWrapper(root, tempDir);
+  const wrapper = await createCliWrapper(root, tempDir);
   const target = path.join(tempDir, "opt-out-repo");
   await fs.mkdir(path.join(target, ".git"), { recursive: true });
   await fs.writeFile(
@@ -113,7 +113,7 @@ test("sj-init stands down cleanly when repo authority opts out", async () => {
 
   const result = runBashScript(path.join(root, "scripts", "sj-init.sh"), ["--target", target], {
     env: {
-      SHREY_JUNIOR_BIN: wrapper
+      KIWI_CONTROL_BIN: wrapper
     }
   });
 
@@ -125,13 +125,13 @@ test("sj-init stands down cleanly when repo authority opts out", async () => {
 test("sj-init dry-run does not mutate the target", async () => {
   const root = repoRoot();
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-init-"));
-  const wrapper = await createShreyJuniorWrapper(root, tempDir);
+  const wrapper = await createCliWrapper(root, tempDir);
   const target = path.join(tempDir, "dry-run-repo");
   await fs.mkdir(target, { recursive: true });
 
   const result = runBashScript(path.join(root, "scripts", "sj-init.sh"), ["--target", target, "--dry-run"], {
     env: {
-      SHREY_JUNIOR_BIN: wrapper
+      KIWI_CONTROL_BIN: wrapper
     }
   });
 
@@ -140,7 +140,7 @@ test("sj-init dry-run does not mutate the target", async () => {
   assert.equal(await fs.access(path.join(target, ".agent")).then(() => true).catch(() => false), false);
 });
 
-test("sj-init failure path is readable when shrey-junior is unavailable", async () => {
+test("sj-init failure path is readable when the Kiwi Control CLI is unavailable", async () => {
   const root = repoRoot();
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-init-"));
   const target = path.join(tempDir, "failure-repo");
@@ -148,15 +148,15 @@ test("sj-init failure path is readable when shrey-junior is unavailable", async 
 
   const result = runBashScript(path.join(root, "scripts", "sj-init.sh"), ["--target", target], {
     env: {
-      SHREY_JUNIOR_BIN: path.join(tempDir, "missing-shrey-junior")
+      KIWI_CONTROL_BIN: path.join(tempDir, "missing-kiwi-control")
     }
   });
 
   assert.equal(result.code, 1);
-  assert.match(result.stderr, /sj-init error: shrey-junior is not available on PATH/);
+  assert.match(result.stderr, /sj-init error: Kiwi Control CLI is not available on PATH/);
 });
 
-test("install-global installs sj-init into the global home and creates a PATH symlink", async () => {
+test("install-global installs kiwi-control plus compatibility aliases into the global home", async () => {
   const root = repoRoot();
   const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "sj-install-"));
   const globalHome = path.join(tempHome, ".shrey-junior");
@@ -173,16 +173,25 @@ test("install-global installs sj-init into the global home and creates a PATH sy
 
   assert.equal(result.code, 0);
   assert.match(result.stdout, /PATH-visible sj-init:/);
+  assert.match(result.stdout, /PATH-visible launcher: .*kiwi-control/);
   assert.match(result.stdout, /PATH update required:/);
 
   const homeSjInit = path.join(globalHome, "bin", "sj-init");
   const pathSjInit = path.join(pathBin, "sj-init");
+  const homeKiwiControl = path.join(globalHome, "bin", "kiwi-control");
+  const pathKiwiControl = path.join(pathBin, "kiwi-control");
+  const pathShreyJunior = path.join(pathBin, "shrey-junior");
   assert.equal(await fs.access(homeSjInit).then(() => true).catch(() => false), true);
+  assert.equal(await fs.access(homeKiwiControl).then(() => true).catch(() => false), true);
+  assert.equal(await fs.access(pathKiwiControl).then(() => true).catch(() => false), true);
   const symlinkStat = await fs.lstat(pathSjInit);
   assert.equal(symlinkStat.isSymbolicLink(), true);
   assert.equal(await fs.readlink(pathSjInit), homeSjInit);
+  const legacyAliasStat = await fs.lstat(pathShreyJunior);
+  assert.equal(legacyAliasStat.isSymbolicLink(), true);
+  assert.equal(await fs.readlink(pathShreyJunior), pathKiwiControl);
 
-  const helpResult = spawnSync(pathSjInit, ["--help"], {
+  const helpResult = spawnSync(pathKiwiControl, ["--help"], {
     env: {
       ...process.env,
       HOME: tempHome
@@ -190,5 +199,5 @@ test("install-global installs sj-init into the global home and creates a PATH sy
     encoding: "utf8"
   });
   assert.equal(helpResult.status ?? 1, 0);
-  assert.match(helpResult.stdout, /sj-init/);
+  assert.match(helpResult.stdout, /Kiwi Control/);
 });

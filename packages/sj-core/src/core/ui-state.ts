@@ -1,6 +1,7 @@
 import path from "node:path";
 import type { LoadedConfig } from "./config.js";
 import { loadCanonicalConfig } from "./config.js";
+import { PRODUCT_METADATA } from "./product.js";
 import { compileRepoContext } from "./context.js";
 import { getMemoryPaths, loadOpenRisks } from "./memory.js";
 import { inspectBootstrapTarget } from "./project-detect.js";
@@ -32,11 +33,26 @@ export interface RepoValidationSummary {
   issues: ValidationIssue[];
 }
 
+export type RepoControlMode =
+  | "bridge-unavailable"
+  | "repo-not-initialized"
+  | "initialized-invalid"
+  | "initialized-with-warnings"
+  | "healthy";
+
+export interface RepoControlStatus {
+  mode: RepoControlMode;
+  title: string;
+  detail: string;
+  sourceOfTruthNote: string;
+}
+
 export interface RepoControlState {
   targetRoot: string;
   profileName: string;
   executionMode: string;
   projectType: string;
+  repoState: RepoControlStatus;
   repoOverview: RepoControlPanelItem[];
   continuity: RepoControlPanelItem[];
   memoryBank: RepoMemoryBankEntry[];
@@ -137,28 +153,6 @@ export async function buildRepoControlStateFromConfig(options: {
     }))
   );
   const latestReconcile = await loadLatestReconcileReport(options.targetRoot);
-  const repoOverview: RepoControlPanelItem[] = [
-    { label: "Project type", value: `${inspection.projectType} (${inspection.projectTypeSource})` },
-    {
-      label: "Active role",
-      value:
-        normalizeSpecialistId(options.config, activeRoleHints?.activeRole, activeRoleHints?.activeRole) ??
-        "none recorded"
-    },
-    {
-      label: "Next file",
-      value: activeRoleHints?.nextFileToRead ?? continuity.currentFocus?.nextFileToRead ?? "none recorded"
-    },
-    {
-      label: "Next command",
-      value: activeRoleHints?.nextSuggestedCommand ?? continuity.currentFocus?.nextSuggestedCommand ?? "none recorded"
-    },
-    { label: "Validation state", value: summarizeValidation(validationIssues) },
-    {
-      label: "Current phase",
-      value: continuity.latestPhase ? `${continuity.latestPhase.label} [${continuity.latestPhase.status}]` : "none recorded"
-    }
-  ];
   const continuityItems: RepoControlPanelItem[] = [
     {
       label: "Latest checkpoint",
@@ -192,23 +186,39 @@ export async function buildRepoControlStateFromConfig(options: {
     warnings: validationIssues.filter((issue) => issue.level === "warn").length,
     issues: validationIssues
   };
+  const repoState = summarizeRepoState({
+    targetRoot: options.targetRoot,
+    inspection,
+    validation
+  });
+  const fallbackNextCommand = buildFallbackNextCommand(repoState.mode, options.targetRoot);
+  const fallbackNextFile = buildFallbackNextFile(inspection.existingAuthorityFiles);
+  const defaultRecommendedSpecialist =
+    repoState.mode === "repo-not-initialized"
+      ? inspection.projectType === "node"
+        ? "fullstack-specialist"
+        : inspection.projectType === "python"
+          ? "python-specialist"
+          : "architecture-specialist"
+      : repoState.mode === "initialized-invalid"
+        ? "review-specialist"
+        : recommendedSpecialist;
+  const repoOverview = summarizeRepoOverview();
 
   return {
     targetRoot: options.targetRoot,
     profileName: selection.profileName,
     executionMode,
     projectType: inspection.projectType,
+    repoState,
     repoOverview,
     continuity: continuityItems,
     memoryBank,
     specialists: {
-      recommendedSpecialist,
+      recommendedSpecialist: defaultRecommendedSpecialist,
       available: availableSpecialists,
       handoffTargets: availableSpecialists.map((specialist) => specialist.specialistId).slice(0, 8),
-      safeParallelHint:
-        latestTaskPacketSet?.files.length && latestTaskPacketSet.files.length > 1
-          ? "Parallel work is safest when each specialist owns disjoint files and reconcile is already planned."
-          : "Keep generic repos quiet. Fan out only when file ownership and reconcile responsibilities are explicit."
+      safeParallelHint: buildSafeParallelHint(repoState.mode, latestTaskPacketSet?.files.length ?? 0)
     },
     mcpPacks: {
       suggestedPack,
@@ -216,6 +226,31 @@ export async function buildRepoControlStateFromConfig(options: {
     },
     validation
   };
+
+  function summarizeRepoOverview(): RepoControlPanelItem[] {
+    return [
+      { label: "Project type", value: `${inspection.projectType} (${inspection.projectTypeSource})` },
+      {
+        label: "Active role",
+        value:
+          normalizeSpecialistId(options.config, activeRoleHints?.activeRole, activeRoleHints?.activeRole) ??
+          "none recorded"
+      },
+      {
+        label: "Next file",
+        value: activeRoleHints?.nextFileToRead ?? continuity.currentFocus?.nextFileToRead ?? fallbackNextFile
+      },
+      {
+        label: "Next command",
+        value: activeRoleHints?.nextSuggestedCommand ?? continuity.currentFocus?.nextSuggestedCommand ?? fallbackNextCommand
+      },
+      { label: "Validation state", value: summarizeValidation(validationIssues) },
+      {
+        label: "Current phase",
+        value: continuity.latestPhase ? `${continuity.latestPhase.label} [${continuity.latestPhase.status}]` : "none recorded"
+      }
+    ];
+  }
 }
 
 function summarizeValidation(issues: ValidationIssue[]): string {
@@ -228,4 +263,80 @@ function summarizeValidation(issues: ValidationIssue[]): string {
     return `${warnings} warning${warnings === 1 ? "" : "s"}`;
   }
   return `${errors} error${errors === 1 ? "" : "s"}, ${warnings} warning${warnings === 1 ? "" : "s"}`;
+}
+
+function summarizeRepoState(options: {
+  targetRoot: string;
+  inspection: Awaited<ReturnType<typeof inspectBootstrapTarget>>;
+  validation: RepoValidationSummary;
+}): RepoControlStatus {
+  const sourceOfTruthNote =
+    "Repo-local artifacts under .agent/ and promoted repo instruction files remain the source of truth. The desktop app only reads and reports that state.";
+
+  if (!options.inspection.alreadyInitialized) {
+    return {
+      mode: "repo-not-initialized",
+      title: "Repo not initialized yet",
+      detail: `Run ${PRODUCT_METADATA.cli.primaryCommand} init --target "${options.targetRoot}" to seed the repo-local control surfaces before using specialists, checkpoints, or handoffs.`,
+      sourceOfTruthNote
+    };
+  }
+
+  if (options.validation.errors > 0) {
+    return {
+      mode: "initialized-invalid",
+      title: "Repo contract needs repair",
+      detail: `${options.validation.errors} validation error${options.validation.errors === 1 ? "" : "s"} are blocking a healthy repo-local state. Use ${PRODUCT_METADATA.cli.primaryCommand} check --target "${options.targetRoot}" to inspect the contract drift.`,
+      sourceOfTruthNote
+    };
+  }
+
+  if (options.validation.warnings > 0) {
+    return {
+      mode: "initialized-with-warnings",
+      title: "Repo is usable with warnings",
+      detail: `${options.validation.warnings} warning${options.validation.warnings === 1 ? "" : "s"} remain, but the repo-local control surfaces are present and readable.`,
+      sourceOfTruthNote
+    };
+  }
+
+  return {
+    mode: "healthy",
+    title: "Repo state is healthy",
+    detail: "The repo-local control surfaces are present, validation is clean, and the desktop app can safely mirror the CLI view of repo state.",
+    sourceOfTruthNote
+  };
+}
+
+function buildFallbackNextCommand(mode: RepoControlMode, targetRoot: string): string {
+  switch (mode) {
+    case "repo-not-initialized":
+      return `${PRODUCT_METADATA.cli.primaryCommand} init --target "${targetRoot}"`;
+    case "initialized-invalid":
+      return `${PRODUCT_METADATA.cli.primaryCommand} check --target "${targetRoot}" --json`;
+    case "initialized-with-warnings":
+      return `${PRODUCT_METADATA.cli.primaryCommand} status --target "${targetRoot}"`;
+    default:
+      return "none recorded";
+  }
+}
+
+function buildFallbackNextFile(authorityFiles: string[]): string {
+  return authorityFiles[0] ?? "none recorded";
+}
+
+function buildSafeParallelHint(mode: RepoControlMode, taskFileCount: number): string {
+  if (mode === "repo-not-initialized") {
+    return "Initialize the repo before handing work to specialists. Generic repos should stay quiet until repo-local surfaces exist.";
+  }
+
+  if (mode === "initialized-invalid") {
+    return "Repair the repo-local contract first. Parallel work is premature while checkpoints, memory, or handoff state are invalid.";
+  }
+
+  if (taskFileCount > 1) {
+    return "Parallel work is safest when each specialist owns disjoint files and reconcile is already planned.";
+  }
+
+  return "Keep generic repos quiet. Fan out only when file ownership and reconcile responsibilities are explicit.";
 }

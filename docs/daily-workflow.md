@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This guide describes the practical day-to-day path for using Shrey Junior with:
+This guide describes the practical day-to-day path for using Kiwi Control with:
 
 - local Codex-style agents
 - local Claude-style agents
@@ -17,7 +17,7 @@ The operating rule is simple:
 
 ## One-Command Entry
 
-If you want Shrey Junior to decide `bootstrap` versus `standardize` for you, install and use:
+If you want Kiwi Control to decide `bootstrap` versus `standardize` for you, install and use:
 
 ```bash
 bash /path/to/shrey-junior/scripts/install-global.sh
@@ -67,7 +67,7 @@ sj-init --target /path/to/repo
 4. Run:
 
 ```bash
-shrey-junior status --target /path/to/repo
+kiwi-control status --target /path/to/repo
 ```
 
 5. Before serious work, use the active role and latest continuity artifacts instead of scanning the whole repo from scratch.
@@ -79,7 +79,7 @@ shrey-junior status --target /path/to/repo
 7. After meaningful work, record a checkpoint:
 
 ```bash
-shrey-junior checkpoint "<milestone>" --target /path/to/repo
+kiwi-control checkpoint "<milestone>" --target /path/to/repo
 ```
 
 ## Standardizing An Existing Repo
@@ -93,7 +93,7 @@ sj-init --target /path/to/repo --dry-run
 If you want to drive the lower-level commands directly:
 
 ```bash
-shrey-junior standardize --target /path/to/repo --dry-run
+kiwi-control standardize --target /path/to/repo --dry-run
 ```
 
 If the preview looks correct:
@@ -111,7 +111,7 @@ Dry-run should tell you:
 - which surfaces are skipped as irrelevant
 - what verification commands to run next
 
-If repo authority explicitly opts out, Shrey Junior should stand down.
+If repo authority explicitly opts out, Kiwi Control should stand down.
 
 ## Resuming Work In A Repo
 
@@ -139,7 +139,7 @@ The intent is to make the next useful read obvious and keep token spend low.
 Use `status` first:
 
 ```bash
-shrey-junior status --target /path/to/repo
+kiwi-control status --target /path/to/repo
 ```
 
 Then choose the workflow:
@@ -169,7 +169,7 @@ Use `handoff` whenever the next tool should not need to guess:
 Checkpoint after coherent work instead of relying on long session memory:
 
 ```bash
-shrey-junior checkpoint "<milestone>" --target /path/to/repo
+kiwi-control checkpoint "<milestone>" --target /path/to/repo
 ```
 
 ## Working Across Codex, Claude, And Copilot
@@ -227,14 +227,14 @@ Machine-global installation notes:
 Minimum:
 
 ```bash
-shrey-junior check --target /path/to/repo
+kiwi-control check --target /path/to/repo
 bash .agent/scripts/verify-contract.sh
 ```
 
 When the CLI is available, the generated verifier also runs:
 
 ```bash
-shrey-junior push-check --target /path/to/repo
+kiwi-control push-check --target /path/to/repo
 ```
 
 CI reruns the same repo-local verifier. That is the hard backstop when prompts are not enough.

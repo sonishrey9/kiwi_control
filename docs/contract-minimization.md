@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The repo-first contract is now selective rather than maximal. Shrey Junior no longer installs every Copilot instruction, every specialist role spec, and every agent surface into every repo by default.
+The repo-first contract is now selective rather than maximal. Kiwi Control no longer installs every Copilot instruction, every specialist role spec, and every agent surface into every repo by default.
 
 ## Classification Model
 

@@ -1,6 +1,6 @@
 # Global Integration
 
-This phase makes Shrey Junior intentionally available everywhere without forcing unsafe tool-global mutation.
+This phase makes Kiwi Control intentionally available everywhere without forcing unsafe tool-global mutation.
 
 ## Applied integration scope
 
@@ -56,7 +56,7 @@ These markers make reapply verification idempotent and rollback testable.
 
 ## What is guaranteed
 
-- exactly one managed Shrey Junior preference block can be asserted in Codex and Claude global files
+- exactly one managed Kiwi Control preference block can be asserted in Codex and Claude global files
 - the VS Code prompt file can be rewritten idempotently
 - `mcp.json` is verified as valid JSON
 - repo-local authority still overrides the global preference layer

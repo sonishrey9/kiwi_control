@@ -1,0 +1,20 @@
+class KiwiControl < Formula
+  desc "Kiwi Control CLI for repo-first local control of coding agents"
+  homepage "https://github.com/OWNER/kiwi-control"
+  url "https://github.com/OWNER/kiwi-control/releases/download/v__VERSION__/kiwi-control-cli-__VERSION__-darwin-arm64.tar.gz"
+  sha256 "__SHA256__"
+  version "__VERSION__"
+  depends_on "node@22"
+
+  def install
+    libexec.install Dir["*"]
+    bin.install_symlink libexec/"bin/kiwi-control" => "kiwi-control"
+    bin.install_symlink libexec/"bin/kc" => "kc"
+    bin.install_symlink libexec/"bin/shrey-junior" => "shrey-junior"
+    bin.install_symlink libexec/"bin/sj" => "sj"
+  end
+
+  test do
+    system "#{bin}/kiwi-control", "specialists", "--json"
+  end
+end

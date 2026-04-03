@@ -1,6 +1,7 @@
 import { loadLatestDispatchCollection, loadLatestDispatchManifest, collectDispatchOutputs, writeDispatchCollection } from "@shrey-junior/sj-core/core/dispatch.js";
 import { loadActiveRoleHints, updateActiveRoleHints } from "@shrey-junior/sj-core/core/state.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { PRODUCT_METADATA } from "@shrey-junior/sj-core/core/product.js";
 import { renderDisplayPath } from "@shrey-junior/sj-core/utils/fs.js";
 
 export interface CollectOptions {
@@ -25,7 +26,7 @@ export async function runCollect(options: CollectOptions): Promise<number> {
       projectType: activeRoleHints.projectType,
       supportingRoles: activeRoleHints.supportingRoles,
       nextFileToRead: ".agent/state/dispatch/latest-collect.json",
-      nextSuggestedCommand: `shrey-junior reconcile --target "${options.targetRoot}"`,
+      nextSuggestedCommand: `${PRODUCT_METADATA.cli.primaryCommand} reconcile --target "${options.targetRoot}"`,
       nextAction: "Review the latest dispatch collection, then reconcile the role outputs before checkpointing or handoff."
     });
   }

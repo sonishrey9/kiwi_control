@@ -2,7 +2,7 @@
 
 ## Goal
 
-Expose Shrey Junior specialist routing as repo-local role specs so Claude-style agents can align to the same contract even without machine-global Claude files.
+Expose Kiwi Control specialist routing as repo-local role specs so Claude-style agents can align to the same contract even without machine-global Claude files.
 
 ## Repo-Local Role Surfaces
 

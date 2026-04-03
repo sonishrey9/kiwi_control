@@ -2,7 +2,7 @@
   "name": "@shrey-junior/sj-core",
   "version": "0.2.0-beta.1",
   "type": "module",
-  "description": "Platform-neutral repo-first control plane engine for Shrey Junior",
+  "description": "Platform-neutral repo-first control plane engine for Kiwi Control",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [

@@ -15,13 +15,13 @@ For all tools:
 
 1. existing trusted repo authority files already in the repo
 2. promoted canonical docs explicitly referenced by those files
-3. generated Shrey Junior overlays
+3. generated Kiwi Control overlays
 4. `.agent/context/*`
 5. fallback templates
 
 Generated overlays are supporting control-plane outputs. They are not permission to ignore real repo truth.
 
-If repo-local authority explicitly opts out of Shrey Junior routing or specialist escalation, that repo-local instruction wins. Global preference layers should then stand down and behave as advisory context only.
+If repo-local authority explicitly opts out of Kiwi Control routing or specialist escalation, that repo-local instruction wins. Global preference layers should then stand down and behave as advisory context only.
 
 ## Trivial vs non-trivial
 
@@ -71,7 +71,7 @@ Non-trivial work should use the control plane when it is:
 ### GitHub Copilot
 
 - assume `bootstrap` or `sync` should establish repo-local guidance before non-trivial work in a fresh folder
-- treat this repo as instruction-governed by Shrey Junior
+- treat this repo as instruction-governed by Kiwi Control
 - align suggestions with packets, checks, and profile boundaries
 - avoid generic multi-file or contract-sensitive suggestions without packet-driven framing
 
@@ -80,7 +80,7 @@ Non-trivial work should use the control plane when it is:
 The global tool integration is guidance-first.
 
 - it can strongly shape prompts, overlays, and visible workflow instructions
-- it can prove idempotency, rollback, and repo-authority precedence through the Shrey Junior scripts
+- it can prove idempotency, rollback, and repo-authority precedence through the Kiwi Control scripts
 - it does not guarantee that every tool runtime will enforce those preferences without the surrounding repo-local artifacts
 
 ## Specialists and MCP

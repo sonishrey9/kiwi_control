@@ -1,6 +1,6 @@
 # Checkpointing
 
-Shrey Junior checkpoints are compact continuity artifacts for serious work. Use them after meaningful implementation, before QA-heavy review, before handoff, and before push-oriented validation.
+Kiwi Control checkpoints are compact continuity artifacts for serious work. Use them after meaningful implementation, before QA-heavy review, before handoff, and before push-oriented validation.
 
 Primary artifacts:
 
@@ -28,7 +28,7 @@ Each checkpoint captures:
 Operational guidance:
 
 - Fresh repos start with a bootstrap seed checkpoint. Replace it after real work.
-- Prefer `shrey-junior checkpoint "<milestone>" --target <repo>` after non-trivial implementation.
+- Prefer `kiwi-control checkpoint "<milestone>" --target <repo>` after non-trivial implementation.
 - Review and QA tools should read `active-role-hints.json`, then `current-phase.json`, then `checkpoints/latest.json`.
 - Review and QA tools should usually read `current-focus.json` immediately before or after the latest checkpoint.
 - Handoff and reconcile artifacts should point back to the latest checkpoint instead of repeating long histories.

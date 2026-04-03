@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import path from "node:path";
 import { resolveShreyJuniorProductRoot } from "@shrey-junior/sj-core";
+import { PRODUCT_METADATA, listCliCommandAliases } from "@shrey-junior/sj-core";
 import { Logger } from "@shrey-junior/sj-core/core/logger.js";
 import { runAudit } from "./commands/audit.js";
 import { runBootstrap } from "./commands/bootstrap.js";
@@ -28,9 +29,17 @@ interface ParsedArgs {
 
 async function main(): Promise<void> {
   const parsed = parseArgs(process.argv.slice(2));
+  const invokedCommand = resolveInvokedCommand(process.argv[1]);
   const repoRoot = resolveShreyJuniorProductRoot();
   const logger = new Logger(true);
   const targetRoot = typeof parsed.flags.target === "string" ? path.resolve(String(parsed.flags.target)) : process.cwd();
+  const helpRequested = parsed.flags.help === true || parsed.flags.h === true || parsed.command === "--help" || parsed.command === "-h" || parsed.command === "help";
+
+  if (helpRequested) {
+    printHelp(invokedCommand);
+    process.exitCode = 0;
+    return;
+  }
 
   switch (parsed.command) {
     case "bootstrap":
@@ -97,7 +106,7 @@ async function main(): Promise<void> {
     case "run": {
       const goal = parsed.positionals.join(" ").trim();
       if (!goal) {
-        throw new Error("run requires a goal");
+        throw new CliUsageError("run requires a goal string. Example: kiwi-control run \"stabilize repo-local docs\" --target /path/to/repo");
       }
       process.exitCode = await runRun({
         repoRoot,
@@ -113,7 +122,7 @@ async function main(): Promise<void> {
     case "checkpoint": {
       const label = parsed.positionals.join(" ").trim();
       if (!label) {
-        throw new Error("checkpoint requires a label");
+        throw new CliUsageError("checkpoint requires a label. Example: kiwi-control checkpoint \"beta handoff ready\" --target /path/to/repo");
       }
       process.exitCode = await runCheckpoint({
         repoRoot,
@@ -136,7 +145,7 @@ async function main(): Promise<void> {
     }
     case "handoff":
       if (typeof parsed.flags.to !== "string") {
-        throw new Error("handoff requires --to codex|claude|copilot");
+        throw new CliUsageError("handoff requires --to codex|claude|copilot. Example: kiwi-control handoff --target /path/to/repo --to claude");
       }
       process.exitCode = await runHandoff({
         repoRoot,
@@ -183,7 +192,7 @@ async function main(): Promise<void> {
     case "dispatch": {
       const goal = parsed.positionals.join(" ").trim();
       if (!goal) {
-        throw new Error("dispatch requires a goal");
+        throw new CliUsageError("dispatch requires a goal string. Example: kiwi-control dispatch \"split docs cleanup\" --target /path/to/repo");
       }
       process.exitCode = await runDispatch({
         repoRoot,
@@ -212,7 +221,7 @@ async function main(): Promise<void> {
     case "fanout": {
       const goal = parsed.positionals.join(" ").trim();
       if (!goal) {
-        throw new Error("fanout requires a goal");
+        throw new CliUsageError("fanout requires a goal string. Example: kiwi-control fanout \"stabilize release docs\" --target /path/to/repo");
       }
       process.exitCode = await runFanout({
         repoRoot,
@@ -225,8 +234,11 @@ async function main(): Promise<void> {
       return;
     }
     default:
-      printHelp();
-      process.exitCode = parsed.command ? 1 : 0;
+      if (parsed.command) {
+        throw new CliUsageError(`unknown command: ${parsed.command}`);
+      }
+      printHelp(invokedCommand);
+      process.exitCode = 0;
   }
 }
 
@@ -259,31 +271,93 @@ function parseArgs(argv: string[]): ParsedArgs {
   return { command, positionals, flags };
 }
 
-function printHelp(): void {
-  console.log(`shrey-junior
+function printHelp(invokedCommand = PRODUCT_METADATA.cli.primaryCommand): void {
+  const primaryCommand = PRODUCT_METADATA.cli.primaryCommand;
+  const compatibilityAliasInvoked = PRODUCT_METADATA.cli.compatibilityCommands.includes(invokedCommand);
+  const aliasBanner = compatibilityAliasInvoked
+    ? `\nCompatibility alias invoked: ${invokedCommand}. Prefer ${primaryCommand} or ${PRODUCT_METADATA.cli.shortCommand} in new scripts and docs.\n`
+    : "";
 
-Usage:
-  shrey-junior bootstrap --target /path/to/folder [--profile profile-name] [--project-type python|node|docs|data-platform|generic] [--dry-run] [--json]
-  shrey-junior standardize --target /path/to/repo [--profile profile-name] [--project-type python|node|docs|data-platform|generic] [--dry-run] [--backup] [--json]
-  shrey-junior audit --target /path/to/repo [--report /path/to/report.md]
-  shrey-junior check [--target /path/to/repo] [--profile profile-name] [--json]
-  shrey-junior init --target /path/to/repo [--profile profile-name]
-  shrey-junior sync --target /path/to/repo [--dry-run] [--diff-summary] [--backup]
-  shrey-junior run "goal" --target /path/to/repo [--profile profile-name] [--mode assisted|guarded|inline] [--tool codex|claude|copilot]
-  shrey-junior fanout "goal" --target /path/to/repo [--profile profile-name] [--mode assisted|guarded|inline]
-  shrey-junior checkpoint "label" --target /path/to/repo [--goal text] [--tool codex|claude|copilot] [--profile profile-name] [--mode assisted|guarded|inline] [--status in-progress|complete|blocked] [--validations a,b] [--warnings a,b] [--open-issues a,b] [--next text]
-  shrey-junior handoff --target /path/to/repo --to codex|claude|copilot [--profile profile-name]
-  shrey-junior status --target /path/to/repo [--profile profile-name] [--json]
-  shrey-junior specialists [--profile profile-name] [--json]
-  shrey-junior ui --target /path/to/repo [--profile profile-name] [--json]
-  shrey-junior push-check --target /path/to/repo [--profile profile-name]
-  shrey-junior dispatch "goal" --target /path/to/repo [--profile profile-name] [--mode assisted|guarded|inline]
-  shrey-junior collect --target /path/to/repo
-  shrey-junior reconcile --target /path/to/repo [--profile profile-name]
+  console.log(`${PRODUCT_METADATA.displayName}${aliasBanner}
+
+Primary commands:
+  ${primaryCommand}
+  ${PRODUCT_METADATA.cli.shortCommand}
+
+Core commands:
+  ${primaryCommand} init --target /path/to/repo [--profile profile-name]
+  ${primaryCommand} status [--target /path/to/repo] [--profile profile-name] [--json]
+  ${primaryCommand} check [--target /path/to/repo] [--profile profile-name] [--json]
+  ${primaryCommand} specialists [--profile profile-name] [--json]
+  ${primaryCommand} checkpoint "label" --target /path/to/repo [--goal text] [--tool codex|claude|copilot] [--profile profile-name] [--mode assisted|guarded|inline] [--status in-progress|complete|blocked] [--validations a,b] [--warnings a,b] [--open-issues a,b] [--next text]
+  ${primaryCommand} handoff --target /path/to/repo --to codex|claude|copilot [--profile profile-name]
+  ${primaryCommand} ui [--target /path/to/repo] [--profile profile-name] [--json]
+
+Advanced commands:
+  ${primaryCommand} bootstrap --target /path/to/folder [--profile profile-name] [--project-type python|node|docs|data-platform|generic] [--dry-run] [--json]
+  ${primaryCommand} standardize --target /path/to/repo [--profile profile-name] [--project-type python|node|docs|data-platform|generic] [--dry-run] [--backup] [--json]
+  ${primaryCommand} audit --target /path/to/repo [--report /path/to/report.md]
+  ${primaryCommand} sync --target /path/to/repo [--dry-run] [--diff-summary] [--backup]
+  ${primaryCommand} run "goal" --target /path/to/repo [--profile profile-name] [--mode assisted|guarded|inline] [--tool codex|claude|copilot]
+  ${primaryCommand} fanout "goal" --target /path/to/repo [--profile profile-name] [--mode assisted|guarded|inline]
+  ${primaryCommand} dispatch "goal" --target /path/to/repo [--profile profile-name] [--mode assisted|guarded|inline]
+  ${primaryCommand} collect --target /path/to/repo
+  ${primaryCommand} reconcile --target /path/to/repo [--profile profile-name]
+  ${primaryCommand} push-check --target /path/to/repo [--profile profile-name]
+
+Installed usage:
+  ${primaryCommand} init --target /path/to/repo
+  ${primaryCommand} status --target /path/to/repo
+  ${primaryCommand} check --target /path/to/repo
+  ${primaryCommand} checkpoint "beta handoff ready" --target /path/to/repo
+  ${primaryCommand} handoff --target /path/to/repo --to claude
+  ${primaryCommand} ui
+
+Contributor source usage:
+  npm install
+  npm run build
+  ${PRODUCT_METADATA.cli.sourceLauncher} status --target .
+  ${PRODUCT_METADATA.cli.sourceDesktopLauncher}
+
+Compatibility:
+  internal packages remain sj-core, sj-cli, and sj-ui
+  repo-local schema and artifact IDs remain ${PRODUCT_METADATA.compatibility.schemaPrefix}/*
+  temporary beta aliases: ${PRODUCT_METADATA.cli.compatibilityCommands.join(" | ")}
+  primary public commands: ${primaryCommand} | ${PRODUCT_METADATA.cli.shortCommand}
 `);
 }
 
+function resolveInvokedCommand(argv1?: string): string {
+  const fallback = PRODUCT_METADATA.cli.primaryCommand;
+  if (!argv1) {
+    return fallback;
+  }
+
+  const invokedName = path.basename(argv1).replace(/\.(cjs|mjs|js|cmd|ps1|bat|exe)$/i, "");
+  return listCliCommandAliases().includes(invokedName) ? invokedName : fallback;
+}
+
+class CliUsageError extends Error {}
+
 main().catch((error: unknown) => {
-  console.error((error as Error).message);
+  if (error instanceof CliUsageError) {
+    console.error(`${PRODUCT_METADATA.cli.primaryCommand} usage error: ${error.message}`);
+    console.error(
+      `Core commands: ${[
+        "init",
+        "status",
+        "check",
+        "specialists",
+        "checkpoint",
+        "handoff",
+        "ui"
+      ].join(", ")}`
+    );
+    console.error(`Run \`${PRODUCT_METADATA.cli.primaryCommand} --help\` for the current command surface.`);
+    process.exitCode = 2;
+    return;
+  }
+
+  console.error(`${PRODUCT_METADATA.displayName} error: ${(error as Error).message}`);
   process.exitCode = 1;
 });

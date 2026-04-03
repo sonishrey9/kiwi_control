@@ -2,7 +2,7 @@
 
 ## Bootstrap
 
-`bootstrap` prepares a target folder or repo with the portable Shrey Junior contract.
+`bootstrap` prepares a target folder or repo with the portable Kiwi Control contract.
 
 It currently:
 
@@ -23,7 +23,7 @@ It currently:
 Command:
 
 ```bash
-shrey-junior standardize --target /path/to/repo [--profile <name>] [--project-type <type>] [--dry-run] [--backup]
+kiwi-control standardize --target /path/to/repo [--profile <name>] [--project-type <type>] [--dry-run] [--backup]
 ```
 
 Behavior:
@@ -36,7 +36,7 @@ Behavior:
 
 ## Stand-Down Behavior
 
-If repo authority explicitly requests repo-local-only behavior or explicitly opts out of Shrey Junior routing, bootstrap and standardize should stand down rather than forcing the contract into place.
+If repo authority explicitly requests repo-local-only behavior or explicitly opts out of Kiwi Control routing, bootstrap and standardize should stand down rather than forcing the contract into place.
 
 ## Idempotency
 

@@ -1,3 +1,5 @@
+import { spawn } from "node:child_process";
+import { PRODUCT_METADATA, isSourceProductCheckout } from "@shrey-junior/sj-core";
 import { buildRepoControlState } from "@shrey-junior/sj-core/core/ui-state.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 
@@ -9,38 +11,133 @@ export interface UiOptions {
   logger: Logger;
 }
 
-export async function runUi(options: UiOptions): Promise<number> {
-  const state = await buildRepoControlState({
-    repoRoot: options.repoRoot,
-    targetRoot: options.targetRoot,
-    ...(options.profileName ? { profileName: options.profileName } : {})
-  });
+interface DesktopLaunchCandidate {
+  command: string;
+  args: string[];
+}
 
+const DESKTOP_BINARY_CANDIDATES = ["kiwi-control-ui", "kiwi-control-desktop"];
+
+export async function runUi(options: UiOptions): Promise<number> {
   if (options.json) {
+    const state = await buildRepoControlState({
+      repoRoot: options.repoRoot,
+      targetRoot: options.targetRoot,
+      ...(options.profileName ? { profileName: options.profileName } : {})
+    });
+
     options.logger.info(JSON.stringify(state, null, 2));
-    return state.validation.ok ? 0 : 1;
+    return 0;
   }
 
-  const lines = [
-    "repo overview:",
-    ...state.repoOverview.map((item) => `- ${item.label}: ${item.value}`),
-    "continuity:",
-    ...state.continuity.map((item) => `- ${item.label}: ${item.value}`),
-    "memory bank:",
-    ...state.memoryBank.map((entry) => `- ${entry.label}: ${entry.present ? "present" : "missing"} (${entry.path})`),
-    "specialists:",
-    `- recommended: ${state.specialists.recommendedSpecialist}`,
-    `- handoff targets: ${state.specialists.handoffTargets.join(", ")}`,
-    `- safe parallel hint: ${state.specialists.safeParallelHint}`,
-    "mcp packs:",
-    `- suggested: ${state.mcpPacks.suggestedPack.id}`,
-    ...state.mcpPacks.available.map((pack) => `- ${pack.id}: ${pack.realismNotes[0]}`),
-    "validation:",
-    `- ok: ${state.validation.ok}`,
-    `- errors: ${state.validation.errors}`,
-    `- warnings: ${state.validation.warnings}`
-  ];
+  const launched = await launchDesktopControlSurface();
+  if (launched) {
+    options.logger.info(
+      `Launched ${PRODUCT_METADATA.desktop.appName}. Load repo-local state for ${options.targetRoot} from the Target repo field inside the desktop app.`
+    );
+    return 0;
+  }
 
-  options.logger.info(lines.join("\n"));
-  return state.validation.ok ? 0 : 1;
+  options.logger.error(buildDesktopUnavailableMessage(options.repoRoot));
+  return 1;
+}
+
+export function buildDesktopUnavailableMessage(repoRoot: string): string {
+  if (isSourceProductCheckout(repoRoot)) {
+    return `${PRODUCT_METADATA.desktop.appName} desktop is not installed from this source checkout. Run \`npm run build\` first if needed, then start the desktop shell with \`${PRODUCT_METADATA.cli.sourceDesktopLauncher}\`.`;
+  }
+
+  return `${PRODUCT_METADATA.desktop.appName} desktop is not installed or CLI-launchable on this machine. Install the matching ${PRODUCT_METADATA.desktop.appName} desktop bundle from the GitHub Release, then rerun \`${PRODUCT_METADATA.cli.primaryCommand} ui\`.`;
+}
+
+export function buildDesktopLaunchCandidates(): DesktopLaunchCandidate[] {
+  const candidates: DesktopLaunchCandidate[] = [];
+
+  for (const envName of PRODUCT_METADATA.compatibility.desktopEnvVars) {
+    const value = process.env[envName]?.trim();
+    if (!value) {
+      continue;
+    }
+
+    candidates.push(buildDesktopCandidateFromEnvValue(value));
+  }
+
+  if (process.platform === "darwin") {
+    candidates.push({
+      command: "open",
+      args: ["-a", PRODUCT_METADATA.desktop.appName]
+    });
+  }
+
+  for (const binaryName of DESKTOP_BINARY_CANDIDATES) {
+    candidates.push({
+      command: binaryName,
+      args: []
+    });
+  }
+
+  return candidates;
+}
+
+async function launchDesktopControlSurface(): Promise<boolean> {
+  for (const candidate of buildDesktopLaunchCandidates()) {
+    if (await tryLaunchDesktopCandidate(candidate)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function buildDesktopCandidateFromEnvValue(value: string): DesktopLaunchCandidate {
+  if (process.platform === "darwin" && value.endsWith(".app")) {
+    return {
+      command: "open",
+      args: [value]
+    };
+  }
+
+  if (value.endsWith(".js")) {
+    return {
+      command: "node",
+      args: [value]
+    };
+  }
+
+  if (process.platform === "win32" && /\.(cmd|bat)$/i.test(value)) {
+    return {
+      command: "cmd.exe",
+      args: ["/c", value]
+    };
+  }
+
+  if (process.platform === "win32" && /\.ps1$/i.test(value)) {
+    return {
+      command: "powershell.exe",
+      args: ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", value]
+    };
+  }
+
+  return {
+    command: value,
+    args: []
+  };
+}
+
+async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate): Promise<boolean> {
+  return await new Promise((resolve) => {
+    const child = spawn(candidate.command, candidate.args, {
+      detached: true,
+      stdio: "ignore"
+    });
+
+    child.once("error", () => {
+      resolve(false);
+    });
+
+    child.once("spawn", () => {
+      child.unref();
+      resolve(true);
+    });
+  });
 }

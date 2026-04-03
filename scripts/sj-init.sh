@@ -5,7 +5,7 @@ print_help() {
   cat <<'EOF'
 sj-init
 
-Make the target folder Shrey Junior-ready using the existing repo-first control plane.
+Make the target folder Kiwi Control-ready using the existing repo-first control plane.
 
 Usage:
   sj-init [--dry-run] [--force] [--type <type>] [--target <path>] [--no-check] [--verbose]
@@ -28,7 +28,7 @@ EOF
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SJ_BIN="${SHREY_JUNIOR_BIN:-shrey-junior}"
+SJ_BIN="${KIWI_CONTROL_BIN:-${SHREY_JUNIOR_BIN:-kiwi-control}}"
 TARGET_INPUT="."
 PROJECT_TYPE=""
 DRY_RUN=0
@@ -82,7 +82,7 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 if ! command -v "$SJ_BIN" >/dev/null 2>&1; then
-  echo "sj-init error: shrey-junior is not available on PATH" >&2
+  echo "sj-init error: Kiwi Control CLI is not available on PATH (tried '$SJ_BIN'). Set KIWI_CONTROL_BIN or SHREY_JUNIOR_BIN if you need a custom launcher." >&2
   exit 1
 fi
 

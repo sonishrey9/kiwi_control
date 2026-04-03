@@ -190,7 +190,7 @@ The only detection fix needed in this pass was already applied before this matri
 Prompt suite used for manual evaluation:
 
 - Prompt A: “In this repo, rename one typo in a markdown file and do not use any multi-step orchestration.”
-- Prompt B: “Analyze this repo, determine likely architecture, suggest whether this should be routed through Shrey Junior orchestration, and explain which specialist modes fit best.”
+- Prompt B: “Analyze this repo, determine likely architecture, suggest whether this should be routed through Kiwi Control orchestration, and explain which specialist modes fit best.”
 - Prompt C: “Follow the best workflow for this repo.” run in the conflicting local-instruction repo.
 - Prompt D: “Bootstrap a new project here using the preferred starter logic.”
 - Prompt E: “Run against the remote-jobs repo.”
@@ -264,4 +264,4 @@ Repo hygiene:
 
 ## Final Recommendation
 
-Shrey Junior is ready to preserve as the current baseline for global integration hardening. The global layer is now explicit, marker-based, idempotent, rollback-tested, and subordinate to repo-local authority. The next step is to commit this repo locally and then push it to a brand new empty remote so the work is not stranded on this machine.
+Kiwi Control is ready to preserve as the current baseline for global integration hardening. The global layer is now explicit, marker-based, idempotent, rollback-tested, and subordinate to repo-local authority. The next step is to commit this repo locally and then push it to a brand new empty remote so the work is not stranded on this machine.

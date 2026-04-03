@@ -2,8 +2,10 @@
   "name": "shrey-junior",
   "version": "0.2.0-beta.1",
   "type": "module",
-  "description": "Installable CLI for the Shrey Junior repo-first control plane",
+  "description": "Installable CLI for the Kiwi Control repo-first control plane",
   "bin": {
+    "kiwi-control": "dist/cli.js",
+    "kc": "dist/cli.js",
     "shrey-junior": "dist/cli.js",
     "sj": "dist/cli.js"
   },

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Machine-global Shrey Junior surfaces still matter, but they are no longer the source of truth. They are accelerators that point tools back to the repo-local contract whenever it exists.
+Machine-global Kiwi Control surfaces still matter, but they are no longer the source of truth. They are accelerators that point tools back to the repo-local contract whenever it exists.
 
 ## Current Accelerator Surfaces
 
@@ -21,7 +21,7 @@ Machine-global Shrey Junior surfaces still matter, but they are no longer the so
 When a repo has been bootstrapped or standardized:
 
 1. repo-local authority comes first
-2. repo-local Shrey Junior contract comes next
+2. repo-local Kiwi Control contract comes next
 3. machine-global accelerators only fill the gap when repo-local surfaces do not exist yet
 
 ## Practical Read Order Reinforced By Global Files
@@ -50,7 +50,7 @@ The accelerator layer should push tools toward the same first reads:
 
 ## Structurally Supported Behavior
 
-- Local tools that can see these home-directory files should start with better Shrey Junior alignment.
+- Local tools that can see these home-directory files should start with better Kiwi Control alignment.
 
 ## Unproven Behavior
 

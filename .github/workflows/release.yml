@@ -19,25 +19,55 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Install Linux desktop prerequisites
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
       - run: npm ci
       - run: npm run build
       - run: npm test
+      - run: npm run ui:build
       - run: node scripts/prepare-release-manifest.mjs
-      - name: Upload CLI build
+      - name: Upload staged CLI bundle
         uses: actions/upload-artifact@v4
         with:
-          name: shrey-junior-cli-${{ matrix.os }}
-          path: packages/sj-cli/dist
+          name: kiwi-control-cli-${{ matrix.os }}
+          path: dist/release/cli-bundle
       - name: Upload runtime assets
         uses: actions/upload-artifact@v4
         with:
-          name: shrey-junior-runtime-${{ matrix.os }}
+          name: kiwi-control-runtime-${{ matrix.os }}
           path: packages/sj-core/dist/runtime
       - name: Upload UI web bundle
         uses: actions/upload-artifact@v4
         with:
-          name: shrey-junior-ui-web-${{ matrix.os }}
+          name: kiwi-control-ui-web-${{ matrix.os }}
           path: apps/sj-ui/dist
-      - name: Desktop bundle placeholder
-        if: ${{ env.TAURI_SIGNING_PRIVATE_KEY != '' }}
-        run: echo "Configure signed Tauri desktop builds here once platform signing is ready."
+      - name: Build desktop bundle
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npm run ui:desktop:build
+      - name: Upload release manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: kiwi-control-release-manifest-${{ matrix.os }}
+          path: dist/release/release-manifest.json
+      - name: Upload desktop bundles
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: kiwi-control-desktop-${{ matrix.os }}
+          path: apps/sj-ui/src-tauri/target/release/bundle

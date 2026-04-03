@@ -116,6 +116,59 @@ body {
   color: var(--muted);
 }
 
+.bridge-note code {
+  font-family: "Geist Mono", "SFMono-Regular", monospace;
+}
+
+.repo-state-banner {
+  margin: 0 0 22px;
+  padding: 20px 22px;
+  border: 1px solid var(--stroke);
+  border-radius: 22px;
+  background: rgba(255, 252, 247, 0.78);
+  box-shadow: var(--shadow);
+}
+
+.repo-state-kicker {
+  margin: 0 0 8px;
+  font: 600 0.78rem/1.4 "Geist Mono", "SFMono-Regular", monospace;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.repo-state-banner h2 {
+  margin: 0 0 10px;
+  font-size: 1.55rem;
+}
+
+.repo-state-banner p:last-child {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.repo-state-healthy {
+  border-color: rgba(13, 124, 102, 0.3);
+  background: rgba(227, 247, 241, 0.72);
+}
+
+.repo-state-initialized-with-warnings,
+.repo-state-repo-not-initialized,
+.repo-state-initialized-invalid,
+.repo-state-bridge-unavailable {
+  border-color: rgba(165, 75, 26, 0.22);
+}
+
+.repo-state-initialized-invalid,
+.repo-state-bridge-unavailable {
+  background: rgba(255, 241, 232, 0.84);
+}
+
+.repo-state-repo-not-initialized,
+.repo-state-initialized-with-warnings {
+  background: rgba(255, 248, 236, 0.8);
+}
+
 .panel {
   padding: 20px;
   border: 1px solid var(--stroke);

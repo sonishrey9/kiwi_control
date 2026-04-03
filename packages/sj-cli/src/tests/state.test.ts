@@ -60,7 +60,7 @@ test("state ledger stores current phase and latest tool-specific handoff", async
     authoritySource: "repo-local",
     projectType: "node",
     nextFileToRead: ".agent/context/architecture.md",
-    nextSuggestedCommand: 'shrey-junior checkpoint "milestone" --target <repo>'
+    nextSuggestedCommand: 'kiwi-control checkpoint "milestone" --target <repo>'
   });
   const checkpoint: CheckpointRecord = {
     artifactType: "shrey-junior/checkpoint",
@@ -106,7 +106,7 @@ test("state ledger stores current phase and latest tool-specific handoff", async
     nextRecommendedSpecialist: "qa-specialist",
     nextSuggestedMcpPack: "web-qa-pack",
     nextRecommendedAction: "handoff to claude for review",
-    nextSuggestedCommand: 'shrey-junior handoff --target <repo> --to-tool claude'
+    nextSuggestedCommand: 'kiwi-control handoff --target <repo> --to-tool claude'
   };
   await writeCheckpointArtifacts(repoRoot, checkpoint);
 
@@ -133,7 +133,7 @@ test("state ledger stores current phase and latest tool-specific handoff", async
     openQuestions: ["manual review"],
     risks: [],
     nextFile: ".agent/context/architecture.md",
-    nextCommand: 'shrey-junior status --target <repo>',
+    nextCommand: 'kiwi-control status --target <repo>',
     recommendedMcpPack: "web-qa-pack",
     checkpointPointer: ".agent/state/checkpoints/latest.json",
     readFirst: ["AGENTS.md"],

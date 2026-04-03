@@ -4,11 +4,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-echo "Installing local dependencies for shrey-junior"
+echo "Installing local dependencies for Kiwi Control"
 npm install
 
-echo "Building local CLI"
+echo "Building workspace packages"
 npm run build
 
-echo "Local install ready. Run: node dist/cli.js check"
-
+echo "Local install ready."
+echo "Run the CLI from source with: npm run cli -- status --target ."
+echo "Run the desktop app from source with: npm run ui:dev"

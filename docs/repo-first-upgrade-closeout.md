@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document records the final productization pass that moved Shrey Junior toward a repo-first, cloud-portable orchestration contract.
+This document records the final productization pass that moved Kiwi Control toward a repo-first, cloud-portable orchestration contract.
 
 ## Scope
 
@@ -48,7 +48,7 @@ npm run build
 npm test
 bash scripts/verify-global.sh
 bash scripts/verify-global-hard.sh
-shrey-junior check
+kiwi-control check
 node dist/cli.js standardize --target "/Volumes/shrey ssd/shrey-junior/examples/sample-project" --dry-run
 bash scripts/install-global.sh
 sj-init --target "/tmp/shrey-junior-smoke" --dry-run
@@ -60,14 +60,14 @@ sj-init --target "/tmp/shrey-junior-smoke" --dry-run
 - `npm test`: PASS, 51/51 tests green
 - `verify-global.sh`: PASS, including `check passed`, a bootstrap dry-run that previews the minimized portable repo contract, and a sequential rerun after rebuild showing `selected profile: product-build (global-accelerator)` through the PATH launcher
 - `verify-global-hard.sh`: PASS, including versioned global marker counts, MCP JSON parse, Codex config marker validation, Claude settings validation, helper command validation, and restore script executability
-- `shrey-junior check`: PASS in the control-plane repo itself
+- `kiwi-control check`: PASS in the control-plane repo itself
 - `standardize --dry-run` on `examples/sample-project`: PASS, preserved `product-build (repo-authority)` and previewed the new role specs, Copilot surfaces, state directories, and CI contract workflow
 - selective generation: PASS, including python and docs repo fixtures that no longer seed irrelevant frontend or backend instruction authority
 - active-role hints: PASS, including bootstrap seed plus runtime pointer updates for task packets, handoff, dispatch, reconcile, next reads, checks, and next action
 - command and capability docs: PASS, including generated `commands.md`, `tool-capabilities.md`, and `mcp-capabilities.md` in the portable repo contract
 - git-aware checkpointing: PASS, including seed checkpoint artifacts plus runtime checkpoints with git state before the first commit
 - stale-pointer validation: PASS, including a failing test when `active-role-hints.json` references missing artifacts
-- CI push gate parity: PASS, with `.agent/scripts/verify-contract.sh` enforcing the portable artifact-backed gate and opportunistically running `shrey-junior push-check` when the CLI is available
+- CI push gate parity: PASS, with `.agent/scripts/verify-contract.sh` enforcing the portable artifact-backed gate and opportunistically running `kiwi-control push-check` when the CLI is available
 - repo-facing instruction templates: PASS, now explicitly direct cooperative tools to read `.agent/state/active-role-hints.json` early for current role focus and latest continuity pointers
 - first-read contract: PASS, with repo templates, active-role hints, packets, and machine-global accelerators all pointing tools to the same shortest repo-local read path
 - machine-global accelerators: PASS, now covering Codex config, Claude settings, and Claude helper commands while explicitly deferring to repo-local truth

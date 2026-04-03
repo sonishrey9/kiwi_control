@@ -5,6 +5,7 @@ import { inspectGitState } from "@shrey-junior/sj-core/core/git.js";
 import { getMemoryPaths, writeOpenRisksRecord } from "@shrey-junior/sj-core/core/memory.js";
 import { loadLatestReconcileReport } from "@shrey-junior/sj-core/core/reconcile.js";
 import { inspectBootstrapTarget } from "@shrey-junior/sj-core/core/project-detect.js";
+import { PRODUCT_METADATA } from "@shrey-junior/sj-core/core/product.js";
 import { loadProjectOverlay, resolveExecutionMode, resolvePrimaryToolOverride, resolveProfileSelection } from "@shrey-junior/sj-core/core/profiles.js";
 import { recommendMcpPack } from "@shrey-junior/sj-core/core/recommendations.js";
 import { assessGoalRisk } from "@shrey-junior/sj-core/core/risk.js";
@@ -145,10 +146,10 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
   const paths = await writePhaseRecord(options.targetRoot, record);
   const nextSuggestedCommand =
     record.status === "blocked"
-      ? `shrey-junior status --target "${options.targetRoot}"`
+      ? `${PRODUCT_METADATA.cli.primaryCommand} status --target "${options.targetRoot}"`
       : record.status === "complete"
-        ? `shrey-junior push-check --target "${options.targetRoot}"`
-        : `shrey-junior handoff --target "${options.targetRoot}" --to-tool ${decision.reviewTool}`;
+        ? `${PRODUCT_METADATA.cli.primaryCommand} push-check --target "${options.targetRoot}"`
+        : `${PRODUCT_METADATA.cli.primaryCommand} handoff --target "${options.targetRoot}" --to-tool ${decision.reviewTool}`;
   const checkpoint: CheckpointRecord = {
     artifactType: "shrey-junior/checkpoint",
     schemaVersion: 1,

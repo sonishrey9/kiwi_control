@@ -1,4 +1,5 @@
 import { renderDisplayPath } from "../utils/fs.js";
+import { PRODUCT_METADATA } from "./product.js";
 
 export interface PortableContractLike {
   instructionSurfaces: string[];
@@ -21,7 +22,7 @@ export function buildBootstrapNextFileToRead(): string {
 
 export function buildBootstrapNextSuggestedCommand(targetRoot?: string): string {
   const repoArg = targetRoot ? `"${targetRoot}"` : "<repo>";
-  return `shrey-junior checkpoint "context seeded" --target ${repoArg}`;
+  return `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "context seeded" --target ${repoArg}`;
 }
 
 export function chooseNextFileToRead(options: {
@@ -124,7 +125,7 @@ export function buildChecksToRun(validationSteps: string[] = []): string[] {
     ".agent/checks.yaml",
     "bash .agent/scripts/verify-contract.sh",
     ...validationSteps,
-    "shrey-junior push-check --target <repo> when the CLI is available"
+    `${PRODUCT_METADATA.cli.primaryCommand} push-check --target <repo> when the CLI is available`
   ]);
 }
 

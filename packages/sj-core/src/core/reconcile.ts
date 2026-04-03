@@ -3,6 +3,7 @@ import type { LoadedConfig } from "./config.js";
 import type { CompiledContext } from "./context.js";
 import type { DispatchCollection, DispatchManifest, DispatchRole, DispatchRoleResult } from "./dispatch.js";
 import { ensureDispatchLayout, getDispatchPaths, listDispatchManifests } from "./dispatch.js";
+import { PRODUCT_METADATA } from "./product.js";
 import { recommendMcpPack } from "./recommendations.js";
 import { recommendNextSpecialist } from "./specialists.js";
 import { loadActiveRoleHints, updateActiveRoleHints } from "./state.js";
@@ -162,8 +163,8 @@ export async function writeReconcileArtifacts(options: {
   const activeRoleHints = await loadActiveRoleHints(options.targetRoot);
   if (activeRoleHints) {
     const nextSuggestedCommand = options.report.status === "ready-for-next-phase"
-      ? `shrey-junior checkpoint "reconcile ${options.report.dispatchId}" --target "${options.targetRoot}"`
-      : `shrey-junior status --target "${options.targetRoot}"`;
+      ? `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "reconcile ${options.report.dispatchId}" --target "${options.targetRoot}"`
+      : `${PRODUCT_METADATA.cli.primaryCommand} status --target "${options.targetRoot}"`;
     const nextRecommendedSpecialist = options.config && options.profileName
       ? recommendNextSpecialist({
           config: options.config,

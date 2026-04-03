@@ -3,7 +3,7 @@
   "version": "0.2.0-beta.1",
   "private": true,
   "type": "module",
-  "description": "Local-first desktop control surface for the Shrey Junior repo control plane",
+  "description": "Local-first desktop control surface for the Kiwi Control repo control plane",
   "dependencies": {
     "@tauri-apps/api": "^2.0.0"
   },

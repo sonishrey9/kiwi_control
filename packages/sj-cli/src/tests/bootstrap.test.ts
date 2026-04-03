@@ -76,7 +76,7 @@ test("bootstrap applies repo-local overlays into a new folder", async () => {
   assert.equal(latestCheckpoint.artifactType, "shrey-junior/checkpoint");
   assert.equal(await fs.readFile(path.join(target, ".agent", "state", "checkpoints", "latest.md"), "utf8").then(() => true), true);
   const verifyContract = await fs.readFile(path.join(target, ".agent", "scripts", "verify-contract.sh"), "utf8");
-  assert.match(verifyContract, /shrey-junior push-check --target "\$REPO_ROOT"/);
+  assert.match(verifyContract, /kiwi-control push-check --target "\$REPO_ROOT"/);
   const workflow = await fs.readFile(path.join(target, ".github", "workflows", "shrey-junior-contract.yml"), "utf8");
   assert.match(workflow, /bash \.agent\/scripts\/verify-contract\.sh/);
 });

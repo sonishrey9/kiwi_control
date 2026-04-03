@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-Shrey Junior is a repo-aware control plane for coding agents. It is strongest when tools can read repo-local files and continuity artifacts. Machine-global surfaces accelerate local workflows, but the portable contract now lives in the repo itself.
+Kiwi Control is a repo-aware control plane for coding agents. It is strongest when tools can read repo-local files and continuity artifacts. Machine-global surfaces accelerate local workflows, but the portable contract now lives in the repo itself.
 
 This document distinguishes:
 
@@ -88,7 +88,7 @@ This document distinguishes:
 
 ```mermaid
 flowchart TB
-    U["User"] --> CLI["shrey-junior CLI"]
+    U["User"] --> CLI["kiwi-control CLI"]
 
     subgraph Global["User-global accelerators"]
         G1["~/.codex/AGENTS.md"]
@@ -137,7 +137,7 @@ flowchart TB
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant CLI as shrey-junior CLI
+    participant CLI as kiwi-control CLI
     participant DET as project-detect.ts
     participant BOOT as bootstrap.ts
     participant ROUTE as router.ts
@@ -215,12 +215,12 @@ flowchart TD
     A -- "Yes" --> B{"Repo authority opts out or conflicts?"}
     B -- "Yes" --> C["Stand down or warn"]
     B -- "No" --> D["Use repo authority + promoted repo docs first"]
-    A -- "No" --> E{"Repo-local Shrey Junior contract present?"}
+    A -- "No" --> E{"Repo-local Kiwi Control contract present?"}
     E -- "Yes" --> F["Use repo-local overlays, roles, and state"]
     E -- "No" --> G["Fallback to user-global accelerators and defaults"]
 ```
 
-Repo-local opt-out remains stronger than generated Shrey Junior overlays.
+Repo-local opt-out remains stronger than generated Kiwi Control overlays.
 
 ## Contract Minimization
 
@@ -261,7 +261,7 @@ flowchart LR
     subgraph Local["Local runtime"]
         L1["Can read repo-local files"]
         L2["Can read user-global accelerators"]
-        L3["Can invoke shrey-junior CLI"]
+        L3["Can invoke kiwi-control CLI"]
     end
 
     subgraph Cloud["Cloud runtime"]

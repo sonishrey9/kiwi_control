@@ -1,6 +1,6 @@
 # Global Bootstrap
 
-`shrey-junior bootstrap` makes the control plane discoverable from any new folder while keeping the actual operation repo-local.
+`kiwi-control bootstrap` makes the control plane discoverable from any new folder while keeping the actual operation repo-local.
 
 ## Goal
 
