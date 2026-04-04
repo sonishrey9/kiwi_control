@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { ContextSelection, ContextConfidence } from "./context-selector.js";
+import { taskNeedsExternalVerification } from "./task-intent.js";
 import { writeText } from "../utils/fs.js";
 
 // ---------------------------------------------------------------------------
@@ -26,10 +27,10 @@ const CORE_CONSTRAINTS = [
   "Minimal edits only — change only what the goal requires.",
   "No full repository scanning — use only the allowed files listed above.",
   "No refactoring unless the goal explicitly requires it.",
-  "No unnecessary web search — repo-local context is sufficient.",
+  "Prefer repo-local context first. Verify external behavior when the task depends on APIs, SDKs, or unknown contracts.",
   "No over-explaining — keep responses focused on the goal.",
   "Do not create files unless the goal requires new functionality.",
-  "Do not modify tests unless the goal is about testing.",
+  "Modify tests when behavior or contracts change.",
   "Read each file before editing — never write blind."
 ];
 
@@ -58,8 +59,8 @@ export function generateInstructions(
 ): GeneratedInstructions {
   const confidence: ContextConfidence = selection.confidence ?? "medium";
   const steps = deriveSteps(task, selection, confidence);
-  const constraints = deriveConstraints(confidence);
-  const validationSteps = deriveValidationSteps(selection);
+  const constraints = deriveConstraints(task, confidence);
+  const validationSteps = deriveValidationSteps(task, selection);
   const stopConditions = [...STOP_CONDITIONS_DEFAULT];
 
   const forbiddenPatterns = [
@@ -145,6 +146,10 @@ function deriveSteps(
   // Core implementation step
   steps.push(`Implement the goal: ${task}`);
 
+  if (taskNeedsExternalVerification(task)) {
+    steps.push("Verify external API, SDK, or contract behavior before relying on it in the change.");
+  }
+
   // Test guidance
   const hasTestFiles = signals.changedFiles.some(
     (f) => f.endsWith(".test.ts") || f.endsWith(".test.js") || f.endsWith("_test.py") || f.endsWith("_test.go") || f.includes("__tests__")
@@ -165,8 +170,14 @@ function deriveSteps(
 // Constraint derivation — confidence-aware
 // ---------------------------------------------------------------------------
 
-function deriveConstraints(confidence: ContextConfidence): string[] {
+function deriveConstraints(task: string, confidence: ContextConfidence): string[] {
   const constraints = [...CORE_CONSTRAINTS];
+
+  if (taskNeedsExternalVerification(task)) {
+    constraints.push(
+      "External verification is allowed for this task because it touches APIs, SDKs, or unknown runtime behavior."
+    );
+  }
 
   if (confidence === "low") {
     constraints.push(
@@ -187,7 +198,7 @@ function deriveConstraints(confidence: ContextConfidence): string[] {
 // Validation step derivation
 // ---------------------------------------------------------------------------
 
-function deriveValidationSteps(selection: ContextSelection): string[] {
+function deriveValidationSteps(task: string, selection: ContextSelection): string[] {
   const steps = [...VALIDATION_STEPS_DEFAULT];
 
   const hasTypeScript = selection.include.some(
@@ -204,6 +215,9 @@ function deriveValidationSteps(selection: ContextSelection): string[] {
   }
   if (hasRust) {
     steps.push("Run cargo check and cargo clippy.");
+  }
+  if (taskNeedsExternalVerification(task)) {
+    steps.push("Verify any external API, SDK, or runtime assumptions against source documentation or observed behavior.");
   }
 
   return steps;

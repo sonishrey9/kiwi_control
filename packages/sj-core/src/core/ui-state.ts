@@ -80,9 +80,6 @@ export interface KiwiControlTokenAnalytics {
 }
 
 export interface KiwiControlEfficiency {
-  avoidedRepoScan: boolean;
-  avoidedWebSearch: boolean;
-  minimalEditMode: boolean;
   instructionsGenerated: boolean;
   instructionsPath: string | null;
 }
@@ -537,9 +534,6 @@ async function loadKiwiControlState(targetRoot: string): Promise<KiwiControlStat
   const hasInstructions = await pathExists(instructionsPath);
 
   const efficiency: KiwiControlEfficiency = {
-    avoidedRepoScan: contextView.selectedFiles.length > 0,
-    avoidedWebSearch: true,
-    minimalEditMode: true,
     instructionsGenerated: hasInstructions,
     instructionsPath: hasInstructions ? instructionsPath : null
   };
@@ -547,7 +541,7 @@ async function loadKiwiControlState(targetRoot: string): Promise<KiwiControlStat
   // Load decision engine, feedback, and execution data in parallel
   const [decisionOutput, feedbackSummary, executionSummary] = await Promise.all([
     nextActionEngine(targetRoot).catch(() => ({ nextActions: [], summary: "Decision engine unavailable" })),
-    buildFeedbackSummary(targetRoot).catch(() => ({
+    buildFeedbackSummary(targetRoot, contextView.task ?? undefined).catch(() => ({
       totalRuns: 0, successRate: 0, recentEntries: [],
       topBoostedFiles: [], topPenalizedFiles: []
     })),

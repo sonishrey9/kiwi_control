@@ -43,7 +43,7 @@ export async function runPrepare(options: PrepareOptions): Promise<number> {
   const instructionPath = await persistInstructions(targetRoot, instructions);
   logger.info(`Instructions written to: ${instructionPath}`);
 
-  const tokenEstimate = await estimateTokens(targetRoot, selection.include);
+  const tokenEstimate = await estimateTokens(targetRoot, selection.include, task);
   await persistTokenUsage(targetRoot, task, tokenEstimate);
 
   const result: PrepareResult = {

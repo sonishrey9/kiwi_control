@@ -3,6 +3,7 @@ import { compileRepoContext } from "@shrey-junior/sj-core/core/context.js";
 import { buildBootstrapNextFileToRead, buildCanonicalReadNext, buildChecksToRun, buildSearchGuidance, buildStopConditions, buildWriteTargets, chooseNextFileToRead } from "@shrey-junior/sj-core/core/guidance.js";
 import { inspectGitState } from "@shrey-junior/sj-core/core/git.js";
 import { getMemoryPaths, writeOpenRisksRecord } from "@shrey-junior/sj-core/core/memory.js";
+import { loadPreparedScope, validateTouchedFilesAgainstAllowedFiles } from "@shrey-junior/sj-core/core/prepared-scope.js";
 import { loadLatestReconcileReport } from "@shrey-junior/sj-core/core/reconcile.js";
 import { inspectBootstrapTarget } from "@shrey-junior/sj-core/core/project-detect.js";
 import { PRODUCT_METADATA } from "@shrey-junior/sj-core/core/product.js";
@@ -63,6 +64,13 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
     riskLevel: decision.riskLevel
   });
   const gitState = await inspectGitState(options.targetRoot);
+  const preparedScope = await loadPreparedScope(options.targetRoot);
+  const scopeValidation = preparedScope
+    ? validateTouchedFilesAgainstAllowedFiles(preparedScope.allowedFiles, gitState.changedFiles)
+    : null;
+  const scopeFailure = scopeValidation && !scopeValidation.ok
+    ? `Prepared scope violated by touched files: ${scopeValidation.outOfScopeFiles.slice(0, 5).join(", ")}`
+    : null;
   const latestReconcile = await loadLatestReconcileReport(options.targetRoot);
   const memoryPaths = getMemoryPaths(options.targetRoot);
   const generatedAt = buildTemplateContext(options.targetRoot, config, {
@@ -100,6 +108,25 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
       .map((item) => item.trim())
       .filter(Boolean)
   });
+  const validationsRun = dedupeList([
+    ...parseCsvFlag(options.validations),
+    ...(preparedScope ? ["Prepared scope validation"] : [])
+  ]);
+  const warnings = dedupeList([
+    ...parseCsvFlag(options.warnings),
+    ...(scopeFailure ? [scopeFailure] : [])
+  ]);
+  const openIssues = dedupeList([
+    ...parseCsvFlag(options.openIssues),
+    ...(scopeFailure ? [scopeFailure] : [])
+  ]);
+  const phaseStatus = scopeFailure ? "blocked" : options.status ?? inferPhaseStatus(options.label);
+  const nextRecommendedStep = scopeFailure
+    ? "Refresh the prepared scope before recording another checkpoint."
+    : options.nextStep ??
+      (decision.requiredRoles.length > 0
+        ? `Continue with ${decision.requiredRoles.join(", ")} coverage before closing the work.`
+        : `Continue with ${decision.primaryTool} using the latest repo-local packets.`);
   const record: PhaseRecord = {
     artifactType: "shrey-junior/current-phase",
     version: 3,
@@ -110,7 +137,7 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
     profile: selection.profileName,
     mode: executionMode,
     ...(explicitTool ? { tool: explicitTool } : {}),
-    status: options.status ?? inferPhaseStatus(options.label),
+    status: phaseStatus,
     routingSummary: {
       taskType: decision.taskType,
       primaryTool: decision.primaryTool,
@@ -129,27 +156,25 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
       untrackedCount: gitState.untrackedCount,
       changedFiles: gitState.changedFiles.slice(0, 20)
     },
-    validationsRun: dedupeList(parseCsvFlag(options.validations)),
-    warnings: dedupeList(parseCsvFlag(options.warnings)),
-    openIssues: dedupeList(parseCsvFlag(options.openIssues)),
+    validationsRun,
+    warnings,
+    openIssues,
     latestMemoryFocus: relativeFrom(options.targetRoot, memoryPaths.currentFocus),
     nextRecommendedSpecialist,
     nextSuggestedMcpPack,
-    nextRecommendedStep:
-      options.nextStep ??
-      (decision.requiredRoles.length > 0
-        ? `Continue with ${decision.requiredRoles.join(", ")} coverage before closing the work.`
-        : `Continue with ${decision.primaryTool} using the latest repo-local packets.`),
+    nextRecommendedStep,
     ...(previousPhase?.tool ? { previousTool: previousPhase.tool } : {}),
     ...(previousPhase?.phaseId ? { previousPhaseId: previousPhase.phaseId } : {})
   };
   const paths = await writePhaseRecord(options.targetRoot, record);
   const nextSuggestedCommand =
-    record.status === "blocked"
-      ? `${PRODUCT_METADATA.cli.primaryCommand} status`
-      : record.status === "complete"
-        ? `${PRODUCT_METADATA.cli.primaryCommand} push-check`
-        : `${PRODUCT_METADATA.cli.primaryCommand} handoff --to ${nextRecommendedSpecialist} --tool ${decision.reviewTool}`;
+    scopeFailure
+      ? `${PRODUCT_METADATA.cli.primaryCommand} prepare "${preparedScope?.task ?? goal}"`
+      : record.status === "blocked"
+        ? `${PRODUCT_METADATA.cli.primaryCommand} status`
+        : record.status === "complete"
+          ? `${PRODUCT_METADATA.cli.primaryCommand} push-check`
+          : `${PRODUCT_METADATA.cli.primaryCommand} handoff --to ${nextRecommendedSpecialist} --tool ${decision.reviewTool}`;
   const checkpoint: CheckpointRecord = {
     artifactType: "shrey-junior/checkpoint",
     schemaVersion: 1,
@@ -173,8 +198,8 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
     filesCreated: gitState.createdFiles?.slice(0, 20) ?? [],
     filesDeleted: gitState.deletedFiles?.slice(0, 20) ?? [],
     checksRun: record.validationsRun,
-    checksPassed: record.validationsRun,
-    checksFailed: [],
+    checksPassed: scopeFailure ? record.validationsRun.filter((item) => item !== "Prepared scope validation") : record.validationsRun,
+    checksFailed: scopeFailure ? [scopeFailure] : [],
     gitBranch: gitState.branch ?? null,
     gitCommitBefore: previousCheckpoint?.gitCommitAfter ?? gitState.headCommit ?? null,
     gitCommitAfter: gitState.headCommit ?? null,
@@ -236,7 +261,7 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
   options.logger.info(`checkpoint recorded: ${paths.currentPhasePath}`);
   options.logger.info(`history entry: ${paths.historyPath}`);
   options.logger.info(`latest checkpoint: ${checkpointArtifacts.latestJsonPath}`);
-  return 0;
+  return scopeFailure ? 1 : 0;
 }
 
 function inferPhaseStatus(label: string): PhaseStatus {

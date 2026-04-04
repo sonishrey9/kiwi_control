@@ -1,4 +1,5 @@
 import path from "node:path";
+import { deriveTaskScope } from "./task-intent.js";
 import { pathExists, readJson, writeText } from "../utils/fs.js";
 
 // ---------------------------------------------------------------------------
@@ -7,6 +8,7 @@ import { pathExists, readJson, writeText } from "../utils/fs.js";
 
 export interface ContextFeedbackEntry {
   task: string;
+  taskScope: string;
   timestamp: string;
   selectedFiles: string[];
   usedFiles: string[];
@@ -18,9 +20,10 @@ export interface ContextFeedbackEntry {
 
 export interface ContextFeedbackState {
   artifactType: "kiwi-control/context-feedback";
-  version: 1;
+  version: 2;
   entries: ContextFeedbackEntry[];
   fileScores: Record<string, number>;
+  scopeScores: Record<string, Record<string, number>>;
   totalRuns: number;
   successRate: number;
 }
@@ -52,9 +55,10 @@ export async function loadContextFeedback(targetRoot: string): Promise<ContextFe
   if (!(await pathExists(fp))) {
     return {
       artifactType: "kiwi-control/context-feedback",
-      version: 1,
+      version: 2,
       entries: [],
       fileScores: {},
+      scopeScores: {},
       totalRuns: 0,
       successRate: 0
     };
@@ -77,12 +81,14 @@ export async function persistContextFeedback(
 
 export async function recordContextFeedback(
   targetRoot: string,
-  entry: Omit<ContextFeedbackEntry, "timestamp">
+  entry: Omit<ContextFeedbackEntry, "timestamp" | "taskScope">
 ): Promise<ContextFeedbackState> {
   const state = await loadContextFeedback(targetRoot);
+  const taskScope = deriveTaskScope(entry.task);
 
   const fullEntry: ContextFeedbackEntry = {
     ...entry,
+    taskScope,
     timestamp: new Date().toISOString()
   };
 
@@ -90,10 +96,11 @@ export async function recordContextFeedback(
   const entries = [fullEntry, ...state.entries].slice(0, MAX_ENTRIES);
 
   // Recompute file scores: decay existing, then apply new feedback
+  const currentScopeScores = state.scopeScores?.[taskScope] ?? {};
   const fileScores: Record<string, number> = {};
 
   // Decay all existing scores
-  for (const [file, score] of Object.entries(state.fileScores)) {
+  for (const [file, score] of Object.entries(currentScopeScores)) {
     const decayed = score * DECAY_FACTOR;
     if (Math.abs(decayed) >= 0.1) {
       fileScores[file] = Math.round(decayed * 10) / 10;
@@ -118,9 +125,13 @@ export async function recordContextFeedback(
 
   const updated: ContextFeedbackState = {
     artifactType: "kiwi-control/context-feedback",
-    version: 1,
+    version: 2,
     entries,
-    fileScores,
+    fileScores: {},
+    scopeScores: {
+      ...(state.scopeScores ?? {}),
+      [taskScope]: fileScores
+    },
     totalRuns,
     successRate
   };
@@ -134,13 +145,16 @@ export async function recordContextFeedback(
 // ---------------------------------------------------------------------------
 
 export async function computeAdaptiveWeights(
-  targetRoot: string
+  targetRoot: string,
+  task: string
 ): Promise<AdaptiveWeights> {
   const state = await loadContextFeedback(targetRoot);
+  const taskScope = deriveTaskScope(task);
+  const scopedScores = state.scopeScores?.[taskScope] ?? {};
   const boosted = new Map<string, number>();
   const penalized = new Map<string, number>();
 
-  for (const [file, score] of Object.entries(state.fileScores)) {
+  for (const [file, score] of Object.entries(scopedScores)) {
     if (score > 0) {
       boosted.set(file, score);
     } else if (score < 0) {
@@ -170,8 +184,10 @@ export interface FeedbackSummary {
   topPenalizedFiles: Array<{ file: string; score: number }>;
 }
 
-export async function buildFeedbackSummary(targetRoot: string): Promise<FeedbackSummary> {
+export async function buildFeedbackSummary(targetRoot: string, task?: string): Promise<FeedbackSummary> {
   const state = await loadContextFeedback(targetRoot);
+  const scopeKey = task ? deriveTaskScope(task) : null;
+  const scopedScores = scopeKey ? state.scopeScores?.[scopeKey] ?? {} : {};
 
   const recentEntries = state.entries.slice(0, 5).map((e) => ({
     task: e.task,
@@ -182,7 +198,7 @@ export async function buildFeedbackSummary(targetRoot: string): Promise<Feedback
     timestamp: e.timestamp
   }));
 
-  const scored = Object.entries(state.fileScores)
+  const scored = Object.entries(scopedScores)
     .map(([file, score]) => ({ file, score }))
     .sort((a, b) => b.score - a.score);
 

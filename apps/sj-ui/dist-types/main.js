@@ -16,7 +16,6 @@ const EMPTY_KC = {
         topDirectories: [], costEstimates: [], task: null, timestamp: null
     },
     efficiency: {
-        avoidedRepoScan: false, avoidedWebSearch: false, minimalEditMode: false,
         instructionsGenerated: false, instructionsPath: null
     },
     nextActions: { actions: [], summary: "" },

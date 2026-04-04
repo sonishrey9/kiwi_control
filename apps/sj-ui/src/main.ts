@@ -43,9 +43,6 @@ type KiwiControlTokenAnalytics = {
 };
 
 type KiwiControlEfficiency = {
-  avoidedRepoScan: boolean;
-  avoidedWebSearch: boolean;
-  minimalEditMode: boolean;
   instructionsGenerated: boolean;
   instructionsPath: string | null;
 };
@@ -175,7 +172,6 @@ const EMPTY_KC: KiwiControlState = {
     topDirectories: [], costEstimates: [], task: null, timestamp: null
   },
   efficiency: {
-    avoidedRepoScan: false, avoidedWebSearch: false, minimalEditMode: false,
     instructionsGenerated: false, instructionsPath: null
   },
   nextActions: { actions: [], summary: "" },

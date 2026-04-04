@@ -98,7 +98,9 @@ test("inside-folder workflow uses the current working directory by default", asy
 
   const statusResult = runCliInCwd(["status"], repoDir);
   assert.equal(statusResult.code, 0);
-  assert.match(statusResult.stdout, /repo state:/);
+  assert.match(statusResult.stdout, /repo status:/);
+  assert.match(statusResult.stdout, /next action:/);
+  assert.match(statusResult.stdout, /token summary:/);
 
   const checkResult = runCliInCwd(["check"], repoDir);
   assert.equal(checkResult.code, 0);

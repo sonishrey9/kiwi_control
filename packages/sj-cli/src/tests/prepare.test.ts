@@ -63,6 +63,7 @@ test("token estimator computes savings percentage", async () => {
   assert.ok(estimate.savingsPercent > 0);
   assert.ok(estimate.savingsPercent <= 100);
   assert.ok(estimate.fileBreakdown.length >= 3);
+  assert.match(estimate.estimationMethod, /rough estimate/i);
 });
 
 test("token estimator persists state to .agent/state/token-usage.json", async () => {
@@ -84,7 +85,7 @@ test("constraints include all mandatory rules", () => {
     exclude: ["node_modules"],
     reason: "test",
     confidence: "high" as const,
-    signals: { changedFiles: ["file.ts"], recentFiles: [], importNeighbors: [], proximityFiles: [], keywordMatches: [] }
+    signals: { changedFiles: ["file.ts"], recentFiles: [], importNeighbors: [], proximityFiles: [], keywordMatches: [], repoContextFiles: [] }
   };
 
   const instructions = generateInstructions("test task", selection);
@@ -92,8 +93,9 @@ test("constraints include all mandatory rules", () => {
   assert.ok(instructions.constraints.some((c) => c.includes("Minimal edits")));
   assert.ok(instructions.constraints.some((c) => c.includes("No full repository scanning")));
   assert.ok(instructions.constraints.some((c) => c.includes("No refactoring")));
-  assert.ok(instructions.constraints.some((c) => c.includes("No unnecessary web search")));
+  assert.ok(instructions.constraints.some((c) => c.includes("Prefer repo-local context first")));
   assert.ok(instructions.constraints.some((c) => c.includes("No over-explaining")));
+  assert.ok(instructions.constraints.some((c) => c.includes("Modify tests when behavior or contracts change")));
   assert.ok(instructions.constraints.some((c) => c.includes("Read each file before editing")));
 });
 
@@ -103,7 +105,7 @@ test("instruction generator includes validation and stop conditions", () => {
     exclude: [],
     reason: "test",
     confidence: "medium" as const,
-    signals: { changedFiles: ["app.ts"], recentFiles: [], importNeighbors: [], proximityFiles: [], keywordMatches: [] }
+    signals: { changedFiles: ["app.ts"], recentFiles: [], importNeighbors: [], proximityFiles: [], keywordMatches: [], repoContextFiles: [] }
   };
 
   const instructions = generateInstructions("update app", selection);
@@ -122,7 +124,7 @@ test("low confidence selection adds orientation step", () => {
     exclude: [],
     reason: "test",
     confidence: "low" as const,
-    signals: { changedFiles: [], recentFiles: ["utils.ts"], importNeighbors: [], proximityFiles: [], keywordMatches: [] }
+    signals: { changedFiles: [], recentFiles: ["utils.ts"], importNeighbors: [], proximityFiles: [], keywordMatches: [], repoContextFiles: [] }
   };
 
   const instructions = generateInstructions("refactor utils", selection);
@@ -130,4 +132,40 @@ test("low confidence selection adds orientation step", () => {
   assert.ok(instructions.steps.some((s) => s.includes("ORIENTATION")));
   assert.ok(instructions.constraints.some((c) => c.includes("LOW")));
   assert.equal(instructions.confidence, "low");
+});
+
+test("instruction generator allows external verification for API tasks", () => {
+  const selection = {
+    include: ["client.ts"],
+    exclude: [],
+    reason: "api task",
+    confidence: "medium" as const,
+    signals: { changedFiles: ["client.ts"], recentFiles: [], importNeighbors: [], proximityFiles: [], keywordMatches: [], repoContextFiles: [] }
+  };
+
+  const instructions = generateInstructions("update API client behavior", selection);
+
+  assert.ok(instructions.constraints.some((c) => c.includes("External verification is allowed")));
+  assert.ok(instructions.steps.some((step) => step.includes("Verify external API")));
+  assert.ok(instructions.validationSteps.some((step) => step.includes("source documentation") || step.includes("runtime assumptions")));
+});
+
+test("token estimator keeps docs out of wasted files for docs tasks", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-token-docs-"));
+  await fs.writeFile(path.join(tempDir, "README.md"), "# Guide\n\nUpdate this doc.\n", "utf8");
+  await fs.writeFile(path.join(tempDir, "notes.ts"), "export const note = 'ok';\n", "utf8");
+
+  const estimate = await estimateTokens(tempDir, ["README.md"], "update README docs");
+
+  assert.equal(estimate.wastedFiles.files.some((item) => item.file === "README.md"), false);
+});
+
+test("token estimator flags docs as optional during implementation tasks", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-token-impl-docs-"));
+  await fs.writeFile(path.join(tempDir, "README.md"), "# Guide\n\nImplementation notes.\n", "utf8");
+  await fs.writeFile(path.join(tempDir, "app.ts"), "export const app = true;\n", "utf8");
+
+  const estimate = await estimateTokens(tempDir, ["README.md", "app.ts"], "fix implementation bug");
+
+  assert.ok(estimate.wastedFiles.files.some((item) => item.file === "README.md"));
 });

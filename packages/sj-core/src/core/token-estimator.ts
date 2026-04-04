@@ -1,12 +1,15 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
+import { getMemoryPaths } from "./memory.js";
+import { getStatePaths } from "./state.js";
+import { deriveTaskCategory } from "./task-intent.js";
 import { pathExists, readText, writeText } from "../utils/fs.js";
 
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
 
-export type EstimationMethod = "chars/4-heuristic";
+export type EstimationMethod = "rough estimate (chars/4 heuristic)";
 
 export interface TokenEstimate {
   selectedTokens: number;
@@ -87,7 +90,7 @@ export interface TokenUsageState {
 // ---------------------------------------------------------------------------
 
 const CHARS_PER_TOKEN = 4;
-const ESTIMATION_METHOD: EstimationMethod = "chars/4-heuristic";
+const ESTIMATION_METHOD: EstimationMethod = "rough estimate (chars/4 heuristic)";
 
 /** Model pricing tiers — input cost per 1M tokens (USD) as of mid-2025 */
 const MODEL_TIERS: Array<{ model: string; inputCostPer1M: number }> = [
@@ -142,7 +145,8 @@ const SKIP_FILE_PATTERNS: ReadonlyArray<RegExp> = [
 
 export async function estimateTokens(
   targetRoot: string,
-  selectedFiles: string[]
+  selectedFiles: string[],
+  task = ""
 ): Promise<TokenEstimate> {
   const allFiles = await collectSourceFiles(targetRoot);
   const selectedSet = new Set(selectedFiles.map((f) => normalizePath(f)));
@@ -199,8 +203,8 @@ export async function estimateTokens(
     .sort((a, b) => b.tokens - a.tokens);
 
   const costEstimates = computeCostEstimates(selectedTokens, fullRepoTokens);
-  const wastedFiles = detectWastedFiles(fileBreakdown, selectedSet);
-  const heavyDirectories = detectHeavyDirectories(directoryBreakdown, fullRepoTokens);
+  const wastedFiles = detectWastedFiles(fileBreakdown, task);
+  const heavyDirectories = detectHeavyDirectories(directoryBreakdown, fullRepoTokens, task);
 
   return {
     selectedTokens,
@@ -288,37 +292,55 @@ async function collectSourceFiles(targetRoot: string): Promise<string[]> {
   }
 
   await scanDir(targetRoot, 0);
+
+  const selectiveAgentFiles = await collectSelectiveAgentFiles(targetRoot);
+  for (const file of selectiveAgentFiles) {
+    if (!files.includes(file)) {
+      files.push(file);
+    }
+  }
+
   return files;
+}
+
+async function collectSelectiveAgentFiles(targetRoot: string): Promise<string[]> {
+  const memoryPaths = getMemoryPaths(targetRoot);
+  const statePaths = getStatePaths(targetRoot);
+  const candidates = [
+    memoryPaths.currentFocus,
+    statePaths.latestCheckpointJson,
+    memoryPaths.openRisks,
+    memoryPaths.repoFacts
+  ];
+  const included: string[] = [];
+
+  for (const absolutePath of candidates) {
+    if (await pathExists(absolutePath)) {
+      included.push(normalizePath(path.relative(targetRoot, absolutePath)));
+    }
+  }
+
+  return included;
 }
 
 // ---------------------------------------------------------------------------
 // Wasted file detection
 // ---------------------------------------------------------------------------
 
-const WASTED_FILE_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
-  { pattern: /\.test\.(ts|js|tsx|jsx)$/, reason: "Test file in context — exclude unless task is about testing" },
-  { pattern: /\.spec\.(ts|js|tsx|jsx)$/, reason: "Spec file in context — exclude unless task is about testing" },
-  { pattern: /\.stories\.(ts|js|tsx|jsx)$/, reason: "Storybook story — unlikely to be needed for task" },
-  { pattern: /\.config\.(ts|js|mjs|cjs)$/, reason: "Config file — usually unchanged during feature work" },
-  { pattern: /^README\.md$/i, reason: "README rarely needed for implementation tasks" },
-  { pattern: /\.md$/, reason: "Documentation file — consider excluding if task is code-only" }
-];
-
 function detectWastedFiles(
   fileBreakdown: TokenEstimate["fileBreakdown"],
-  selectedSet: Set<string>
+  task: string
 ): WastedFileReport {
   const wasted: WastedFileReport["files"] = [];
+  const taskCategory = deriveTaskCategory(task);
 
   for (const entry of fileBreakdown) {
     if (!entry.selected) continue;
 
     const basename = path.basename(entry.file);
-    for (const { pattern, reason } of WASTED_FILE_PATTERNS) {
-      if (pattern.test(basename) || pattern.test(entry.file)) {
-        wasted.push({ file: entry.file, tokens: entry.tokens, reason });
-        break;
-      }
+    const reason = classifyPotentialWaste(entry.file, basename, taskCategory);
+    if (reason) {
+      wasted.push({ file: entry.file, tokens: entry.tokens, reason });
     }
 
     // Large files that may be wasteful
@@ -346,6 +368,54 @@ function detectWastedFiles(
   };
 }
 
+function classifyPotentialWaste(
+  filePath: string,
+  basename: string,
+  taskCategory: ReturnType<typeof deriveTaskCategory>
+): string | null {
+  if (/\.stories\.(ts|js|tsx|jsx)$/.test(filePath)) {
+    return "Storybook story in context — verify it is needed for this task";
+  }
+
+  if (
+    taskCategory !== "testing" &&
+    (/\.test\.(ts|js|tsx|jsx)$/.test(filePath) || /\.spec\.(ts|js|tsx|jsx)$/.test(filePath) || filePath.includes("__tests__/"))
+  ) {
+    return "Test file outside a testing task — verify it is needed";
+  }
+
+  if (
+    taskCategory !== "docs" &&
+    (basename.toLowerCase() === "readme.md" || /\.mdx?$/.test(filePath))
+  ) {
+    return "Documentation file outside a docs task — verify it is needed";
+  }
+
+  if (
+    taskCategory !== "config" &&
+    taskCategory !== "release" &&
+    isConfigLikeFile(filePath)
+  ) {
+    return "Config file outside a config or release task — verify it is needed";
+  }
+
+  return null;
+}
+
+function isConfigLikeFile(filePath: string): boolean {
+  const normalized = filePath.toLowerCase();
+  return (
+    /(^|\/)(tsconfig|eslint|prettier|vite|webpack|rollup|babel|jest|vitest|playwright|tailwind|postcss|docker-compose|deno|cargo|ruff|mypy|pyproject|tox|\.github\/workflows)\b/.test(normalized) ||
+    normalized.endsWith(".config.ts") ||
+    normalized.endsWith(".config.js") ||
+    normalized.endsWith(".config.mjs") ||
+    normalized.endsWith(".config.cjs") ||
+    normalized.endsWith(".yaml") ||
+    normalized.endsWith(".yml") ||
+    normalized.endsWith(".toml")
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Heavy directory detection
 // ---------------------------------------------------------------------------
@@ -354,9 +424,11 @@ const HEAVY_DIR_THRESHOLD_PERCENT = 15;
 
 function detectHeavyDirectories(
   directoryBreakdown: TokenEstimate["directoryBreakdown"],
-  fullRepoTokens: number
+  fullRepoTokens: number,
+  task: string
 ): HeavyDirectoryReport {
   const directories: HeavyDirectoryReport["directories"] = [];
+  const taskCategory = deriveTaskCategory(task);
 
   for (const dir of directoryBreakdown) {
     const percentOfRepo = fullRepoTokens > 0
@@ -367,9 +439,9 @@ function detectHeavyDirectories(
       let suggestion: string;
       if (dir.directory.includes("gen") || dir.directory.includes("generated")) {
         suggestion = "Generated directory — exclude from context selection";
-      } else if (dir.directory.includes("test") || dir.directory.includes("spec")) {
+      } else if (taskCategory !== "testing" && (dir.directory.includes("test") || dir.directory.includes("spec"))) {
         suggestion = "Test directory — exclude unless task is about testing";
-      } else if (dir.directory.includes("doc") || dir.directory.includes("docs")) {
+      } else if (taskCategory !== "docs" && (dir.directory.includes("doc") || dir.directory.includes("docs"))) {
         suggestion = "Documentation directory — exclude for code-only tasks";
       } else {
         suggestion = `Contains ${percentOfRepo}% of repo tokens — consider adding to exclude patterns`;

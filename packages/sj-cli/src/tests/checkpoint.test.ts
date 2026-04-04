@@ -51,3 +51,63 @@ test("checkpoint writes git-aware checkpoint artifacts even before the first com
   const markdown = await fs.readFile(path.join(target, ".agent", "state", "checkpoints", "latest.md"), "utf8");
   assert.match(markdown, /# Checkpoint/);
 });
+
+test("checkpoint fails when touched files drift outside the prepared scope", async () => {
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
+  const config = await loadCanonicalConfig(repoRoot);
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-checkpoint-scope-"));
+  const target = path.join(tempDir, "repo");
+  await fs.mkdir(target, { recursive: true });
+  await fs.writeFile(path.join(target, "README.md"), "# repo\n", "utf8");
+  await fs.writeFile(path.join(target, "app.ts"), "export const app = true;\n", "utf8");
+
+  spawnSync("git", ["init"], { cwd: target, encoding: "utf8" });
+  spawnSync("git", ["add", "."], { cwd: target, encoding: "utf8" });
+  spawnSync("git", ["-c", "user.name=test", "-c", "user.email=test@test.com", "commit", "-m", "init"], { cwd: target, encoding: "utf8" });
+
+  await bootstrapTarget(
+    {
+      repoRoot,
+      targetRoot: target
+    },
+    config
+  );
+
+  await fs.writeFile(
+    path.join(target, ".agent", "state", "context-selection.json"),
+    JSON.stringify({
+      artifactType: "kiwi-control/context-selection",
+      version: 1,
+      timestamp: new Date().toISOString(),
+      task: "update README docs",
+      include: ["README.md"],
+      exclude: [],
+      reason: "docs only",
+      confidence: "high",
+      signals: { changedFiles: ["README.md"], recentFiles: [], importNeighbors: [], proximityFiles: [], keywordMatches: [] }
+    }, null, 2),
+    "utf8"
+  );
+
+  await fs.writeFile(path.join(target, "app.ts"), "export const app = false;\n", "utf8");
+
+  const result = await runCheckpoint({
+    repoRoot,
+    targetRoot: target,
+    label: "scope drift detected",
+    logger: {
+      info() {},
+      warn() {},
+      error() {}
+    } as never
+  });
+
+  assert.equal(result, 1);
+
+  const checkpoint = JSON.parse(await fs.readFile(path.join(target, ".agent", "state", "checkpoints", "latest.json"), "utf8"));
+  assert.equal(checkpoint.checksFailed.length > 0, true);
+  assert.match(checkpoint.checksFailed[0], /Prepared scope violated/);
+
+  const currentPhase = JSON.parse(await fs.readFile(path.join(target, ".agent", "state", "current-phase.json"), "utf8"));
+  assert.equal(currentPhase.status, "blocked");
+});

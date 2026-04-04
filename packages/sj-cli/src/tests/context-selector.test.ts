@@ -108,3 +108,48 @@ test("context selector excludes node_modules and dist paths", async () => {
   const hasNodeModules = result.include.some((f) => f.includes("node_modules"));
   assert.equal(hasNodeModules, false, "node_modules files should never be in include list");
 });
+
+test("context selector includes selective repo-local .agent state without scanning the full .agent tree", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ctx-agent-"));
+  await runCommand("git", ["init"], tempDir);
+  await fs.mkdir(path.join(tempDir, ".agent", "memory"), { recursive: true });
+  await fs.mkdir(path.join(tempDir, ".agent", "state", "checkpoints"), { recursive: true });
+  await fs.mkdir(path.join(tempDir, ".agent", "tasks"), { recursive: true });
+  await fs.writeFile(path.join(tempDir, "app.ts"), "export const app = true;\n", "utf8");
+  await fs.writeFile(path.join(tempDir, ".agent", "memory", "current-focus.json"), '{"currentFocus":"fix app"}\n', "utf8");
+  await fs.writeFile(path.join(tempDir, ".agent", "memory", "open-risks.json"), '{"risks":["scope drift"]}\n', "utf8");
+  await fs.writeFile(path.join(tempDir, ".agent", "memory", "repo-facts.json"), '{"projectName":"agent-test"}\n', "utf8");
+  await fs.writeFile(path.join(tempDir, ".agent", "state", "checkpoints", "latest.json"), '{"phase":"latest"}\n', "utf8");
+  await fs.writeFile(path.join(tempDir, ".agent", "tasks", "noise.json"), '{"noise":true}\n', "utf8");
+  await runCommand("git", ["add", "."], tempDir);
+  await runCommand("git", ["-c", "user.name=test", "-c", "user.email=test@test.com", "commit", "-m", "init"], tempDir);
+  await fs.writeFile(path.join(tempDir, "app.ts"), "export const app = false;\n", "utf8");
+
+  const result = await contextSelector("fix app focus", tempDir);
+
+  assert.ok(result.include.includes(".agent/memory/current-focus.json"));
+  assert.ok(result.include.includes(".agent/memory/open-risks.json"));
+  assert.ok(result.include.includes(".agent/memory/repo-facts.json"));
+  assert.ok(result.include.includes(".agent/state/checkpoints/latest.json"));
+  assert.equal(result.include.some((file) => file.startsWith(".agent/tasks/")), false);
+});
+
+test("context selector is constrained by token budget instead of a fixed 30-file cap", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ctx-budget-"));
+  await runCommand("git", ["init"], tempDir);
+
+  for (let index = 0; index < 35; index += 1) {
+    await fs.writeFile(path.join(tempDir, `file-${index}.ts`), `export const value${index} = ${index};\n`, "utf8");
+  }
+
+  await runCommand("git", ["add", "."], tempDir);
+  await runCommand("git", ["-c", "user.name=test", "-c", "user.email=test@test.com", "commit", "-m", "init"], tempDir);
+
+  for (let index = 0; index < 35; index += 1) {
+    await fs.writeFile(path.join(tempDir, `file-${index}.ts`), `export const value${index} = ${index + 1};\n`, "utf8");
+  }
+
+  const result = await contextSelector("update implementation values", tempDir);
+
+  assert.ok(result.include.length >= 35, `Expected at least 35 files in scope, got ${result.include.length}`);
+});

@@ -4,6 +4,7 @@ import { buildCanonicalReadNext, buildChecksToRun, buildSearchGuidance, buildSto
 import { inspectGitState } from "@shrey-junior/sj-core/core/git.js";
 import { buildHandoffBaseName, buildHandoffRecord, renderHandoffBrief, renderHandoffMarkdown } from "@shrey-junior/sj-core/core/handoff.js";
 import { writeOpenRisksRecord } from "@shrey-junior/sj-core/core/memory.js";
+import { loadPreparedScope, validateTouchedFilesAgainstAllowedFiles } from "@shrey-junior/sj-core/core/prepared-scope.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "@shrey-junior/sj-core/core/profiles.js";
 import { PRODUCT_METADATA } from "@shrey-junior/sj-core/core/product.js";
 import { recommendMcpPack } from "@shrey-junior/sj-core/core/recommendations.js";
@@ -41,6 +42,13 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
     riskLevel: currentPhase?.routingSummary.riskLevel ?? "medium"
   });
   const gitState = await inspectGitState(options.targetRoot);
+  const preparedScope = await loadPreparedScope(options.targetRoot);
+  const scopeValidation = preparedScope
+    ? validateTouchedFilesAgainstAllowedFiles(preparedScope.allowedFiles, gitState.changedFiles)
+    : null;
+  const scopeFailure = scopeValidation && !scopeValidation.ok
+    ? `Prepared scope violated by touched files: ${scopeValidation.outOfScopeFiles.slice(0, 5).join(", ")}`
+    : null;
   const activeRoleHints = await loadActiveRoleHints(options.targetRoot);
   const latestCheckpoint = await loadLatestCheckpoint(options.targetRoot);
   const nextRecommendedSpecialist = recommendNextSpecialist({
@@ -69,7 +77,7 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
     fileArea: currentPhase?.routingSummary.fileArea ?? compiledContext.fileArea,
     authorityFiles: compiledContext.authorityOrder
   });
-  const handoff = buildHandoffRecord({
+  const baseHandoff = buildHandoffRecord({
     toTool: handoffTool,
     toRole: targetSpecialistId,
     currentPhase,
@@ -80,6 +88,17 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
     recommendedSpecialistId: nextRecommendedSpecialist,
     recommendedMcpPack: nextSuggestedMcpPack
   });
+  const handoff = scopeFailure
+    ? {
+        ...baseHandoff,
+        checksFailed: [...baseHandoff.checksFailed, scopeFailure],
+        risks: [...baseHandoff.risks, scopeFailure],
+        risksRemaining: [...baseHandoff.risksRemaining, scopeFailure],
+        nextCommand: `${PRODUCT_METADATA.cli.primaryCommand} prepare "${preparedScope?.task ?? currentPhase?.goal ?? "describe your task"}"`,
+        nextStep: "Refresh the prepared scope before handing this work to another specialist.",
+        status: "blocked" as const
+      }
+    : baseHandoff;
   const baseName = buildHandoffBaseName(handoff);
   const artifacts = await writeHandoffArtifacts(
     options.targetRoot,
@@ -111,7 +130,7 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
     nextFileToRead: chooseNextFileToRead({
       latestHandoff: ".agent/state/handoff/latest.json"
     }),
-    nextSuggestedCommand: `${PRODUCT_METADATA.cli.primaryCommand} status`,
+    nextSuggestedCommand: handoff.nextCommand,
     writeTargets: buildWriteTargets(contract, handoff.whatChanged.length > 0 ? handoff.whatChanged : [".agent/state/handoff/latest.json"]),
     checksToRun: buildChecksToRun(compiledContext.validationSteps),
     stopConditions: buildStopConditions({

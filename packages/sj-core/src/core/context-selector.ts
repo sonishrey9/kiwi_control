@@ -3,6 +3,8 @@ import { promises as fs } from "node:fs";
 import type { GitState } from "./git.js";
 import { inspectGitState } from "./git.js";
 import { computeAdaptiveWeights } from "./context-feedback.js";
+import { getMemoryPaths } from "./memory.js";
+import { getStatePaths } from "./state.js";
 import { pathExists, readText, writeText } from "../utils/fs.js";
 
 // ---------------------------------------------------------------------------
@@ -23,6 +25,7 @@ export interface ContextSignals {
   importNeighbors: string[];
   proximityFiles: string[];
   keywordMatches: string[];
+  repoContextFiles: string[];
 }
 
 export type ContextConfidence = "high" | "medium" | "low";
@@ -169,13 +172,14 @@ const IMPORTABLE_EXTENSIONS = new Set([
 // ---------------------------------------------------------------------------
 
 const SCORE_CHANGED = 10;
+const SCORE_REPO_CONTEXT = 8;
 const SCORE_IMPORT_NEIGHBOR = 6;
 const SCORE_KEYWORD = 5;
 const SCORE_ADAPTIVE_MAX = 4;
 const SCORE_PROXIMITY = 3;
 const SCORE_RECENT = 2;
 
-const MAX_SELECTED_FILES = 30;
+const CONTEXT_TOKEN_BUDGET = 12_000;
 const MAX_RECENT_FILES = 20;
 const RECENT_SCAN_DEPTH = 3;
 const MAX_IMPORT_SEED_FILES = 15;
@@ -191,8 +195,8 @@ export async function contextSelector(
   const gitState = await inspectGitState(targetRoot);
   const worktree = await buildWorktreeState(targetRoot, gitState);
   const signals = await collectSignals(task, targetRoot, gitState);
-  const adaptive = await computeAdaptiveWeights(targetRoot);
-  const selection = rankAndSelect(task, targetRoot, signals, adaptive);
+  const adaptive = await computeAdaptiveWeights(targetRoot, task);
+  const selection = await rankAndSelect(task, targetRoot, signals, adaptive);
 
   await persistWorktreeState(targetRoot, worktree);
   await persistContextSelection(targetRoot, task, selection, signals);
@@ -272,6 +276,7 @@ async function collectSignals(
     targetRoot,
     changedFiles
   );
+  const repoContextFiles = await collectSelectiveAgentFiles(targetRoot);
 
   const proximityFiles = collectProximityFiles(
     changedFiles,
@@ -290,8 +295,34 @@ async function collectSignals(
     recentFiles,
     importNeighbors,
     proximityFiles,
-    keywordMatches
+    keywordMatches,
+    repoContextFiles
   };
+}
+
+async function collectSelectiveAgentFiles(targetRoot: string): Promise<string[]> {
+  const memoryPaths = getMemoryPaths(targetRoot);
+  const statePaths = getStatePaths(targetRoot);
+  const candidates = [
+    memoryPaths.currentFocus,
+    statePaths.latestCheckpointJson,
+    memoryPaths.openRisks,
+    memoryPaths.repoFacts
+  ];
+  const files: string[] = [];
+
+  for (const candidate of candidates) {
+    if (!(await pathExists(candidate))) {
+      continue;
+    }
+    const relativePath = path.relative(targetRoot, candidate);
+    if (isExcludedFile(relativePath)) {
+      continue;
+    }
+    files.push(relativePath);
+  }
+
+  return files;
 }
 
 // ---------------------------------------------------------------------------
@@ -447,17 +478,21 @@ async function shallowSourceFiles(
 // Ranking & selection
 // ---------------------------------------------------------------------------
 
-function rankAndSelect(
+async function rankAndSelect(
   task: string,
   targetRoot: string,
   signals: ContextSignals,
   adaptive: { boosted: Map<string, number>; penalized: Map<string, number> }
-): ContextSelection {
+): Promise<ContextSelection> {
   const scored = new Map<string, number>();
   const keywords = tokenizeTask(task);
 
   for (const file of signals.changedFiles) {
     scored.set(file, (scored.get(file) ?? 0) + SCORE_CHANGED);
+  }
+
+  for (const file of signals.repoContextFiles) {
+    scored.set(file, (scored.get(file) ?? 0) + SCORE_REPO_CONTEXT);
   }
 
   for (const file of signals.importNeighbors) {
@@ -501,10 +536,14 @@ function rankAndSelect(
   }
 
   const sorted = [...scored.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([file]) => file);
+    .sort((a, b) => b[1] - a[1]);
 
-  const include = sorted.slice(0, MAX_SELECTED_FILES);
+  const include = await selectFilesWithinBudget(
+    targetRoot,
+    sorted,
+    new Set([...signals.changedFiles, ...signals.repoContextFiles]),
+    CONTEXT_TOKEN_BUDGET
+  );
   const exclude = buildExcludeList();
 
   const confidence = assessConfidence(signals, include);
@@ -520,13 +559,66 @@ function rankAndSelect(
   const reason =
     `Selected ${include.length} files based on ${topSignal}. ` +
     `Signals: ${signals.changedFiles.length} changed, ` +
-    `${signals.importNeighbors.length} import neighbors, ` +
-    `${signals.keywordMatches.length} keyword matches, ` +
-    `${signals.proximityFiles.length} proximity, ` +
-    `${signals.recentFiles.length} recent. ` +
-    `Confidence: ${confidence}.`;
+      `${signals.importNeighbors.length} import neighbors, ` +
+      `${signals.keywordMatches.length} keyword matches, ` +
+      `${signals.repoContextFiles.length} repo context files, ` +
+      `${signals.proximityFiles.length} proximity, ` +
+      `${signals.recentFiles.length} recent. ` +
+      `Budget: ~${await estimateSelectionTokens(targetRoot, include)} tokens. ` +
+      `Confidence: ${confidence}.`;
 
   return { include, exclude, reason, signals, confidence };
+}
+
+async function selectFilesWithinBudget(
+  targetRoot: string,
+  rankedFiles: Array<[string, number]>,
+  mustInclude: Set<string>,
+  budgetTokens: number
+): Promise<string[]> {
+  const include: string[] = [];
+  const included = new Set<string>();
+  let totalTokens = 0;
+
+  const orderedFiles = [
+    ...rankedFiles.filter(([file]) => mustInclude.has(file)),
+    ...rankedFiles.filter(([file]) => !mustInclude.has(file))
+  ];
+
+  for (const [file] of orderedFiles) {
+    if (included.has(file)) {
+      continue;
+    }
+
+    const estimatedTokens = await estimateFileTokens(targetRoot, file);
+    const canFit = totalTokens + estimatedTokens <= budgetTokens;
+    if (!canFit && include.length > 0 && !mustInclude.has(file)) {
+      continue;
+    }
+
+    include.push(file);
+    included.add(file);
+    totalTokens += estimatedTokens;
+  }
+
+  return include;
+}
+
+async function estimateSelectionTokens(targetRoot: string, files: string[]): Promise<number> {
+  let total = 0;
+  for (const file of files) {
+    total += await estimateFileTokens(targetRoot, file);
+  }
+  return total;
+}
+
+async function estimateFileTokens(targetRoot: string, relativePath: string): Promise<number> {
+  try {
+    const stat = await fs.stat(path.join(targetRoot, relativePath));
+    return Math.max(1, Math.ceil(stat.size / 4));
+  } catch {
+    return 1;
+  }
 }
 
 function assessConfidence(
@@ -554,7 +646,9 @@ function assessConfidence(
 function buildExcludeList(): string[] {
   return [
     // Directory exclusions (as globs)
-    ...[...EXCLUDED_DIRECTORIES].map((d) => `**/${d}/**`),
+    ...[...EXCLUDED_DIRECTORIES]
+      .filter((directory) => directory !== ".agent")
+      .map((d) => `**/${d}/**`),
     // File pattern exclusions
     "**/*.lock",
     "**/*.min.js",
@@ -576,7 +670,11 @@ function buildExcludeList(): string[] {
     "**/*.pyo",
     "**/*.wasm",
     "**/*.sqlite*",
-    "**/.env*"
+    "**/.env*",
+    "**/.agent/tasks/**",
+    "**/.agent/state/history/**",
+    "**/.agent/state/handoff/**",
+    "**/.agent/state/dispatch/**"
   ];
 }
 
