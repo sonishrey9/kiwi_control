@@ -5,6 +5,10 @@ export type ExplainabilityReason =
   | "changed file"
   | "keyword match"
   | "import dependency"
+  | "call dependency"
+  | "dependency distance"
+  | "based on past runs"
+  | "reused pattern"
   | "proximity"
   | "recent file"
   | "repo context"
@@ -22,6 +26,8 @@ export interface FileAnalysisEntry {
   reasons: ExplainabilityReason[];
   score?: number;
   note?: string;
+  selectionWhy?: string;
+  dependencyChain?: string[];
 }
 
 export interface SkippedPathEntry {
@@ -59,6 +65,8 @@ export interface ContextTraceState {
     proximityFiles: string[];
     keywordMatches: string[];
     repoContextFiles: string[];
+    dependencyDistances?: Record<string, number>;
+    dependencyChains?: Record<string, string[]>;
   };
   expansionSteps: ContextTraceStep[];
   finalSelection: {

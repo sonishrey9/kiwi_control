@@ -2,6 +2,7 @@ import path from "node:path";
 import { recordContextFeedback } from "./context-feedback.js";
 import { inspectGitState } from "./git.js";
 import { loadPreparedScope, validateTouchedFilesAgainstAllowedFiles, type ScopeValidationResult } from "./prepared-scope.js";
+import { loadWorkflowState } from "./workflow-engine.js";
 import { pathExists, readJson, writeText } from "../utils/fs.js";
 
 // ---------------------------------------------------------------------------
@@ -20,6 +21,10 @@ export interface ExecutionEntry {
   runKey?: string;
   completionSource?: string | null;
   outOfScopeFiles?: string[];
+  workflow?: string | null;
+  workflowStepId?: string | null;
+  skillsApplied?: string[];
+  tokenSource?: "measured" | "estimated" | "none" | null;
 }
 
 export interface ExecutionLogState {
@@ -169,6 +174,7 @@ export async function recordPreparedScopeCompletion(
 
   const runKey = buildPreparedScopeRunKey(preparedScope.timestamp, validation.touchedFiles);
   const state = await loadExecutionLog(targetRoot);
+  const workflow = await loadWorkflowState(targetRoot).catch(() => null);
   if (state.entries.some((entry) => entry.runKey === runKey)) {
     const existingEntry = state.entries.find((entry) => entry.runKey === runKey) ?? null;
     const feedbackRecorded = await maybeRecordAdaptiveFeedback(targetRoot, {
@@ -200,6 +206,10 @@ export async function recordPreparedScopeCompletion(
     confidence: options.confidence ?? "unknown",
     runKey,
     completionSource: options.completionSource,
+    workflow: workflow?.task ?? preparedScope.task,
+    workflowStepId: workflow?.currentStepId ?? null,
+    skillsApplied: workflow?.steps.find((step) => step.stepId === workflow.currentStepId)?.skillsApplied ?? [],
+    tokenSource: (options.tokensUsed ?? 0) > 0 ? "measured" : "none",
     ...(validation.ok ? {} : { outOfScopeFiles: validation.outOfScopeFiles })
   };
 

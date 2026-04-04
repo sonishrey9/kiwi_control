@@ -103,6 +103,8 @@ test("context selector uses the incremental import index to surface reverse depe
     result.signals.importNeighbors.includes("main.ts"),
     `Expected main.ts as a reverse dependent, got: ${result.signals.importNeighbors.join(", ")}`
   );
+  assert.equal(result.signals.dependencyDistances?.["main.ts"], 1);
+  assert.deepEqual(result.signals.dependencyChains?.["main.ts"], ["helper.ts", "main.ts"]);
 });
 
 test("context selector persists worktree and selection state", async () => {
@@ -160,13 +162,75 @@ test("context selector persists worktree and selection state", async () => {
     indexedFiles: number;
     updatedFiles: string[];
     reusedFiles: number;
-    lastImpact: { impactedFiles: string[] };
+    files: Array<{
+      file: string;
+      imports: string[];
+      exports: string[];
+      localFunctions: string[];
+      calledSymbols: string[];
+      importCallTargets: string[];
+      relationships: string[];
+    }>;
+    lastImpact: {
+      impactedFiles: string[];
+      dependencyDistances: Record<string, number>;
+      dependencyChains: Record<string, string[]>;
+    };
   }>(contextIndexPath);
   assert.equal(contextIndex.artifactType, "kiwi-control/context-index");
   assert.ok(contextIndex.indexedFiles >= 0);
   assert.equal(Array.isArray(contextIndex.updatedFiles), true);
   assert.ok(typeof contextIndex.reusedFiles === "number");
   assert.equal(Array.isArray(contextIndex.lastImpact.impactedFiles), true);
+  assert.equal(Array.isArray(contextIndex.files), true);
+  assert.equal(Array.isArray(contextIndex.files[0]?.imports ?? []), true);
+  assert.equal(Array.isArray(contextIndex.files[0]?.exports ?? []), true);
+  assert.equal(Array.isArray(contextIndex.files[0]?.localFunctions ?? []), true);
+  assert.equal(Array.isArray(contextIndex.files[0]?.calledSymbols ?? []), true);
+  assert.equal(Array.isArray(contextIndex.files[0]?.relationships ?? []), true);
+  assert.equal(typeof contextIndex.lastImpact.dependencyDistances, "object");
+  assert.equal(typeof contextIndex.lastImpact.dependencyChains, "object");
+});
+
+test("context trace records why files were selected and the dependency chain when structural signals apply", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ctx-trace-deps-"));
+  await runCommand("git", ["init"], tempDir);
+
+  await fs.writeFile(
+    path.join(tempDir, "main.ts"),
+    'import { helper } from "./helper.js";\nexport function run() { return helper(); }\n',
+    "utf8"
+  );
+  await fs.writeFile(
+    path.join(tempDir, "helper.ts"),
+    "export function helper() { return 42; }\n",
+    "utf8"
+  );
+  await runCommand("git", ["add", "."], tempDir);
+  await runCommand("git", ["-c", "user.name=test", "-c", "user.email=test@test.com", "commit", "-m", "init"], tempDir);
+
+  await fs.writeFile(
+    path.join(tempDir, "helper.ts"),
+    "export function helper() { return 43; }\n",
+    "utf8"
+  );
+
+  await contextSelector("fix helper behavior", tempDir);
+
+  const trace = await readJson<{
+    fileAnalysis: {
+      selected: Array<{
+        file: string;
+        selectionWhy?: string;
+        dependencyChain?: string[];
+      }>;
+    };
+  }>(path.join(tempDir, ".agent", "state", "context-trace.json"));
+
+  const dependent = trace.fileAnalysis.selected.find((entry) => entry.file === "main.ts");
+  assert.ok(dependent, "Expected main.ts to be selected as a structural dependent");
+  assert.match(dependent?.selectionWhy ?? "", /Dependency chain:/);
+  assert.deepEqual(dependent?.dependencyChain, ["helper.ts", "main.ts"]);
 });
 
 test("context selector excludes node_modules and dist paths", async () => {
@@ -277,6 +341,89 @@ test("context selector keeps narrow docs tasks focused on docs instead of passiv
   assert.equal(result.include.includes("package.json"), false, "package.json should not be included for narrow docs tasks");
   assert.equal(result.include.includes("src/app.ts"), false, "application files should not be included for narrow docs tasks");
   assert.deepEqual(repoFiles, ["README.md"]);
+});
+
+test("context selector uses repo-local skills to influence task matching", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ctx-skills-"));
+  await runCommand("git", ["init"], tempDir);
+  await fs.mkdir(path.join(tempDir, ".agent", "skills"), { recursive: true });
+  await fs.writeFile(path.join(tempDir, "README.md"), "# Project handbook\n", "utf8");
+  await fs.writeFile(path.join(tempDir, "src.ts"), "export const code = true;\n", "utf8");
+  await fs.writeFile(
+    path.join(tempDir, ".agent", "skills", "docs-playbook.md"),
+    [
+      "# Docs Playbook",
+      "",
+      "## Description",
+      "Use this skill when the task is about docs, handbook copy, or README wording.",
+      "",
+      "## Trigger Conditions",
+      "- docs",
+      "- handbook",
+      "- README",
+      "- wording",
+      "",
+      "## Execution Template",
+      "- Prefer documentation files before code files.",
+      "- Keep docs tasks tightly scoped to docs.",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+  await runCommand("git", ["add", "."], tempDir);
+  await runCommand("git", ["-c", "user.name=test", "-c", "user.email=test@test.com", "commit", "-m", "init"], tempDir);
+
+  const result = await contextSelector("polish handbook wording", tempDir);
+
+  assert.ok(
+    result.include.includes("README.md"),
+    `Expected README.md in include list when docs skill is active, got: ${result.include.join(", ")}`
+  );
+  const skillRegistry = await readJson<{ activeSkills: Array<{ skillId: string }> }>(
+    path.join(tempDir, ".agent", "state", "skills-registry.json")
+  );
+  assert.equal(skillRegistry.activeSkills.some((skill) => skill.skillId === "docs-playbook"), true);
+});
+
+test("skills registry limits matching to at most two active and two suggested skills", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-skills-limit-"));
+  await runCommand("git", ["init"], tempDir);
+  await fs.mkdir(path.join(tempDir, ".agent", "skills"), { recursive: true });
+
+  const skillNames = [
+    ["docs-playbook", "Docs Playbook"],
+    ["readme-helper", "README Helper"],
+    ["docs-grammar", "Docs Grammar"],
+    ["docs-style", "Docs Style"]
+  ];
+
+  for (const [fileName, title] of skillNames) {
+    await fs.writeFile(
+      path.join(tempDir, ".agent", "skills", `${fileName}.md`),
+      [
+        `# ${title}`,
+        "",
+        "## Description",
+        "Use for docs and README tasks.",
+        "",
+        "## Trigger Conditions",
+        "- docs",
+        "- README",
+        "- wording",
+        "",
+        "## Execution Template",
+        "- Prefer docs files before code files.",
+        ""
+      ].join("\n"),
+      "utf8"
+    );
+  }
+
+  const { matchSkillsForTask } = await import("@shrey-junior/sj-core/core/skills-registry.js");
+  const registry = await matchSkillsForTask(tempDir, "update README docs wording");
+
+  assert.ok(registry.activeSkills.length <= 2, `expected <= 2 active skills, got ${registry.activeSkills.length}`);
+  assert.ok(registry.suggestedSkills.length <= 2, `expected <= 2 suggested skills, got ${registry.suggestedSkills.length}`);
 });
 
 test("context selector scopes implementation tasks to the relevant source directory", async () => {

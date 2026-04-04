@@ -54,12 +54,17 @@ function renderNextActionSummary(
 }
 
 function renderTokenSummary(state: Awaited<ReturnType<typeof buildRepoControlState>>): string {
-  const analytics = state.kiwiControl.tokenAnalytics;
+  const { tokenAnalytics: analytics, measuredUsage } = state.kiwiControl;
   if (!analytics.estimationMethod) {
     return 'Not generated yet — run kc prepare "describe your task"';
   }
 
-  return `~${formatTokenCount(analytics.selectedTokens)} selected / ~${formatTokenCount(analytics.fullRepoTokens)} full repo / ~${analytics.savingsPercent}% saved [${analytics.estimationMethod}]`;
+  const estimated = `estimated ~${formatTokenCount(analytics.selectedTokens)} selected / ~${formatTokenCount(analytics.fullRepoTokens)} full repo / ~${analytics.savingsPercent}% saved [${analytics.estimationMethod}]`;
+  if (!measuredUsage.available) {
+    return estimated;
+  }
+
+  return `measured ${formatTokenCount(measuredUsage.totalTokens)} across ${measuredUsage.totalRuns} runs (${measuredUsage.source}) | ${estimated}`;
 }
 
 function formatTokenCount(count: number): string {

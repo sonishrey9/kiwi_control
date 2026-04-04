@@ -125,11 +125,16 @@ test("ui command returns structured repo-control state in json mode", async () =
     validation: { ok: boolean };
     kiwiControl: {
       indexing: { coverageNote: string; discoveredFiles: number };
-      fileAnalysis: { totalFiles: number; selected: Array<{ file: string }> };
+      fileAnalysis: { totalFiles: number; selected: Array<{ file: string; selectionWhy?: string; dependencyChain?: string[] }> };
       contextTrace: { expansionSteps: Array<{ step: string }> };
       tokenBreakdown: { categories: Array<{ category: string }> };
       decisionLogic: { reasoningChain: string[]; inputSignals: string[] };
       runtimeLifecycle: { currentStage: string; recentEvents: Array<{ type: string }> };
+      measuredUsage: { available: boolean; workflows: Array<{ workflow: string }> };
+      skills: { activeSkills: Array<{ skillId: string }>; suggestedSkills: Array<{ skillId: string }> };
+      feedback: { basedOnPastRuns: boolean; reusedPattern: string | null; similarTasks: Array<{ task: string }> };
+      workflow: { steps: Array<{ stepId: string }> };
+      executionTrace: { steps: Array<{ stepId: string }>; whyThisHappened: string };
     };
   };
 
@@ -147,12 +152,25 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(typeof payload.kiwiControl.indexing.coverageNote, "string");
   assert.equal(typeof payload.kiwiControl.fileAnalysis.totalFiles, "number");
   assert.equal(Array.isArray(payload.kiwiControl.fileAnalysis.selected), true);
+  assert.equal(
+    payload.kiwiControl.fileAnalysis.selected.every((entry) => typeof entry.file === "string"),
+    true
+  );
   assert.equal(Array.isArray(payload.kiwiControl.contextTrace.expansionSteps), true);
   assert.equal(Array.isArray(payload.kiwiControl.tokenBreakdown.categories), true);
   assert.equal(Array.isArray(payload.kiwiControl.decisionLogic.reasoningChain), true);
   assert.equal(Array.isArray(payload.kiwiControl.decisionLogic.inputSignals), true);
   assert.equal(typeof payload.kiwiControl.runtimeLifecycle.currentStage, "string");
   assert.equal(Array.isArray(payload.kiwiControl.runtimeLifecycle.recentEvents), true);
+  assert.equal(typeof payload.kiwiControl.measuredUsage.available, "boolean");
+  assert.equal(Array.isArray(payload.kiwiControl.measuredUsage.workflows), true);
+  assert.equal(Array.isArray(payload.kiwiControl.skills.activeSkills), true);
+  assert.equal(Array.isArray(payload.kiwiControl.skills.suggestedSkills), true);
+  assert.equal(typeof payload.kiwiControl.feedback.basedOnPastRuns, "boolean");
+  assert.equal(Array.isArray(payload.kiwiControl.feedback.similarTasks), true);
+  assert.equal(Array.isArray(payload.kiwiControl.workflow.steps), true);
+  assert.equal(Array.isArray(payload.kiwiControl.executionTrace.steps), true);
+  assert.equal(typeof payload.kiwiControl.executionTrace.whyThisHappened, "string");
 });
 
 test("ui command reports repo-not-initialized for an uninitialized generic repo while still returning json", async () => {

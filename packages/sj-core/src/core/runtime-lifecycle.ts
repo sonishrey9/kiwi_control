@@ -1,4 +1,5 @@
 import path from "node:path";
+import { recordWorkflowProgress } from "./workflow-engine.js";
 import { pathExists, readJson, writeText } from "../utils/fs.js";
 
 export type RuntimeLifecycleStage =
@@ -25,6 +26,12 @@ export interface RuntimeLifecycleEvent {
   task: string | null;
   command: string | null;
   files: string[];
+  skillsApplied: string[];
+  tokenUsage: {
+    measuredTokens: number | null;
+    estimatedTokens: number | null;
+    source: "measured" | "estimated" | "mixed" | "none";
+  };
 }
 
 export interface RuntimeLifecycleState {
@@ -47,6 +54,11 @@ export interface RuntimeProgressEntry {
   task?: string | null;
   command?: string | null;
   files?: string[];
+  skillsApplied?: string[];
+  measuredTokens?: number | null;
+  estimatedTokens?: number | null;
+  failureReason?: string | null;
+  validation?: string | null;
   validationStatus?: "ok" | "warn" | "error" | null;
   nextSuggestedCommand?: string | null;
   nextRecommendedAction?: string | null;
@@ -102,7 +114,20 @@ export async function recordRuntimeProgress(
     summary: entry.summary,
     task: entry.task ?? current.currentTask,
     command: entry.command ?? null,
-    files: [...new Set(entry.files ?? [])]
+    files: [...new Set(entry.files ?? [])],
+    skillsApplied: [...new Set(entry.skillsApplied ?? [])],
+    tokenUsage: {
+      measuredTokens: entry.measuredTokens ?? null,
+      estimatedTokens: entry.estimatedTokens ?? null,
+      source:
+        entry.measuredTokens != null && entry.estimatedTokens != null
+          ? "mixed"
+          : entry.measuredTokens != null
+            ? "measured"
+            : entry.estimatedTokens != null
+              ? "estimated"
+              : "none"
+    }
   };
 
   const nextState: RuntimeLifecycleState = {
@@ -120,6 +145,19 @@ export async function recordRuntimeProgress(
   };
 
   await persistRuntimeLifecycle(targetRoot, nextState);
+  const workflowEntry = {
+    task: event.task,
+    eventType: event.type,
+    status: event.status,
+    summary: event.summary,
+    validation: entry.validation ?? (entry.validationStatus ?? null),
+    ...(entry.failureReason !== undefined ? { failureReason: entry.failureReason } : {}),
+    files: event.files,
+    skillsApplied: event.skillsApplied,
+    ...(entry.measuredTokens !== undefined ? { measuredTokens: entry.measuredTokens } : {}),
+    ...(entry.estimatedTokens !== undefined ? { estimatedTokens: entry.estimatedTokens } : {})
+  };
+  await recordWorkflowProgress(targetRoot, workflowEntry).catch(() => null);
   return nextState;
 }
 

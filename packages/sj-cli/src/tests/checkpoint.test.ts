@@ -110,4 +110,10 @@ test("checkpoint fails when touched files drift outside the prepared scope", asy
 
   const currentPhase = JSON.parse(await fs.readFile(path.join(target, ".agent", "state", "current-phase.json"), "utf8"));
   assert.equal(currentPhase.status, "blocked");
+
+  const workflow = JSON.parse(await fs.readFile(path.join(target, ".agent", "state", "workflow.json"), "utf8"));
+  const checkpointStep = workflow.steps.find((step: { stepId: string }) => step.stepId === "checkpoint-progress");
+  assert.equal(workflow.status, "failed");
+  assert.equal(checkpointStep?.status, "failed");
+  assert.match(checkpointStep?.failureReason ?? "", /Prepared scope violated/);
 });

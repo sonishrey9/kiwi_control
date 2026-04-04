@@ -3,8 +3,10 @@ import { promises as fs } from "node:fs";
 import type { GitState } from "./git.js";
 import { inspectGitState } from "./git.js";
 import { computeAdaptiveWeights } from "./context-feedback.js";
+import type { AdaptiveWeights } from "./context-feedback.js";
 import { buildContextIndex } from "./context-index.js";
 import { getMemoryPaths } from "./memory.js";
+import { matchSkillsForTask } from "./skills-registry.js";
 import { getStatePaths } from "./state.js";
 import { classifyFileArea, deriveTaskArea, deriveTaskCategory } from "./task-intent.js";
 import type {
@@ -15,6 +17,7 @@ import type {
   SkippedPathEntry
 } from "./context-trace.js";
 import { persistContextTrace, persistIndexingState } from "./context-trace.js";
+import { trimSelectionRedundancy } from "../integrations/token-efficiency.js";
 import { pathExists, readText, writeText } from "../utils/fs.js";
 
 // ---------------------------------------------------------------------------
@@ -36,6 +39,8 @@ export interface ContextSignals {
   proximityFiles: string[];
   keywordMatches: string[];
   repoContextFiles: string[];
+  dependencyDistances?: Record<string, number>;
+  dependencyChains?: Record<string, string[]>;
   discovery?: ContextDiscoveryMetrics;
 }
 
@@ -132,6 +137,12 @@ interface ConfidenceAssessment {
   signalCoverage: number;
   discoveryBudgetLimited: boolean;
   maxDepthExplored: number;
+}
+
+interface SkillSignalState {
+  activeSkillIds: string[];
+  activeSkillKeywords: string[];
+  activeSkillTemplates: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -250,6 +261,8 @@ const IMPORTABLE_EXTENSIONS = new Set([
 const SCORE_CHANGED = 10;
 const SCORE_REPO_CONTEXT = 8;
 const SCORE_IMPORT_NEIGHBOR = 6;
+const SCORE_CALL_DEPENDENCY = 7;
+const SCORE_DEPENDENCY_DISTANCE_MAX = 5;
 const SCORE_KEYWORD = 5;
 const SCORE_ADAPTIVE_MAX = 4;
 const SCORE_PROXIMITY = 3;
@@ -283,9 +296,15 @@ export async function contextSelector(
 ): Promise<ContextSelection> {
   const gitState = await inspectGitState(targetRoot);
   const worktree = await buildWorktreeState(targetRoot, gitState);
-  const signals = await collectSignals(task, targetRoot, gitState);
+  const skillRegistry = await matchSkillsForTask(targetRoot, task).catch(() => null);
+  const skillSignals: SkillSignalState = {
+    activeSkillIds: skillRegistry?.activeSkills.map((skill) => skill.skillId) ?? [],
+    activeSkillKeywords: skillRegistry?.activeSkills.flatMap((skill) => skill.triggerConditions) ?? [],
+    activeSkillTemplates: skillRegistry?.activeSkills.flatMap((skill) => skill.executionTemplate) ?? []
+  };
+  const signals = await collectSignals(task, targetRoot, gitState, skillSignals);
   const adaptive = await computeAdaptiveWeights(targetRoot, task);
-  const selection = await rankAndSelect(task, targetRoot, signals, adaptive);
+  const selection = await rankAndSelect(task, targetRoot, signals, adaptive, skillSignals);
 
   await persistWorktreeState(targetRoot, worktree);
   await persistContextSelection(targetRoot, task, selection, signals);
@@ -357,7 +376,8 @@ async function estimateBranchAge(
 async function collectSignals(
   task: string,
   targetRoot: string,
-  git: GitState
+  git: GitState,
+  skillSignals: SkillSignalState
 ): Promise<ContextSignals> {
   const changedFiles = git.changedFiles.filter(
     (f) => isSourceFile(f) && !isExcludedPath(f) && !isExcludedFile(f)
@@ -367,6 +387,8 @@ async function collectSignals(
   const recentFiles = collectRecentFiles(discovery.files, MAX_RECENT_FILES);
   let importNeighbors = await collectImportNeighbors(targetRoot, changedFiles);
   let discoveryMetrics = discovery.metrics;
+  let dependencyDistances: Record<string, number> | undefined;
+  let dependencyChains: Record<string, string[]> | undefined;
 
   try {
     const contextIndex = await buildContextIndex({
@@ -378,6 +400,8 @@ async function collectSignals(
       changedFiles
     });
     importNeighbors = contextIndex.lastImpact.impactedFiles;
+    dependencyDistances = contextIndex.lastImpact.dependencyDistances;
+    dependencyChains = contextIndex.lastImpact.dependencyChains;
     discoveryMetrics = {
       ...discovery.metrics,
       indexedFiles: contextIndex.indexedFiles,
@@ -399,7 +423,8 @@ async function collectSignals(
     task,
     discovery.files,
     changedFiles,
-    recentFiles
+    recentFiles,
+    skillSignals.activeSkillKeywords
   );
 
   return {
@@ -409,6 +434,8 @@ async function collectSignals(
     proximityFiles,
     keywordMatches,
     repoContextFiles,
+    ...(dependencyDistances ? { dependencyDistances } : {}),
+    ...(dependencyChains ? { dependencyChains } : {}),
     discovery: discoveryMetrics
   };
 }
@@ -647,9 +674,10 @@ async function collectKeywordMatches(
   task: string,
   discoveredFiles: DiscoveredSourceFile[],
   changedFiles: string[],
-  recentFiles: string[]
+  recentFiles: string[],
+  extraKeywords: string[] = []
 ): Promise<string[]> {
-  const keywords = tokenizeTask(task);
+  const keywords = [...new Set([...tokenizeTask(task), ...tokenizeTask(extraKeywords.join(" "))])];
   if (keywords.length === 0) return [];
 
   const alreadyKnown = new Set([...changedFiles, ...recentFiles]);
@@ -685,11 +713,12 @@ async function rankAndSelect(
   task: string,
   targetRoot: string,
   signals: ContextSignals,
-  adaptive: { boosted: Map<string, number>; penalized: Map<string, number> }
+  adaptive: AdaptiveWeights,
+  skillSignals: SkillSignalState
 ): Promise<RankedContextSelection> {
   const scored = new Map<string, number>();
   const explainabilityLedger = new Map<string, ExplainabilityLedgerEntry>();
-  const keywords = tokenizeTask(task);
+  const keywords = [...new Set([...tokenizeTask(task), ...tokenizeTask(skillSignals.activeSkillKeywords.join(" "))])];
   const taskCategory = deriveTaskCategory(task);
   const taskArea = deriveTaskArea(task);
 
@@ -710,7 +739,13 @@ async function rankAndSelect(
   }
 
   for (const file of signals.importNeighbors) {
-    addScore(file, SCORE_IMPORT_NEIGHBOR, "import dependency");
+    const dependencyDistance = signals.dependencyDistances?.[file] ?? 1;
+    const dependencyScore = Math.max(1, SCORE_DEPENDENCY_DISTANCE_MAX - dependencyDistance + 1);
+    const dependencyChain = signals.dependencyChains?.[file] ?? [];
+    const dependencyReason: ExplainabilityReason =
+      dependencyChain.length > 2 ? "call dependency" : "import dependency";
+    addScore(file, Math.max(SCORE_IMPORT_NEIGHBOR, dependencyScore), dependencyReason);
+    addScore(file, dependencyScore, "dependency distance");
   }
 
   for (const file of signals.proximityFiles) {
@@ -741,6 +776,12 @@ async function rankAndSelect(
   for (const [file, boost] of adaptive.boosted) {
     if (scored.has(file)) {
       addScore(file, Math.min(boost, SCORE_ADAPTIVE_MAX), "adaptive boost");
+      if (adaptive.basedOnPastRuns) {
+        addScore(file, 0, "based on past runs");
+        if (adaptive.reusedPattern) {
+          addScore(file, 0, "reused pattern");
+        }
+      }
     }
   }
   for (const [file, penalty] of adaptive.penalized) {
@@ -774,9 +815,16 @@ async function rankAndSelect(
     CONTEXT_TOKEN_BUDGET
   );
   const precisionRefinement = refineSelectionForTask(task, includeBeforeTrim, signals);
+  const directSignals = new Set([
+    ...signals.changedFiles,
+    ...signals.importNeighbors,
+    ...signals.keywordMatches,
+    ...signals.repoContextFiles
+  ]);
+  const redundancyTrim = trimSelectionRedundancy(precisionRefinement.include, directSignals);
   const exclude = buildExcludeList();
 
-  const confidenceAssessment = assessConfidence(signals, precisionRefinement.include);
+  const confidenceAssessment = assessConfidence(signals, redundancyTrim.include);
   const confidence = confidenceAssessment.level;
 
   const topSignal = signals.changedFiles.length > 0
@@ -788,26 +836,32 @@ async function rankAndSelect(
         : "proximity heuristics";
 
   const reason =
-    `Selected ${precisionRefinement.include.length} files based on ${topSignal}. ` +
+    `Selected ${redundancyTrim.include.length} files based on ${topSignal}. ` +
       `Signals: ${signals.changedFiles.length} changed, ` +
       `${signals.importNeighbors.length} import neighbors, ` +
       `${signals.keywordMatches.length} keyword matches, ` +
       `${signals.repoContextFiles.length} repo context files, ` +
       `${signals.proximityFiles.length} proximity, ` +
-      `${signals.recentFiles.length} recent. ` +
+      `${signals.recentFiles.length} recent, ` +
+      `${skillSignals.activeSkillIds.length} active skills. ` +
+      `${adaptive.basedOnPastRuns ? `Based on past runs from "${adaptive.reusedPattern ?? "similar work"}". ` : ""}` +
       `${precisionRefinement.reason ? `${precisionRefinement.reason} ` : ""}` +
+      `${redundancyTrim.note ? `${redundancyTrim.note} ` : ""}` +
       `Coverage: ${Math.round(confidenceAssessment.signalCoverage * 100)}% of candidate signal files. ` +
       `Diversity: ${confidenceAssessment.signalDiversity} signal types. ` +
       `Discovery depth: ${confidenceAssessment.maxDepthExplored}${confidenceAssessment.discoveryBudgetLimited ? " (budget-limited)" : ""}. ` +
-      `Budget: ~${await estimateSelectionTokens(targetRoot, precisionRefinement.include)} tokens. ` +
+      `Budget: ~${await estimateSelectionTokens(targetRoot, redundancyTrim.include)} tokens. ` +
       `Confidence: ${confidence}.`;
 
   const trimmedByFile = new Map(
-    precisionRefinement.removed.map((entry) => [entry.file, entry] as const)
+    [
+      ...precisionRefinement.removed.map((entry) => [entry.file, { note: entry.note, reason: entry.reason }] as const),
+      ...redundancyTrim.removed.map((entry) => [entry.file, { note: entry.note, reason: "selection filter" as ExplainabilityReason }] as const)
+    ]
   );
-  const finalSelectedSet = new Set(precisionRefinement.include);
-  const selected = precisionRefinement.include.map((file) =>
-    buildFileAnalysisEntry(file, explainabilityLedger.get(file), [])
+  const finalSelectedSet = new Set(redundancyTrim.include);
+  const selected = redundancyTrim.include.map((file) =>
+    buildFileAnalysisEntry(file, explainabilityLedger.get(file), [], undefined, signals.dependencyChains?.[file])
   );
   const excluded = sorted
     .filter(([file]) => !finalSelectedSet.has(file))
@@ -819,11 +873,11 @@ async function rankAndSelect(
       const note = trimmed?.note ?? (score <= 1
         ? "Signal strength stayed too weak to justify inclusion."
         : "The file did not make the bounded working set.");
-      return buildFileAnalysisEntry(file, explainabilityLedger.get(file), baseReasons, note);
+      return buildFileAnalysisEntry(file, explainabilityLedger.get(file), baseReasons, note, signals.dependencyChains?.[file]);
     });
 
   return {
-    include: precisionRefinement.include,
+    include: redundancyTrim.include,
     exclude,
     reason,
     signals,
@@ -837,8 +891,19 @@ async function rankAndSelect(
         signals,
         sorted,
         includeBeforeTrim,
-        precisionRefinement,
-        precisionRefinement.include
+        {
+          include: redundancyTrim.include,
+          removed: [
+            ...precisionRefinement.removed,
+            ...redundancyTrim.removed.map((entry) => ({
+              file: entry.file,
+              reason: "selection filter" as ExplainabilityReason,
+              note: entry.note
+            }))
+          ],
+          reason: [precisionRefinement.reason, redundancyTrim.note].filter(Boolean).join(" ").trim() || null
+        },
+        redundancyTrim.include
       )
     }
   };
@@ -985,19 +1050,41 @@ function buildFileAnalysisEntry(
   file: string,
   ledgerEntry: ExplainabilityLedgerEntry | undefined,
   fallbackReasons: ExplainabilityReason[],
-  note?: string
+  note?: string,
+  dependencyChain?: string[]
 ): FileAnalysisEntry {
   const reasons = uniqueReasons([
     ...(ledgerEntry ? [...ledgerEntry.reasons] : []),
     ...fallbackReasons
   ]);
+  const selectionWhy = buildSelectionWhy(reasons, dependencyChain, note);
 
   return {
     file,
     reasons,
     ...(typeof ledgerEntry?.score === "number" ? { score: ledgerEntry.score } : {}),
-    ...(note ? { note } : {})
+    ...(note ? { note } : {}),
+    ...(selectionWhy ? { selectionWhy } : {}),
+    ...(dependencyChain && dependencyChain.length > 1 ? { dependencyChain } : {})
   };
+}
+
+function buildSelectionWhy(
+  reasons: ExplainabilityReason[],
+  dependencyChain?: string[],
+  note?: string
+): string | undefined {
+  const readableReasons = reasons.slice(0, 3).join(", ");
+  if (dependencyChain && dependencyChain.length > 1) {
+    return `Selected because of ${readableReasons}. Dependency chain: ${dependencyChain.join(" -> ")}.`;
+  }
+  if (note) {
+    return `Selected because of ${readableReasons}. ${note}`;
+  }
+  if (readableReasons) {
+    return `Selected because of ${readableReasons}.`;
+  }
+  return undefined;
 }
 
 function buildExpansionSteps(
@@ -1031,7 +1118,10 @@ function buildExpansionSteps(
         `Expanded the working set to ${expandedCandidates.length} candidate files using weighted signals and task-fit heuristics` +
         (signals.discovery?.indexedFiles
           ? ` while reusing an incremental import index (${signals.discovery.indexUpdatedFiles ?? 0} updated, ${signals.discovery.indexReusedFiles ?? 0} reused).`
-          : "."),
+          : ".") +
+        (signals.dependencyChains && Object.keys(signals.dependencyChains).length > 0
+          ? ` Shortest dependency chains were used for ${Object.keys(signals.dependencyChains).length} structurally related files.`
+          : ""),
       filesAdded: expandedCandidates.slice(0, 12)
     },
     {
@@ -1082,7 +1172,9 @@ function buildContextTrace(
       importNeighbors: signals.importNeighbors,
       proximityFiles: signals.proximityFiles,
       keywordMatches: signals.keywordMatches,
-      repoContextFiles: signals.repoContextFiles
+      repoContextFiles: signals.repoContextFiles,
+      ...(signals.dependencyDistances ? { dependencyDistances: signals.dependencyDistances } : {}),
+      ...(signals.dependencyChains ? { dependencyChains: signals.dependencyChains } : {})
     },
     expansionSteps: selection.explainability.expansionSteps,
     finalSelection: {

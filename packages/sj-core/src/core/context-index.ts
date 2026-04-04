@@ -29,6 +29,11 @@ export interface ContextIndexFileRecord {
   file: string;
   mtime: number;
   imports: string[];
+  exports: string[];
+  localFunctions: string[];
+  calledSymbols: string[];
+  importCallTargets: string[];
+  relationships: string[];
 }
 
 export interface ContextImpactAnalysis {
@@ -36,6 +41,8 @@ export interface ContextImpactAnalysis {
   forwardDependencies: string[];
   reverseDependencies: string[];
   impactedFiles: string[];
+  dependencyDistances: Record<string, number>;
+  dependencyChains: Record<string, string[]>;
 }
 
 export interface ContextIndexState {
@@ -104,10 +111,16 @@ export async function buildContextIndex(options: BuildContextIndexOptions): Prom
     }
 
     const imports = await parseFileImports(options.targetRoot, entry.file);
+    const structure = await parseFileStructure(options.targetRoot, entry.file);
     records.push({
       file: entry.file,
       mtime: entry.mtime,
-      imports
+      imports,
+      exports: structure.exports,
+      localFunctions: structure.localFunctions,
+      calledSymbols: structure.calledSymbols,
+      importCallTargets: structure.importCallTargets,
+      relationships: uniqueFiles([...imports, ...structure.importCallTargets])
     });
     updatedFiles.push(entry.file);
   }
@@ -162,13 +175,13 @@ function buildReverseDependencyMap(files: ContextIndexFileRecord[]): Record<stri
   const knownFiles = new Set(files.map((entry) => entry.file));
 
   for (const entry of files) {
-    for (const importedFile of entry.imports) {
-      if (!knownFiles.has(importedFile)) {
+    for (const relatedFile of entry.relationships) {
+      if (!knownFiles.has(relatedFile)) {
         continue;
       }
-      const importers = reverse.get(importedFile) ?? new Set<string>();
+      const importers = reverse.get(relatedFile) ?? new Set<string>();
       importers.add(entry.file);
-      reverse.set(importedFile, importers);
+      reverse.set(relatedFile, importers);
     }
   }
 
@@ -188,27 +201,118 @@ function analyzeImpact(
   const importableChangedFiles = changedFiles.filter((file) => fileMap.has(file));
 
   const forwardDependencies = uniqueFiles(
-    importableChangedFiles.flatMap((file) => fileMap.get(file)?.imports ?? [])
+    importableChangedFiles.flatMap((file) => fileMap.get(file)?.relationships ?? [])
   );
-  const reverseDependents = uniqueFiles(
-    importableChangedFiles.flatMap((file) => reverseDependencies[file] ?? [])
+  const { reverseDependents, reverseChains, reverseDistances } = walkReverseDependencies(
+    importableChangedFiles,
+    reverseDependencies
   );
-  const secondHopDependents = uniqueFiles(
-    reverseDependents.flatMap((file) => reverseDependencies[file] ?? [])
-  );
-
+  const { forwardChains, forwardDistances } = walkForwardDependencies(importableChangedFiles, fileMap);
   const impactedFiles = uniqueFiles(
-    [...forwardDependencies, ...reverseDependents, ...secondHopDependents].filter(
-      (file) => !importableChangedFiles.includes(file)
-    )
+    [...forwardDependencies, ...reverseDependents].filter((file) => !importableChangedFiles.includes(file))
+  );
+  const dependencyDistances = Object.fromEntries(
+    impactedFiles
+      .map((file) => [
+        file,
+        Math.min(
+          forwardDistances[file] ?? Number.POSITIVE_INFINITY,
+          reverseDistances[file] ?? Number.POSITIVE_INFINITY
+        )
+      ] as const)
+      .filter(([, distance]) => Number.isFinite(distance))
+      .sort((left, right) => left[0].localeCompare(right[0]))
+  );
+  const dependencyChains = Object.fromEntries(
+    impactedFiles
+      .map((file) => {
+        const forward = forwardChains[file];
+        const reverse = reverseChains[file];
+        const chosen =
+          reverse && forward
+            ? reverse.length <= forward.length ? reverse : forward
+            : reverse ?? forward;
+        return [file, chosen] as const;
+      })
+      .filter((entry): entry is [string, string[]] => Array.isArray(entry[1]) && entry[1].length > 0)
+      .sort((left, right) => left[0].localeCompare(right[0]))
   );
 
   return {
     changedFiles: importableChangedFiles,
     forwardDependencies,
-    reverseDependencies: uniqueFiles([...reverseDependents, ...secondHopDependents]),
-    impactedFiles
+    reverseDependencies: reverseDependents,
+    impactedFiles,
+    dependencyDistances,
+    dependencyChains
   };
+}
+
+function walkReverseDependencies(
+  changedFiles: string[],
+  reverseDependencies: Record<string, string[]>
+): {
+  reverseDependents: string[];
+  reverseChains: Record<string, string[]>;
+  reverseDistances: Record<string, number>;
+} {
+  const queue = changedFiles.map((file) => ({ file, chain: [file], distance: 0 }));
+  const reverseChains: Record<string, string[]> = {};
+  const reverseDistances: Record<string, number> = {};
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) {
+      break;
+    }
+
+    for (const dependent of reverseDependencies[current.file] ?? []) {
+      const nextDistance = current.distance + 1;
+      if (reverseDistances[dependent] !== undefined && reverseDistances[dependent] <= nextDistance) {
+        continue;
+      }
+      reverseDistances[dependent] = nextDistance;
+      reverseChains[dependent] = [...current.chain, dependent];
+      queue.push({ file: dependent, chain: reverseChains[dependent] as string[], distance: nextDistance });
+    }
+  }
+
+  return {
+    reverseDependents: uniqueFiles(Object.keys(reverseDistances)),
+    reverseChains,
+    reverseDistances
+  };
+}
+
+function walkForwardDependencies(
+  changedFiles: string[],
+  fileMap: Map<string, ContextIndexFileRecord>
+): {
+  forwardChains: Record<string, string[]>;
+  forwardDistances: Record<string, number>;
+} {
+  const queue = changedFiles.map((file) => ({ file, chain: [file], distance: 0 }));
+  const forwardChains: Record<string, string[]> = {};
+  const forwardDistances: Record<string, number> = {};
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) {
+      break;
+    }
+
+    for (const dependency of fileMap.get(current.file)?.relationships ?? []) {
+      const nextDistance = current.distance + 1;
+      if (forwardDistances[dependency] !== undefined && forwardDistances[dependency] <= nextDistance) {
+        continue;
+      }
+      forwardDistances[dependency] = nextDistance;
+      forwardChains[dependency] = [...current.chain, dependency];
+      queue.push({ file: dependency, chain: forwardChains[dependency] as string[], distance: nextDistance });
+    }
+  }
+
+  return { forwardChains, forwardDistances };
 }
 
 async function parseFileImports(targetRoot: string, file: string): Promise<string[]> {
@@ -230,6 +334,55 @@ async function parseFileImports(targetRoot: string, file: string): Promise<strin
   return uniqueFiles(
     resolvedImports.filter((entry): entry is string => typeof entry === "string" && entry.length > 0)
   );
+}
+
+async function parseFileStructure(
+  targetRoot: string,
+  file: string
+): Promise<{
+  exports: string[];
+  localFunctions: string[];
+  calledSymbols: string[];
+  importCallTargets: string[];
+}> {
+  const ext = path.extname(file).toLowerCase() as ImportableExtension;
+  const fullPath = path.join(targetRoot, file);
+
+  let content: string;
+  try {
+    content = await readText(fullPath);
+  } catch {
+    return {
+      exports: [],
+      localFunctions: [],
+      calledSymbols: [],
+      importCallTargets: []
+    };
+  }
+
+  const exports = extractExports(content, ext);
+  const localFunctions = extractLocalFunctions(content, ext);
+  const calledSymbols = extractCalledSymbols(content, ext);
+  const importedSymbols = extractImportedSymbols(content, ext);
+  const resolvedImportedSymbols = await Promise.all(
+    importedSymbols.map(async (entry) => ({
+      localName: entry.localName,
+      sourceFile: await resolveImportPath(targetRoot, file, entry.sourceFile)
+    }))
+  );
+
+  const importCallTargets = uniqueFiles(
+    resolvedImportedSymbols
+      .filter((entry) => entry.sourceFile && calledSymbols.includes(entry.localName))
+      .map((entry) => entry.sourceFile as string)
+  );
+
+  return {
+    exports,
+    localFunctions,
+    calledSymbols,
+    importCallTargets
+  };
 }
 
 function extractImports(content: string, ext: ImportableExtension): string[] {
@@ -268,6 +421,170 @@ function extractImports(content: string, ext: ImportableExtension): string[] {
   }
 
   return imports;
+}
+
+function extractExports(content: string, ext: ImportableExtension): string[] {
+  const exports = new Set<string>();
+
+  if ([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"].includes(ext)) {
+    for (const match of content.matchAll(/export\s+(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/g)) {
+      if (match[1]) exports.add(match[1]);
+    }
+    for (const match of content.matchAll(/export\s+(?:const|let|var|class)\s+([A-Za-z_$][\w$]*)/g)) {
+      if (match[1]) exports.add(match[1]);
+    }
+    for (const match of content.matchAll(/export\s*\{\s*([^}]+)\s*\}/g)) {
+      const list = match[1];
+      if (!list) continue;
+      for (const item of list.split(",")) {
+        const exported = item.trim().split(/\s+as\s+/i).pop()?.trim();
+        if (exported) exports.add(exported);
+      }
+    }
+    for (const match of content.matchAll(/exports\.([A-Za-z_$][\w$]*)\s*=/g)) {
+      if (match[1]) exports.add(match[1]);
+    }
+    for (const match of content.matchAll(/module\.exports\s*=\s*\{\s*([^}]+)\s*\}/g)) {
+      const list = match[1];
+      if (!list) continue;
+      for (const item of list.split(",")) {
+        const exported = item.trim().split(":")[0]?.trim();
+        if (exported) exports.add(exported);
+      }
+    }
+  }
+
+  if (ext === ".py") {
+    for (const match of content.matchAll(/^\s*(?:def|class)\s+([A-Za-z_][A-Za-z0-9_]*)/gm)) {
+      if (match[1] && !match[0]?.startsWith("    ")) {
+        exports.add(match[1]);
+      }
+    }
+  }
+
+  return [...exports].sort((left, right) => left.localeCompare(right));
+}
+
+function extractLocalFunctions(content: string, ext: ImportableExtension): string[] {
+  const functions = new Set<string>();
+
+  if ([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"].includes(ext)) {
+    for (const match of content.matchAll(/(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/g)) {
+      if (match[1]) functions.add(match[1]);
+    }
+    for (const match of content.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function|\()/g)) {
+      if (match[1]) functions.add(match[1]);
+    }
+  }
+
+  if (ext === ".py") {
+    for (const match of content.matchAll(/^\s*def\s+([A-Za-z_][A-Za-z0-9_]*)/gm)) {
+      if (match[1]) functions.add(match[1]);
+    }
+  }
+
+  return [...functions].sort((left, right) => left.localeCompare(right));
+}
+
+function extractCalledSymbols(content: string, ext: ImportableExtension): string[] {
+  const called = new Set<string>();
+  const ignore = new Set([
+    "if",
+    "for",
+    "while",
+    "switch",
+    "catch",
+    "return",
+    "typeof",
+    "new",
+    "function",
+    "import",
+    "require",
+    "console",
+    "setTimeout",
+    "setInterval"
+  ]);
+
+  if ([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"].includes(ext)) {
+    for (const match of content.matchAll(/\b([A-Za-z_$][\w$]*)\s*\(/g)) {
+      const symbol = match[1];
+      if (symbol && !ignore.has(symbol)) {
+        called.add(symbol);
+      }
+    }
+    for (const match of content.matchAll(/\.([A-Za-z_$][\w$]*)\s*\(/g)) {
+      const symbol = match[1];
+      if (symbol) {
+        called.add(symbol);
+      }
+    }
+  }
+
+  if (ext === ".py") {
+    for (const match of content.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\s*\(/g)) {
+      const symbol = match[1];
+      if (symbol && !ignore.has(symbol)) {
+        called.add(symbol);
+      }
+    }
+  }
+
+  return [...called].sort((left, right) => left.localeCompare(right));
+}
+
+function extractImportedSymbols(
+  content: string,
+  ext: ImportableExtension
+): Array<{ localName: string; sourceFile: string }> {
+  const imported: Array<{ localName: string; sourceFile: string }> = [];
+
+  if ([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"].includes(ext)) {
+    for (const match of content.matchAll(/import\s+\{([^}]+)\}\s+from\s+["']([^"']+)["']/g)) {
+      const names = match[1];
+      const source = match[2];
+      if (!names || !source || !isRelativeImport(source)) continue;
+      for (const item of names.split(",")) {
+        const alias = item.trim().split(/\s+as\s+/i).pop()?.trim();
+        if (alias) {
+          imported.push({ localName: alias, sourceFile: source });
+        }
+      }
+    }
+    for (const match of content.matchAll(/import\s+([A-Za-z_$][\w$]*)\s+from\s+["']([^"']+)["']/g)) {
+      const localName = match[1];
+      const source = match[2];
+      if (localName && source && isRelativeImport(source)) {
+        imported.push({ localName, sourceFile: source });
+      }
+    }
+    for (const match of content.matchAll(/(?:const|let|var)\s+\{([^}]+)\}\s*=\s*require\(\s*["']([^"']+)["']\s*\)/g)) {
+      const names = match[1];
+      const source = match[2];
+      if (!names || !source || !isRelativeImport(source)) continue;
+      for (const item of names.split(",")) {
+        const localName = item.trim().split(":").pop()?.trim();
+        if (localName) {
+          imported.push({ localName, sourceFile: source });
+        }
+      }
+    }
+  }
+
+  if (ext === ".py") {
+    for (const match of content.matchAll(/from\s+(\.\S+)\s+import\s+([A-Za-z0-9_,\s]+)/g)) {
+      const source = match[1];
+      const names = match[2];
+      if (!source || !names) continue;
+      for (const item of names.split(",")) {
+        const localName = item.trim();
+        if (localName) {
+          imported.push({ localName, sourceFile: source });
+        }
+      }
+    }
+  }
+
+  return imported;
 }
 
 async function resolveImportPath(

@@ -3,6 +3,8 @@ import { promises as fs } from "node:fs";
 import { getMemoryPaths } from "./memory.js";
 import { getStatePaths } from "./state.js";
 import { deriveTaskCategory } from "./task-intent.js";
+import type { MeasuredUsageState } from "./token-intelligence.js";
+import { buildMeasuredUsage, persistMeasuredUsage } from "./token-intelligence.js";
 import { pathExists, readText, writeText } from "../utils/fs.js";
 
 // ---------------------------------------------------------------------------
@@ -32,6 +34,7 @@ export interface TokenEstimate {
   wastedFiles: WastedFileReport;
   heavyDirectories: HeavyDirectoryReport;
   tokenBreakdown: TokenBreakdownState;
+  measuredUsage: MeasuredUsageState;
 }
 
 export interface WastedFileReport {
@@ -52,7 +55,7 @@ export interface HeavyDirectoryReport {
 
 export interface TokenUsageState {
   artifactType: "kiwi-control/token-usage";
-  version: 3;
+  version: 4;
   timestamp: string;
   task: string;
   selected_tokens: number;
@@ -73,6 +76,13 @@ export interface TokenUsageState {
     percentOfRepo: number;
     suggestion: string;
   }>;
+  measured_usage: {
+    available: boolean;
+    source: MeasuredUsageState["source"];
+    total_tokens: number;
+    total_runs: number;
+    note: string;
+  };
 }
 
 export interface TokenReductionCategory {
@@ -211,6 +221,7 @@ export async function estimateTokens(
 
   const wastedFiles = detectWastedFiles(fileBreakdown, task);
   const heavyDirectories = detectHeavyDirectories(directoryBreakdown, fullRepoTokens, task);
+  const measuredUsage = await buildMeasuredUsage(targetRoot);
   const tokenBreakdown = await buildTokenBreakdown(
     targetRoot,
     task,
@@ -230,7 +241,8 @@ export async function estimateTokens(
     directoryBreakdown,
     wastedFiles,
     heavyDirectories,
-    tokenBreakdown
+    tokenBreakdown,
+    measuredUsage
   };
 }
 
@@ -615,7 +627,7 @@ export async function persistTokenUsage(
 
   const record: TokenUsageState = {
     artifactType: "kiwi-control/token-usage",
-    version: 3,
+    version: 4,
     timestamp: new Date().toISOString(),
     task,
     selected_tokens: estimate.selectedTokens,
@@ -629,11 +641,19 @@ export async function persistTokenUsage(
     wasted_files: estimate.wastedFiles.files,
     wasted_tokens_total: estimate.wastedFiles.totalWastedTokens,
     wasted_removal_savings_percent: estimate.wastedFiles.removalSavingsPercent,
-    heavy_directories: estimate.heavyDirectories.directories
+    heavy_directories: estimate.heavyDirectories.directories,
+    measured_usage: {
+      available: estimate.measuredUsage.available,
+      source: estimate.measuredUsage.source,
+      total_tokens: estimate.measuredUsage.totalTokens,
+      total_runs: estimate.measuredUsage.totalRuns,
+      note: estimate.measuredUsage.note
+    }
   };
 
   await writeText(statePath, `${JSON.stringify(record, null, 2)}\n`);
   await persistTokenBreakdown(targetRoot, estimate.tokenBreakdown);
+  await persistMeasuredUsage(targetRoot, estimate.measuredUsage);
   return statePath;
 }
 

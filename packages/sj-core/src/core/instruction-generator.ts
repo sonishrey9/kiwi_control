@@ -1,6 +1,8 @@
 import path from "node:path";
 import type { ContextSelection, ContextConfidence } from "./context-selector.js";
+import type { SkillMatch } from "./skills-registry.js";
 import { taskNeedsExternalVerification } from "./task-intent.js";
+import { compressInstructionText, optimizeInstructionLines } from "../integrations/token-efficiency.js";
 import { writeText } from "../utils/fs.js";
 
 // ---------------------------------------------------------------------------
@@ -17,6 +19,8 @@ export interface GeneratedInstructions {
   validationSteps: string[];
   confidence: ContextConfidence;
   confidenceNote: string;
+  activeSkills: SkillMatch[];
+  suggestedSkills: SkillMatch[];
   raw: string;
 }
 
@@ -56,12 +60,18 @@ const STOP_CONDITIONS_DEFAULT = [
 
 export function generateInstructions(
   task: string,
-  selection: ContextSelection
+  selection: ContextSelection,
+  skills?: {
+    activeSkills?: SkillMatch[];
+    suggestedSkills?: SkillMatch[];
+  }
 ): GeneratedInstructions {
   const confidence: ContextConfidence = selection.confidence ?? "medium";
   const confidenceNote = describeConfidence(selection, confidence);
-  const steps = deriveSteps(task, selection, confidence);
-  const constraints = deriveConstraints(task, confidence);
+  const activeSkills = skills?.activeSkills ?? [];
+  const suggestedSkills = skills?.suggestedSkills ?? [];
+  const steps = optimizeInstructionLines(deriveSteps(task, selection, confidence, activeSkills));
+  const constraints = optimizeInstructionLines(deriveConstraints(task, confidence, activeSkills));
   const validationSteps = deriveValidationSteps(task, selection);
   const stopConditions = [...STOP_CONDITIONS_DEFAULT];
 
@@ -81,7 +91,9 @@ export function generateInstructions(
     steps,
     constraints,
     validationSteps,
-    stopConditions
+    stopConditions,
+    activeSkills,
+    suggestedSkills
   });
 
   return {
@@ -94,6 +106,8 @@ export function generateInstructions(
     validationSteps,
     confidence,
     confidenceNote,
+    activeSkills,
+    suggestedSkills,
     raw
   };
 }
@@ -105,7 +119,8 @@ export function generateInstructions(
 function deriveSteps(
   task: string,
   selection: ContextSelection,
-  confidence: ContextConfidence
+  confidence: ContextConfidence,
+  activeSkills: SkillMatch[]
 ): string[] {
   const steps: string[] = [];
   const { signals } = selection;
@@ -153,6 +168,15 @@ function deriveSteps(
     }
   }
 
+  if (activeSkills.length > 0) {
+    for (const skill of activeSkills.slice(0, 2)) {
+      const instruction = skill.executionTemplate[0] ?? skill.description;
+      if (instruction) {
+        steps.push(`Apply skill "${skill.name}": ${instruction}`);
+      }
+    }
+  }
+
   // Core implementation step
   steps.push(`Implement the goal: ${task}`);
 
@@ -180,7 +204,7 @@ function deriveSteps(
 // Constraint derivation — confidence-aware
 // ---------------------------------------------------------------------------
 
-function deriveConstraints(task: string, confidence: ContextConfidence): string[] {
+function deriveConstraints(task: string, confidence: ContextConfidence, activeSkills: SkillMatch[]): string[] {
   const constraints = [...CORE_CONSTRAINTS];
 
   if (taskNeedsExternalVerification(task)) {
@@ -204,6 +228,12 @@ function deriveConstraints(task: string, confidence: ContextConfidence): string[
   if (confidence === "high") {
     constraints.push(
       "Context confidence is HIGH — multiple repo-local signals agree on these files, but do not assume full coverage beyond the allowed set."
+    );
+  }
+
+  if (activeSkills.length > 0) {
+    constraints.push(
+      `Relevant repo-local skills are active (${activeSkills.map((skill) => skill.name).join(", ")}). Follow their execution templates before widening scope.`
     );
   }
 
@@ -253,6 +283,8 @@ function renderInstructionDocument(instructions: {
   constraints: string[];
   validationSteps: string[];
   stopConditions: string[];
+  activeSkills: SkillMatch[];
+  suggestedSkills: SkillMatch[];
 }): string {
   const lines: string[] = [
     "# AI Task Instructions",
@@ -286,6 +318,18 @@ function renderInstructionDocument(instructions: {
     "",
     ...instructions.constraints.map((c) => `- ${c}`),
     "",
+    "## ACTIVE SKILLS",
+    "",
+    ...(instructions.activeSkills.length > 0
+      ? instructions.activeSkills.slice(0, 2).map((skill) => `- ${skill.name}: ${skill.executionTemplate[0] ?? skill.description}`)
+      : ["- none"]),
+    "",
+    "## SUGGESTED SKILLS",
+    "",
+    ...(instructions.suggestedSkills.length > 0
+      ? instructions.suggestedSkills.slice(0, 2).map((skill) => `- ${skill.name}: ${skill.description || skill.triggerConditions.join(", ")}`)
+      : ["- none"]),
+    "",
     "## VALIDATION",
     "",
     "Before marking the task complete, verify:",
@@ -300,7 +344,7 @@ function renderInstructionDocument(instructions: {
     ""
   ];
 
-  return lines.join("\n");
+  return `${compressInstructionText(lines.join("\n"))}\n`;
 }
 
 function describeConfidence(selection: ContextSelection, confidence: ContextConfidence): string {

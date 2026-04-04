@@ -14,6 +14,7 @@ import { PRODUCT_METADATA } from "@shrey-junior/sj-core/core/product.js";
 import { loadContinuitySnapshot, updateActiveRoleHints } from "@shrey-junior/sj-core/core/state.js";
 import { resolveSpecialist } from "@shrey-junior/sj-core/core/specialists.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
+import { executeWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 
 export interface RunOptions {
@@ -96,8 +97,51 @@ export async function runRun(options: RunOptions): Promise<number> {
       options.logger.warn(`- ${finding.message}`);
     }
   }
-  const packets = await buildRunPackets(options.repoRoot, config, context, options.goal, decision, compiledContext, continuity, specialist);
-  const results = await writeTaskPackets(options.targetRoot, packets);
+  let packets: Awaited<ReturnType<typeof buildRunPackets>> = [];
+  let results: Awaited<ReturnType<typeof writeTaskPackets>> = [];
+  const workflowExecution = await executeWorkflowStep(options.targetRoot, {
+    task: options.goal,
+    stepId: "generate-run-packets",
+    input: options.goal,
+    expectedOutput: "One or more run packets are written for execution.",
+    run: async () => {
+      packets = await buildRunPackets(options.repoRoot, config, context, options.goal, decision, compiledContext, continuity, specialist);
+      results = await writeTaskPackets(options.targetRoot, packets);
+      return { packets, results };
+    },
+    validate: ({ packets, results }) => ({
+      ok: packets.length > 0 && results.length > 0,
+      validation:
+        packets.length > 0 && results.length > 0
+          ? "Run packet generation completed and packet artifacts were written."
+          : "Run packet generation did not produce any packet artifacts.",
+      ...(packets.length > 0 && results.length > 0
+        ? {}
+        : { failureReason: "No run packets were generated for the requested goal." })
+    }),
+    summarize: ({ packets, results }) => ({
+      summary: `Generated ${results.length} task packet${results.length === 1 ? "" : "s"} for "${options.goal}".`,
+      files: packets.map((packet) => packet.relativePath).slice(0, 12)
+    })
+  });
+  if (!workflowExecution.ok) {
+    await recordRuntimeProgress(options.targetRoot, {
+      type: "packets_generated",
+      stage: "blocked",
+      status: "error",
+      summary: workflowExecution.failureReason ?? "Run packet generation failed.",
+      task: options.goal,
+      command: `${PRODUCT_METADATA.cli.primaryCommand} run "${options.goal}"`,
+      files: packets.map((packet) => packet.relativePath).slice(0, 12),
+      validation: workflowExecution.validation,
+      ...(workflowExecution.failureReason ? { failureReason: workflowExecution.failureReason } : {}),
+      validationStatus: "error",
+      nextSuggestedCommand: `${PRODUCT_METADATA.cli.primaryCommand} status`,
+      nextRecommendedAction: workflowExecution.validation
+    }).catch(() => null);
+    options.logger.error(workflowExecution.failureReason ?? "Run packet generation failed.");
+    return 1;
+  }
   await updateActiveRoleHints(options.targetRoot, {
     activeRole: specialist?.specialistId ?? contract.activeRole,
     supportingRoles:
@@ -136,6 +180,8 @@ export async function runRun(options: RunOptions): Promise<number> {
     task: options.goal,
     command: `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "<milestone>"`,
     files: packets.map((packet) => packet.relativePath).slice(0, 12),
+    estimatedTokens: null,
+    validation: "Run packet generation completed and packet artifacts were written.",
     validationStatus: risk.level === "high" ? "warn" : "ok",
     nextSuggestedCommand: `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "<milestone>"`,
     nextRecommendedAction: `Execute the generated ${decision.primaryTool} packet and checkpoint progress before widening scope.`

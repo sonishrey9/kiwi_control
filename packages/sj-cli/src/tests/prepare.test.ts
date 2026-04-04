@@ -68,6 +68,61 @@ test("token estimator computes savings percentage", async () => {
   assert.match(estimate.estimateNote, /pricing is intentionally not shown/i);
 });
 
+test("token estimator surfaces measured usage from ccusage-compatible Codex session logs when available", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-token-measured-"));
+  const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), "sj-codex-home-"));
+  const previousCodexHome = process.env.CODEX_HOME;
+  await fs.mkdir(path.join(codexHome, "sessions", "2026", "04", "05"), { recursive: true });
+  await fs.writeFile(path.join(tempDir, "code.ts"), "export const val = 42;\n", "utf8");
+  await fs.writeFile(
+    path.join(codexHome, "sessions", "2026", "04", "05", "repo-session.jsonl"),
+    [
+      JSON.stringify({
+        timestamp: "2026-04-05T10:00:00.000Z",
+        type: "session_meta",
+        payload: { cwd: tempDir }
+      }),
+      JSON.stringify({
+        timestamp: "2026-04-05T10:00:00.100Z",
+        type: "turn_context",
+        payload: { model: "gpt-5-codex" }
+      }),
+      JSON.stringify({
+        timestamp: "2026-04-05T10:00:01.000Z",
+        type: "event_msg",
+        payload: {
+          type: "token_count",
+          info: {
+            total_token_usage: {
+              input_tokens: 1000,
+              cached_input_tokens: 100,
+              output_tokens: 250,
+              reasoning_output_tokens: 50,
+              total_tokens: 1250
+            }
+          }
+        }
+      })
+    ].join("\n"),
+    "utf8"
+  );
+
+  process.env.CODEX_HOME = codexHome;
+  try {
+    const estimate = await estimateTokens(tempDir, ["code.ts"]);
+    assert.equal(estimate.measuredUsage.available, true);
+    assert.equal(estimate.measuredUsage.source, "ccusage-session");
+    assert.equal(estimate.measuredUsage.totalRuns, 1);
+    assert.equal(estimate.measuredUsage.totalTokens, 1250);
+  } finally {
+    if (previousCodexHome === undefined) {
+      delete process.env.CODEX_HOME;
+    } else {
+      process.env.CODEX_HOME = previousCodexHome;
+    }
+  }
+});
+
 test("token estimator persists state to .agent/state/token-usage.json", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-token-persist-"));
   await fs.writeFile(path.join(tempDir, "code.ts"), "export const val = 42;\n", "utf8");
@@ -132,6 +187,60 @@ test("prepare output clearly labels token counts as rough estimates and omits pr
   assert.equal(runtimeLifecycle.artifactType, "kiwi-control/runtime-lifecycle");
   assert.equal(runtimeLifecycle.currentStage, "prepared");
   assert.equal(runtimeLifecycle.recentEvents.some((event) => event.type === "prepare_completed"), true);
+});
+
+test("prepare matches repo-local skills and writes workflow state", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-prepare-skills-"));
+  await runCommand("git", ["init"], tempDir);
+  await fs.mkdir(path.join(tempDir, ".agent", "skills"), { recursive: true });
+  await fs.writeFile(path.join(tempDir, "README.md"), "# Docs\n", "utf8");
+  await fs.writeFile(path.join(tempDir, "src.ts"), "export const code = true;\n", "utf8");
+  await fs.writeFile(
+    path.join(tempDir, ".agent", "skills", "docs-playbook.md"),
+    [
+      "# Docs Playbook",
+      "",
+      "## Description",
+      "Use for docs and README tasks.",
+      "",
+      "## Trigger Conditions",
+      "- docs",
+      "- README",
+      "- handbook",
+      "",
+      "## Execution Template",
+      "- Prefer docs files before code files.",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+  await runCommand("git", ["add", "."], tempDir);
+  await runCommand("git", ["-c", "user.name=test", "-c", "user.email=test@test.com", "commit", "-m", "init"], tempDir);
+  await fs.writeFile(path.join(tempDir, "README.md"), "# Docs\n\nUpdated.\n", "utf8");
+
+  const logs: string[] = [];
+  const exitCode = await runPrepare({
+    repoRoot: tempDir,
+    targetRoot: tempDir,
+    task: "update README docs",
+    logger: {
+      info(message: string) {
+        logs.push(message);
+      },
+      warn() {},
+      error() {}
+    } as never
+  });
+
+  assert.equal(exitCode, 0);
+  assert.match(logs.join("\n"), /Skills:/);
+  assert.match(logs.join("\n"), /Docs Playbook/);
+
+  const workflow = await readJson<{ artifactType: string; steps: Array<{ stepId: string; skillsApplied: string[] }> }>(
+    path.join(tempDir, ".agent", "state", "workflow.json")
+  );
+  assert.equal(workflow.artifactType, "kiwi-control/workflow");
+  assert.equal(workflow.steps.some((step) => step.stepId === "prepare-context" && step.skillsApplied.includes("docs-playbook")), true);
 });
 
 test("constraints include all mandatory rules", () => {

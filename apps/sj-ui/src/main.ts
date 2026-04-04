@@ -87,6 +87,13 @@ type KiwiControlFeedback = {
   successRate: number;
   adaptationLevel: "limited" | "active";
   note: string;
+  basedOnPastRuns: boolean;
+  reusedPattern: string | null;
+  similarTasks: Array<{
+    task: string;
+    similarity: number;
+    timestamp: string;
+  }>;
   recentEntries: Array<{
     task: string;
     success: boolean;
@@ -136,6 +143,8 @@ type FileAnalysisEntry = {
   reasons: string[];
   score?: number;
   note?: string;
+  selectionWhy?: string;
+  dependencyChain?: string[];
 };
 
 type SkippedPathEntry = {
@@ -248,6 +257,97 @@ type KiwiControlRuntimeLifecycle = {
   recentEvents: RuntimeLifecycleEvent[];
 };
 
+type SkillMatch = {
+  skillId: string;
+  name: string;
+  score: number;
+  description: string;
+  triggerConditions: string[];
+  executionTemplate: string[];
+};
+
+type WorkflowStep = {
+  stepId: string;
+  action: string;
+  status: "pending" | "running" | "completed" | "failed";
+  input: string | null;
+  expectedOutput: string | null;
+  output: string | null;
+  validation: string | null;
+  failureReason: string | null;
+  attemptCount: number;
+  retryCount: number;
+  files: string[];
+  skillsApplied: string[];
+  tokenUsage: {
+    source: "measured" | "estimated" | "mixed" | "none";
+    measuredTokens: number | null;
+    estimatedTokens: number | null;
+    note: string;
+  };
+  updatedAt: string | null;
+};
+
+type KiwiControlMeasuredUsage = {
+  available: boolean;
+  source: "ccusage-session" | "execution-log" | "mixed" | "none";
+  totalTokens: number;
+  totalRuns: number;
+  runs: Array<{
+    runId: string;
+    source: "ccusage-session" | "execution-log";
+    workflow: string;
+    task: string | null;
+    timestamp: string;
+    totalTokens: number;
+    inputTokens: number | null;
+    cachedInputTokens: number | null;
+    outputTokens: number | null;
+    reasoningOutputTokens: number | null;
+    files: string[];
+  }>;
+  workflows: Array<{ workflow: string; tokens: number; runs: number }>;
+  files: Array<{ file: string; tokens: number; runs: number; attribution: "allocated" }>;
+  note: string;
+};
+
+type KiwiControlSkills = {
+  activeSkills: SkillMatch[];
+  suggestedSkills: SkillMatch[];
+  totalSkills: number;
+};
+
+type KiwiControlWorkflow = {
+  task: string | null;
+  status: "pending" | "running" | "completed" | "failed";
+  currentStepId: string | null;
+  steps: WorkflowStep[];
+};
+
+type KiwiControlExecutionTrace = {
+  steps: Array<{
+    stepId: string;
+    action: string;
+    status: string;
+    expectedOutput: string | null;
+    files: string[];
+    skillsApplied: string[];
+    attemptCount: number;
+    retryCount: number;
+    tokenUsage: {
+      source: string;
+      measuredTokens: number | null;
+      estimatedTokens: number | null;
+      note: string;
+    };
+    output: string | null;
+    validation: string | null;
+    failureReason: string | null;
+    updatedAt: string | null;
+  }>;
+  whyThisHappened: string;
+};
+
 type KiwiControlState = {
   contextView: KiwiControlContextView;
   tokenAnalytics: KiwiControlTokenAnalytics;
@@ -263,6 +363,10 @@ type KiwiControlState = {
   tokenBreakdown: KiwiControlTokenBreakdown;
   decisionLogic: KiwiControlDecisionLogic;
   runtimeLifecycle: KiwiControlRuntimeLifecycle;
+  measuredUsage: KiwiControlMeasuredUsage;
+  skills: KiwiControlSkills;
+  workflow: KiwiControlWorkflow;
+  executionTrace: KiwiControlExecutionTrace;
 };
 
 type RepoControlState = {
@@ -333,6 +437,15 @@ type RepoControlState = {
     warnings: number;
     issues: ValidationIssue[];
   };
+  ecosystem: {
+    artifactType: string;
+    version: number;
+    timestamp: string;
+    tools: Array<{ id: string; name: string; category: string; description: string; source: string; readOnly: boolean }>;
+    workflows: Array<{ id: string; name: string; description: string; source: string }>;
+    capabilities: Array<{ id: string; name: string; surface: string; description: string; source: string }>;
+    notes: string[];
+  };
   kiwiControl?: KiwiControlState;
 };
 
@@ -398,6 +511,9 @@ const EMPTY_KC: KiwiControlState = {
     successRate: 0,
     adaptationLevel: "limited",
     note: "Adaptive feedback is idle.",
+    basedOnPastRuns: false,
+    reusedPattern: null,
+    similarTasks: [],
     recentEntries: [],
     topBoostedFiles: [],
     topPenalizedFiles: []
@@ -491,6 +607,31 @@ const EMPTY_KC: KiwiControlState = {
     nextSuggestedCommand: null,
     nextRecommendedAction: null,
     recentEvents: []
+  },
+  measuredUsage: {
+    available: false,
+    source: "none",
+    totalTokens: 0,
+    totalRuns: 0,
+    runs: [],
+    workflows: [],
+    files: [],
+    note: "No measured token usage is available yet."
+  },
+  skills: {
+    activeSkills: [],
+    suggestedSkills: [],
+    totalSkills: 0
+  },
+  workflow: {
+    task: null,
+    status: "pending",
+    currentStepId: null,
+    steps: []
+  },
+  executionTrace: {
+    steps: [],
+    whyThisHappened: ""
   }
 };
 
@@ -911,6 +1052,7 @@ function renderOverviewView(state: RepoControlState): string {
         ${renderStatCard("Selected", String(kc.contextView.tree.selectedCount), "files Kiwi chose", "neutral")}
         ${renderStatCard("Ignored", String(kc.contextView.tree.excludedCount), "files Kiwi filtered out", "warn")}
         ${renderStatCard("Lifecycle", kc.runtimeLifecycle.currentStage, kc.runtimeLifecycle.nextRecommendedAction ?? "runtime stage not recorded yet", "neutral")}
+        ${renderStatCard("Skills", String(kc.skills.activeSkills.length), kc.skills.activeSkills.length > 0 ? kc.skills.activeSkills.map((skill) => skill.name).join(", ") : "none active", "neutral")}
       </div>
 
       <div class="kc-two-column">
@@ -923,6 +1065,7 @@ function renderOverviewView(state: RepoControlState): string {
             ${renderInfoRow("Suggested pack", state.mcpPacks.suggestedPack.name ?? state.mcpPacks.suggestedPack.id)}
             ${renderInfoRow("Compatible MCPs", String(compatibleMcpCount))}
             ${renderInfoRow("Feedback", `${kc.feedback.adaptationLevel} (${kc.feedback.totalRuns} runs)`)}
+            ${renderInfoRow("Measured usage", kc.measuredUsage.available ? `${formatTokensShort(kc.measuredUsage.totalTokens)} over ${kc.measuredUsage.totalRuns} runs` : "unavailable")}
           </div>
         </section>
         <section class="kc-panel">
@@ -955,9 +1098,29 @@ function renderOverviewView(state: RepoControlState): string {
         </section>
         <section class="kc-panel">
           ${renderPanelHeader("What Kiwi Learned", "Adaptive feedback and recent system memory for this task scope.")}
-          ${learnedFiles.length > 0
-            ? renderListBadges(learnedFiles)
-            : renderEmptyState("No learned file preference is strong enough to surface yet.")}
+          ${kc.feedback.basedOnPastRuns
+            ? `<div class="kc-stack-list">
+                ${renderNoteRow("based on past runs", kc.feedback.reusedPattern ?? "similar work", kc.feedback.note)}
+                ${kc.feedback.similarTasks.slice(0, 3).map((entry) => renderNoteRow(entry.task, `similarity ${entry.similarity}`, formatTimestamp(entry.timestamp))).join("")}
+              </div>`
+            : learnedFiles.length > 0
+              ? renderListBadges(learnedFiles)
+              : renderEmptyState("No learned file preference is strong enough to surface yet.")}
+        </section>
+      </div>
+
+      <div class="kc-two-column">
+        <section class="kc-panel">
+          ${renderPanelHeader("Active Skills", "Repo-local skills currently shaping the task instructions and workflow trace.")}
+          ${kc.skills.activeSkills.length > 0
+            ? `<div class="kc-stack-list">${kc.skills.activeSkills.map((skill) => renderNoteRow(skill.name, `score ${skill.score}`, skill.executionTemplate[0] ?? skill.description)).join("")}</div>`
+            : renderEmptyState("No repo-local skills matched the active task.")}
+        </section>
+        <section class="kc-panel">
+          ${renderPanelHeader("Suggested Skills", "Additional repo-local skills that may become relevant as the task expands.")}
+          ${kc.skills.suggestedSkills.length > 0
+            ? `<div class="kc-stack-list">${kc.skills.suggestedSkills.map((skill) => renderNoteRow(skill.name, `score ${skill.score}`, skill.description || skill.triggerConditions.join(", "))).join("")}</div>`
+            : renderEmptyState("No additional skills are currently suggested.")}
         </section>
       </div>
 
@@ -1056,7 +1219,7 @@ function renderContextView(state: RepoControlState): string {
           </div>
           <div class="kc-divider"></div>
           <div class="kc-stack-list">
-            ${kc.fileAnalysis.selected.slice(0, 3).map((entry) => renderNoteRow(entry.file, "selected", entry.reasons.join(", "))).join("")}
+            ${kc.fileAnalysis.selected.slice(0, 3).map((entry) => renderNoteRow(entry.file, "selected", entry.selectionWhy ?? entry.reasons.join(", "))).join("")}
             ${kc.fileAnalysis.excluded.slice(0, 3).map((entry) => renderNoteRow(entry.file, "excluded", entry.note ?? entry.reasons.join(", "))).join("")}
             ${kc.fileAnalysis.skipped.slice(0, 3).map((entry) => renderNoteRow(entry.path, "skipped", entry.reason)).join("")}
           </div>
@@ -1082,6 +1245,17 @@ function renderContextView(state: RepoControlState): string {
             : renderEmptyState("Run kc prepare to record a trace of how Kiwi built the working set.")}
         </section>
       </div>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("Dependency Chains", "Shortest structural paths that pulled files into the working set.")}
+        ${kc.fileAnalysis.selected.some((entry) => Array.isArray(entry.dependencyChain) && entry.dependencyChain.length > 1)
+          ? `<div class="kc-stack-list">${kc.fileAnalysis.selected
+              .filter((entry) => Array.isArray(entry.dependencyChain) && entry.dependencyChain.length > 1)
+              .slice(0, 6)
+              .map((entry) => renderNoteRow(entry.file, "chain", (entry.dependencyChain ?? []).join(" -> ")))
+              .join("")}</div>`
+          : renderEmptyState("No structural dependency chain was needed for the current selection.")}
+      </section>
 
       <section class="kc-panel">
         ${renderPanelHeader("INDEXING", "How the repo scan progressed, where it stopped, and which ignore rules were applied.")}
@@ -1235,6 +1409,27 @@ function renderTokensView(state: RepoControlState): string {
         ${renderStatCard("Full Repo", `~${formatTokensShort(tokens.fullRepoTokens)}`, "approximate", "neutral")}
         ${renderStatCard("Saved", `~${tokens.savingsPercent}%`, "approximate", "success")}
         ${renderStatCard("Measured Files", `${tokens.fileCountSelected}/${tokens.fileCountTotal}`, "direct count", "neutral")}
+        ${renderStatCard("Measured Usage", kc.measuredUsage.available ? formatTokensShort(kc.measuredUsage.totalTokens) : "unavailable", kc.measuredUsage.available ? `${kc.measuredUsage.totalRuns} real runs` : "falling back to estimate", kc.measuredUsage.available ? "success" : "warn")}
+      </div>
+
+      <div class="kc-two-column">
+        <section class="kc-panel">
+          ${renderPanelHeader("Measured Usage", kc.measuredUsage.note)}
+          ${kc.measuredUsage.available
+            ? `<div class="kc-stack-list">
+                ${renderNoteRow("Source", kc.measuredUsage.source, kc.measuredUsage.note)}
+                ${kc.measuredUsage.workflows.slice(0, 4).map((workflow) => renderNoteRow(workflow.workflow, `${formatTokensShort(workflow.tokens)} tokens`, `${workflow.runs} runs`)).join("")}
+              </div>`
+            : renderEmptyState("No measured repo usage was found in local session or execution logs.")}
+        </section>
+        <section class="kc-panel">
+          ${renderPanelHeader("Estimated Usage", tokens.estimationMethod ?? "No estimate method recorded.")}
+          <div class="kc-stack-list">
+            ${renderNoteRow("Selected working set", `~${formatTokensShort(tokens.selectedTokens)}`, "Heuristic estimate for the current bounded context.")}
+            ${renderNoteRow("Full repo", `~${formatTokensShort(tokens.fullRepoTokens)}`, "Heuristic estimate for all scanned repo files.")}
+            ${renderNoteRow("Savings", `~${tokens.savingsPercent}%`, "Measured file counts with heuristic token estimation.")}
+          </div>
+        </section>
       </div>
 
       <div class="kc-two-column">
@@ -1271,6 +1466,17 @@ function renderTokensView(state: RepoControlState): string {
               category.note
             )).join("")}</div>`
           : renderEmptyState("No token breakdown has been recorded yet.")}
+      </section>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("Measured Files", "Per-file measured usage is only shown when repo-local execution entries carry non-zero token totals.")}
+        ${kc.measuredUsage.files.length > 0
+          ? `<div class="kc-stack-list">${kc.measuredUsage.files.slice(0, 6).map((file) => renderNoteRow(
+              file.file,
+              `${formatTokensShort(file.tokens)} tokens`,
+              `${file.runs} runs · ${file.attribution}`
+            )).join("")}</div>`
+          : renderEmptyState("No measured per-file attribution is available yet.")}
       </section>
     </div>
   `;
@@ -1408,6 +1614,8 @@ function renderSystemView(state: RepoControlState): string {
   const kc = state.kiwiControl ?? EMPTY_KC;
   const failures = Math.max(0, kc.execution.totalExecutions - Math.round((kc.execution.successRate / 100) * kc.execution.totalExecutions));
   const activityItems = buildActivityItems(state);
+  const completedWorkflowSteps = kc.workflow.steps.filter((step) => step.status === "completed").length;
+  const failedWorkflowStep = kc.workflow.steps.find((step) => step.status === "failed") ?? null;
 
   return `
     <div class="kc-view-shell">
@@ -1426,6 +1634,7 @@ function renderSystemView(state: RepoControlState): string {
         ${renderStatCard("Success Rate", `${kc.execution.successRate}%`, "real completion history", kc.execution.successRate >= 80 ? "success" : "warn")}
         ${renderStatCard("Feedback Strength", kc.feedback.adaptationLevel, `${kc.feedback.totalRuns} successful runs`, kc.feedback.adaptationLevel === "active" ? "success" : "neutral")}
         ${renderStatCard("Lifecycle", kc.runtimeLifecycle.currentStage, kc.runtimeLifecycle.validationStatus ?? "no validation status", "neutral")}
+        ${renderStatCard("Workflow", kc.workflow.status, kc.workflow.currentStepId ?? "no current step", kc.workflow.status === "failed" ? "warn" : "neutral")}
       </div>
 
       <div class="kc-two-column">
@@ -1492,6 +1701,38 @@ function renderSystemView(state: RepoControlState): string {
         </section>
       </div>
 
+      <div class="kc-two-column">
+        <section class="kc-panel">
+          ${renderPanelHeader("Workflow Steps", "Linear workflow state for the active task.")}
+          <div class="kc-inline-badges">
+            ${renderInlineBadge(`${completedWorkflowSteps}/${kc.workflow.steps.length} completed`)}
+            ${failedWorkflowStep ? renderInlineBadge(`failed: ${failedWorkflowStep.action}`) : renderInlineBadge("no failed step")}
+          </div>
+          ${failedWorkflowStep?.failureReason ? `<div class="kc-divider"></div>${renderNoteRow("Failure reason", failedWorkflowStep.action, failedWorkflowStep.failureReason)}` : ""}
+          ${kc.workflow.steps.length > 0
+            ? `<div class="kc-stack-list">${kc.workflow.steps.map((step) => renderNoteRow(
+                `${step.action}`,
+                `${step.status}${step.retryCount > 0 ? ` · retry ${step.retryCount}` : ""}${step.attemptCount > 0 ? ` · attempt ${step.attemptCount}` : ""}`,
+                step.failureReason ?? step.output ?? step.validation ?? step.expectedOutput ?? step.tokenUsage.note
+              )).join("")}</div>`
+            : renderEmptyState("No workflow state has been recorded yet.")}
+        </section>
+        <section class="kc-panel">
+          ${renderPanelHeader("Execution Trace", "What executed, which files were used, which skills applied, and token usage per step.")}
+          ${kc.executionTrace.steps.length > 0
+            ? `<div class="kc-stack-list">${kc.executionTrace.steps.map((step) => renderNoteRow(
+                step.action,
+                step.tokenUsage.source === "none"
+                  ? `${step.status}${step.retryCount > 0 ? ` · retry ${step.retryCount}` : ""}`
+                  : `${step.status}${step.retryCount > 0 ? ` · retry ${step.retryCount}` : ""} · ${step.tokenUsage.measuredTokens != null ? formatTokensShort(step.tokenUsage.measuredTokens) : `~${formatTokensShort(step.tokenUsage.estimatedTokens ?? 0)}`}`,
+                step.failureReason
+                  ? `${step.failureReason}${step.files.length > 0 ? ` | files: ${step.files.slice(0, 3).join(", ")}` : ""}`
+                  : `${step.files.slice(0, 3).join(", ") || "no files"}${step.skillsApplied.length > 0 ? ` | skills: ${step.skillsApplied.join(", ")}` : ""}${step.expectedOutput ? ` | expects: ${step.expectedOutput}` : ""}`
+              )).join("")}</div>`
+            : renderEmptyState("No execution trace is available yet.")}
+        </section>
+      </div>
+
       <section class="kc-panel">
         ${renderPanelHeader("DECISION LOGIC", "Which signals won, and which signals were intentionally ignored.")}
         <div class="kc-two-column">
@@ -1519,6 +1760,24 @@ function renderSystemView(state: RepoControlState): string {
               event.summary
             )).join("")}</div>`
           : renderEmptyState("No runtime events are recorded yet.")}
+      </section>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("Ecosystem Discovery", "Read-only external capability metadata used to inform decisions without executing tools directly.")}
+        <div class="kc-two-column">
+          <section class="kc-subpanel">
+            ${renderPanelHeader("Known tools", "Selected tools and ecosystems from Awesome Copilot and Awesome Claude Code.")}
+            <div class="kc-stack-list">
+              ${state.ecosystem.tools.slice(0, 5).map((tool) => renderNoteRow(tool.name, tool.category, tool.description)).join("")}
+            </div>
+          </section>
+          <section class="kc-subpanel">
+            ${renderPanelHeader("Known workflows", "Advisory workflow patterns only.")}
+            <div class="kc-stack-list">
+              ${state.ecosystem.workflows.slice(0, 4).map((workflow) => renderNoteRow(workflow.name, workflow.source, workflow.description)).join("")}
+            </div>
+          </section>
+        </div>
       </section>
     </div>
   `;
@@ -1636,6 +1895,16 @@ function renderFeedbackView(state: RepoControlState): string {
             `).join("")}</div>`
           : renderEmptyState("No recent feedback events are available yet.")}
       </section>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("Retrieval Reuse", "When Kiwi reuses a successful pattern, it still falls back to fresh selection if similarity is weak.")}
+        ${feedback.basedOnPastRuns
+          ? `<div class="kc-stack-list">
+              ${renderNoteRow("reused pattern", feedback.reusedPattern ?? "similar work", feedback.note)}
+              ${feedback.similarTasks.slice(0, 4).map((entry) => renderNoteRow(entry.task, `similarity ${entry.similarity}`, formatTimestamp(entry.timestamp))).join("")}
+            </div>`
+          : renderEmptyState("Current selection is not based on past runs strongly enough to reuse a prior pattern.")} 
+      </section>
     </div>
   `;
 }
@@ -1689,11 +1958,12 @@ function renderInspector(state: RepoControlState): string {
       <section class="kc-inspector-section">
         <p class="kc-section-micro">Token estimate</p>
         <div class="kc-gate-list">
+          ${renderGateRow("Measured", kc.measuredUsage.available ? formatTokensShort(kc.measuredUsage.totalTokens) : "none", kc.measuredUsage.available ? "success" : "default")}
           ${renderGateRow("Selected", `~${formatTokensShort(kc.tokenAnalytics.selectedTokens)}`, "default")}
           ${renderGateRow("Full repo", `~${formatTokensShort(kc.tokenAnalytics.fullRepoTokens)}`, "default")}
           ${renderGateRow("Saved", `~${kc.tokenAnalytics.savingsPercent}%`, "success")}
         </div>
-        <p>${escapeHtml(kc.tokenAnalytics.estimateNote ?? "No repo-local token estimate is available yet.")}</p>
+        <p>${escapeHtml(kc.measuredUsage.available ? kc.measuredUsage.note : (kc.tokenAnalytics.estimateNote ?? "No repo-local token estimate is available yet."))}</p>
       </section>
 
       <section class="kc-inspector-section">
@@ -1724,6 +1994,15 @@ function renderInspector(state: RepoControlState): string {
           ${renderGateRow("Tool fit", (activeSpecialist?.preferredTools ?? []).join(", ") || "none", "default")}
         </div>
         <p>${escapeHtml(activeSpecialist?.purpose ?? state.specialists.safeParallelHint)}</p>
+      </section>
+
+      <section class="kc-inspector-section">
+        <p class="kc-section-micro">Skills & trace</p>
+        ${kc.skills.activeSkills.length > 0
+          ? `<div class="kc-stack-list">${kc.skills.activeSkills.slice(0, 3).map((skill) => renderBulletRow(`${skill.name} — ${skill.executionTemplate[0] ?? skill.description}`)).join("")}</div>`
+          : `<p>No active skills are currently matched.</p>`}
+        <div class="kc-divider"></div>
+        <p>${escapeHtml(kc.executionTrace.whyThisHappened || "No execution trace explanation is recorded yet.")}</p>
       </section>
 
       <section class="kc-inspector-section">
@@ -2413,6 +2692,15 @@ function buildBridgeUnavailableState(targetRoot: string): RepoControlState {
       note: "No compatible MCP capabilities are available until repo-local state can be loaded."
     },
     validation: { ok: false, errors: hasTargetRoot ? 1 : 0, warnings: hasTargetRoot ? 0 : 1, issues: [] },
+    ecosystem: {
+      artifactType: "kiwi-control/ecosystem-catalog",
+      version: 1,
+      timestamp: new Date().toISOString(),
+      tools: [],
+      workflows: [],
+      capabilities: [],
+      notes: ["Ecosystem metadata becomes available once repo-local state loads."]
+    },
     kiwiControl: EMPTY_KC
   };
 }

@@ -16,6 +16,7 @@ import { buildPhaseId, loadActiveRoleHints, loadLatestCheckpoint, parseCsvFlag, 
 import { loadCurrentPhase } from "@shrey-junior/sj-core/core/state.js";
 import { recordPreparedScopeCompletion } from "@shrey-junior/sj-core/core/execution-log.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
+import { completeWorkflowStep, failWorkflowStep, startWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 import { relativeFrom } from "@shrey-junior/sj-core/utils/fs.js";
 
@@ -179,8 +180,14 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
       : record.status === "blocked"
         ? `${PRODUCT_METADATA.cli.primaryCommand} status`
         : record.status === "complete"
-          ? `${PRODUCT_METADATA.cli.primaryCommand} push-check`
+        ? `${PRODUCT_METADATA.cli.primaryCommand} push-check`
           : `${PRODUCT_METADATA.cli.primaryCommand} handoff --to ${nextRecommendedSpecialist} --tool ${decision.reviewTool}`;
+  await startWorkflowStep(options.targetRoot, {
+    task: goal,
+    stepId: "checkpoint-progress",
+    input: options.label,
+    expectedOutput: "Checkpoint artifacts are written and continuity is updated."
+  }).catch(() => null);
   const checkpoint: CheckpointRecord = {
     artifactType: "shrey-junior/checkpoint",
     schemaVersion: 1,
@@ -264,6 +271,23 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
     latestMemoryFocus: relativeFrom(options.targetRoot, memoryPaths.currentFocus),
     latestCheckpoint: relativeFrom(options.targetRoot, checkpointArtifacts.latestJsonPath)
   });
+  if (scopeFailure) {
+    await failWorkflowStep(options.targetRoot, {
+      task: goal,
+      stepId: "checkpoint-progress",
+      failureReason: scopeFailure,
+      validation: "Prepared scope validation failed during checkpoint.",
+      files: gitState.changedFiles.slice(0, 12)
+    }).catch(() => null);
+  } else {
+    await completeWorkflowStep(options.targetRoot, {
+      task: goal,
+      stepId: "checkpoint-progress",
+      output: `Checkpoint "${options.label}" recorded successfully.`,
+      validation: "Checkpoint artifacts were written and continuity hints were updated.",
+      files: gitState.changedFiles.slice(0, 12)
+    }).catch(() => null);
+  }
   await recordRuntimeProgress(options.targetRoot, {
     type: scopeFailure ? "validation_checkpoint" : "checkpoint_recorded",
     stage: scopeFailure ? "blocked" : "checkpointed",
@@ -274,6 +298,10 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
     task: goal,
     command: nextSuggestedCommand,
     files: gitState.changedFiles.slice(0, 12),
+    validation: scopeFailure
+      ? "Prepared scope validation failed during checkpoint."
+      : "Checkpoint artifacts were written and continuity hints were updated.",
+    ...(scopeFailure ? { failureReason: scopeFailure } : {}),
     validationStatus: scopeFailure ? "error" : "ok",
     nextSuggestedCommand,
     nextRecommendedAction: record.nextRecommendedStep

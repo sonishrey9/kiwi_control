@@ -21,7 +21,11 @@ import { pathExists, readJson, renderDisplayPath } from "../utils/fs.js";
 import type { ContextSelectionState } from "./context-selector.js";
 import type { ContextTraceState, FileAnalysisEntry, IndexingState, SkippedPathEntry } from "./context-trace.js";
 import type { RuntimeLifecycleState } from "./runtime-lifecycle.js";
+import { buildEcosystemCatalog } from "../integrations/ecosystem-catalog.js";
+import type { EcosystemCatalog } from "../integrations/ecosystem-catalog.js";
+import type { SkillMatch, SkillRegistryState } from "./skills-registry.js";
 import type { TokenBreakdownState, TokenUsageState } from "./token-estimator.js";
+import type { MeasuredUsageState } from "./token-intelligence.js";
 import { inspectGitState } from "./git.js";
 import { nextActionEngine } from "./next-action.js";
 import type { DecisionLogicState, NextAction } from "./next-action.js";
@@ -30,6 +34,7 @@ import type { FeedbackSummary } from "./context-feedback.js";
 import { buildExecutionSummary, recordPreparedScopeCompletion } from "./execution-log.js";
 import type { ExecutionSummary } from "./execution-log.js";
 import { classifyFileArea, deriveTaskArea } from "./task-intent.js";
+import type { WorkflowState } from "./workflow-engine.js";
 
 export interface RepoControlPanelItem {
   label: string;
@@ -128,6 +133,13 @@ export interface KiwiControlFeedback {
   successRate: number;
   adaptationLevel: "limited" | "active";
   note: string;
+  basedOnPastRuns: boolean;
+  reusedPattern: string | null;
+  similarTasks: Array<{
+    task: string;
+    similarity: number;
+    timestamp: string;
+  }>;
   recentEntries: Array<{
     task: string;
     success: boolean;
@@ -241,6 +253,54 @@ export interface KiwiControlRuntimeLifecycle {
   recentEvents: RuntimeLifecycleState["recentEvents"];
 }
 
+export interface KiwiControlMeasuredUsage {
+  available: boolean;
+  source: MeasuredUsageState["source"];
+  totalTokens: number;
+  totalRuns: number;
+  runs: MeasuredUsageState["runs"];
+  workflows: MeasuredUsageState["workflows"];
+  files: MeasuredUsageState["files"];
+  note: string;
+}
+
+export interface KiwiControlSkills {
+  activeSkills: SkillMatch[];
+  suggestedSkills: SkillMatch[];
+  totalSkills: number;
+}
+
+export interface KiwiControlWorkflow {
+  task: string | null;
+  status: WorkflowState["status"];
+  currentStepId: string | null;
+  steps: WorkflowState["steps"];
+}
+
+export interface KiwiControlExecutionTrace {
+  steps: Array<{
+    stepId: string;
+    action: string;
+    status: string;
+    expectedOutput: string | null;
+    files: string[];
+    skillsApplied: string[];
+    attemptCount: number;
+    retryCount: number;
+    tokenUsage: {
+      source: string;
+      measuredTokens: number | null;
+      estimatedTokens: number | null;
+      note: string;
+    };
+    output: string | null;
+    validation: string | null;
+    failureReason: string | null;
+    updatedAt: string | null;
+  }>;
+  whyThisHappened: string;
+}
+
 export interface KiwiControlState {
   contextView: KiwiControlContextView;
   tokenAnalytics: KiwiControlTokenAnalytics;
@@ -256,6 +316,10 @@ export interface KiwiControlState {
   tokenBreakdown: KiwiControlTokenBreakdown;
   decisionLogic: KiwiControlDecisionLogic;
   runtimeLifecycle: KiwiControlRuntimeLifecycle;
+  measuredUsage: KiwiControlMeasuredUsage;
+  skills: KiwiControlSkills;
+  workflow: KiwiControlWorkflow;
+  executionTrace: KiwiControlExecutionTrace;
 }
 
 export interface RepoControlState {
@@ -284,6 +348,7 @@ export interface RepoControlState {
     note: string;
   };
   validation: RepoValidationSummary;
+  ecosystem: EcosystemCatalog;
   kiwiControl: KiwiControlState;
 }
 
@@ -433,6 +498,7 @@ export async function buildRepoControlStateFromConfig(options: {
     specialistId: activeSpecialistId
   });
   const repoOverview = summarizeRepoOverview();
+  const ecosystem = buildEcosystemCatalog();
 
   const kiwiControl = await loadKiwiControlState(options.targetRoot, validationIssues);
 
@@ -465,6 +531,7 @@ export async function buildRepoControlStateFromConfig(options: {
           : "No specialist-compatible MCP capabilities are currently exposed for this repo profile."
     },
     validation,
+    ecosystem,
     kiwiControl
   };
 
@@ -590,8 +657,11 @@ async function loadKiwiControlState(
   const contextTracePath = path.join(targetRoot, ".agent", "state", "context-trace.json");
   const runtimeLifecyclePath = path.join(targetRoot, ".agent", "state", "runtime-lifecycle.json");
   const indexingPath = path.join(targetRoot, ".agent", "state", "indexing.json");
+  const skillsRegistryPath = path.join(targetRoot, ".agent", "state", "skills-registry.json");
   const tokenUsagePath = path.join(targetRoot, ".agent", "state", "token-usage.json");
   const tokenBreakdownPath = path.join(targetRoot, ".agent", "state", "token-breakdown.json");
+  const measuredUsagePath = path.join(targetRoot, ".agent", "state", "measured-usage.json");
+  const workflowPath = path.join(targetRoot, ".agent", "state", "workflow.json");
   const instructionsPath = path.join(targetRoot, ".agent", "context", "generated-instructions.md");
 
   let contextView: KiwiControlContextView = {
@@ -790,6 +860,30 @@ async function loadKiwiControlState(
     recentEvents: []
   };
 
+  let measuredUsage: KiwiControlMeasuredUsage = {
+    available: false,
+    source: "none",
+    totalTokens: 0,
+    totalRuns: 0,
+    runs: [],
+    workflows: [],
+    files: [],
+    note: "No measured token usage is available yet."
+  };
+
+  let skills: KiwiControlSkills = {
+    activeSkills: [],
+    suggestedSkills: [],
+    totalSkills: 0
+  };
+
+  let workflow: KiwiControlWorkflow = {
+    task: null,
+    status: "pending",
+    currentStepId: null,
+    steps: []
+  };
+
   if (await pathExists(tokenUsagePath)) {
     const usage = await readJson<TokenUsageState>(tokenUsagePath);
     tokenAnalytics = {
@@ -812,6 +906,16 @@ async function loadKiwiControlState(
     heavyDirectories = {
       directories: usage.heavy_directories ?? []
     };
+    measuredUsage = {
+      available: usage.measured_usage?.available ?? false,
+      source: usage.measured_usage?.source ?? "none",
+      totalTokens: usage.measured_usage?.total_tokens ?? 0,
+      totalRuns: usage.measured_usage?.total_runs ?? 0,
+      runs: [],
+      workflows: [],
+      files: [],
+      note: usage.measured_usage?.note ?? measuredUsage.note
+    };
   }
 
   if (await pathExists(tokenBreakdownPath)) {
@@ -831,6 +935,39 @@ async function loadKiwiControlState(
       nextSuggestedCommand: persistedRuntimeLifecycle.nextSuggestedCommand,
       nextRecommendedAction: persistedRuntimeLifecycle.nextRecommendedAction,
       recentEvents: persistedRuntimeLifecycle.recentEvents
+    };
+  }
+
+  if (await pathExists(measuredUsagePath)) {
+    const persistedMeasuredUsage = await readJson<MeasuredUsageState>(measuredUsagePath);
+    measuredUsage = {
+      available: persistedMeasuredUsage.available,
+      source: persistedMeasuredUsage.source,
+      totalTokens: persistedMeasuredUsage.totalTokens,
+      totalRuns: persistedMeasuredUsage.totalRuns,
+      runs: persistedMeasuredUsage.runs,
+      workflows: persistedMeasuredUsage.workflows,
+      files: persistedMeasuredUsage.files,
+      note: persistedMeasuredUsage.note
+    };
+  }
+
+  if (await pathExists(skillsRegistryPath)) {
+    const persistedSkills = await readJson<SkillRegistryState>(skillsRegistryPath);
+    skills = {
+      activeSkills: persistedSkills.activeSkills,
+      suggestedSkills: persistedSkills.suggestedSkills,
+      totalSkills: persistedSkills.skills.length
+    };
+  }
+
+  if (await pathExists(workflowPath)) {
+    const persistedWorkflow = await readJson<WorkflowState>(workflowPath);
+    workflow = {
+      task: persistedWorkflow.task,
+      status: persistedWorkflow.status,
+      currentStepId: persistedWorkflow.currentStepId,
+      steps: persistedWorkflow.steps
     };
   }
 
@@ -865,7 +1002,7 @@ async function loadKiwiControlState(
       }
     })),
     buildFeedbackSummary(targetRoot, contextView.task ?? undefined).catch(() => ({
-      totalRuns: 0, successRate: 0, adaptationLevel: "limited" as const, note: "Adaptive feedback is unavailable.", recentEntries: [],
+      totalRuns: 0, successRate: 0, adaptationLevel: "limited" as const, note: "Adaptive feedback is unavailable.", basedOnPastRuns: false, reusedPattern: null, similarTasks: [], recentEntries: [],
       topBoostedFiles: [], topPenalizedFiles: []
     })),
     buildExecutionSummary(targetRoot).catch(() => ({
@@ -892,6 +1029,9 @@ async function loadKiwiControlState(
     successRate: feedbackSummary.successRate,
     adaptationLevel: feedbackSummary.adaptationLevel,
     note: feedbackSummary.note,
+    basedOnPastRuns: feedbackSummary.basedOnPastRuns,
+    reusedPattern: feedbackSummary.reusedPattern,
+    similarTasks: feedbackSummary.similarTasks,
     recentEntries: feedbackSummary.recentEntries,
     topBoostedFiles: feedbackSummary.topBoostedFiles,
     topPenalizedFiles: feedbackSummary.topPenalizedFiles
@@ -906,10 +1046,35 @@ async function loadKiwiControlState(
     tokenTrend: executionSummary.tokenTrend
   };
 
+  const executionTrace: KiwiControlExecutionTrace = {
+    steps: workflow.steps.map((step) => ({
+      stepId: step.stepId,
+      action: step.action,
+      status: step.status,
+      expectedOutput: step.expectedOutput,
+      files: step.files,
+      skillsApplied: step.skillsApplied,
+      attemptCount: step.attemptCount,
+      retryCount: step.retryCount,
+      tokenUsage: {
+        source: step.tokenUsage.source,
+        measuredTokens: step.tokenUsage.measuredTokens,
+        estimatedTokens: step.tokenUsage.estimatedTokens,
+        note: step.tokenUsage.note
+      },
+      output: step.output,
+      validation: step.validation,
+      failureReason: step.failureReason,
+      updatedAt: step.updatedAt
+    })),
+    whyThisHappened: decisionLogic.summary
+  };
+
   return {
     contextView, tokenAnalytics, efficiency,
     nextActions, feedback, execution, wastedFiles, heavyDirectories, indexing,
-    fileAnalysis, contextTrace, tokenBreakdown, decisionLogic, runtimeLifecycle
+    fileAnalysis, contextTrace, tokenBreakdown, decisionLogic, runtimeLifecycle,
+    measuredUsage, skills, workflow, executionTrace
   };
 }
 

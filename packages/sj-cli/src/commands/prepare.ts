@@ -3,7 +3,10 @@ import { contextSelector } from "@shrey-junior/sj-core/core/context-selector.js"
 import type { ContextConfidence } from "@shrey-junior/sj-core/core/context-selector.js";
 import type { ContextTraceState, IndexingState } from "@shrey-junior/sj-core/core/context-trace.js";
 import { generateInstructions, persistInstructions } from "@shrey-junior/sj-core/core/instruction-generator.js";
+import { matchSkillsForTask } from "@shrey-junior/sj-core/core/skills-registry.js";
+import type { SkillRegistryState } from "@shrey-junior/sj-core/core/skills-registry.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
+import type { MeasuredUsageState } from "@shrey-junior/sj-core/core/token-intelligence.js";
 import type { TokenBreakdownState } from "@shrey-junior/sj-core/core/token-estimator.js";
 import { estimateTokens, persistTokenUsage } from "@shrey-junior/sj-core/core/token-estimator.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
@@ -36,6 +39,8 @@ export interface PrepareResult {
   contextTrace: ContextTraceState;
   indexing: IndexingState;
   tokenBreakdown: TokenBreakdownState;
+  measuredUsage: MeasuredUsageState;
+  skills: Pick<SkillRegistryState, "activeSkills" | "suggestedSkills">;
 }
 
 export async function runPrepare(options: PrepareOptions): Promise<number> {
@@ -44,9 +49,13 @@ export async function runPrepare(options: PrepareOptions): Promise<number> {
   logger.info(`Preparing context for: "${task}"`);
 
   const selection = await contextSelector(task, targetRoot);
+  const skillRegistry = await matchSkillsForTask(targetRoot, task).catch(() => ({
+    activeSkills: [],
+    suggestedSkills: []
+  }));
   logger.info(`Context selected: ${selection.include.length} files [confidence=${selection.confidence}]`);
 
-  const instructions = generateInstructions(task, selection);
+  const instructions = generateInstructions(task, selection, skillRegistry);
   const instructionPath = await persistInstructions(targetRoot, instructions);
   logger.info(`Instructions written to: ${instructionPath}`);
 
@@ -59,6 +68,9 @@ export async function runPrepare(options: PrepareOptions): Promise<number> {
     summary: `Prepared ${selection.include.length} selected files for "${task}".`,
     task,
     files: selection.include,
+    skillsApplied: skillRegistry.activeSkills.map((skill) => skill.skillId),
+    estimatedTokens: tokenEstimate.selectedTokens,
+    validation: "Prepared scope exists and selected files are bounded.",
     nextRecommendedAction: "Open the generated instructions and work inside the prepared scope.",
     validationStatus: selection.confidence === "low" ? "warn" : "ok"
   }).catch(() => null);
@@ -88,7 +100,12 @@ export async function runPrepare(options: PrepareOptions): Promise<number> {
     stopConditionCount: instructions.stopConditions.length,
     contextTrace,
     indexing,
-    tokenBreakdown
+    tokenBreakdown,
+    measuredUsage: tokenEstimate.measuredUsage,
+    skills: {
+      activeSkills: skillRegistry.activeSkills,
+      suggestedSkills: skillRegistry.suggestedSkills
+    }
   };
 
   if (options.json) {
@@ -116,11 +133,21 @@ function printPrepareReport(result: PrepareResult, logger: Logger): void {
   logger.info(`    Exclusions:    ${String(result.filesExcluded).padStart(10)}  patterns`);
   logger.info("");
   logger.info("  Token Usage:");
+  if (result.measuredUsage.available) {
+    logger.info(`    Measured:      ${formatTokens(result.measuredUsage.totalTokens)}  (${result.measuredUsage.totalRuns} runs, ${result.measuredUsage.source})`);
+  } else {
+    logger.info("    Measured:      unavailable");
+  }
   logger.info(`    Selected:      ~${formatTokens(result.selectedTokens)}`);
   logger.info(`    Full repo:     ~${formatTokens(result.fullRepoTokens)}`);
   logger.info(`    Savings:       ~${result.savingsPercent}%`);
   logger.info(`    Method:        ${result.estimationMethod}`);
   logger.info(`    Note:          ${result.estimateNote}`);
+  logger.info("");
+
+  logger.info("  Skills:");
+  logger.info(`    Active:        ${result.skills.activeSkills.length > 0 ? result.skills.activeSkills.map((skill) => skill.name).join(", ") : "none"}`);
+  logger.info(`    Suggested:     ${result.skills.suggestedSkills.length > 0 ? result.skills.suggestedSkills.map((skill) => skill.name).join(", ") : "none"}`);
   logger.info("");
 
   logger.info("  How It Works:");
