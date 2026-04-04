@@ -245,6 +245,8 @@ type RuntimeLifecycleEvent = {
   summary: string;
   task: string | null;
   command: string | null;
+  validation: string | null;
+  failureReason: string | null;
   files: string[];
 };
 
@@ -269,7 +271,7 @@ type SkillMatch = {
 type WorkflowStep = {
   stepId: string;
   action: string;
-  status: "pending" | "running" | "completed" | "failed";
+  status: "pending" | "running" | "success" | "failed";
   input: string | null;
   expectedOutput: string | null;
   output: string | null;
@@ -284,6 +286,14 @@ type WorkflowStep = {
     measuredTokens: number | null;
     estimatedTokens: number | null;
     note: string;
+  };
+  result: {
+    ok: boolean | null;
+    summary: string | null;
+    validation: string | null;
+    failureReason: string | null;
+    suggestedFix: string | null;
+    retryCommand: string | null;
   };
   updatedAt: string | null;
 };
@@ -319,7 +329,7 @@ type KiwiControlSkills = {
 
 type KiwiControlWorkflow = {
   task: string | null;
-  status: "pending" | "running" | "completed" | "failed";
+  status: "pending" | "running" | "success" | "failed";
   currentStepId: string | null;
   steps: WorkflowStep[];
 };
@@ -339,6 +349,14 @@ type KiwiControlExecutionTrace = {
       measuredTokens: number | null;
       estimatedTokens: number | null;
       note: string;
+    };
+    result: {
+      ok: boolean | null;
+      summary: string | null;
+      validation: string | null;
+      failureReason: string | null;
+      suggestedFix: string | null;
+      retryCommand: string | null;
     };
     output: string | null;
     validation: string | null;
@@ -1648,7 +1666,7 @@ function renderSystemView(state: RepoControlState): string {
   const kc = state.kiwiControl ?? EMPTY_KC;
   const failures = Math.max(0, kc.execution.totalExecutions - Math.round((kc.execution.successRate / 100) * kc.execution.totalExecutions));
   const activityItems = buildActivityItems(state);
-  const completedWorkflowSteps = kc.workflow.steps.filter((step) => step.status === "completed").length;
+  const successfulWorkflowSteps = kc.workflow.steps.filter((step) => step.status === "success").length;
   const failedWorkflowStep = kc.workflow.steps.find((step) => step.status === "failed") ?? null;
 
   return `
@@ -1746,7 +1764,7 @@ function renderSystemView(state: RepoControlState): string {
         <section class="kc-panel">
           ${renderPanelHeader("Workflow Steps", "Linear workflow state for the active task.")}
           <div class="kc-inline-badges">
-            ${renderInlineBadge(`${completedWorkflowSteps}/${kc.workflow.steps.length} completed`)}
+            ${renderInlineBadge(`${successfulWorkflowSteps}/${kc.workflow.steps.length} successful`)}
             ${failedWorkflowStep ? renderInlineBadge(`failed: ${failedWorkflowStep.action}`) : renderInlineBadge("no failed step")}
           </div>
           ${failedWorkflowStep?.failureReason ? `<div class="kc-divider"></div>${renderNoteRow("Failure reason", failedWorkflowStep.action, failedWorkflowStep.failureReason)}` : ""}
@@ -1754,7 +1772,12 @@ function renderSystemView(state: RepoControlState): string {
             ? `<div class="kc-stack-list">${kc.workflow.steps.map((step) => renderNoteRow(
                 `${step.action}`,
                 `${step.status}${step.retryCount > 0 ? ` · retry ${step.retryCount}` : ""}${step.attemptCount > 0 ? ` · attempt ${step.attemptCount}` : ""}`,
-                step.failureReason ?? step.output ?? step.validation ?? step.expectedOutput ?? step.tokenUsage.note
+                step.failureReason
+                  ?? step.result.summary
+                  ?? step.validation
+                  ?? step.expectedOutput
+                  ?? step.result.suggestedFix
+                  ?? step.tokenUsage.note
               )).join("")}</div>`
             : renderEmptyState("No workflow state has been recorded yet.")}
         </section>
@@ -1768,7 +1791,7 @@ function renderSystemView(state: RepoControlState): string {
                   : `${step.status}${step.retryCount > 0 ? ` · retry ${step.retryCount}` : ""} · ${step.tokenUsage.measuredTokens != null ? formatTokensShort(step.tokenUsage.measuredTokens) : `~${formatTokensShort(step.tokenUsage.estimatedTokens ?? 0)}`}`,
                 step.failureReason
                   ? `${step.failureReason}${step.files.length > 0 ? ` | files: ${step.files.slice(0, 3).join(", ")}` : ""}`
-                  : `${step.files.slice(0, 3).join(", ") || "no files"}${step.skillsApplied.length > 0 ? ` | skills: ${step.skillsApplied.join(", ")}` : ""}${step.expectedOutput ? ` | expects: ${step.expectedOutput}` : ""}`
+                  : `${step.result.summary ?? (step.files.slice(0, 3).join(", ") || "no files")}${step.skillsApplied.length > 0 ? ` | skills: ${step.skillsApplied.join(", ")}` : ""}${step.result.validation ? ` | validation: ${step.result.validation}` : step.expectedOutput ? ` | expects: ${step.expectedOutput}` : ""}${step.result.retryCommand ? ` | retry: ${step.result.retryCommand}` : ""}`
               )).join("")}</div>`
             : renderEmptyState("No execution trace is available yet.")}
         </section>

@@ -33,6 +33,9 @@ test("workflow engine records failed step execution and increments retry count o
   assert.equal(failedStep?.attemptCount, 1);
   assert.equal(failedStep?.retryCount, 0);
   assert.match(failedStep?.failureReason ?? "", /No run packets were generated/);
+  assert.equal(failedStep?.result.ok, false);
+  assert.match(failedStep?.result.suggestedFix ?? "", /rerun kiwi-control run/i);
+  assert.equal(failedStep?.result.retryCommand, 'kiwi-control run "generate packets"');
 
   const second = await executeWorkflowStep(tempDir, {
     task: "generate packets",
@@ -56,10 +59,12 @@ test("workflow engine records failed step execution and increments retry count o
   const completedStep = afterRetry.steps.find((step) => step.stepId === "generate-run-packets");
   assert.equal(afterRetry.status, "running");
   assert.equal(afterRetry.currentStepId, "checkpoint-progress");
-  assert.equal(completedStep?.status, "completed");
+  assert.equal(completedStep?.status, "success");
   assert.equal(completedStep?.attemptCount, 2);
   assert.equal(completedStep?.retryCount, 1);
   assert.equal(completedStep?.failureReason, null);
+  assert.equal(completedStep?.result.ok, true);
+  assert.equal(completedStep?.result.summary, "Generated 1 task packet.");
 });
 
 async function fsMkdtemp(prefix: string): Promise<string> {

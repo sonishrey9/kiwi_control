@@ -117,7 +117,10 @@ export async function runRun(options: RunOptions): Promise<number> {
           : "Run packet generation did not produce any packet artifacts.",
       ...(packets.length > 0 && results.length > 0
         ? {}
-        : { failureReason: "No run packets were generated for the requested goal." })
+        : {
+            failureReason: "No run packets were generated for the requested goal.",
+            suggestedFix: `Refine the goal or refresh prepared scope, then rerun ${PRODUCT_METADATA.cli.primaryCommand} run "${options.goal}".`
+          })
     }),
     summarize: ({ packets, results }) => ({
       summary: `Generated ${results.length} task packet${results.length === 1 ? "" : "s"} for "${options.goal}".`,
@@ -131,13 +134,13 @@ export async function runRun(options: RunOptions): Promise<number> {
       status: "error",
       summary: workflowExecution.failureReason ?? "Run packet generation failed.",
       task: options.goal,
-      command: `${PRODUCT_METADATA.cli.primaryCommand} run "${options.goal}"`,
+      command: workflowExecution.retryCommand,
       files: packets.map((packet) => packet.relativePath).slice(0, 12),
       validation: workflowExecution.validation,
       ...(workflowExecution.failureReason ? { failureReason: workflowExecution.failureReason } : {}),
       validationStatus: "error",
-      nextSuggestedCommand: `${PRODUCT_METADATA.cli.primaryCommand} status`,
-      nextRecommendedAction: workflowExecution.validation
+      nextSuggestedCommand: workflowExecution.retryCommand,
+      nextRecommendedAction: workflowExecution.suggestedFix ?? workflowExecution.validation
     }).catch(() => null);
     options.logger.error(workflowExecution.failureReason ?? "Run packet generation failed.");
     return 1;

@@ -152,7 +152,7 @@ function mapWorkflowStatus(
   if (!status) {
     return "pending";
   }
-  if (status === "completed") {
+  if (status === "success") {
     return "completed";
   }
   if (status === "failed") {

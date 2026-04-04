@@ -236,11 +236,24 @@ test("prepare matches repo-local skills and writes workflow state", async () => 
   assert.match(logs.join("\n"), /Skills:/);
   assert.match(logs.join("\n"), /Docs Playbook/);
 
-  const workflow = await readJson<{ artifactType: string; steps: Array<{ stepId: string; skillsApplied: string[] }> }>(
+  const workflow = await readJson<{
+    artifactType: string;
+    status: string;
+    steps: Array<{
+      stepId: string;
+      status: string;
+      skillsApplied: string[];
+      result: { ok: boolean | null; retryCommand: string | null };
+    }>;
+  }>(
     path.join(tempDir, ".agent", "state", "workflow.json")
   );
   assert.equal(workflow.artifactType, "kiwi-control/workflow");
   assert.equal(workflow.steps.some((step) => step.stepId === "prepare-context" && step.skillsApplied.includes("docs-playbook")), true);
+  const prepareStep = workflow.steps.find((step) => step.stepId === "prepare-context");
+  assert.equal(prepareStep?.status, "success");
+  assert.equal(prepareStep?.result.ok, true);
+  assert.equal(prepareStep?.result.retryCommand, 'kiwi-control prepare "update README docs"');
 });
 
 test("constraints include all mandatory rules", () => {

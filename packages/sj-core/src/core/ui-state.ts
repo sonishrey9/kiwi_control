@@ -37,6 +37,7 @@ import { buildExecutionSummary, recordPreparedScopeCompletion } from "./executio
 import type { ExecutionSummary } from "./execution-log.js";
 import { loadPreparedScope, validateTouchedFilesAgainstAllowedFiles } from "./prepared-scope.js";
 import { classifyFileArea, deriveTaskArea } from "./task-intent.js";
+import { loadWorkflowState } from "./workflow-engine.js";
 import type { WorkflowState } from "./workflow-engine.js";
 
 export interface RepoControlPanelItem {
@@ -296,6 +297,7 @@ export interface KiwiControlExecutionTrace {
       estimatedTokens: number | null;
       note: string;
     };
+    result: WorkflowState["steps"][number]["result"];
     output: string | null;
     validation: string | null;
     failureReason: string | null;
@@ -890,7 +892,7 @@ async function loadKiwiControlState(
 
   let workflowState: WorkflowState = {
     artifactType: "kiwi-control/workflow",
-    version: 2,
+    version: 3,
     timestamp: new Date().toISOString(),
     task: null,
     status: "pending",
@@ -976,8 +978,7 @@ async function loadKiwiControlState(
   }
 
   if (await pathExists(workflowPath)) {
-    const persistedWorkflow = await readJson<WorkflowState>(workflowPath);
-    workflowState = persistedWorkflow;
+    workflowState = await loadWorkflowState(targetRoot);
   }
 
   const hasInstructions = await pathExists(instructionsPath);
@@ -1072,6 +1073,7 @@ async function loadKiwiControlState(
         estimatedTokens: step.tokenUsage.estimatedTokens,
         note: step.tokenUsage.note
       },
+      result: step.result,
       output: step.output,
       validation: step.validation,
       failureReason: step.failureReason,

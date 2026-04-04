@@ -1,14 +1,24 @@
 import path from "node:path";
+import { PRODUCT_METADATA } from "./product.js";
 import { pathExists, readJson, writeText } from "../utils/fs.js";
 
-export type WorkflowStepStatus = "pending" | "running" | "completed" | "failed";
-export type WorkflowStatus = "pending" | "running" | "completed" | "failed";
+export type WorkflowStepStatus = "pending" | "running" | "success" | "failed";
+export type WorkflowStatus = "pending" | "running" | "success" | "failed";
 
 export interface WorkflowTokenUsage {
   source: "measured" | "estimated" | "mixed" | "none";
   measuredTokens: number | null;
   estimatedTokens: number | null;
   note: string;
+}
+
+export interface WorkflowStepResult {
+  ok: boolean | null;
+  summary: string | null;
+  validation: string | null;
+  failureReason: string | null;
+  suggestedFix: string | null;
+  retryCommand: string | null;
 }
 
 export interface WorkflowStep {
@@ -25,12 +35,13 @@ export interface WorkflowStep {
   files: string[];
   skillsApplied: string[];
   tokenUsage: WorkflowTokenUsage;
+  result: WorkflowStepResult;
   updatedAt: string | null;
 }
 
 export interface WorkflowState {
   artifactType: "kiwi-control/workflow";
-  version: 2;
+  version: 3;
   timestamp: string;
   task: string | null;
   status: WorkflowStatus;
@@ -59,10 +70,16 @@ export interface WorkflowExecutionOptions<Result> {
   input: string | null;
   expectedOutput: string | null;
   run: () => Promise<Result>;
-  validate: (result: Result) => {
+  validate: (result: Result) => Promise<{
     ok: boolean;
     validation: string;
     failureReason?: string | null;
+    suggestedFix?: string | null;
+  }> | {
+    ok: boolean;
+    validation: string;
+    failureReason?: string | null;
+    suggestedFix?: string | null;
   };
   summarize: (result: Result) => {
     summary: string;
@@ -111,7 +128,7 @@ function workflowPath(targetRoot: string): string {
 function createWorkflow(task: string | null): WorkflowState {
   return {
     artifactType: "kiwi-control/workflow",
-    version: 2,
+    version: 3,
     timestamp: new Date().toISOString(),
     task,
     status: "pending",
@@ -135,6 +152,7 @@ function createWorkflow(task: string | null): WorkflowState {
         estimatedTokens: null,
         note: "No token usage has been recorded for this step yet."
       },
+      result: emptyWorkflowStepResult(),
       updatedAt: null
     }))
   };
@@ -151,7 +169,7 @@ export async function loadWorkflowState(targetRoot: string): Promise<WorkflowSta
     if (state.artifactType !== "kiwi-control/workflow") {
       return createWorkflow(null);
     }
-    if (state.version !== 2) {
+    if (state.version !== 3) {
       return migrateWorkflowState(state);
     }
     return state;
@@ -203,6 +221,14 @@ export async function startWorkflowStep(
   if (retry) {
     step.retryCount += 1;
   }
+  step.result = {
+    ok: null,
+    summary: null,
+    validation: null,
+    failureReason: null,
+    suggestedFix: null,
+    retryCommand: buildWorkflowRetryCommand(options.task, step.stepId, options.input)
+  };
   step.updatedAt = now;
 
   next.timestamp = now;
@@ -233,7 +259,7 @@ export async function completeWorkflowStep(
   }
 
   const now = new Date().toISOString();
-  step.status = "completed";
+  step.status = "success";
   step.output = options.output;
   step.validation = options.validation;
   step.failureReason = null;
@@ -248,12 +274,20 @@ export async function completeWorkflowStep(
     ...(options.measuredTokens !== undefined ? { measuredTokens: options.measuredTokens } : {}),
     ...(options.estimatedTokens !== undefined ? { estimatedTokens: options.estimatedTokens } : {})
   });
+  step.result = {
+    ok: true,
+    summary: options.output,
+    validation: options.validation,
+    failureReason: null,
+    suggestedFix: null,
+    retryCommand: buildWorkflowRetryCommand(options.task, step.stepId, step.input)
+  };
   step.updatedAt = now;
 
   next.timestamp = now;
   next.currentStepId = findNextPendingStepId(next.steps, step.stepId);
-  next.status = next.steps.every((candidate) => candidate.status === "completed")
-    ? "completed"
+  next.status = next.steps.every((candidate) => candidate.status === "success")
+    ? "success"
     : "running";
   await persistWorkflowState(targetRoot, next);
   return next;
@@ -266,6 +300,7 @@ export async function failWorkflowStep(
     stepId: WorkflowStep["stepId"];
     failureReason: string;
     validation: string;
+    suggestedFix?: string | null;
     files?: string[];
     skillsApplied?: string[];
     measuredTokens?: number | null;
@@ -296,6 +331,17 @@ export async function failWorkflowStep(
     ...(options.measuredTokens !== undefined ? { measuredTokens: options.measuredTokens } : {}),
     ...(options.estimatedTokens !== undefined ? { estimatedTokens: options.estimatedTokens } : {})
   });
+  step.result = {
+    ok: false,
+    summary: null,
+    validation: options.validation,
+    failureReason: options.failureReason,
+    suggestedFix:
+      options.suggestedFix ??
+      step.result.suggestedFix ??
+      buildDefaultSuggestedFix(step.stepId, options.task, step.input, options.validation, options.failureReason),
+    retryCommand: step.result.retryCommand ?? buildWorkflowRetryCommand(options.task, step.stepId, step.input)
+  };
   step.updatedAt = now;
 
   next.timestamp = now;
@@ -314,6 +360,8 @@ export async function executeWorkflowStep<Result>(
   state: WorkflowState;
   validation: string;
   failureReason: string | null;
+  suggestedFix: string | null;
+  retryCommand: string | null;
 }> {
   await startWorkflowStep(targetRoot, {
     task: options.task,
@@ -324,25 +372,26 @@ export async function executeWorkflowStep<Result>(
 
   try {
     const result = await options.run();
-    const validation = options.validate(result);
+    const validation = await options.validate(result);
     const summary = options.summarize(result);
 
     const state = validation.ok
-      ? await completeWorkflowStep(targetRoot, {
-          task: options.task,
-          stepId: options.stepId,
-          output: summary.summary,
+          ? await completeWorkflowStep(targetRoot, {
+              task: options.task,
+              stepId: options.stepId,
+              output: summary.summary,
           validation: validation.validation,
           ...(summary.files ? { files: summary.files } : {}),
           ...(summary.skillsApplied ? { skillsApplied: summary.skillsApplied } : {}),
           ...(summary.measuredTokens !== undefined ? { measuredTokens: summary.measuredTokens } : {}),
           ...(summary.estimatedTokens !== undefined ? { estimatedTokens: summary.estimatedTokens } : {})
-        })
+            })
       : await failWorkflowStep(targetRoot, {
           task: options.task,
           stepId: options.stepId,
           failureReason: validation.failureReason ?? validation.validation,
           validation: validation.validation,
+          ...(validation.suggestedFix !== undefined ? { suggestedFix: validation.suggestedFix } : {}),
           ...(summary.files ? { files: summary.files } : {}),
           ...(summary.skillsApplied ? { skillsApplied: summary.skillsApplied } : {}),
           ...(summary.measuredTokens !== undefined ? { measuredTokens: summary.measuredTokens } : {}),
@@ -354,7 +403,9 @@ export async function executeWorkflowStep<Result>(
       result,
       state,
       validation: validation.validation,
-      failureReason: validation.ok ? null : (validation.failureReason ?? validation.validation)
+      failureReason: validation.ok ? null : (validation.failureReason ?? validation.validation),
+      suggestedFix: validation.ok ? null : (validation.suggestedFix ?? buildDefaultSuggestedFix(options.stepId, options.task, options.input, validation.validation, validation.failureReason ?? validation.validation)),
+      retryCommand: buildWorkflowRetryCommand(options.task, options.stepId, options.input)
     };
   } catch (error) {
     const failureReason = error instanceof Error ? error.message : String(error);
@@ -369,7 +420,9 @@ export async function executeWorkflowStep<Result>(
       result: null,
       state,
       validation: "Step execution threw before validation completed.",
-      failureReason
+      failureReason,
+      suggestedFix: buildDefaultSuggestedFix(options.stepId, options.task, options.input, "Step execution threw before validation completed.", failureReason),
+      retryCommand: buildWorkflowRetryCommand(options.task, options.stepId, options.input)
     };
   }
 }
@@ -458,7 +511,7 @@ function findNextPendingStepId(
 ): string | null {
   const currentIndex = steps.findIndex((step) => step.stepId === currentStepId);
   for (const step of steps.slice(currentIndex + 1)) {
-    if (step.status !== "completed") {
+    if (step.status !== "success") {
       return step.stepId;
     }
   }
@@ -472,7 +525,8 @@ function cloneWorkflowState(state: WorkflowState): WorkflowState {
       ...step,
       files: [...step.files],
       skillsApplied: [...step.skillsApplied],
-      tokenUsage: { ...step.tokenUsage }
+      tokenUsage: { ...step.tokenUsage },
+      result: { ...step.result }
     }))
   };
 }
@@ -486,18 +540,113 @@ function migrateWorkflowState(state: WorkflowState): WorkflowState {
     if (!existing) {
       continue;
     }
-    step.status = existing.status;
+    step.status = normalizeWorkflowStepStatus(existing.status);
     step.input = existing.input;
+    step.expectedOutput = existing.expectedOutput ?? step.expectedOutput;
     step.output = existing.output;
     step.validation = existing.validation;
+    step.failureReason = existing.failureReason ?? null;
     step.files = existing.files;
     step.skillsApplied = existing.skillsApplied;
     step.tokenUsage = existing.tokenUsage;
+    step.result = existing.result ?? {
+      ok:
+        normalizeWorkflowStepStatus(existing.status) === "success"
+          ? true
+          : normalizeWorkflowStepStatus(existing.status) === "failed"
+            ? false
+            : null,
+      summary: existing.output ?? null,
+      validation: existing.validation ?? null,
+      failureReason: existing.failureReason ?? null,
+      suggestedFix:
+        normalizeWorkflowStepStatus(existing.status) === "failed"
+          ? buildDefaultSuggestedFix(step.stepId, state.task ?? null, existing.input ?? null, existing.validation ?? null, existing.failureReason ?? existing.validation ?? null)
+          : null,
+      retryCommand: buildWorkflowRetryCommand(state.task ?? null, step.stepId, existing.input ?? null)
+    };
     step.updatedAt = existing.updatedAt;
   }
 
-  migrated.status = state.status;
+  migrated.status = normalizeWorkflowStatus(state.status);
   migrated.currentStepId = state.currentStepId;
   migrated.timestamp = state.timestamp;
   return migrated;
+}
+
+function emptyWorkflowStepResult(): WorkflowStepResult {
+  return {
+    ok: null,
+    summary: null,
+    validation: null,
+    failureReason: null,
+    suggestedFix: null,
+    retryCommand: null
+  };
+}
+
+function normalizeWorkflowStepStatus(status: string): WorkflowStepStatus {
+  if (status === "completed") {
+    return "success";
+  }
+  if (status === "pending" || status === "running" || status === "success" || status === "failed") {
+    return status;
+  }
+  return "pending";
+}
+
+function normalizeWorkflowStatus(status: string): WorkflowStatus {
+  if (status === "completed") {
+    return "success";
+  }
+  if (status === "pending" || status === "running" || status === "success" || status === "failed") {
+    return status;
+  }
+  return "pending";
+}
+
+function buildWorkflowRetryCommand(
+  task: string | null,
+  stepId: WorkflowStep["stepId"],
+  input: string | null
+): string {
+  const primary = PRODUCT_METADATA.cli.primaryCommand;
+  const normalizedTask = (task ?? input ?? "describe your task").trim() || "describe your task";
+
+  switch (stepId) {
+    case "prepare-context":
+      return `${primary} prepare "${normalizedTask}"`;
+    case "generate-run-packets":
+      return `${primary} run "${normalizedTask}"`;
+    case "checkpoint-progress":
+      return `${primary} checkpoint "${(input ?? "<milestone>").trim() || "<milestone>"}"`;
+    case "handoff-work":
+      return `${primary} handoff ${input?.trim() ? input.trim() : "--to <specialist>"}`;
+    default:
+      return `${primary} status`;
+  }
+}
+
+function buildDefaultSuggestedFix(
+  stepId: WorkflowStep["stepId"],
+  task: string | null,
+  input: string | null,
+  validation: string | null,
+  failureReason: string | null
+): string {
+  const retryCommand = buildWorkflowRetryCommand(task, stepId, input);
+  const reason = failureReason ?? validation ?? "The step did not reach its expected outcome.";
+
+  switch (stepId) {
+    case "prepare-context":
+      return `Refine the task wording or inspect the selection signals, then rerun ${retryCommand}. ${reason}`;
+    case "generate-run-packets":
+      return `Fix the blocking condition or prepared scope, then rerun ${retryCommand}. ${reason}`;
+    case "checkpoint-progress":
+      return `Resolve the validation failure, then rerun ${retryCommand}. ${reason}`;
+    case "handoff-work":
+      return `Resolve the blocking issue or refresh the prepared scope, then rerun ${retryCommand}. ${reason}`;
+    default:
+      return `Inspect the failure and rerun ${retryCommand}. ${reason}`;
+  }
 }

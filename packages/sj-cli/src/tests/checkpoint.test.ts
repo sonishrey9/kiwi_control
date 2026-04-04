@@ -116,4 +116,7 @@ test("checkpoint fails when touched files drift outside the prepared scope", asy
   assert.equal(workflow.status, "failed");
   assert.equal(checkpointStep?.status, "failed");
   assert.match(checkpointStep?.failureReason ?? "", /Prepared scope violated/);
+  assert.equal(checkpointStep?.result?.ok, false);
+  assert.match(checkpointStep?.result?.suggestedFix ?? "", /Refresh the prepared scope/i);
+  assert.equal(checkpointStep?.result?.retryCommand, 'kiwi-control checkpoint "scope drift detected"');
 });

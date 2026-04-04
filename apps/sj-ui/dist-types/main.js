@@ -170,6 +170,12 @@ const EMPTY_KC = {
     executionTrace: {
         steps: [],
         whyThisHappened: ""
+    },
+    executionPlan: {
+        summary: "",
+        blocked: false,
+        steps: [],
+        nextCommands: []
     }
 };
 const app = document.querySelector("#app");
@@ -565,6 +571,13 @@ function renderOverviewView(state) {
           </div>
         </section>
       </div>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("Execution Plan", kc.executionPlan.summary || "No execution plan is recorded yet.")}
+        ${kc.executionPlan.steps.length > 0
+        ? `<div class="kc-stack-list">${kc.executionPlan.steps.map((step) => renderNoteRow(`${step.description}`, step.status, `${step.command} | verify: ${step.validation}`)).join("")}</div>`
+        : renderEmptyState("No execution plan is available yet.")}
+      </section>
 
       <section class="kc-panel">
         <div class="kc-panel-head-row">
@@ -1078,7 +1091,7 @@ function renderSystemView(state) {
     const kc = state.kiwiControl ?? EMPTY_KC;
     const failures = Math.max(0, kc.execution.totalExecutions - Math.round((kc.execution.successRate / 100) * kc.execution.totalExecutions));
     const activityItems = buildActivityItems(state);
-    const completedWorkflowSteps = kc.workflow.steps.filter((step) => step.status === "completed").length;
+    const successfulWorkflowSteps = kc.workflow.steps.filter((step) => step.status === "success").length;
     const failedWorkflowStep = kc.workflow.steps.find((step) => step.status === "failed") ?? null;
     return `
     <div class="kc-view-shell">
@@ -1164,16 +1177,28 @@ function renderSystemView(state) {
         </section>
       </div>
 
+      <section class="kc-panel">
+        ${renderPanelHeader("Next Commands", "Exact CLI commands from the current execution plan.")}
+        ${kc.executionPlan.nextCommands.length > 0
+        ? renderListBadges(kc.executionPlan.nextCommands)
+        : renderEmptyState("No next commands are currently recorded.")}
+      </section>
+
       <div class="kc-two-column">
         <section class="kc-panel">
           ${renderPanelHeader("Workflow Steps", "Linear workflow state for the active task.")}
           <div class="kc-inline-badges">
-            ${renderInlineBadge(`${completedWorkflowSteps}/${kc.workflow.steps.length} completed`)}
+            ${renderInlineBadge(`${successfulWorkflowSteps}/${kc.workflow.steps.length} successful`)}
             ${failedWorkflowStep ? renderInlineBadge(`failed: ${failedWorkflowStep.action}`) : renderInlineBadge("no failed step")}
           </div>
           ${failedWorkflowStep?.failureReason ? `<div class="kc-divider"></div>${renderNoteRow("Failure reason", failedWorkflowStep.action, failedWorkflowStep.failureReason)}` : ""}
           ${kc.workflow.steps.length > 0
-        ? `<div class="kc-stack-list">${kc.workflow.steps.map((step) => renderNoteRow(`${step.action}`, `${step.status}${step.retryCount > 0 ? ` · retry ${step.retryCount}` : ""}${step.attemptCount > 0 ? ` · attempt ${step.attemptCount}` : ""}`, step.failureReason ?? step.output ?? step.validation ?? step.expectedOutput ?? step.tokenUsage.note)).join("")}</div>`
+        ? `<div class="kc-stack-list">${kc.workflow.steps.map((step) => renderNoteRow(`${step.action}`, `${step.status}${step.retryCount > 0 ? ` · retry ${step.retryCount}` : ""}${step.attemptCount > 0 ? ` · attempt ${step.attemptCount}` : ""}`, step.failureReason
+            ?? step.result.summary
+            ?? step.validation
+            ?? step.expectedOutput
+            ?? step.result.suggestedFix
+            ?? step.tokenUsage.note)).join("")}</div>`
         : renderEmptyState("No workflow state has been recorded yet.")}
         </section>
         <section class="kc-panel">
@@ -1183,7 +1208,7 @@ function renderSystemView(state) {
             ? `${step.status}${step.retryCount > 0 ? ` · retry ${step.retryCount}` : ""}`
             : `${step.status}${step.retryCount > 0 ? ` · retry ${step.retryCount}` : ""} · ${step.tokenUsage.measuredTokens != null ? formatTokensShort(step.tokenUsage.measuredTokens) : `~${formatTokensShort(step.tokenUsage.estimatedTokens ?? 0)}`}`, step.failureReason
             ? `${step.failureReason}${step.files.length > 0 ? ` | files: ${step.files.slice(0, 3).join(", ")}` : ""}`
-            : `${step.files.slice(0, 3).join(", ") || "no files"}${step.skillsApplied.length > 0 ? ` | skills: ${step.skillsApplied.join(", ")}` : ""}${step.expectedOutput ? ` | expects: ${step.expectedOutput}` : ""}`)).join("")}</div>`
+            : `${step.result.summary ?? (step.files.slice(0, 3).join(", ") || "no files")}${step.skillsApplied.length > 0 ? ` | skills: ${step.skillsApplied.join(", ")}` : ""}${step.result.validation ? ` | validation: ${step.result.validation}` : step.expectedOutput ? ` | expects: ${step.expectedOutput}` : ""}${step.result.retryCommand ? ` | retry: ${step.result.retryCommand}` : ""}`)).join("")}</div>`
         : renderEmptyState("No execution trace is available yet.")}
         </section>
       </div>
@@ -1455,6 +1480,13 @@ function renderInspector(state) {
         ${primaryAction?.command
         ? `<code class="kc-command-block">${escapeHtml(primaryAction.command)}</code>`
         : `<p>No command recorded for the current state.</p>`}
+      </section>
+
+      <section class="kc-inspector-section">
+        <p class="kc-section-micro">Next Commands</p>
+        ${kc.executionPlan.nextCommands.length > 0
+        ? `<div class="kc-stack-list">${kc.executionPlan.nextCommands.map((command) => renderBulletRow(command)).join("")}</div>`
+        : `<p>No execution plan commands are currently recorded.</p>`}
       </section>
     </div>
   `;

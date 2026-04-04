@@ -25,6 +25,8 @@ export interface RuntimeLifecycleEvent {
   summary: string;
   task: string | null;
   command: string | null;
+  validation: string | null;
+  failureReason: string | null;
   files: string[];
   skillsApplied: string[];
   tokenUsage: {
@@ -114,6 +116,8 @@ export async function recordRuntimeProgress(
     summary: entry.summary,
     task: entry.task ?? current.currentTask,
     command: entry.command ?? null,
+    validation: entry.validation ?? null,
+    failureReason: entry.failureReason ?? null,
     files: [...new Set(entry.files ?? [])],
     skillsApplied: [...new Set(entry.skillsApplied ?? [])],
     tokenUsage: {

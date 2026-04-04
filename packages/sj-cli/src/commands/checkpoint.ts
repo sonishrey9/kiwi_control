@@ -16,9 +16,9 @@ import { buildPhaseId, loadActiveRoleHints, loadLatestCheckpoint, parseCsvFlag, 
 import { loadCurrentPhase } from "@shrey-junior/sj-core/core/state.js";
 import { recordPreparedScopeCompletion } from "@shrey-junior/sj-core/core/execution-log.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
-import { completeWorkflowStep, failWorkflowStep, startWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
+import { executeWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
-import { relativeFrom } from "@shrey-junior/sj-core/utils/fs.js";
+import { pathExists, relativeFrom } from "@shrey-junior/sj-core/utils/fs.js";
 
 export interface CheckpointOptions {
   repoRoot: string;
@@ -71,10 +71,6 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
   const scopeValidation = preparedScope
     ? validateTouchedFilesAgainstAllowedFiles(preparedScope.allowedFiles, gitState.changedFiles)
     : null;
-  await recordPreparedScopeCompletion(options.targetRoot, {
-    completionSource: "checkpoint",
-    tool: PRODUCT_METADATA.cli.primaryCommand
-  }).catch(() => null);
   const scopeFailure = scopeValidation && !scopeValidation.ok
     ? `Prepared scope violated by touched files: ${scopeValidation.outOfScopeFiles.slice(0, 5).join(", ")}`
     : null;
@@ -173,7 +169,6 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
     ...(previousPhase?.tool ? { previousTool: previousPhase.tool } : {}),
     ...(previousPhase?.phaseId ? { previousPhaseId: previousPhase.phaseId } : {})
   };
-  const paths = await writePhaseRecord(options.targetRoot, record);
   const nextSuggestedCommand =
     scopeFailure
       ? `${PRODUCT_METADATA.cli.primaryCommand} prepare "${preparedScope?.task ?? goal}"`
@@ -182,134 +177,164 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
         : record.status === "complete"
         ? `${PRODUCT_METADATA.cli.primaryCommand} push-check`
           : `${PRODUCT_METADATA.cli.primaryCommand} handoff --to ${nextRecommendedSpecialist} --tool ${decision.reviewTool}`;
-  await startWorkflowStep(options.targetRoot, {
+  const workflowExecution = await executeWorkflowStep(options.targetRoot, {
     task: goal,
     stepId: "checkpoint-progress",
     input: options.label,
-    expectedOutput: "Checkpoint artifacts are written and continuity is updated."
-  }).catch(() => null);
-  const checkpoint: CheckpointRecord = {
-    artifactType: "shrey-junior/checkpoint",
-    schemaVersion: 1,
-    createdAt: generatedAt,
-    checkpointId: buildPhaseId(options.label, generatedAt),
-    phase: record.label,
-    activeRole: currentActiveRoleHints?.activeRole ?? contract.activeRole,
-    supportingRoles: currentActiveRoleHints?.supportingRoles ?? contract.supportingRoles,
-    authoritySource: selection.source,
-    summary: record.nextRecommendedStep,
-    taskContext: {
-      goal,
-      taskType: decision.taskType,
-      fileArea: decision.fileArea,
-      changeSize: decision.changeSize,
-      riskLevel: decision.riskLevel,
-      ...(explicitTool ? { primaryTool: explicitTool } : { primaryTool: decision.primaryTool }),
-      reviewTool: decision.reviewTool
+    expectedOutput: "Checkpoint artifacts are written and continuity is updated.",
+    run: async () => {
+      await recordPreparedScopeCompletion(options.targetRoot, {
+        completionSource: "checkpoint",
+        tool: PRODUCT_METADATA.cli.primaryCommand
+      }).catch(() => null);
+      const paths = await writePhaseRecord(options.targetRoot, record);
+
+      const checkpoint: CheckpointRecord = {
+        artifactType: "shrey-junior/checkpoint",
+        schemaVersion: 1,
+        createdAt: generatedAt,
+        checkpointId: buildPhaseId(options.label, generatedAt),
+        phase: record.label,
+        activeRole: currentActiveRoleHints?.activeRole ?? contract.activeRole,
+        supportingRoles: currentActiveRoleHints?.supportingRoles ?? contract.supportingRoles,
+        authoritySource: selection.source,
+        summary: record.nextRecommendedStep,
+        taskContext: {
+          goal,
+          taskType: decision.taskType,
+          fileArea: decision.fileArea,
+          changeSize: decision.changeSize,
+          riskLevel: decision.riskLevel,
+          ...(explicitTool ? { primaryTool: explicitTool } : { primaryTool: decision.primaryTool }),
+          reviewTool: decision.reviewTool
+        },
+        filesTouched: gitState.changedFiles.slice(0, 20),
+        filesCreated: gitState.createdFiles?.slice(0, 20) ?? [],
+        filesDeleted: gitState.deletedFiles?.slice(0, 20) ?? [],
+        checksRun: record.validationsRun,
+        checksPassed: scopeFailure ? record.validationsRun.filter((item) => item !== "Prepared scope validation") : record.validationsRun,
+        checksFailed: scopeFailure ? [scopeFailure] : [],
+        gitBranch: gitState.branch ?? null,
+        gitCommitBefore: previousCheckpoint?.gitCommitAfter ?? gitState.headCommit ?? null,
+        gitCommitAfter: gitState.headCommit ?? null,
+        dirtyState: {
+          isGitRepo: gitState.isGitRepo,
+          clean: gitState.clean,
+          ...(gitState.branch ? { branch: gitState.branch } : {}),
+          stagedCount: gitState.stagedCount,
+          unstagedCount: gitState.unstagedCount,
+          untrackedCount: gitState.untrackedCount
+        },
+        stagedFiles: gitState.stagedFiles?.slice(0, 20) ?? [],
+        relatedTaskPacket: currentActiveRoleHints?.latestTaskPacket ?? null,
+        relatedHandoff: currentActiveRoleHints?.latestHandoff ?? null,
+        relatedReconcile: currentActiveRoleHints?.latestReconcile ?? renderRelatedReconcilePointer(latestReconcile?.dispatchId),
+        latestMemoryFocus: relativeFrom(options.targetRoot, memoryPaths.currentFocus),
+        nextRecommendedSpecialist,
+        nextSuggestedMcpPack,
+        nextRecommendedAction: record.nextRecommendedStep,
+        nextSuggestedCommand
+      };
+      const checkpointArtifacts = await writeCheckpointArtifacts(options.targetRoot, checkpoint);
+      const nextFileToRead = chooseNextFileToRead({
+        latestTaskPacket: currentActiveRoleHints?.latestTaskPacket ?? null,
+        latestHandoff: currentActiveRoleHints?.latestHandoff ?? null,
+        latestReconcile: currentActiveRoleHints?.latestReconcile ?? renderRelatedReconcilePointer(latestReconcile?.dispatchId),
+        latestCheckpoint: relativeFrom(options.targetRoot, checkpointArtifacts.latestJsonPath)
+      });
+      await writeOpenRisksRecord(options.targetRoot, "checkpoint", record.openIssues);
+      await updateActiveRoleHints(options.targetRoot, {
+        activeRole: currentActiveRoleHints?.activeRole ?? contract.activeRole,
+        supportingRoles: currentActiveRoleHints?.supportingRoles ?? contract.supportingRoles,
+        authoritySource: selection.source,
+        projectType: overlay?.bootstrap?.project_type ?? inspection.projectType,
+        readNext: buildCanonicalReadNext({
+          targetRoot: options.targetRoot,
+          authorityOrder: compiledContext.authorityOrder,
+          promotedAuthorityDocs: compiledContext.promotedAuthorityDocs,
+          contract
+        }),
+        writeTargets: buildWriteTargets(contract, [".agent/state/current-phase.json"]),
+        checksToRun: buildChecksToRun(record.validationsRun),
+        stopConditions: buildStopConditions({
+          riskLevel: decision.riskLevel,
+          taskType: decision.taskType
+        }),
+        nextFileToRead,
+        nextSuggestedCommand,
+        nextAction: record.nextRecommendedStep,
+        nextRecommendedSpecialist,
+        nextSuggestedMcpPack,
+        searchGuidance: buildSearchGuidance({
+          taskType: decision.taskType,
+          fileArea: decision.fileArea
+        }),
+        latestMemoryFocus: relativeFrom(options.targetRoot, memoryPaths.currentFocus),
+        latestCheckpoint: relativeFrom(options.targetRoot, checkpointArtifacts.latestJsonPath)
+      });
+
+      return {
+        scopeFailure,
+        checkpointArtifacts,
+        nextSuggestedCommand,
+        paths
+      };
     },
-    filesTouched: gitState.changedFiles.slice(0, 20),
-    filesCreated: gitState.createdFiles?.slice(0, 20) ?? [],
-    filesDeleted: gitState.deletedFiles?.slice(0, 20) ?? [],
-    checksRun: record.validationsRun,
-    checksPassed: scopeFailure ? record.validationsRun.filter((item) => item !== "Prepared scope validation") : record.validationsRun,
-    checksFailed: scopeFailure ? [scopeFailure] : [],
-    gitBranch: gitState.branch ?? null,
-    gitCommitBefore: previousCheckpoint?.gitCommitAfter ?? gitState.headCommit ?? null,
-    gitCommitAfter: gitState.headCommit ?? null,
-    dirtyState: {
-      isGitRepo: gitState.isGitRepo,
-      clean: gitState.clean,
-      ...(gitState.branch ? { branch: gitState.branch } : {}),
-      stagedCount: gitState.stagedCount,
-      unstagedCount: gitState.unstagedCount,
-      untrackedCount: gitState.untrackedCount
+    validate: async (result) => {
+      const artifactsWritten =
+        await pathExists(result.paths.currentPhasePath) &&
+        await pathExists(result.paths.historyPath) &&
+        await pathExists(result.checkpointArtifacts.latestJsonPath);
+      const ok = !result.scopeFailure && artifactsWritten;
+      return {
+        ok,
+        validation: ok
+          ? "Checkpoint artifacts were written and continuity hints were updated."
+          : result.scopeFailure
+            ? "Prepared scope validation failed during checkpoint."
+            : "Checkpoint artifacts were not fully written.",
+        ...(ok
+          ? {}
+          : {
+              failureReason: result.scopeFailure ?? "Checkpoint artifacts were not fully written.",
+              suggestedFix: result.scopeFailure
+                ? `Refresh the prepared scope with ${nextSuggestedCommand} before retrying this checkpoint.`
+                : `Retry kiwi-control checkpoint "${options.label}" after fixing the artifact write failure.`
+            })
+      };
     },
-    stagedFiles: gitState.stagedFiles?.slice(0, 20) ?? [],
-    relatedTaskPacket: currentActiveRoleHints?.latestTaskPacket ?? null,
-    relatedHandoff: currentActiveRoleHints?.latestHandoff ?? null,
-    relatedReconcile: currentActiveRoleHints?.latestReconcile ?? renderRelatedReconcilePointer(latestReconcile?.dispatchId),
-    latestMemoryFocus: relativeFrom(options.targetRoot, memoryPaths.currentFocus),
-    nextRecommendedSpecialist,
-    nextSuggestedMcpPack,
-    nextRecommendedAction: record.nextRecommendedStep,
-    nextSuggestedCommand
-  };
-  const checkpointArtifacts = await writeCheckpointArtifacts(options.targetRoot, checkpoint);
-  const nextFileToRead = chooseNextFileToRead({
-    latestTaskPacket: currentActiveRoleHints?.latestTaskPacket ?? null,
-    latestHandoff: currentActiveRoleHints?.latestHandoff ?? null,
-    latestReconcile: currentActiveRoleHints?.latestReconcile ?? renderRelatedReconcilePointer(latestReconcile?.dispatchId),
-    latestCheckpoint: relativeFrom(options.targetRoot, checkpointArtifacts.latestJsonPath)
-  });
-  await writeOpenRisksRecord(options.targetRoot, "checkpoint", record.openIssues);
-  await updateActiveRoleHints(options.targetRoot, {
-    activeRole: currentActiveRoleHints?.activeRole ?? contract.activeRole,
-    supportingRoles: currentActiveRoleHints?.supportingRoles ?? contract.supportingRoles,
-    authoritySource: selection.source,
-    projectType: overlay?.bootstrap?.project_type ?? inspection.projectType,
-    readNext: buildCanonicalReadNext({
-      targetRoot: options.targetRoot,
-      authorityOrder: compiledContext.authorityOrder,
-      promotedAuthorityDocs: compiledContext.promotedAuthorityDocs,
-      contract
-    }),
-    writeTargets: buildWriteTargets(contract, [".agent/state/current-phase.json"]),
-    checksToRun: buildChecksToRun(record.validationsRun),
-    stopConditions: buildStopConditions({
-      riskLevel: decision.riskLevel,
-      taskType: decision.taskType
-    }),
-    nextFileToRead,
-    nextSuggestedCommand,
-    nextAction: record.nextRecommendedStep,
-    nextRecommendedSpecialist,
-    nextSuggestedMcpPack,
-    searchGuidance: buildSearchGuidance({
-      taskType: decision.taskType,
-      fileArea: decision.fileArea
-    }),
-    latestMemoryFocus: relativeFrom(options.targetRoot, memoryPaths.currentFocus),
-    latestCheckpoint: relativeFrom(options.targetRoot, checkpointArtifacts.latestJsonPath)
-  });
-  if (scopeFailure) {
-    await failWorkflowStep(options.targetRoot, {
-      task: goal,
-      stepId: "checkpoint-progress",
-      failureReason: scopeFailure,
-      validation: "Prepared scope validation failed during checkpoint.",
+    summarize: (result) => ({
+      summary: result.scopeFailure
+        ? `Checkpoint "${options.label}" detected scope drift.`
+        : `Checkpoint "${options.label}" recorded successfully.`,
       files: gitState.changedFiles.slice(0, 12)
-    }).catch(() => null);
-  } else {
-    await completeWorkflowStep(options.targetRoot, {
-      task: goal,
-      stepId: "checkpoint-progress",
-      output: `Checkpoint "${options.label}" recorded successfully.`,
-      validation: "Checkpoint artifacts were written and continuity hints were updated.",
-      files: gitState.changedFiles.slice(0, 12)
-    }).catch(() => null);
-  }
+    })
+  });
+
   await recordRuntimeProgress(options.targetRoot, {
-    type: scopeFailure ? "validation_checkpoint" : "checkpoint_recorded",
-    stage: scopeFailure ? "blocked" : "checkpointed",
-    status: scopeFailure ? "error" : "ok",
-    summary: scopeFailure
-      ? `Checkpoint "${options.label}" detected scope drift.`
-      : `Checkpoint "${options.label}" recorded successfully.`,
+    type: workflowExecution.ok ? "checkpoint_recorded" : "validation_checkpoint",
+    stage: workflowExecution.ok ? "checkpointed" : "blocked",
+    status: workflowExecution.ok ? "ok" : "error",
+    summary: workflowExecution.ok
+      ? `Checkpoint "${options.label}" recorded successfully.`
+      : workflowExecution.failureReason ?? `Checkpoint "${options.label}" failed.`,
     task: goal,
-    command: nextSuggestedCommand,
+    command: workflowExecution.ok ? nextSuggestedCommand : workflowExecution.retryCommand,
     files: gitState.changedFiles.slice(0, 12),
-    validation: scopeFailure
-      ? "Prepared scope validation failed during checkpoint."
-      : "Checkpoint artifacts were written and continuity hints were updated.",
-    ...(scopeFailure ? { failureReason: scopeFailure } : {}),
-    validationStatus: scopeFailure ? "error" : "ok",
-    nextSuggestedCommand,
-    nextRecommendedAction: record.nextRecommendedStep
+    validation: workflowExecution.validation,
+    ...(workflowExecution.failureReason ? { failureReason: workflowExecution.failureReason } : {}),
+    validationStatus: workflowExecution.ok ? "ok" : "error",
+    nextSuggestedCommand: workflowExecution.ok ? nextSuggestedCommand : workflowExecution.retryCommand,
+    nextRecommendedAction: workflowExecution.ok ? record.nextRecommendedStep : (workflowExecution.suggestedFix ?? workflowExecution.validation)
   }).catch(() => null);
-  options.logger.info(`checkpoint recorded: ${paths.currentPhasePath}`);
-  options.logger.info(`history entry: ${paths.historyPath}`);
-  options.logger.info(`latest checkpoint: ${checkpointArtifacts.latestJsonPath}`);
-  return scopeFailure ? 1 : 0;
+  if (!workflowExecution.ok || !workflowExecution.result) {
+    options.logger.error(workflowExecution.failureReason ?? `Checkpoint "${options.label}" failed.`);
+    return 1;
+  }
+  options.logger.info(`checkpoint recorded: ${workflowExecution.result.paths.currentPhasePath}`);
+  options.logger.info(`history entry: ${workflowExecution.result.paths.historyPath}`);
+  options.logger.info(`latest checkpoint: ${workflowExecution.result.checkpointArtifacts.latestJsonPath}`);
+  return 0;
 }
 
 function inferPhaseStatus(label: string): PhaseStatus {

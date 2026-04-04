@@ -1,16 +1,18 @@
 import path from "node:path";
 import { contextSelector } from "@shrey-junior/sj-core/core/context-selector.js";
-import type { ContextConfidence } from "@shrey-junior/sj-core/core/context-selector.js";
+import type { ContextConfidence, ContextSelection } from "@shrey-junior/sj-core/core/context-selector.js";
 import type { ContextTraceState, IndexingState } from "@shrey-junior/sj-core/core/context-trace.js";
 import { generateInstructions, persistInstructions } from "@shrey-junior/sj-core/core/instruction-generator.js";
+import type { GeneratedInstructions } from "@shrey-junior/sj-core/core/instruction-generator.js";
 import { matchSkillsForTask } from "@shrey-junior/sj-core/core/skills-registry.js";
 import type { SkillRegistryState } from "@shrey-junior/sj-core/core/skills-registry.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
 import type { MeasuredUsageState } from "@shrey-junior/sj-core/core/token-intelligence.js";
-import type { TokenBreakdownState } from "@shrey-junior/sj-core/core/token-estimator.js";
+import type { TokenBreakdownState, TokenEstimate } from "@shrey-junior/sj-core/core/token-estimator.js";
 import { estimateTokens, persistTokenUsage } from "@shrey-junior/sj-core/core/token-estimator.js";
+import { executeWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
-import { readJson } from "@shrey-junior/sj-core/utils/fs.js";
+import { pathExists, readJson } from "@shrey-junior/sj-core/utils/fs.js";
 
 export interface PrepareOptions {
   repoRoot: string;
@@ -48,31 +50,109 @@ export async function runPrepare(options: PrepareOptions): Promise<number> {
 
   logger.info(`Preparing context for: "${task}"`);
 
-  const selection = await contextSelector(task, targetRoot);
-  const skillRegistry = await matchSkillsForTask(targetRoot, task).catch(() => ({
+  const selectionStatePath = path.join(targetRoot, ".agent", "state", "context-selection.json");
+  let selection: ContextSelection | null = null;
+  let skillRegistry: Pick<SkillRegistryState, "activeSkills" | "suggestedSkills"> = {
     activeSkills: [],
     suggestedSkills: []
-  }));
-  logger.info(`Context selected: ${selection.include.length} files [confidence=${selection.confidence}]`);
+  };
+  let instructions: GeneratedInstructions | null = null;
+  let instructionPath: string | null = null;
+  let tokenUsagePath: string | null = null;
+  let tokenEstimate: TokenEstimate | null = null;
 
-  const instructions = generateInstructions(task, selection, skillRegistry);
-  const instructionPath = await persistInstructions(targetRoot, instructions);
-  logger.info(`Instructions written to: ${instructionPath}`);
+  const workflowExecution = await executeWorkflowStep(targetRoot, {
+    task,
+    stepId: "prepare-context",
+    input: task,
+    expectedOutput: "Prepared scope and generated instructions are ready.",
+    run: async () => {
+      selection = await contextSelector(task, targetRoot);
+      skillRegistry = await matchSkillsForTask(targetRoot, task).catch(() => ({
+        activeSkills: [],
+        suggestedSkills: []
+      }));
+      instructions = generateInstructions(task, selection, skillRegistry);
+      instructionPath = await persistInstructions(targetRoot, instructions);
+      tokenEstimate = await estimateTokens(targetRoot, selection.include, task);
+      tokenUsagePath = await persistTokenUsage(targetRoot, task, tokenEstimate);
+      return {
+        selection,
+        skillRegistry,
+        instructions,
+        instructionPath,
+        tokenEstimate,
+        tokenUsagePath
+      };
+    },
+    validate: async (result) => {
+      const artifactsReady =
+        await pathExists(selectionStatePath) &&
+        await pathExists(result.instructionPath) &&
+        await pathExists(result.tokenUsagePath);
+      const hasScope = result.selection.include.length > 0;
+      const ok = artifactsReady && hasScope;
+      return {
+        ok,
+        validation: ok
+          ? "Prepared scope exists, instructions were written, and token state was recorded."
+          : "Prepare did not produce a usable prepared scope and its required artifacts.",
+        ...(ok
+          ? {}
+          : {
+              failureReason: !artifactsReady
+                ? "Required prepare artifacts were not written to .agent/state."
+                : "No files were selected into the prepared scope.",
+              suggestedFix: `Refine the task wording or inspect ignored files, then rerun kiwi-control prepare "${task}".`
+            })
+      };
+    },
+    summarize: (result) => ({
+      summary: `Prepared ${result.selection.include.length} selected files for "${task}".`,
+      files: result.selection.include,
+      skillsApplied: result.skillRegistry.activeSkills.map((skill) => skill.skillId),
+      estimatedTokens: result.tokenEstimate.selectedTokens
+    })
+  });
 
-  const tokenEstimate = await estimateTokens(targetRoot, selection.include, task);
-  await persistTokenUsage(targetRoot, task, tokenEstimate);
+  if (!workflowExecution.ok || !selection || !instructions || !instructionPath || !tokenEstimate) {
+    await recordRuntimeProgress(targetRoot, {
+      type: "prepare_completed",
+      stage: "blocked",
+      status: "error",
+      summary: workflowExecution.failureReason ?? `Prepare failed for "${task}".`,
+      task,
+      validation: workflowExecution.validation,
+      ...(workflowExecution.failureReason ? { failureReason: workflowExecution.failureReason } : {}),
+      nextSuggestedCommand: workflowExecution.retryCommand,
+      nextRecommendedAction: workflowExecution.suggestedFix ?? workflowExecution.validation,
+      validationStatus: "error"
+    }).catch(() => null);
+    logger.error(workflowExecution.failureReason ?? `Prepare failed for "${task}".`);
+    return 1;
+  }
+
+  const finalSelection: ContextSelection = selection;
+  const finalInstructions: GeneratedInstructions = instructions;
+  const finalInstructionPath: string = instructionPath;
+  const finalTokenEstimate: TokenEstimate = tokenEstimate;
+
+  logger.info(`Context selected: ${finalSelection.include.length} files [confidence=${finalSelection.confidence}]`);
+  logger.info(`Instructions written to: ${finalInstructionPath}`);
+
   await recordRuntimeProgress(targetRoot, {
     type: "prepare_completed",
     stage: "prepared",
-    status: selection.confidence === "low" ? "warn" : "ok",
-    summary: `Prepared ${selection.include.length} selected files for "${task}".`,
+    status: finalSelection.confidence === "low" ? "warn" : "ok",
+    summary: `Prepared ${finalSelection.include.length} selected files for "${task}".`,
     task,
-    files: selection.include,
+    files: finalSelection.include,
     skillsApplied: skillRegistry.activeSkills.map((skill) => skill.skillId),
-    estimatedTokens: tokenEstimate.selectedTokens,
-    validation: "Prepared scope exists and selected files are bounded.",
+    estimatedTokens: finalTokenEstimate.selectedTokens,
+    validation: workflowExecution.validation,
+    nextSuggestedCommand: `kiwi-control run "${task}"`,
     nextRecommendedAction: "Open the generated instructions and work inside the prepared scope.",
-    validationStatus: selection.confidence === "low" ? "warn" : "ok"
+    validationStatus: finalSelection.confidence === "low" ? "warn" : "ok"
   }).catch(() => null);
   const contextTrace = await readJson<ContextTraceState>(path.join(targetRoot, ".agent", "state", "context-trace.json"));
   const indexing = await readJson<IndexingState>(path.join(targetRoot, ".agent", "state", "indexing.json"));
@@ -80,28 +160,28 @@ export async function runPrepare(options: PrepareOptions): Promise<number> {
 
   const result: PrepareResult = {
     task,
-    confidence: selection.confidence,
-    filesSelected: selection.include.length,
-    filesExcluded: selection.exclude.length,
-    selectedTokens: tokenEstimate.selectedTokens,
-    fullRepoTokens: tokenEstimate.fullRepoTokens,
-    savingsPercent: tokenEstimate.savingsPercent,
-    estimationMethod: tokenEstimate.estimationMethod,
-    estimateNote: tokenEstimate.estimateNote,
-    topDirectories: tokenEstimate.directoryBreakdown.slice(0, 5).map((d) => ({
+    confidence: finalSelection.confidence,
+    filesSelected: finalSelection.include.length,
+    filesExcluded: finalSelection.exclude.length,
+    selectedTokens: finalTokenEstimate.selectedTokens,
+    fullRepoTokens: finalTokenEstimate.fullRepoTokens,
+    savingsPercent: finalTokenEstimate.savingsPercent,
+    estimationMethod: finalTokenEstimate.estimationMethod,
+    estimateNote: finalTokenEstimate.estimateNote,
+    topDirectories: finalTokenEstimate.directoryBreakdown.slice(0, 5).map((d) => ({
       directory: d.directory,
       tokens: d.tokens,
       fileCount: d.fileCount
     })),
-    instructionPath,
-    reason: selection.reason,
-    constraintCount: instructions.constraints.length,
-    validationStepCount: instructions.validationSteps.length,
-    stopConditionCount: instructions.stopConditions.length,
+    instructionPath: finalInstructionPath,
+    reason: finalSelection.reason,
+    constraintCount: finalInstructions.constraints.length,
+    validationStepCount: finalInstructions.validationSteps.length,
+    stopConditionCount: finalInstructions.stopConditions.length,
     contextTrace,
     indexing,
     tokenBreakdown,
-    measuredUsage: tokenEstimate.measuredUsage,
+    measuredUsage: finalTokenEstimate.measuredUsage,
     skills: {
       activeSkills: skillRegistry.activeSkills,
       suggestedSkills: skillRegistry.suggestedSkills

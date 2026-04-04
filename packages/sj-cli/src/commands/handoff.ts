@@ -13,8 +13,10 @@ import { loadActiveRoleHints, loadCurrentPhase, loadLatestCheckpoint, updateActi
 import { buildTemplateContext, selectPortableContract } from "@shrey-junior/sj-core/core/router.js";
 import { recordPreparedScopeCompletion } from "@shrey-junior/sj-core/core/execution-log.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
+import { executeWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 import type { ToolName } from "@shrey-junior/sj-core/core/config.js";
+import { pathExists } from "@shrey-junior/sj-core/utils/fs.js";
 
 export interface HandoffOptions {
   repoRoot: string;
@@ -48,10 +50,6 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
   const scopeValidation = preparedScope
     ? validateTouchedFilesAgainstAllowedFiles(preparedScope.allowedFiles, gitState.changedFiles)
     : null;
-  await recordPreparedScopeCompletion(options.targetRoot, {
-    completionSource: "handoff",
-    tool: PRODUCT_METADATA.cli.primaryCommand
-  }).catch(() => null);
   const scopeFailure = scopeValidation && !scopeValidation.ok
     ? `Prepared scope violated by touched files: ${scopeValidation.outOfScopeFiles.slice(0, 5).join(", ")}`
     : null;
@@ -106,13 +104,6 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
       }
     : baseHandoff;
   const baseName = buildHandoffBaseName(handoff);
-  const artifacts = await writeHandoffArtifacts(
-    options.targetRoot,
-    baseName,
-    handoff,
-    renderHandoffMarkdown(handoff),
-    renderHandoffBrief(handoff)
-  );
   const contract = selectPortableContract(
     config,
     buildTemplateContext(options.targetRoot, config, {
@@ -122,52 +113,114 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
       profileSource: selection.source
     })
   );
-  await updateActiveRoleHints(options.targetRoot, {
-    activeRole: contract.activeRole,
-    supportingRoles: contract.supportingRoles,
-    authoritySource: selection.source,
-    projectType: overlay?.bootstrap?.project_type ?? "generic",
-    readNext: buildCanonicalReadNext({
-      targetRoot: options.targetRoot,
-      authorityOrder: compiledContext.authorityOrder,
-      promotedAuthorityDocs: compiledContext.promotedAuthorityDocs,
-      contract
-    }),
-    nextFileToRead: chooseNextFileToRead({
-      latestHandoff: ".agent/state/handoff/latest.json"
-    }),
-    nextSuggestedCommand: handoff.nextCommand,
-    writeTargets: buildWriteTargets(contract, handoff.whatChanged.length > 0 ? handoff.whatChanged : [".agent/state/handoff/latest.json"]),
-    checksToRun: buildChecksToRun(compiledContext.validationSteps),
-    stopConditions: buildStopConditions({
-      riskLevel: currentPhase?.routingSummary.riskLevel ?? compiledContext.riskLevel,
-      taskType: currentPhase?.routingSummary.taskType ?? compiledContext.taskType
-    }),
-    nextRecommendedSpecialist: targetSpecialistId,
-    nextSuggestedMcpPack,
-    nextAction: handoff.nextStep,
-    searchGuidance: buildSearchGuidance({
-      taskType: currentPhase?.routingSummary.taskType ?? compiledContext.taskType,
-      fileArea: currentPhase?.routingSummary.fileArea ?? compiledContext.fileArea
+  const workflowExecution = await executeWorkflowStep(options.targetRoot, {
+    task: currentPhase?.goal ?? null,
+    stepId: "handoff-work",
+    input: `--to ${targetSpecialistId} --tool ${handoffTool}`,
+    expectedOutput: "Handoff artifacts are written for the next specialist/tool.",
+    run: async () => {
+      await recordPreparedScopeCompletion(options.targetRoot, {
+        completionSource: "handoff",
+        tool: PRODUCT_METADATA.cli.primaryCommand
+      }).catch(() => null);
+      const artifacts = await writeHandoffArtifacts(
+        options.targetRoot,
+        baseName,
+        handoff,
+        renderHandoffMarkdown(handoff),
+        renderHandoffBrief(handoff)
+      );
+      await updateActiveRoleHints(options.targetRoot, {
+        activeRole: contract.activeRole,
+        supportingRoles: contract.supportingRoles,
+        authoritySource: selection.source,
+        projectType: overlay?.bootstrap?.project_type ?? "generic",
+        readNext: buildCanonicalReadNext({
+          targetRoot: options.targetRoot,
+          authorityOrder: compiledContext.authorityOrder,
+          promotedAuthorityDocs: compiledContext.promotedAuthorityDocs,
+          contract
+        }),
+        nextFileToRead: chooseNextFileToRead({
+          latestHandoff: ".agent/state/handoff/latest.json"
+        }),
+        nextSuggestedCommand: handoff.nextCommand,
+        writeTargets: buildWriteTargets(contract, handoff.whatChanged.length > 0 ? handoff.whatChanged : [".agent/state/handoff/latest.json"]),
+        checksToRun: buildChecksToRun(compiledContext.validationSteps),
+        stopConditions: buildStopConditions({
+          riskLevel: currentPhase?.routingSummary.riskLevel ?? compiledContext.riskLevel,
+          taskType: currentPhase?.routingSummary.taskType ?? compiledContext.taskType
+        }),
+        nextRecommendedSpecialist: targetSpecialistId,
+        nextSuggestedMcpPack,
+        nextAction: handoff.nextStep,
+        searchGuidance: buildSearchGuidance({
+          taskType: currentPhase?.routingSummary.taskType ?? compiledContext.taskType,
+          fileArea: currentPhase?.routingSummary.fileArea ?? compiledContext.fileArea
+        })
+      });
+      await writeOpenRisksRecord(options.targetRoot, "handoff", handoff.risks);
+      return {
+        artifacts,
+        handoff,
+        targetSpecialistId
+      };
+    },
+    validate: async (result) => {
+      const artifactsWritten =
+        await pathExists(result.artifacts.markdownPath) &&
+        await pathExists(result.artifacts.jsonPath) &&
+        await pathExists(result.artifacts.briefPath);
+      const ok = result.handoff.status !== "blocked" && artifactsWritten;
+      return {
+        ok,
+        validation: ok
+          ? "Handoff artifacts were written and the next specialist/tool was recorded."
+          : result.handoff.status === "blocked"
+            ? "Handoff was blocked because the prepared scope no longer matches the touched files."
+            : "Handoff artifacts were not fully written.",
+        ...(ok
+          ? {}
+          : {
+              failureReason: result.handoff.status === "blocked"
+                ? (scopeFailure ?? `Handoff to ${result.targetSpecialistId} is blocked.`)
+                : "Handoff artifacts were not fully written.",
+              suggestedFix: result.handoff.status === "blocked"
+                ? `Refresh the prepared scope with ${result.handoff.nextCommand} before retrying this handoff.`
+                : `Retry kiwi-control handoff --to ${targetSpecialistId} --tool ${handoffTool} after fixing the artifact write failure.`
+            })
+      };
+    },
+    summarize: (result) => ({
+      summary: result.handoff.status === "blocked"
+        ? `Handoff to ${result.targetSpecialistId} blocked by scope drift.`
+        : `Handoff to ${result.targetSpecialistId} recorded successfully.`,
+      files: gitState.changedFiles.slice(0, 12)
     })
   });
-  await writeOpenRisksRecord(options.targetRoot, "handoff", handoff.risks);
+
   await recordRuntimeProgress(options.targetRoot, {
-    type: scopeFailure ? "validation_checkpoint" : "handoff_recorded",
-    stage: scopeFailure ? "blocked" : "handed-off",
-    status: scopeFailure ? "error" : "ok",
-    summary: scopeFailure
-      ? `Handoff to ${targetSpecialistId} blocked by scope drift.`
-      : `Handoff to ${targetSpecialistId} recorded successfully.`,
+    type: workflowExecution.ok ? "handoff_recorded" : "validation_checkpoint",
+    stage: workflowExecution.ok ? "handed-off" : "blocked",
+    status: workflowExecution.ok ? "ok" : "error",
+    summary: workflowExecution.ok
+      ? `Handoff to ${targetSpecialistId} recorded successfully.`
+      : workflowExecution.failureReason ?? `Handoff to ${targetSpecialistId} failed.`,
     task: currentPhase?.goal ?? null,
-    command: handoff.nextCommand,
+    command: workflowExecution.ok ? handoff.nextCommand : workflowExecution.retryCommand,
     files: gitState.changedFiles.slice(0, 12),
-    validationStatus: scopeFailure ? "error" : "ok",
-    nextSuggestedCommand: handoff.nextCommand,
-    nextRecommendedAction: handoff.nextStep
+    validation: workflowExecution.validation,
+    ...(workflowExecution.failureReason ? { failureReason: workflowExecution.failureReason } : {}),
+    validationStatus: workflowExecution.ok ? "ok" : "error",
+    nextSuggestedCommand: workflowExecution.ok ? handoff.nextCommand : workflowExecution.retryCommand,
+    nextRecommendedAction: workflowExecution.ok ? handoff.nextStep : (workflowExecution.suggestedFix ?? workflowExecution.validation)
   }).catch(() => null);
-  options.logger.info(`handoff markdown: ${artifacts.markdownPath}`);
-  options.logger.info(`handoff json: ${artifacts.jsonPath}`);
-  options.logger.info(`handoff brief: ${artifacts.briefPath}`);
-  return handoff.status === "blocked" ? 1 : 0;
+  if (!workflowExecution.ok || !workflowExecution.result) {
+    options.logger.error(workflowExecution.failureReason ?? `Handoff to ${targetSpecialistId} failed.`);
+    return 1;
+  }
+  options.logger.info(`handoff markdown: ${workflowExecution.result.artifacts.markdownPath}`);
+  options.logger.info(`handoff json: ${workflowExecution.result.artifacts.jsonPath}`);
+  options.logger.info(`handoff brief: ${workflowExecution.result.artifacts.briefPath}`);
+  return 0;
 }
