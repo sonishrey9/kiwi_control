@@ -2,7 +2,6 @@ import { contextSelector } from "@shrey-junior/sj-core/core/context-selector.js"
 import type { ContextConfidence } from "@shrey-junior/sj-core/core/context-selector.js";
 import { generateInstructions, persistInstructions } from "@shrey-junior/sj-core/core/instruction-generator.js";
 import { estimateTokens, persistTokenUsage } from "@shrey-junior/sj-core/core/token-estimator.js";
-import type { CostEstimates } from "@shrey-junior/sj-core/core/token-estimator.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 
 export interface PrepareOptions {
@@ -22,8 +21,8 @@ export interface PrepareResult {
   fullRepoTokens: number;
   savingsPercent: number;
   estimationMethod: string;
+  estimateNote: string;
   topDirectories: Array<{ directory: string; tokens: number; fileCount: number }>;
-  costEstimates: CostEstimates;
   instructionPath: string;
   reason: string;
   constraintCount: number;
@@ -55,12 +54,12 @@ export async function runPrepare(options: PrepareOptions): Promise<number> {
     fullRepoTokens: tokenEstimate.fullRepoTokens,
     savingsPercent: tokenEstimate.savingsPercent,
     estimationMethod: tokenEstimate.estimationMethod,
+    estimateNote: tokenEstimate.estimateNote,
     topDirectories: tokenEstimate.directoryBreakdown.slice(0, 5).map((d) => ({
       directory: d.directory,
       tokens: d.tokens,
       fileCount: d.fileCount
     })),
-    costEstimates: tokenEstimate.costEstimates,
     instructionPath,
     reason: selection.reason,
     constraintCount: instructions.constraints.length,
@@ -88,25 +87,22 @@ function printPrepareReport(result: PrepareResult, logger: Logger): void {
   logger.info(`  Files selected:  ${result.filesSelected}`);
   logger.info(`  Files excluded:  ${result.filesExcluded} patterns`);
   logger.info("");
+  logger.info("  Measured Scope:");
+  logger.info(`    Selected files:${String(result.filesSelected).padStart(10)}  (measured)`);
+  logger.info(`    Exclusions:    ${String(result.filesExcluded).padStart(10)}  patterns`);
+  logger.info("");
   logger.info("  Token Usage:");
-  logger.info(`    Selected:      ${formatTokens(result.selectedTokens)}`);
-  logger.info(`    Full repo:     ${formatTokens(result.fullRepoTokens)}`);
-  logger.info(`    Savings:       ${result.savingsPercent}%`);
+  logger.info(`    Selected:      ~${formatTokens(result.selectedTokens)}`);
+  logger.info(`    Full repo:     ~${formatTokens(result.fullRepoTokens)}`);
+  logger.info(`    Savings:       ~${result.savingsPercent}%`);
   logger.info(`    Method:        ${result.estimationMethod}`);
+  logger.info(`    Note:          ${result.estimateNote}`);
   logger.info("");
 
   if (result.topDirectories.length > 0) {
     logger.info("  Token Hotspots:");
     for (const dir of result.topDirectories.slice(0, 5)) {
       logger.info(`    ${dir.directory.padEnd(40)} ${formatTokens(dir.tokens).padStart(12)}  (${dir.fileCount} files)`);
-    }
-    logger.info("");
-  }
-
-  if (result.costEstimates.tiers.length > 0) {
-    logger.info("  Cost Savings (per AI call):");
-    for (const tier of result.costEstimates.tiers) {
-      logger.info(`    ${tier.model.padEnd(12)} ${tier.selectedCost} selected / ${tier.fullRepoCost} full repo / ${tier.savingsCost} saved`);
     }
     logger.info("");
   }

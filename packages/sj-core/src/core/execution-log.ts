@@ -1,4 +1,5 @@
 import path from "node:path";
+import { recordContextFeedback } from "./context-feedback.js";
 import { inspectGitState } from "./git.js";
 import { loadPreparedScope, validateTouchedFilesAgainstAllowedFiles, type ScopeValidationResult } from "./prepared-scope.js";
 import { pathExists, readJson, writeText } from "../utils/fs.js";
@@ -43,6 +44,7 @@ export interface ExecutionCompletionResult {
   recorded: boolean;
   validation: ScopeValidationResult | null;
   entry: ExecutionEntry | null;
+  feedbackRecorded: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -138,7 +140,8 @@ export async function recordPreparedScopeCompletion(
       evaluated: false,
       recorded: false,
       validation: null,
-      entry: null
+      entry: null,
+      feedbackRecorded: false
     };
   }
 
@@ -148,7 +151,8 @@ export async function recordPreparedScopeCompletion(
       evaluated: false,
       recorded: false,
       validation: null,
-      entry: null
+      entry: null,
+      feedbackRecorded: false
     };
   }
 
@@ -158,18 +162,31 @@ export async function recordPreparedScopeCompletion(
       evaluated: false,
       recorded: false,
       validation,
-      entry: null
+      entry: null,
+      feedbackRecorded: false
     };
   }
 
   const runKey = buildPreparedScopeRunKey(preparedScope.timestamp, validation.touchedFiles);
   const state = await loadExecutionLog(targetRoot);
   if (state.entries.some((entry) => entry.runKey === runKey)) {
+    const existingEntry = state.entries.find((entry) => entry.runKey === runKey) ?? null;
+    const feedbackRecorded = await maybeRecordAdaptiveFeedback(targetRoot, {
+      preparedTask: preparedScope.task,
+      allowedFiles: preparedScope.allowedFiles,
+      touchedFiles: validation.touchedFiles,
+      validationOk: validation.ok,
+      confidence: existingEntry?.confidence ?? options.confidence ?? "unknown",
+      tokensUsed: existingEntry?.tokensUsed ?? Math.max(0, options.tokensUsed ?? 0),
+      runKey,
+      completionSource: options.completionSource
+    });
     return {
       evaluated: true,
       recorded: false,
       validation,
-      entry: state.entries.find((entry) => entry.runKey === runKey) ?? null
+      entry: existingEntry,
+      feedbackRecorded
     };
   }
 
@@ -187,6 +204,16 @@ export async function recordPreparedScopeCompletion(
   };
 
   await recordExecution(targetRoot, entry);
+  const feedbackRecorded = await maybeRecordAdaptiveFeedback(targetRoot, {
+    preparedTask: preparedScope.task,
+    allowedFiles: preparedScope.allowedFiles,
+    touchedFiles: validation.touchedFiles,
+    validationOk: validation.ok,
+    confidence: entry.confidence,
+    tokensUsed: entry.tokensUsed,
+    runKey,
+    completionSource: options.completionSource
+  });
   return {
     evaluated: true,
     recorded: true,
@@ -194,7 +221,8 @@ export async function recordPreparedScopeCompletion(
     entry: {
       ...entry,
       timestamp: new Date().toISOString()
-    }
+    },
+    feedbackRecorded
   };
 }
 
@@ -257,4 +285,53 @@ export async function buildExecutionSummary(targetRoot: string): Promise<Executi
 function buildPreparedScopeRunKey(scopeTimestamp: string, touchedFiles: string[]): string {
   const sortedTouchedFiles = [...touchedFiles].sort();
   return `${scopeTimestamp}::${sortedTouchedFiles.join("|")}`;
+}
+
+async function maybeRecordAdaptiveFeedback(
+  targetRoot: string,
+  options: {
+    preparedTask: string;
+    allowedFiles: string[];
+    touchedFiles: string[];
+    validationOk: boolean;
+    confidence: string;
+    tokensUsed: number;
+    runKey: string;
+    completionSource: string;
+  }
+): Promise<boolean> {
+  if (!isFeedbackCompletionSource(options.completionSource)) {
+    return false;
+  }
+
+  const feedbackCandidateFiles = options.allowedFiles.filter((file) => !file.startsWith(".agent/"));
+
+  if (!options.validationOk || options.touchedFiles.length === 0 || feedbackCandidateFiles.length === 0) {
+    return false;
+  }
+
+  const usedFiles = options.touchedFiles.filter((file) => feedbackCandidateFiles.includes(file));
+  if (usedFiles.length === 0) {
+    return false;
+  }
+
+  const unusedFiles = feedbackCandidateFiles.filter((file) => !usedFiles.includes(file));
+
+  await recordContextFeedback(targetRoot, {
+    task: options.preparedTask,
+    selectedFiles: feedbackCandidateFiles,
+    usedFiles,
+    unusedFiles,
+    success: true,
+    confidence: options.confidence,
+    tokensSaved: options.tokensUsed,
+    runKey: options.runKey,
+    completionSource: options.completionSource
+  });
+
+  return true;
+}
+
+function isFeedbackCompletionSource(completionSource: string): boolean {
+  return completionSource === "checkpoint" || completionSource === "handoff";
 }

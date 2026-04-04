@@ -1,3 +1,6 @@
+import path from "node:path";
+import type { FileArea } from "./config.js";
+
 export type TaskCategory =
   | "implementation"
   | "testing"
@@ -66,8 +69,67 @@ export function deriveTaskCategory(task: string): TaskCategory {
   return tokens.length > 0 ? "implementation" : "general";
 }
 
-export function deriveTaskScope(task: string): string {
-  return deriveTaskCategory(task);
+export function buildTaskScopeKey(category: TaskCategory, fileArea: FileArea): string {
+  return `${category}::${fileArea}`;
+}
+
+export function deriveTaskArea(task: string): FileArea {
+  const tokens = tokenizeTaskText(task);
+  const joined = tokens.join(" ");
+  const category = deriveTaskCategory(task);
+
+  if (category === "docs") return "docs";
+  if (category === "testing") return "tests";
+  if (category === "config") return "config";
+
+  if (joined.includes("deploy") || joined.includes("infra") || joined.includes("terraform") || joined.includes("kubernetes")) {
+    return "infra";
+  }
+
+  if (joined.includes("migration") || joined.includes("schema") || joined.includes("database") || joined.includes("sql")) {
+    return "data";
+  }
+
+  if (joined.includes("prompt") || joined.includes("instruction") || joined.includes("context")) {
+    return "context";
+  }
+
+  if (category === "release") {
+    return "infra";
+  }
+
+  if (category === "general") {
+    return "unknown";
+  }
+
+  return "application";
+}
+
+export function inferFileAreaFromPaths(filePaths: string[]): FileArea {
+  if (filePaths.length === 0) {
+    return "unknown";
+  }
+
+  const counts = new Map<FileArea, number>();
+  for (const filePath of filePaths) {
+    const area = classifyFileArea(filePath);
+    counts.set(area, (counts.get(area) ?? 0) + 1);
+  }
+
+  let bestArea: FileArea = "unknown";
+  let bestCount = -1;
+  for (const [area, count] of counts) {
+    if (count > bestCount) {
+      bestArea = area;
+      bestCount = count;
+    }
+  }
+
+  return bestArea;
+}
+
+export function deriveTaskScope(task: string, fileArea?: FileArea): string {
+  return buildTaskScopeKey(deriveTaskCategory(task), fileArea ?? deriveTaskArea(task));
 }
 
 export function taskNeedsExternalVerification(task: string): boolean {
@@ -77,4 +139,89 @@ export function taskNeedsExternalVerification(task: string): boolean {
   return category === "external-contract" || tokens.some((token) =>
     ["api", "sdk", "client", "library", "http", "graphql", "unknown", "behavior"].includes(token)
   );
+}
+
+export function classifyFileArea(filePath: string): FileArea {
+  const normalized = filePath.replace(/\\/g, "/").toLowerCase();
+  const base = path.basename(normalized);
+
+  if (
+    normalized.startsWith(".agent/")
+    || normalized.startsWith(".github/instructions/")
+    || normalized.startsWith("prompts/")
+    || normalized.startsWith("templates/")
+    || normalized.includes("/context/")
+  ) {
+    return "context";
+  }
+
+  if (
+    normalized.startsWith("docs/")
+    || base === "readme.md"
+    || base === "readme.mdx"
+    || base === "changelog.md"
+    || normalized.endsWith(".md")
+    || normalized.endsWith(".mdx")
+  ) {
+    return "docs";
+  }
+
+  if (
+    normalized.includes("/__tests__/")
+    || normalized.includes("/tests/")
+    || normalized.includes("/test/")
+    || normalized.endsWith(".test.ts")
+    || normalized.endsWith(".test.tsx")
+    || normalized.endsWith(".test.js")
+    || normalized.endsWith(".spec.ts")
+    || normalized.endsWith(".spec.tsx")
+    || normalized.endsWith(".spec.js")
+  ) {
+    return "tests";
+  }
+
+  if (
+    normalized.startsWith("infra/")
+    || normalized.startsWith("deploy/")
+    || normalized.startsWith("deployment/")
+    || normalized.includes("/terraform/")
+    || normalized.includes("/k8s/")
+    || normalized.includes("/helm/")
+    || normalized.endsWith(".tf")
+    || normalized.endsWith(".hcl")
+  ) {
+    return "infra";
+  }
+
+  if (
+    normalized.includes("/migrations/")
+    || normalized.includes("/prisma/")
+    || normalized.includes("/schema/")
+    || normalized.endsWith(".sql")
+  ) {
+    return "data";
+  }
+
+  if (
+    base === "package.json"
+    || base === "package-lock.json"
+    || base === "pnpm-lock.yaml"
+    || base === "yarn.lock"
+    || base === "tsconfig.json"
+    || base === "vite.config.ts"
+    || base === "vite.config.js"
+    || base === "eslint.config.js"
+    || base === "eslint.config.mjs"
+    || base === "prettier.config.js"
+    || base === "dockerfile"
+    || normalized.startsWith(".github/workflows/")
+    || normalized.includes("/config/")
+    || normalized.endsWith(".yaml")
+    || normalized.endsWith(".yml")
+    || normalized.endsWith(".toml")
+  ) {
+    return "config";
+  }
+
+  return "application";
 }

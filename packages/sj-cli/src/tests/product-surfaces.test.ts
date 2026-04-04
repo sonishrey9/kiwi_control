@@ -352,9 +352,11 @@ test("ui command prefers a locally built Kiwi Control app bundle when the source
       : null;
 
   await fs.mkdir(path.join(sourceRepo, "configs"), { recursive: true });
+  await fs.mkdir(path.join(sourceRepo, "packages", "sj-cli"), { recursive: true });
   await fs.mkdir(path.join(sourceRepo, "scripts"), { recursive: true });
   await fs.mkdir(path.join(sourceRepo, "apps", "sj-ui"), { recursive: true });
   await fs.writeFile(path.join(sourceRepo, "configs", "global.yaml"), "version: 2\n", "utf8");
+  await fs.writeFile(path.join(sourceRepo, "packages", "sj-cli", "package.json"), "{}\n", "utf8");
   await fs.writeFile(path.join(sourceRepo, "scripts", "run-ui-dev.mjs"), "", "utf8");
   await fs.writeFile(path.join(sourceRepo, "apps", "sj-ui", "package.json"), "{}\n", "utf8");
 
@@ -376,6 +378,56 @@ test("ui command prefers a locally built Kiwi Control app bundle when the source
     });
   } else {
     assert.equal(candidates.some((candidate) => candidate.args.includes("Kiwi Control.app")), false);
+  }
+});
+
+test("ui command prefers a locally built Kiwi Control app bundle from the current workspace even when the installed CLI root is elsewhere", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-source-cwd-bundle-"));
+  const sourceRepo = path.join(tempDir, "repo");
+  const installedRoot = path.join(tempDir, "installed-cli-root");
+  const bundlePath =
+    process.platform === "darwin"
+      ? path.join(sourceRepo, "apps", "sj-ui", "src-tauri", "target", "release", "bundle", "macos", "Kiwi Control.app")
+      : null;
+  const bundleExecutablePath =
+    process.platform === "darwin" && bundlePath
+      ? path.join(bundlePath, "Contents", "MacOS", "Kiwi Control")
+      : null;
+
+  await fs.mkdir(path.join(sourceRepo, "configs"), { recursive: true });
+  await fs.mkdir(path.join(sourceRepo, "packages", "sj-cli"), { recursive: true });
+  await fs.mkdir(path.join(sourceRepo, "scripts"), { recursive: true });
+  await fs.mkdir(path.join(sourceRepo, "apps", "sj-ui"), { recursive: true });
+  await fs.writeFile(path.join(sourceRepo, "configs", "global.yaml"), "version: 2\n", "utf8");
+  await fs.writeFile(path.join(sourceRepo, "packages", "sj-cli", "package.json"), "{}\n", "utf8");
+  await fs.writeFile(path.join(sourceRepo, "scripts", "run-ui-dev.mjs"), "", "utf8");
+  await fs.writeFile(path.join(sourceRepo, "apps", "sj-ui", "package.json"), "{}\n", "utf8");
+
+  await fs.mkdir(path.join(installedRoot, "configs"), { recursive: true });
+  await fs.writeFile(path.join(installedRoot, "configs", "global.yaml"), "version: 2\n", "utf8");
+
+  if (bundleExecutablePath) {
+    await fs.mkdir(path.dirname(bundleExecutablePath), { recursive: true });
+    await fs.writeFile(bundleExecutablePath, "", "utf8");
+  }
+
+  const previousCwd = process.cwd();
+  process.chdir(sourceRepo);
+
+  try {
+    const candidates = buildDesktopLaunchCandidates(installedRoot, path.join(tempDir, "target-repo"));
+
+    if (process.platform === "darwin") {
+      assert.equal(candidates[0]?.args.length, 0);
+      assert.equal(await fs.realpath(candidates[0]?.command ?? ""), await fs.realpath(bundleExecutablePath ?? ""));
+      assert.equal(candidates[1]?.command, "open");
+      assert.deepEqual(candidates[1]?.args.length, 1);
+      assert.equal(await fs.realpath(candidates[1]?.args[0] ?? ""), await fs.realpath(bundlePath ?? ""));
+    } else {
+      assert.equal(candidates.some((candidate) => candidate.args.includes("Kiwi Control.app")), false);
+    }
+  } finally {
+    process.chdir(previousCwd);
   }
 });
 

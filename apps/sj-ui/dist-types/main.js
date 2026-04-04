@@ -1,106 +1,166 @@
 import "./styles.css";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
+const NAV_ITEMS = [
+    { id: "overview", label: "Overview", icon: "◫" },
+    { id: "context", label: "Context", icon: "◎" },
+    { id: "tokens", label: "Tokens", icon: "◌" },
+    { id: "feedback", label: "Feedback", icon: "◍" },
+    { id: "validation", label: "Validation", icon: "◇" }
+];
 const BRIDGE_UNAVAILABLE_NEXT_STEP = "Confirm kiwi-control works in Terminal, then run kc ui again.";
 const EMPTY_KC = {
     contextView: {
-        task: null, selectedFiles: [], excludedPatterns: [], reason: null,
-        confidence: null, keywordMatches: [], timestamp: null
+        task: null,
+        selectedFiles: [],
+        excludedPatterns: [],
+        reason: null,
+        confidence: null,
+        confidenceDetail: null,
+        keywordMatches: [],
+        tree: { nodes: [], selectedCount: 0, candidateCount: 0, excludedCount: 0 },
+        timestamp: null
     },
     tokenAnalytics: {
-        selectedTokens: 0, fullRepoTokens: 0, savingsPercent: 0,
-        fileCountSelected: 0, fileCountTotal: 0, estimationMethod: null,
-        topDirectories: [], costEstimates: [], task: null, timestamp: null
+        selectedTokens: 0,
+        fullRepoTokens: 0,
+        savingsPercent: 0,
+        fileCountSelected: 0,
+        fileCountTotal: 0,
+        estimationMethod: null,
+        estimateNote: null,
+        topDirectories: [],
+        task: null,
+        timestamp: null
     },
     efficiency: {
-        instructionsGenerated: false, instructionsPath: null
+        instructionsGenerated: false,
+        instructionsPath: null
     },
-    nextActions: { actions: [], summary: "" },
-    feedback: { totalRuns: 0, successRate: 0, recentEntries: [], topBoostedFiles: [], topPenalizedFiles: [] },
-    execution: { totalExecutions: 0, totalTokensUsed: 0, averageTokensPerRun: 0, successRate: 0, recentExecutions: [], tokenTrend: "insufficient-data" },
-    wastedFiles: { files: [], totalWastedTokens: 0, removalSavingsPercent: 0 },
-    heavyDirectories: { directories: [] }
+    nextActions: {
+        actions: [],
+        summary: ""
+    },
+    feedback: {
+        totalRuns: 0,
+        successRate: 0,
+        adaptationLevel: "limited",
+        note: "Adaptive feedback is idle.",
+        recentEntries: [],
+        topBoostedFiles: [],
+        topPenalizedFiles: []
+    },
+    execution: {
+        totalExecutions: 0,
+        totalTokensUsed: 0,
+        averageTokensPerRun: 0,
+        successRate: 0,
+        recentExecutions: [],
+        tokenTrend: "insufficient-data"
+    },
+    wastedFiles: {
+        files: [],
+        totalWastedTokens: 0,
+        removalSavingsPercent: 0
+    },
+    heavyDirectories: {
+        directories: []
+    }
 };
-// ---------------------------------------------------------------------------
-// Bootstrap
-// ---------------------------------------------------------------------------
 const app = document.querySelector("#app");
 if (!app) {
     throw new Error("App root not found");
 }
-const initialState = buildBridgeUnavailableState("");
-// All dynamic values are escaped via escapeHtml() — safe for local Tauri context
-app.innerHTML = buildShellHtml(initialState);
-const activeTargetRootElement = document.querySelector("#active-target-root");
-const activeTargetHintElement = document.querySelector("#active-target-hint");
-const targetInputElement = document.querySelector("#target-root");
-const loadButtonElement = document.querySelector("#load-state");
-const bridgeNoteElement = document.querySelector("#bridge-note");
-const gridElement = document.querySelector(".grid");
-const repoStateBannerElement = document.querySelector("#repo-state-banner");
-const sourceOfTruthNoteElement = document.querySelector("#source-of-truth-note");
+let activeView = "overview";
+let currentState = buildBridgeUnavailableState("");
+app.innerHTML = buildShellHtml();
+const activeTargetRootElement = requireElement("#active-target-root");
+const activeTargetHintElement = requireElement("#active-target-hint");
+const targetInputElement = requireElement("#target-root");
+const loadButtonElement = requireElement("#load-state");
+const bridgeNoteElement = requireElement("#bridge-note");
+const topbarElement = requireElement("#topbar");
+const centerMainElement = requireElement("#center-main");
+const inspectorElement = requireElement("#inspector");
+const logDrawerElement = requireElement("#log-drawer");
 let currentTargetRoot = "";
 let isLoadingRepoState = false;
 let queuedLaunchRequest = null;
 let lastHandledLaunchRequestId = "";
-renderState(initialState);
-bridgeNoteElement.textContent = buildBridgeNote(initialState, "shell");
+renderState(currentState);
+bridgeNoteElement.textContent = buildBridgeNote(currentState, "shell");
 loadButtonElement.addEventListener("click", () => {
     const targetRoot = targetInputElement.value.trim();
     if (!targetRoot) {
-        bridgeNoteElement.textContent = "Enter a repo path only if you want to switch away from the current repo.";
+        bridgeNoteElement.textContent = "Enter a repo path to switch the active workspace.";
         return;
     }
     void loadAndRenderTarget(targetRoot, "manual");
 });
+app.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!target) {
+        return;
+    }
+    const viewButton = target.closest("[data-view]");
+    if (viewButton?.dataset.view) {
+        activeView = viewButton.dataset.view;
+        renderState(currentState);
+    }
+});
 void boot();
-// ---------------------------------------------------------------------------
-// Shell HTML (static structure)
-// ---------------------------------------------------------------------------
-function buildShellHtml(state) {
+function requireElement(selector) {
+    const element = document.querySelector(selector);
+    if (!element) {
+        throw new Error(`Shell mount point not found: ${selector}`);
+    }
+    return element;
+}
+function buildShellHtml() {
     return `
-  <main class="shell">
-    <header class="hero">
-      <p class="eyebrow">Kiwi Control</p>
-      <h1>Your repo, already in view.</h1>
-      <p class="lede">
-        Launch from Terminal with <code>kc ui</code>. The desktop app reads repo-local state directly &mdash; it never owns or replaces it.
-      </p>
-    </header>
-    <section class="control-bar">
-      <div class="active-target">
-        <span>Active repo</span>
-        <strong id="active-target-root">No repo loaded yet</strong>
-        <p id="active-target-hint">Run <code>kc ui</code> inside a repo to load it automatically.</p>
-      </div>
-      <details class="manual-switcher">
-        <summary>Load another repo</summary>
-        <div class="manual-switcher-body">
-          <label class="repo-target">
-            <span>Repo path</span>
-            <input id="target-root" type="text" placeholder="/path/to/another/repo" />
-          </label>
-          <button id="load-state" type="button">Load another repo</button>
+    <main class="ui-shell">
+      <aside class="ui-sidebar">
+        <div class="sidebar-brand">
+          <div class="brand-mark">K</div>
+          <div class="brand-copy">
+            <strong>Kiwi Control</strong>
+            <span>Repo control plane</span>
+          </div>
         </div>
-      </details>
-      <p id="bridge-note" class="bridge-note">
-        Kiwi Control reads repo-local artifacts directly. The desktop app is a control surface, never the source of truth.
-      </p>
-    </section>
-    <section id="repo-state-banner" class="repo-state-banner"></section>
-    <section class="grid"></section>
-    <footer class="footer">
-      <p id="source-of-truth-note">${escapeHtml(state.repoState.sourceOfTruthNote)}</p>
-    </footer>
-  </main>
+        <nav class="sidebar-nav" id="sidebar-nav">
+          ${NAV_ITEMS.map((item) => `
+            <button class="sidebar-link" data-view="${item.id}" type="button">
+              <span class="sidebar-link-icon">${item.icon}</span>
+              <span class="sidebar-link-label">${item.label}</span>
+            </button>
+          `).join("")}
+        </nav>
+        <section class="sidebar-switcher">
+          <p class="section-label">Active repo</p>
+          <strong id="active-target-root">No repo loaded yet</strong>
+          <p id="active-target-hint">Run <code>kc ui</code> inside a repo to load it automatically.</p>
+          <label class="repo-input-group">
+            <span>Open another repo</span>
+            <input id="target-root" type="text" placeholder="/path/to/repo" />
+          </label>
+          <button id="load-state" type="button">Load repo</button>
+        </section>
+        <p class="sidebar-note" id="bridge-note">
+          Kiwi Control reads repo-local state directly. The desktop app is a control surface, never the source of truth.
+        </p>
+      </aside>
+
+      <div class="ui-workspace">
+        <header class="topbar" id="topbar"></header>
+        <div class="workspace-body">
+          <section class="center-main" id="center-main"></section>
+          <aside class="inspector-panel" id="inspector"></aside>
+        </div>
+        <section class="log-drawer" id="log-drawer"></section>
+      </div>
+    </main>
   `;
 }
-// ---------------------------------------------------------------------------
-// Boot & Launch Request Lifecycle
-// ---------------------------------------------------------------------------
 async function boot() {
     await registerLaunchRequestListener();
     const initialLaunchRequest = await consumeInitialLaunchRequest();
@@ -116,8 +176,9 @@ async function boot() {
     }, 250);
 }
 async function registerLaunchRequestListener() {
-    if (!isTauriBridgeAvailable())
+    if (!isTauriBridgeAvailable()) {
         return;
+    }
     try {
         await listen("desktop-launch-request", (event) => {
             void handleLaunchRequest(event.payload);
@@ -138,33 +199,40 @@ async function handleLaunchRequest(request) {
     await loadAndRenderTarget(request.targetRoot, "cli", request.requestId);
 }
 async function pollPendingLaunchRequest() {
-    if (isLoadingRepoState || !isTauriBridgeAvailable())
+    if (isLoadingRepoState || !isTauriBridgeAvailable()) {
         return;
+    }
     const pendingLaunchRequest = await consumeInitialLaunchRequest();
-    if (!pendingLaunchRequest || pendingLaunchRequest.requestId === lastHandledLaunchRequestId)
+    if (!pendingLaunchRequest || pendingLaunchRequest.requestId === lastHandledLaunchRequestId) {
         return;
+    }
     await logUiEvent("ui-fallback-launch-request-consumed", pendingLaunchRequest.requestId, pendingLaunchRequest.targetRoot);
     await handleLaunchRequest(pendingLaunchRequest);
 }
 async function loadAndRenderTarget(targetRoot, source, requestId) {
     if (isLoadingRepoState) {
-        if (requestId)
+        if (requestId) {
             queuedLaunchRequest = { requestId, targetRoot };
+        }
         return;
     }
     isLoadingRepoState = true;
     currentTargetRoot = targetRoot;
     targetInputElement.value = targetRoot;
     bridgeNoteElement.textContent =
-        source === "cli" ? `Opening ${targetRoot} from ${requestId ? "kc ui" : "the CLI"}...` : `Loading repo-local state for ${targetRoot}...`;
+        source === "cli"
+            ? `Opening ${targetRoot} from ${requestId ? "kc ui" : "the CLI"}...`
+            : `Loading repo-local state for ${targetRoot}...`;
     const state = await loadRepoControlState(targetRoot);
     currentTargetRoot = state.targetRoot || targetRoot;
+    currentState = state;
     renderState(state);
     targetInputElement.value = state.targetRoot || targetRoot;
     bridgeNoteElement.textContent = buildBridgeNote(state, source);
     await logUiEvent("ui-repo-state-rendered", requestId, state.targetRoot || targetRoot, state.repoState.mode);
-    if (requestId)
+    if (requestId) {
         await acknowledgeLaunchRequest(requestId, state);
+    }
     isLoadingRepoState = false;
     if (queuedLaunchRequest && queuedLaunchRequest.requestId !== requestId) {
         const nextRequest = queuedLaunchRequest;
@@ -178,8 +246,9 @@ async function acknowledgeLaunchRequest(requestId, state) {
     const targetRoot = state.targetRoot || currentTargetRoot;
     const status = state.repoState.mode === "bridge-unavailable" ? "error" : "ready";
     const detail = status === "ready" ? `Loaded repo-local state for ${targetRoot}.` : BRIDGE_UNAVAILABLE_NEXT_STEP;
-    if (!isTauriBridgeAvailable())
+    if (!isTauriBridgeAvailable()) {
         return;
+    }
     try {
         await logUiEvent("ui-ack-attempt", requestId, targetRoot, status);
         await invoke("ack_launch_request", { requestId, targetRoot, status, detail });
@@ -191,8 +260,9 @@ async function acknowledgeLaunchRequest(requestId, state) {
     }
 }
 async function logUiEvent(event, requestId, targetRoot, detail) {
-    if (!isTauriBridgeAvailable())
+    if (!isTauriBridgeAvailable()) {
         return;
+    }
     try {
         await invoke("append_ui_launch_log", { event, requestId, targetRoot, detail });
     }
@@ -200,378 +270,629 @@ async function logUiEvent(event, requestId, targetRoot, detail) {
         // Logging must never interrupt the product flow.
     }
 }
-// ---------------------------------------------------------------------------
-// Render — Main State
-// ---------------------------------------------------------------------------
 function renderState(state) {
+    currentState = state;
     const resolvedTargetRoot = state.targetRoot || "No repo loaded yet";
     activeTargetRootElement.textContent = resolvedTargetRoot;
     activeTargetRootElement.title = resolvedTargetRoot;
     activeTargetHintElement.textContent = buildActiveTargetHint(state);
-    // All values are escaped via escapeHtml() — safe for local Tauri desktop context
-    gridElement.innerHTML = renderPanels(state);
-    repoStateBannerElement.className = `repo-state-banner repo-state-${state.repoState.mode}`;
-    repoStateBannerElement.textContent = "";
-    const kickerP = document.createElement("p");
-    kickerP.className = "repo-state-kicker";
-    kickerP.textContent = "Repo health";
-    const titleH2 = document.createElement("h2");
-    titleH2.textContent = state.repoState.title;
-    const detailP = document.createElement("p");
-    detailP.textContent = state.repoState.detail;
-    repoStateBannerElement.appendChild(kickerP);
-    repoStateBannerElement.appendChild(titleH2);
-    repoStateBannerElement.appendChild(detailP);
-    sourceOfTruthNoteElement.textContent = state.repoState.sourceOfTruthNote;
+    topbarElement.innerHTML = renderTopBar(state);
+    centerMainElement.innerHTML = renderCenterView(state);
+    inspectorElement.innerHTML = renderInspector(state);
+    logDrawerElement.innerHTML = renderLogDrawer(state);
+    syncSidebarSelection();
 }
-// ---------------------------------------------------------------------------
-// Panel Rendering — 6 Required Components
-// ---------------------------------------------------------------------------
-function renderPanels(state) {
+function syncSidebarSelection() {
+    for (const item of NAV_ITEMS) {
+        const button = app?.querySelector(`[data-view="${item.id}"]`);
+        if (!button) {
+            continue;
+        }
+        button.classList.toggle("is-active", item.id === activeView);
+    }
+}
+function renderTopBar(state) {
+    const repoName = getRepoLabel(state.targetRoot);
+    const phase = getPanelValue(state.repoOverview, "Current phase");
+    const activeRole = getPanelValue(state.repoOverview, "Active role");
+    const validationState = getPanelValue(state.repoOverview, "Validation state");
+    return `
+    <div class="topbar-left">
+      <div class="repo-badge">⌘</div>
+      <div class="repo-meta">
+        <strong>${escapeHtml(repoName)}</strong>
+        <span>${escapeHtml(state.targetRoot || "No repo loaded yet")}</span>
+      </div>
+      <div class="topbar-chips">
+        ${renderChip(state.repoState.title, state.repoState.mode)}
+        ${renderChip(state.projectType, "neutral")}
+        ${renderChip(phase, "neutral")}
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="command-shell" type="button">
+        <span>repo-local state only</span>
+        <small>${escapeHtml(validationState)}</small>
+      </button>
+      <div class="operator-meta">
+        <span>${escapeHtml(activeRole)}</span>
+        <small>${escapeHtml(`${state.profileName} · ${state.executionMode}`)}</small>
+      </div>
+    </div>
+  `;
+}
+function renderCenterView(state) {
+    switch (activeView) {
+        case "context":
+            return renderContextView(state);
+        case "tokens":
+            return renderTokensView(state);
+        case "feedback":
+            return renderFeedbackView(state);
+        case "validation":
+            return renderValidationView(state);
+        case "overview":
+        default:
+            return renderOverviewView(state);
+    }
+}
+function renderOverviewView(state) {
     const kc = state.kiwiControl ?? EMPTY_KC;
-    return [
-        // 1. Dashboard — high-level stats at a glance
-        renderDashboardPanel(state, kc),
-        // 2. What Next — decision engine output (CRITICAL panel)
-        renderWhatNextPanel(kc),
-        // 3. Context Panel — file selection details
-        renderContextPanel(kc),
-        // 4. Token Analytics — visual bars, wasted files, heavy dirs
-        renderTokenAnalyticsPanel(kc),
-        // 5. Feedback Panel — adaptive learning history
-        renderFeedbackPanel(kc),
-        // 6. Execution Panel — run history + token trends
-        renderExecutionPanel(kc)
-    ].join("");
-}
-// ── Panel 1: Dashboard ──
-function renderDashboardPanel(state, kc) {
-    const savingsColor = kc.tokenAnalytics.savingsPercent >= 50 ? "stat-value-success" : "stat-value-warn";
-    const successColor = kc.feedback.successRate >= 70 ? "stat-value-success" : kc.feedback.successRate > 0 ? "stat-value-warn" : "";
-    const trendHtml = kc.execution.tokenTrend !== "insufficient-data"
-        ? `<span class="trend-badge trend-${escapeHtml(kc.execution.tokenTrend)}">${trendIcon(kc.execution.tokenTrend)} ${escapeHtml(kc.execution.tokenTrend)}</span>`
-        : "";
-    const statsHtml = [
-        renderStatCard(`${kc.tokenAnalytics.savingsPercent}%`, "Token savings", savingsColor),
-        renderStatCard(String(kc.tokenAnalytics.fileCountSelected), "Files selected", ""),
-        renderStatCard(formatTokensShort(kc.tokenAnalytics.selectedTokens), "Selected tokens", ""),
-        renderStatCard(kc.feedback.totalRuns > 0 ? `${kc.feedback.successRate}%` : "\u2014", "Success rate", successColor),
-        renderStatCard(kc.execution.totalExecutions > 0 ? String(kc.execution.totalExecutions) : "\u2014", "Total runs", "")
-    ].join("");
-    const tokenBarHtml = renderTokenBar("Selected vs Full Repo", kc.tokenAnalytics.selectedTokens, kc.tokenAnalytics.fullRepoTokens, "accent");
-    const wastedBarHtml = kc.wastedFiles.totalWastedTokens > 0
-        ? renderTokenBar("Wasted tokens in selection", kc.wastedFiles.totalWastedTokens, kc.tokenAnalytics.selectedTokens, "warn")
-        : "";
-    const rows = [
-        renderPanelRow("Profile", escapeHtml(state.profileName)),
-        renderPanelRow("Project", escapeHtml(state.projectType)),
-        renderPanelRow("Instructions", kc.efficiency.instructionsGenerated ? "Ready" : "Not generated"),
-        kc.contextView.task ? renderPanelRow("Active task", escapeHtml(kc.contextView.task)) : ""
-    ].join("");
+    const primaryAction = kc.nextActions.actions[0] ?? null;
+    const secondaryActions = kc.nextActions.actions.slice(1, 4);
+    const currentFocus = getPanelValue(state.continuity, "Current focus");
+    const latestCheckpoint = getPanelValue(state.continuity, "Latest checkpoint");
+    const latestHandoff = getPanelValue(state.continuity, "Latest handoff");
+    const selectedPreview = kc.contextView.selectedFiles.slice(0, 6);
     return `
-    <section class="panel panel-full">
-      <div class="panel-header">
-        <span class="panel-icon panel-icon-accent">&#9632;</span>
-        <h2>Dashboard</h2>
-        ${trendHtml}
+    <div class="view-shell">
+      <section class="hero-block">
+        <div class="hero-meta">
+          <span class="section-label">Primary action</span>
+          ${primaryAction ? `<span class="priority-tag priority-${escapeHtml(primaryAction.priority)}">${escapeHtml(primaryAction.priority)}</span>` : ""}
+        </div>
+        <h1>${escapeHtml(primaryAction?.action ?? state.repoState.title)}</h1>
+        <p>${escapeHtml(primaryAction?.reason ?? (kc.nextActions.summary || state.repoState.detail))}</p>
+        <div class="hero-actions">
+          ${primaryAction?.command ? `<code>${escapeHtml(primaryAction.command)}</code>` : ""}
+          <span class="hero-support">${escapeHtml(currentFocus)}</span>
+        </div>
+      </section>
+
+      <div class="workspace-columns">
+        <section class="workspace-section">
+          ${renderSectionHeader("Context in play", kc.contextView.task ?? "No prepared task")}
+          ${kc.contextView.task
+        ? `
+              <div class="summary-strip">
+                ${renderMetricTile(`${kc.contextView.selectedFiles.length}`, "selected")}
+                ${renderMetricTile(`${kc.contextView.tree.excludedCount}`, "excluded")}
+                ${renderMetricTile(kc.contextView.confidence?.toUpperCase() ?? "UNKNOWN", "confidence")}
+              </div>
+              ${selectedPreview.length > 0
+            ? `<div class="scope-list">${selectedPreview.map((file) => `<span class="scope-chip">${escapeHtml(file)}</span>`).join("")}</div>`
+            : `<p class="muted-copy">No selected files recorded yet.</p>`}
+              ${kc.contextView.reason ? `<p class="body-copy">${escapeHtml(kc.contextView.reason)}</p>` : ""}
+            `
+        : renderEmptyBlock('Run kc prepare "your task" to seed the repo-aware file set.')}
+        </section>
+
+        <section class="workspace-section">
+          ${renderSectionHeader("Continuity", state.repoState.detail)}
+          <div class="kv-list">
+            ${renderKeyValueRow("Current focus", currentFocus)}
+            ${renderKeyValueRow("Latest checkpoint", latestCheckpoint)}
+            ${renderKeyValueRow("Latest handoff", latestHandoff)}
+            ${renderKeyValueRow("Repo health", state.repoState.title)}
+          </div>
+        </section>
       </div>
-      <div class="stat-grid">${statsHtml}</div>
-      ${tokenBarHtml}
-      ${wastedBarHtml}
-      <dl class="panel-list">${rows}</dl>
-    </section>
+
+      <div class="workspace-columns workspace-columns-tight">
+        <section class="workspace-section">
+          ${renderSectionHeader("Feedback", kc.feedback.note)}
+          <div class="summary-strip">
+            ${renderMetricTile(String(kc.feedback.totalRuns), "successful runs")}
+            ${renderMetricTile(`${kc.feedback.successRate}%`, "success rate")}
+            ${renderMetricTile(kc.feedback.adaptationLevel, "adaptation")}
+          </div>
+          ${kc.feedback.topBoostedFiles.length > 0
+        ? renderScoreList("Top boosted files", kc.feedback.topBoostedFiles)
+        : `<p class="muted-copy">No feedback history yet. Learning begins after successful checkpoints or handoffs.</p>`}
+        </section>
+
+        <section class="workspace-section">
+          ${renderSectionHeader("Queued after that", kc.nextActions.summary || "No additional actions recorded.")}
+          ${secondaryActions.length > 0
+        ? `<div class="stack-list">${secondaryActions.map(renderActionListRow).join("")}</div>`
+        : `<p class="muted-copy">No follow-on actions are queued yet.</p>`}
+        </section>
+      </div>
+    </div>
   `;
 }
-// ── Panel 2: What Next (Decision Engine) ──
-function renderWhatNextPanel(kc) {
-    const actions = kc.nextActions.actions;
-    let content;
-    if (actions.length === 0) {
-        content = renderActionCard("low", "All systems nominal", "Context, instructions, and feedback are in order. You're ready for work.", null);
-    }
-    else {
-        content = actions.slice(0, 5).map((a) => renderActionCard(a.priority, a.action, a.reason, a.command)).join("");
-    }
-    return `
-    <section class="panel">
-      <div class="panel-header">
-        <span class="panel-icon panel-icon-warn">&#9654;</span>
-        <h2>What Next</h2>
-      </div>
-      ${content}
-    </section>
-  `;
-}
-// ── Panel 3: Context Panel ──
-function renderContextPanel(kc) {
+function renderContextView(state) {
+    const kc = state.kiwiControl ?? EMPTY_KC;
     const ctx = kc.contextView;
-    if (!ctx.task) {
-        return `
-      <section class="panel">
-        <div class="panel-header">
-          <span class="panel-icon panel-icon-accent">&#9881;</span>
-          <h2>Context Selection</h2>
-        </div>
-        ${renderActionCard("normal", "No context yet", 'Run kc prepare "your task" to select files and generate AI instructions.', null)}
-      </section>
-    `;
-    }
-    const confidenceClass = ctx.confidence === "high" ? "panel-row-success" : ctx.confidence === "low" ? "panel-row-warn" : "";
-    const fileItems = ctx.selectedFiles.slice(0, 10).map((f) => `<li><span class="file-name">${escapeHtml(f)}</span></li>`).join("");
-    const moreCount = ctx.selectedFiles.length - 10;
-    const rows = [
-        renderPanelRow("Task", escapeHtml(ctx.task)),
-        `<div class="panel-row ${confidenceClass}"><dt>Confidence</dt><dd>${escapeHtml(ctx.confidence ?? "unknown")}</dd></div>`,
-        renderPanelRow("Files", `${ctx.selectedFiles.length} selected / ${kc.tokenAnalytics.fileCountTotal} total`),
-        ctx.keywordMatches.length > 0 ? renderPanelRow("Keywords", escapeHtml(ctx.keywordMatches.slice(0, 6).join(", "))) : "",
-        ctx.reason ? renderPanelRow("Reason", escapeHtml(ctx.reason)) : ""
-    ].join("");
     return `
-    <section class="panel">
-      <div class="panel-header">
-        <span class="panel-icon panel-icon-accent">&#9881;</span>
-        <h2>Context Selection</h2>
-      </div>
-      <dl class="panel-list">${rows}</dl>
-      <ul class="file-list">
-        ${fileItems}
-        ${moreCount > 0 ? `<li><span class="file-name">+${moreCount} more files</span></li>` : ""}
-      </ul>
-    </section>
-  `;
-}
-// ── Panel 4: Token Analytics ──
-function renderTokenAnalyticsPanel(kc) {
-    const ta = kc.tokenAnalytics;
-    if (!ta.task) {
-        return `
-      <section class="panel">
-        <div class="panel-header">
-          <span class="panel-icon panel-icon-accent">&#9879;</span>
-          <h2>Token Analytics</h2>
-        </div>
-        ${renderActionCard("normal", "No token data yet", 'Run kc prepare "task" to compute token savings and cost estimates.', null)}
-      </section>
-    `;
-    }
-    const costRows = ta.costEstimates.slice(0, 3).map((c) => renderPanelRow(escapeHtml(c.model), `${escapeHtml(c.selectedCost)} selected &middot; ${escapeHtml(c.savingsCost)} saved`)).join("");
-    const dirRows = ta.topDirectories.slice(0, 4).map((d) => renderPanelRow(escapeHtml(d.directory), `${formatTokensShort(d.tokens)} &middot; ${d.fileCount} files`)).join("");
-    // Wasted files section
-    const wf = kc.wastedFiles;
-    let wastedHtml = "";
-    if (wf.files.length > 0) {
-        const wastedItems = wf.files.slice(0, 5).map((f) => `
-      <li>
+    <div class="view-shell">
+      <section class="view-header">
         <div>
-          <span class="file-name">${escapeHtml(f.file)}</span>
-          <div class="file-reason">${escapeHtml(f.reason)}</div>
+          <p class="section-label">Context selection</p>
+          <h1>${escapeHtml(ctx.task ?? "No prepared task")}</h1>
+          <p>${escapeHtml(ctx.confidenceDetail ?? "Kiwi Control shows only files the selector actually considered.")}</p>
         </div>
-        <span class="file-tokens">${formatTokensShort(f.tokens)}</span>
-      </li>
-    `).join("");
-        wastedHtml = `
-      ${renderPanelRow("Wasted", `${formatTokensShort(wf.totalWastedTokens)} (${wf.removalSavingsPercent}% of selection)`)}
-      <ul class="file-list">${wastedItems}</ul>
-    `;
-    }
-    // Heavy directories section
-    const hd = kc.heavyDirectories;
-    let heavyHtml = "";
-    if (hd.directories.length > 0) {
-        const heavyItems = hd.directories.slice(0, 3).map((d) => `
-      <li>
+        <div class="summary-strip">
+          ${renderMetricTile(String(ctx.tree.selectedCount), "selected")}
+          ${renderMetricTile(String(ctx.tree.candidateCount), "candidate")}
+          ${renderMetricTile(String(ctx.tree.excludedCount), "excluded")}
+        </div>
+      </section>
+
+      <div class="context-layout">
+        <section class="workspace-section tree-column">
+          ${renderSectionHeader("Repo tree", "Selected, candidate, and excluded files are grounded in the actual selector state.")}
+          ${ctx.tree.nodes.length > 0
+        ? renderContextTree(ctx.tree)
+        : renderEmptyBlock('Run kc prepare "your task" to build a tree from live repo selection signals.')}
+        </section>
+
+        <section class="workspace-section detail-column">
+          ${renderSectionHeader("Selection state", ctx.reason ?? "No selection reason recorded.")}
+          <div class="kv-list">
+            ${renderKeyValueRow("Confidence", ctx.confidence?.toUpperCase() ?? "UNKNOWN")}
+            ${renderKeyValueRow("Selected files", String(ctx.selectedFiles.length))}
+            ${renderKeyValueRow("Excluded patterns", String(ctx.excludedPatterns.length))}
+            ${renderKeyValueRow("Keyword matches", ctx.keywordMatches.length > 0 ? ctx.keywordMatches.slice(0, 6).join(", ") : "none recorded")}
+          </div>
+          ${ctx.selectedFiles.length > 0
+        ? `<div class="file-stack">${ctx.selectedFiles.map((file) => renderFileCard(file, "selected")).join("")}</div>`
+        : `<p class="muted-copy">No active files are selected yet.</p>`}
+        </section>
+      </div>
+    </div>
+  `;
+}
+function renderTokensView(state) {
+    const kc = state.kiwiControl ?? EMPTY_KC;
+    const tokens = kc.tokenAnalytics;
+    return `
+    <div class="view-shell">
+      <section class="view-header">
         <div>
-          <span class="file-name">${escapeHtml(d.directory)} (${d.percentOfRepo}%)</span>
-          <div class="file-reason">${escapeHtml(d.suggestion)}</div>
+          <p class="section-label">Token analytics</p>
+          <h1>${escapeHtml(tokens.task ?? "No token estimate yet")}</h1>
+          <p>${escapeHtml(tokens.estimateNote ?? 'Run kc prepare "your task" to compute a repo-local rough estimate.')}</p>
         </div>
-        <span class="file-tokens">${formatTokensShort(d.tokens)}</span>
-      </li>
-    `).join("");
-        heavyHtml = `
-      ${renderPanelRow("Heavy dirs", `${hd.directories.length} director${hd.directories.length === 1 ? "y" : "ies"} over 15% of repo`)}
-      <ul class="file-list">${heavyItems}</ul>
-    `;
-    }
-    const tokenBarHtml = renderTokenBar(`${formatTokensShort(ta.selectedTokens)} selected of ${formatTokensShort(ta.fullRepoTokens)}`, ta.selectedTokens, ta.fullRepoTokens, ta.savingsPercent >= 50 ? "success" : "warn");
-    const mainRows = [
-        renderPanelRow("Savings", `${ta.savingsPercent}%`),
-        renderPanelRow("Files", `${ta.fileCountSelected} / ${ta.fileCountTotal}`),
-        ta.estimationMethod ? renderPanelRow("Method", escapeHtml(ta.estimationMethod)) : "",
-        costRows,
-        dirRows,
-        wastedHtml,
-        heavyHtml
-    ].join("");
-    return `
-    <section class="panel">
-      <div class="panel-header">
-        <span class="panel-icon panel-icon-accent">&#9879;</span>
-        <h2>Token Analytics</h2>
-      </div>
-      ${tokenBarHtml}
-      <dl class="panel-list">${mainRows}</dl>
-    </section>
-  `;
-}
-// ── Panel 5: Feedback Panel ──
-function renderFeedbackPanel(kc) {
-    const fb = kc.feedback;
-    if (fb.totalRuns === 0) {
-        return `
-      <section class="panel">
-        <div class="panel-header">
-          <span class="panel-icon panel-icon-success">&#10003;</span>
-          <h2>Context Feedback</h2>
+        <div class="summary-strip">
+          ${renderMetricTile(`~${formatTokensShort(tokens.selectedTokens)}`, "selected")}
+          ${renderMetricTile(`~${formatTokensShort(tokens.fullRepoTokens)}`, "full repo")}
+          ${renderMetricTile(`~${tokens.savingsPercent}%`, "saved")}
+          ${renderMetricTile(`${tokens.fileCountSelected}/${tokens.fileCountTotal}`, "measured files")}
         </div>
-        ${renderActionCard("normal", "No feedback yet", "After AI runs, use kc feedback to record which files were actually used. This trains context selection to improve over time.", null)}
       </section>
-    `;
-    }
-    const recentEntries = fb.recentEntries.slice(0, 5).map((e) => `
-    <div class="feedback-entry">
-      <span class="feedback-dot ${e.success ? "feedback-dot-success" : "feedback-dot-fail"}"></span>
-      <span class="feedback-task">${escapeHtml(e.task)}</span>
-      <span class="feedback-meta">${e.filesUsed}/${e.filesSelected} used</span>
-    </div>
-  `).join("");
-    const boostedHtml = fb.topBoostedFiles.length > 0
-        ? renderFileScoreList("Boosted", "Files frequently used", fb.topBoostedFiles, "+")
-        : "";
-    const penalizedHtml = fb.topPenalizedFiles.length > 0
-        ? renderFileScoreList("Penalized", "Files frequently wasted", fb.topPenalizedFiles, "-")
-        : "";
-    return `
-    <section class="panel">
-      <div class="panel-header">
-        <span class="panel-icon panel-icon-success">&#10003;</span>
-        <h2>Context Feedback</h2>
-      </div>
-      <div class="stat-grid">
-        ${renderStatCard(String(fb.totalRuns), "Total runs", "")}
-        ${renderStatCard(`${fb.successRate}%`, "Success rate", fb.successRate >= 70 ? "stat-value-success" : "stat-value-warn")}
-      </div>
-      ${recentEntries}
-      ${boostedHtml}
-      ${penalizedHtml}
-    </section>
-  `;
-}
-// ── Panel 6: Execution Panel ──
-function renderExecutionPanel(kc) {
-    const ex = kc.execution;
-    if (ex.totalExecutions === 0) {
-        return `
-      <section class="panel">
-        <div class="panel-header">
-          <span class="panel-icon panel-icon-accent">&#9889;</span>
-          <h2>Execution History</h2>
-        </div>
-        ${renderActionCard("normal", "No executions recorded", "Execution tracking records token usage, success rates, and performance trends across AI runs.", null)}
+
+      <section class="workspace-section">
+        ${renderSectionHeader("Scope efficiency", tokens.estimationMethod ?? "No estimate method recorded.")}
+        ${renderMeterRow("Selected vs repo", tokens.selectedTokens, tokens.fullRepoTokens)}
+        ${kc.wastedFiles.files.length > 0 ? renderMeterRow("Wasted inside selection", kc.wastedFiles.totalWastedTokens, tokens.selectedTokens) : ""}
       </section>
-    `;
-    }
-    const trendClass = `trend-${ex.tokenTrend === "insufficient-data" ? "insufficient" : escapeHtml(ex.tokenTrend)}`;
-    const recentRows = ex.recentExecutions.slice(0, 5).map((e) => `
-    <div class="feedback-entry">
-      <span class="feedback-dot ${e.success ? "feedback-dot-success" : "feedback-dot-fail"}"></span>
-      <span class="feedback-task">${escapeHtml(e.task)}</span>
-      <span class="feedback-meta">${formatTokensShort(e.tokensUsed)}</span>
-    </div>
-  `).join("");
-    return `
-    <section class="panel">
-      <div class="panel-header">
-        <span class="panel-icon panel-icon-accent">&#9889;</span>
-        <h2>Execution History</h2>
+
+      <div class="workspace-columns">
+        <section class="workspace-section">
+          ${renderSectionHeader("Top directories", "Measured directories with the largest share of estimated token usage.")}
+          ${tokens.topDirectories.length > 0
+        ? `<div class="bar-list">${tokens.topDirectories.slice(0, 6).map((directory) => renderDirectoryBar(directory.directory, directory.tokens, tokens.fullRepoTokens, `${directory.fileCount} files`)).join("")}</div>`
+        : `<p class="muted-copy">No directory analytics recorded yet.</p>`}
+        </section>
+
+        <section class="workspace-section">
+          ${renderSectionHeader("Wasted files", kc.wastedFiles.files.length > 0 ? `${kc.wastedFiles.removalSavingsPercent}% of the current selection could be removed.` : "Nothing is marked as wasted for the current task.")}
+          ${kc.wastedFiles.files.length > 0
+        ? `<div class="file-stack">${kc.wastedFiles.files.slice(0, 6).map((file) => renderAnnotatedFileCard(file.file, formatTokensShort(file.tokens), file.reason)).join("")}</div>`
+        : `<p class="muted-copy">No wasted files recorded in the active selection.</p>`}
+        </section>
       </div>
-      <div class="stat-grid">
-        ${renderStatCard(String(ex.totalExecutions), "Total runs", "")}
-        ${renderStatCard(formatTokensShort(ex.averageTokensPerRun), "Avg tokens/run", "")}
-        ${renderStatCard(`${ex.successRate}%`, "Success rate", ex.successRate >= 70 ? "stat-value-success" : "stat-value-warn")}
-      </div>
-      <div style="margin-bottom: 12px;">
-        <span class="trend-badge ${trendClass}">${trendIcon(ex.tokenTrend)} Token trend: ${escapeHtml(ex.tokenTrend.replace("-", " "))}</span>
-      </div>
-      ${recentRows}
-    </section>
-  `;
-}
-// ---------------------------------------------------------------------------
-// Rendering Helpers
-// ---------------------------------------------------------------------------
-function renderStatCard(value, label, colorClass) {
-    return `
-    <div class="stat-card">
-      <div class="stat-value ${colorClass}">${escapeHtml(value)}</div>
-      <div class="stat-label">${escapeHtml(label)}</div>
+
+      <section class="workspace-section">
+        ${renderSectionHeader("Heavy directories", "Directories that dominate token volume and may benefit from tighter scope rules.")}
+        ${kc.heavyDirectories.directories.length > 0
+        ? `<div class="file-stack">${kc.heavyDirectories.directories.slice(0, 4).map((directory) => renderAnnotatedFileCard(directory.directory, `${directory.percentOfRepo}% of repo`, directory.suggestion)).join("")}</div>`
+        : `<p class="muted-copy">No heavy-directory warnings are recorded for this repo right now.</p>`}
+      </section>
     </div>
   `;
 }
-function renderPanelRow(label, value) {
+function renderFeedbackView(state) {
+    const kc = state.kiwiControl ?? EMPTY_KC;
+    const feedback = kc.feedback;
     return `
-    <div class="panel-row">
-      <dt>${escapeHtml(label)}</dt>
-      <dd>${value}</dd>
-    </div>
-  `;
-}
-function renderActionCard(priority, title, reason, command) {
-    return `
-    <div class="action-card">
-      <div class="action-card-title">
-        <span class="priority-badge priority-${escapeHtml(priority)}">${escapeHtml(priority)}</span>
-        ${escapeHtml(title)}
+    <div class="view-shell">
+      <section class="view-header">
+        <div>
+          <p class="section-label">Adaptive feedback</p>
+          <h1>${escapeHtml(feedback.adaptationLevel === "active" ? "Live learning is in play" : "Learning is still limited")}</h1>
+          <p>${escapeHtml(feedback.note)}</p>
+        </div>
+        <div class="summary-strip">
+          ${renderMetricTile(String(feedback.totalRuns), "valid runs")}
+          ${renderMetricTile(`${feedback.successRate}%`, "success rate")}
+          ${renderMetricTile(feedback.adaptationLevel, "state")}
+        </div>
+      </section>
+
+      <div class="workspace-columns">
+        <section class="workspace-section">
+          ${renderSectionHeader("Boosted files", "Files that have helped on recent successful runs in this task scope.")}
+          ${feedback.topBoostedFiles.length > 0
+        ? renderScoreList("Boosted", feedback.topBoostedFiles)
+        : `<p class="muted-copy">No boosted files yet.</p>`}
+        </section>
+
+        <section class="workspace-section">
+          ${renderSectionHeader("Penalized files", "Files that the system is learning to avoid for this task scope.")}
+          ${feedback.topPenalizedFiles.length > 0
+        ? renderScoreList("Penalized", feedback.topPenalizedFiles)
+        : `<p class="muted-copy">No penalized files yet.</p>`}
+        </section>
       </div>
-      <p class="action-card-reason">${escapeHtml(reason)}</p>
-      ${command ? `<code class="action-card-cmd">${escapeHtml(command)}</code>` : ""}
+
+      <section class="workspace-section">
+        ${renderSectionHeader("Recent completions", "Only valid successful completions are used to improve future selection behavior.")}
+        ${feedback.recentEntries.length > 0
+        ? `<div class="timeline-list">${feedback.recentEntries.map((entry) => `
+              <article class="timeline-entry">
+                <div class="timeline-dot ${entry.success ? "timeline-dot-success" : "timeline-dot-warn"}"></div>
+                <div>
+                  <strong>${escapeHtml(entry.task)}</strong>
+                  <p>${escapeHtml(`${entry.filesUsed}/${entry.filesSelected} files used · ${formatTimestamp(entry.timestamp)}`)}</p>
+                </div>
+              </article>
+            `).join("")}</div>`
+        : `<p class="muted-copy">No recent feedback events are available yet.</p>`}
+      </section>
     </div>
   `;
 }
-function renderFileScoreList(label, description, files, prefix) {
-    const items = files.slice(0, 3).map((f) => `
-    <li><span class="file-name">${escapeHtml(f.file)}</span><span class="file-tokens">${prefix}${f.score}</span></li>
-  `).join("");
+function renderValidationView(state) {
     return `
-    <dl class="panel-list">
-      ${renderPanelRow(label, description)}
-    </dl>
-    <ul class="file-list">${items}</ul>
+    <div class="view-shell">
+      <section class="hero-block hero-block-compact">
+        <div class="hero-meta">
+          <span class="section-label">Validation</span>
+          ${renderChip(state.repoState.title, state.repoState.mode)}
+        </div>
+        <h1>${escapeHtml(state.repoState.title)}</h1>
+        <p>${escapeHtml(state.repoState.detail)}</p>
+      </section>
+
+      <div class="workspace-columns">
+        <section class="workspace-section">
+          ${renderSectionHeader("Repo contract", state.repoState.sourceOfTruthNote)}
+          <div class="summary-strip">
+            ${renderMetricTile(String(state.validation.errors), "errors")}
+            ${renderMetricTile(String(state.validation.warnings), "warnings")}
+            ${renderMetricTile(state.validation.ok ? "OK" : "Needs repair", "state")}
+          </div>
+          <div class="kv-list">
+            ${state.repoOverview.map((item) => renderKeyValueRow(item.label, item.value, item.tone === "warn" ? "warn" : "default")).join("")}
+          </div>
+        </section>
+
+        <section class="workspace-section">
+          ${renderSectionHeader("Repo memory", "Presence of repo-local memory and continuity surfaces.")}
+          <div class="memory-list">
+            ${state.memoryBank.length > 0
+        ? state.memoryBank.map((entry) => `
+                  <div class="memory-row ${entry.present ? "memory-row-present" : "memory-row-missing"}">
+                    <span>${escapeHtml(entry.label)}</span>
+                    <strong>${entry.present ? "present" : "missing"}</strong>
+                  </div>
+                `).join("")
+        : `<p class="muted-copy">No repo-local memory entries are available.</p>`}
+          </div>
+        </section>
+      </div>
+
+      <section class="workspace-section">
+        ${renderSectionHeader("Continuity", "Latest checkpoint, handoff, reconcile, focus, and open-risk state.")}
+        <div class="kv-list">
+          ${state.continuity.map((item) => renderKeyValueRow(item.label, item.value, item.tone === "warn" ? "warn" : "default")).join("")}
+        </div>
+      </section>
+    </div>
   `;
 }
-function renderTokenBar(label, value, total, color) {
-    if (total <= 0)
+function renderInspector(state) {
+    const kc = state.kiwiControl ?? EMPTY_KC;
+    const primaryAction = kc.nextActions.actions[0] ?? null;
+    const supportingFiles = primaryAction?.file
+        ? [primaryAction.file, ...kc.contextView.selectedFiles.filter((file) => file !== primaryAction.file).slice(0, 4)]
+        : kc.contextView.selectedFiles.slice(0, 5);
+    return `
+    <div class="inspector-shell">
+      <div class="inspector-header">
+        <div>
+          <p class="section-label">Inspector</p>
+          <h2>${escapeHtml(primaryAction?.action ?? "No blocking action")}</h2>
+        </div>
+        ${primaryAction ? renderChip(primaryAction.priority, primaryAction.priority) : renderChip("stable", "neutral")}
+      </div>
+
+      <section class="inspector-section">
+        <p class="inspector-label">Why now</p>
+        <p class="inspector-copy">${escapeHtml(primaryAction?.reason ?? (kc.nextActions.summary || state.repoState.detail))}</p>
+      </section>
+
+      <section class="inspector-section">
+        <p class="inspector-label">Command</p>
+        ${primaryAction?.command
+        ? `<code class="inspector-command">${escapeHtml(primaryAction.command)}</code>`
+        : `<p class="inspector-copy">No command recorded for the current state.</p>`}
+      </section>
+
+      <section class="inspector-section">
+        <p class="inspector-label">Affected scope</p>
+        ${supportingFiles.length > 0
+        ? `<div class="file-stack">${supportingFiles.map((file) => renderFileCard(file, "selected")).join("")}</div>`
+        : `<p class="inspector-copy">No file scope is selected yet.</p>`}
+      </section>
+
+      <section class="inspector-section">
+        <p class="inspector-label">State gates</p>
+        <div class="gate-list">
+          ${renderGateRow("Repo validation", state.validation.ok ? "passing" : `${state.validation.errors} errors / ${state.validation.warnings} warnings`, state.validation.ok ? "success" : "warn")}
+          ${renderGateRow("Instructions", kc.efficiency.instructionsGenerated ? "ready" : "not generated", kc.efficiency.instructionsGenerated ? "success" : "warn")}
+          ${renderGateRow("Feedback", `${kc.feedback.adaptationLevel} (${kc.feedback.totalRuns} runs)`, kc.feedback.adaptationLevel === "active" ? "success" : "default")}
+          ${renderGateRow("Token estimate", kc.tokenAnalytics.estimationMethod ?? "not generated", kc.tokenAnalytics.estimationMethod ? "default" : "warn")}
+        </div>
+      </section>
+
+      <section class="inspector-section">
+        <p class="inspector-label">Queued after that</p>
+        ${kc.nextActions.actions.slice(1, 4).length > 0
+        ? `<div class="stack-list">${kc.nextActions.actions.slice(1, 4).map(renderActionListRow).join("")}</div>`
+        : `<p class="inspector-copy">No secondary actions are queued.</p>`}
+      </section>
+    </div>
+  `;
+}
+function renderLogDrawer(state) {
+    const kc = state.kiwiControl ?? EMPTY_KC;
+    const continuityLines = state.continuity.slice(0, 3).map((item) => ({
+        label: item.label,
+        value: item.value
+    }));
+    const executionLines = kc.execution.recentExecutions.slice(0, 4).map((entry) => ({
+        label: entry.success ? "run" : "run failed",
+        value: `${entry.task} · ${entry.filesTouched} files · ${formatTimestamp(entry.timestamp)}`
+    }));
+    const lines = [...executionLines, ...continuityLines].slice(0, 6);
+    return `
+    <div class="log-header">
+      <div>
+        <p class="section-label">Repo activity</p>
+        <h3>${escapeHtml(state.repoState.title)}</h3>
+      </div>
+      <div class="log-summary">
+        <span>${escapeHtml(`${kc.execution.totalExecutions} executions`)}</span>
+        <span>${escapeHtml(`${kc.feedback.totalRuns} feedback runs`)}</span>
+      </div>
+    </div>
+    <div class="log-body">
+      ${lines.length > 0
+        ? lines.map((line) => `
+            <div class="log-line">
+              <span class="log-key">${escapeHtml(line.label)}</span>
+              <span class="log-value">${escapeHtml(line.value)}</span>
+            </div>
+          `).join("")
+        : `<p class="muted-copy">No repo activity is recorded yet.</p>`}
+    </div>
+    <div class="log-footer">${escapeHtml(state.repoState.sourceOfTruthNote)}</div>
+  `;
+}
+function renderSectionHeader(title, description) {
+    return `
+    <header class="section-header">
+      <div>
+        <p class="section-label">${escapeHtml(title)}</p>
+        <h2>${escapeHtml(title)}</h2>
+      </div>
+      <p>${escapeHtml(description)}</p>
+    </header>
+  `;
+}
+function renderMetricTile(value, label) {
+    return `
+    <div class="metric-tile">
+      <strong>${escapeHtml(value)}</strong>
+      <span>${escapeHtml(label)}</span>
+    </div>
+  `;
+}
+function renderKeyValueRow(label, value, tone = "default") {
+    return `
+    <div class="kv-row">
+      <span>${escapeHtml(label)}</span>
+      <strong class="${tone === "warn" ? "kv-warn" : ""}">${escapeHtml(value)}</strong>
+    </div>
+  `;
+}
+function renderActionListRow(action) {
+    return `
+    <article class="stack-row">
+      <div>
+        <p>${escapeHtml(action.action)}</p>
+        <span>${escapeHtml(action.reason)}</span>
+      </div>
+      ${renderChip(action.priority, action.priority)}
+    </article>
+  `;
+}
+function renderFileCard(file, status) {
+    return `
+    <div class="file-card">
+      <span class="file-card-icon">${contextTreeStatusIcon(status)}</span>
+      <div>
+        <strong>${escapeHtml(file.split("/").pop() ?? file)}</strong>
+        <span>${escapeHtml(file)}</span>
+      </div>
+    </div>
+  `;
+}
+function renderAnnotatedFileCard(file, metric, note) {
+    return `
+    <div class="file-card annotated">
+      <div>
+        <strong>${escapeHtml(file)}</strong>
+        <span>${escapeHtml(note)}</span>
+      </div>
+      <em>${escapeHtml(metric)}</em>
+    </div>
+  `;
+}
+function renderScoreList(label, files) {
+    return `
+    <div class="score-list">
+      <p class="inspector-label">${escapeHtml(label)}</p>
+      ${files.slice(0, 6).map((file) => `
+        <div class="score-row">
+          <span>${escapeHtml(file.file)}</span>
+          <strong>${file.score > 0 ? `+${file.score}` : `${file.score}`}</strong>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+function renderGateRow(label, value, tone) {
+    return `
+    <div class="gate-row">
+      <span>${escapeHtml(label)}</span>
+      <strong class="gate-${tone}">${escapeHtml(value)}</strong>
+    </div>
+  `;
+}
+function renderMeterRow(label, value, total) {
+    if (total <= 0) {
         return "";
-    const pct = Math.min(100, Math.round((value / total) * 100));
+    }
+    const ratio = Math.max(0, Math.min(100, Math.round((value / total) * 100)));
     return `
-    <div class="token-bar-container">
-      <div class="token-bar-label">
+    <div class="meter-row">
+      <div class="meter-copy">
         <span>${escapeHtml(label)}</span>
-        <span>${pct}%</span>
+        <strong>${ratio}%</strong>
       </div>
-      <div class="token-bar-track">
-        <div class="token-bar-fill token-bar-fill-${color}" style="width: ${pct}%"></div>
+      <div class="meter-track">
+        <div class="meter-fill" style="width: ${ratio}%"></div>
       </div>
     </div>
   `;
 }
-function trendIcon(trend) {
-    switch (trend) {
-        case "improving": return "\u2193";
-        case "worsening": return "\u2191";
-        case "stable": return "\u2194";
-        default: return "\u2022";
+function renderDirectoryBar(label, tokens, total, meta) {
+    const ratio = total > 0 ? Math.max(4, Math.round((tokens / total) * 100)) : 4;
+    return `
+    <div class="directory-row">
+      <div class="directory-copy">
+        <strong>${escapeHtml(label)}</strong>
+        <span>${escapeHtml(`${formatTokensShort(tokens)} · ${meta}`)}</span>
+      </div>
+      <div class="directory-bar">
+        <div class="directory-bar-fill" style="width: ${ratio}%"></div>
+      </div>
+    </div>
+  `;
+}
+function renderContextTree(tree) {
+    return `
+    <div class="tree-shell">
+      <div class="tree-legend">
+        <span><strong>✓</strong> selected</span>
+        <span><strong>•</strong> candidate</span>
+        <span><strong>×</strong> excluded</span>
+      </div>
+      <div class="tree-root">
+        ${tree.nodes.map((node) => renderContextTreeNode(node)).join("")}
+      </div>
+    </div>
+  `;
+}
+function renderContextTreeNode(node) {
+    if (node.kind === "file") {
+        return `
+      <div class="tree-node tree-file tree-${escapeHtml(node.status)}">
+        <span class="tree-row">
+          <span class="tree-status">${contextTreeStatusIcon(node.status)}</span>
+          <span class="tree-name">${escapeHtml(node.name)}</span>
+        </span>
+      </div>
+    `;
+    }
+    return `
+    <details class="tree-node tree-directory tree-${escapeHtml(node.status)}" ${node.expanded ? "open" : ""}>
+      <summary class="tree-row">
+        <span class="tree-caret"></span>
+        <span class="tree-status">${contextTreeStatusIcon(node.status)}</span>
+        <span class="tree-name">${escapeHtml(node.name)}/</span>
+      </summary>
+      <div class="tree-children">
+        ${node.children.map((child) => renderContextTreeNode(child)).join("")}
+      </div>
+    </details>
+  `;
+}
+function renderChip(label, tone) {
+    const normalizedTone = tone === "bridge-unavailable" ? "warn" : tone;
+    return `<span class="chip chip-${escapeHtml(normalizedTone)}">${escapeHtml(label)}</span>`;
+}
+function renderEmptyBlock(message) {
+    return `<p class="muted-copy">${escapeHtml(message)}</p>`;
+}
+function contextTreeStatusIcon(status) {
+    switch (status) {
+        case "selected":
+            return "✓";
+        case "excluded":
+            return "×";
+        default:
+            return "•";
     }
 }
 function formatTokensShort(count) {
-    if (count >= 1_000_000)
+    if (count >= 1_000_000) {
         return `${(count / 1_000_000).toFixed(1)}M`;
-    if (count >= 1_000)
+    }
+    if (count >= 1_000) {
         return `${(count / 1_000).toFixed(1)}K`;
+    }
     return String(count);
 }
-// ---------------------------------------------------------------------------
-// Bridge & State Loading
-// ---------------------------------------------------------------------------
+function formatTimestamp(timestamp) {
+    if (!timestamp) {
+        return "unknown time";
+    }
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) {
+        return timestamp;
+    }
+    return date.toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit"
+    });
+}
+function getPanelValue(items, label) {
+    return items.find((item) => item.label === label)?.value ?? "none recorded";
+}
+function getRepoLabel(targetRoot) {
+    if (!targetRoot) {
+        return "No repo loaded";
+    }
+    const segments = targetRoot.split(/[\\/]/).filter(Boolean);
+    return segments[segments.length - 1] ?? targetRoot;
+}
 function buildActiveTargetHint(state) {
     if (!state.targetRoot) {
         return "Run kc ui inside a repo to load it automatically.";
@@ -591,19 +912,24 @@ function buildActiveTargetHint(state) {
     }
 }
 function buildBridgeNote(state, source) {
-    if (!state.targetRoot)
+    if (!state.targetRoot) {
         return "Run kc ui inside a repo to load it automatically.";
-    if (state.repoState.mode === "bridge-unavailable")
+    }
+    if (state.repoState.mode === "bridge-unavailable") {
         return BRIDGE_UNAVAILABLE_NEXT_STEP;
-    if (source === "cli")
+    }
+    if (source === "cli") {
         return `Loaded ${state.targetRoot} from kc ui.`;
-    if (source === "manual")
+    }
+    if (source === "manual") {
         return `Loaded ${state.targetRoot}.`;
+    }
     return `Repo-local state for ${state.targetRoot} is ready.`;
 }
 async function consumeInitialLaunchRequest() {
-    if (!isTauriBridgeAvailable())
+    if (!isTauriBridgeAvailable()) {
         return null;
+    }
     try {
         return await invoke("consume_initial_launch_request");
     }
@@ -612,8 +938,9 @@ async function consumeInitialLaunchRequest() {
     }
 }
 async function loadRepoControlState(targetRoot) {
-    if (!isTauriBridgeAvailable())
+    if (!isTauriBridgeAvailable()) {
         return buildBridgeUnavailableState(targetRoot);
+    }
     try {
         return await invoke("load_repo_control_state", { targetRoot });
     }
@@ -634,7 +961,7 @@ function buildBridgeUnavailableState(targetRoot) {
             title: hasTargetRoot ? "Could not load this repo yet" : "Open a repo",
             detail: hasTargetRoot
                 ? "Kiwi Control could not read repo-local state for this folder yet."
-                : "Run kc ui inside a repo to load it automatically, or use \u201cLoad another repo\u201d to switch.",
+                : "Run kc ui inside a repo to load it automatically, or use the sidebar switcher to change repos.",
             sourceOfTruthNote: "Repo-local artifacts under .agent/ and promoted repo instruction files remain the source of truth. The desktop app never replaces that state."
         },
         repoOverview: [

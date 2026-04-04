@@ -5,6 +5,7 @@ import { inspectGitState } from "./git.js";
 import { computeAdaptiveWeights } from "./context-feedback.js";
 import { getMemoryPaths } from "./memory.js";
 import { getStatePaths } from "./state.js";
+import { classifyFileArea, deriveTaskArea, deriveTaskCategory } from "./task-intent.js";
 import { pathExists, readText, writeText } from "../utils/fs.js";
 
 // ---------------------------------------------------------------------------
@@ -569,6 +570,8 @@ async function rankAndSelect(
 ): Promise<ContextSelection> {
   const scored = new Map<string, number>();
   const keywords = tokenizeTask(task);
+  const taskCategory = deriveTaskCategory(task);
+  const taskArea = deriveTaskArea(task);
 
   for (const file of signals.changedFiles) {
     scored.set(file, (scored.get(file) ?? 0) + SCORE_CHANGED);
@@ -618,6 +621,10 @@ async function rankAndSelect(
     }
   }
 
+  for (const [file, score] of scored) {
+    scored.set(file, Math.max(0, score + scoreFileForTask(file, taskCategory, taskArea)));
+  }
+
   const sorted = [...scored.entries()]
     .sort((a, b) => b[1] - a[1]);
 
@@ -627,9 +634,10 @@ async function rankAndSelect(
     new Set([...signals.changedFiles, ...signals.repoContextFiles]),
     CONTEXT_TOKEN_BUDGET
   );
+  const precisionRefinement = refineSelectionForTask(task, include, signals);
   const exclude = buildExcludeList();
 
-  const confidenceAssessment = assessConfidence(signals, include);
+  const confidenceAssessment = assessConfidence(signals, precisionRefinement.include);
   const confidence = confidenceAssessment.level;
 
   const topSignal = signals.changedFiles.length > 0
@@ -642,19 +650,20 @@ async function rankAndSelect(
 
   const reason =
     `Selected ${include.length} files based on ${topSignal}. ` +
-    `Signals: ${signals.changedFiles.length} changed, ` +
+      `Signals: ${signals.changedFiles.length} changed, ` +
       `${signals.importNeighbors.length} import neighbors, ` +
       `${signals.keywordMatches.length} keyword matches, ` +
       `${signals.repoContextFiles.length} repo context files, ` +
       `${signals.proximityFiles.length} proximity, ` +
       `${signals.recentFiles.length} recent. ` +
+      `${precisionRefinement.reason ? `${precisionRefinement.reason} ` : ""}` +
       `Coverage: ${Math.round(confidenceAssessment.signalCoverage * 100)}% of candidate signal files. ` +
       `Diversity: ${confidenceAssessment.signalDiversity} signal types. ` +
       `Discovery depth: ${confidenceAssessment.maxDepthExplored}${confidenceAssessment.discoveryBudgetLimited ? " (budget-limited)" : ""}. ` +
-      `Budget: ~${await estimateSelectionTokens(targetRoot, include)} tokens. ` +
+      `Budget: ~${await estimateSelectionTokens(targetRoot, precisionRefinement.include)} tokens. ` +
       `Confidence: ${confidence}.`;
 
-  return { include, exclude, reason, signals, confidence };
+  return { include: precisionRefinement.include, exclude, reason, signals, confidence };
 }
 
 async function selectFilesWithinBudget(
@@ -792,6 +801,143 @@ function assessConfidence(
     discoveryBudgetLimited,
     maxDepthExplored
   };
+}
+
+function refineSelectionForTask(
+  task: string,
+  selected: string[],
+  signals: ContextSignals
+): { include: string[]; reason: string | null } {
+  const taskCategory = deriveTaskCategory(task);
+  const taskArea = deriveTaskArea(task);
+  const precisionSensitiveCategories = new Set(["docs", "testing", "config", "ui", "implementation"]);
+
+  if (!precisionSensitiveCategories.has(taskCategory)) {
+    return { include: selected, reason: null };
+  }
+
+  const repoContextFiles = new Set(signals.repoContextFiles);
+  const directSignals = new Set([
+    ...signals.changedFiles,
+    ...signals.importNeighbors,
+    ...signals.keywordMatches
+  ]);
+  const hasAreaAlignedDirectSignal = [...directSignals].some((file) => classifyFileArea(file) === taskArea);
+
+  if (!hasAreaAlignedDirectSignal) {
+    return { include: selected, reason: null };
+  }
+
+  const scopedPrefixes = deriveScopedPrefixes([...directSignals].filter((file) => classifyFileArea(file) === taskArea), taskArea);
+
+  const refined: string[] = [];
+  let trimmedPassiveFiles = 0;
+  let trimmedAuthorityFiles = 0;
+  let trimmedOutOfScopeFiles = 0;
+
+  for (const file of selected) {
+    if (repoContextFiles.has(file) || directSignals.has(file)) {
+      refined.push(file);
+      continue;
+    }
+
+    if (isAuthorityInstructionFile(file)) {
+      trimmedAuthorityFiles += 1;
+      continue;
+    }
+
+    if (classifyFileArea(file) !== taskArea) {
+      trimmedPassiveFiles += 1;
+      continue;
+    }
+
+     if (!matchesScopedPrefixes(file, scopedPrefixes)) {
+      trimmedOutOfScopeFiles += 1;
+      continue;
+    }
+
+    refined.push(file);
+  }
+
+  const trimmedFiles = trimmedPassiveFiles + trimmedAuthorityFiles + trimmedOutOfScopeFiles;
+  const trimReasons: string[] = [];
+  if (trimmedPassiveFiles > 0) {
+    trimReasons.push(`${trimmedPassiveFiles} file-type mismatch${trimmedPassiveFiles === 1 ? "" : "es"}`);
+  }
+  if (trimmedAuthorityFiles > 0) {
+    trimReasons.push(`${trimmedAuthorityFiles} passive authorit${trimmedAuthorityFiles === 1 ? "y file" : "y files"}`);
+  }
+  if (trimmedOutOfScopeFiles > 0) {
+    trimReasons.push(`${trimmedOutOfScopeFiles} out-of-directory file${trimmedOutOfScopeFiles === 1 ? "" : "s"}`);
+  }
+
+  return {
+    include: refined,
+    reason: trimmedFiles > 0
+      ? `Precision trim removed ${trimmedFiles} low-relevance file${trimmedFiles === 1 ? "" : "s"} for this ${taskCategory} task (${trimReasons.join(", ")}).`
+      : null
+  };
+}
+
+function scoreFileForTask(filePath: string, taskCategory: ReturnType<typeof deriveTaskCategory>, taskArea: ReturnType<typeof deriveTaskArea>): number {
+  const fileArea = classifyFileArea(filePath);
+
+  if (fileArea === taskArea) {
+    return 2;
+  }
+
+  if (isAuthorityInstructionFile(filePath) && taskCategory !== "general") {
+    return -2;
+  }
+
+  if (taskCategory === "implementation" && fileArea !== "application") {
+    return -1;
+  }
+
+  if (taskCategory !== "implementation" && fileArea !== taskArea && fileArea !== "context") {
+    return -1;
+  }
+
+  return 0;
+}
+
+function deriveScopedPrefixes(files: string[], taskArea: ReturnType<typeof deriveTaskArea>): string[] {
+  const prefixes = new Set<string>();
+
+  for (const file of files) {
+    if (taskArea !== "application" && taskArea !== "docs") {
+      continue;
+    }
+
+    const directory = path.dirname(file).replace(/\\/g, "/");
+    if (!directory || directory === ".") {
+      continue;
+    }
+
+    prefixes.add(directory);
+  }
+
+  return [...prefixes];
+}
+
+function matchesScopedPrefixes(filePath: string, prefixes: string[]): boolean {
+  if (prefixes.length === 0) {
+    return true;
+  }
+
+  const normalized = filePath.replace(/\\/g, "/");
+  return prefixes.some((prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`));
+}
+
+function isAuthorityInstructionFile(filePath: string): boolean {
+  const normalized = filePath.replace(/\\/g, "/").toLowerCase();
+  const basename = path.basename(normalized);
+
+  return basename === "agents.md"
+    || basename === "claude.md"
+    || basename === "copilot-instructions.md"
+    || normalized.startsWith(".github/instructions/")
+    || normalized.startsWith(".github/agents/");
 }
 
 // ---------------------------------------------------------------------------

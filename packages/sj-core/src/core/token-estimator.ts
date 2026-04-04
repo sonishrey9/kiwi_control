@@ -16,6 +16,7 @@ export interface TokenEstimate {
   fullRepoTokens: number;
   savingsPercent: number;
   estimationMethod: EstimationMethod;
+  estimateNote: string;
   fileBreakdown: Array<{
     file: string;
     tokens: number;
@@ -28,7 +29,6 @@ export interface TokenEstimate {
     selectedTokens: number;
     selectedFileCount: number;
   }>;
-  costEstimates: CostEstimates;
   wastedFiles: WastedFileReport;
   heavyDirectories: HeavyDirectoryReport;
 }
@@ -49,20 +49,9 @@ export interface HeavyDirectoryReport {
   }>;
 }
 
-export interface CostEstimates {
-  /** Cost per 1M input tokens for each model tier */
-  tiers: Array<{
-    model: string;
-    inputCostPer1M: number;
-    selectedCost: string;
-    fullRepoCost: string;
-    savingsCost: string;
-  }>;
-}
-
 export interface TokenUsageState {
   artifactType: "kiwi-control/token-usage";
-  version: 2;
+  version: 3;
   timestamp: string;
   task: string;
   selected_tokens: number;
@@ -71,8 +60,8 @@ export interface TokenUsageState {
   file_count_selected: number;
   file_count_total: number;
   estimation_method: EstimationMethod;
+  estimate_note: string;
   top_directories: Array<{ directory: string; tokens: number; fileCount: number }>;
-  cost_estimates: CostEstimates;
   wasted_files: Array<{ file: string; tokens: number; reason: string }>;
   wasted_tokens_total: number;
   wasted_removal_savings_percent: number;
@@ -91,13 +80,8 @@ export interface TokenUsageState {
 
 const CHARS_PER_TOKEN = 4;
 const ESTIMATION_METHOD: EstimationMethod = "rough estimate (chars/4 heuristic)";
-
-/** Model pricing tiers — input cost per 1M tokens (USD) as of mid-2025 */
-const MODEL_TIERS: Array<{ model: string; inputCostPer1M: number }> = [
-  { model: "Haiku 4.5", inputCostPer1M: 0.80 },
-  { model: "Sonnet 4.6", inputCostPer1M: 3.00 },
-  { model: "Opus 4.6", inputCostPer1M: 15.00 }
-];
+const ESTIMATE_NOTE =
+  "Estimated token counts use a chars/4 heuristic. File counts are measured directly; token counts and savings percentages are approximate, and pricing is intentionally not shown.";
 
 const SKIP_DIRS = new Set([
   "node_modules", ".git", "dist", "build", ".next", ".output",
@@ -202,7 +186,6 @@ export async function estimateTokens(
     .map(([directory, stats]) => ({ directory, ...stats }))
     .sort((a, b) => b.tokens - a.tokens);
 
-  const costEstimates = computeCostEstimates(selectedTokens, fullRepoTokens);
   const wastedFiles = detectWastedFiles(fileBreakdown, task);
   const heavyDirectories = detectHeavyDirectories(directoryBreakdown, fullRepoTokens, task);
 
@@ -211,35 +194,12 @@ export async function estimateTokens(
     fullRepoTokens,
     savingsPercent,
     estimationMethod: ESTIMATION_METHOD,
+    estimateNote: ESTIMATE_NOTE,
     fileBreakdown,
     directoryBreakdown,
-    costEstimates,
     wastedFiles,
     heavyDirectories
   };
-}
-
-// ---------------------------------------------------------------------------
-// Cost estimation
-// ---------------------------------------------------------------------------
-
-function computeCostEstimates(selectedTokens: number, fullRepoTokens: number): CostEstimates {
-  const savedTokens = fullRepoTokens - selectedTokens;
-
-  return {
-    tiers: MODEL_TIERS.map((tier) => ({
-      model: tier.model,
-      inputCostPer1M: tier.inputCostPer1M,
-      selectedCost: formatCost(selectedTokens * tier.inputCostPer1M / 1_000_000),
-      fullRepoCost: formatCost(fullRepoTokens * tier.inputCostPer1M / 1_000_000),
-      savingsCost: formatCost(savedTokens * tier.inputCostPer1M / 1_000_000)
-    }))
-  };
-}
-
-function formatCost(dollars: number): string {
-  if (dollars < 0.01) return "<$0.01";
-  return `$${dollars.toFixed(2)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -482,7 +442,7 @@ export async function persistTokenUsage(
 
   const record: TokenUsageState = {
     artifactType: "kiwi-control/token-usage",
-    version: 2,
+    version: 3,
     timestamp: new Date().toISOString(),
     task,
     selected_tokens: estimate.selectedTokens,
@@ -491,8 +451,8 @@ export async function persistTokenUsage(
     file_count_selected: estimate.fileBreakdown.filter((f) => f.selected).length,
     file_count_total: estimate.fileBreakdown.length,
     estimation_method: estimate.estimationMethod,
+    estimate_note: estimate.estimateNote,
     top_directories: topDirectories,
-    cost_estimates: estimate.costEstimates,
     wasted_files: estimate.wastedFiles.files,
     wasted_tokens_total: estimate.wastedFiles.totalWastedTokens,
     wasted_removal_savings_percent: estimate.wastedFiles.removalSavingsPercent,

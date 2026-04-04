@@ -15,6 +15,23 @@ function hasSourceCheckoutLayout(root: string): boolean {
   );
 }
 
+export function findNearestSourceProductCheckout(startDir: string): string | null {
+  let current = path.resolve(startDir);
+
+  while (true) {
+    if (hasSourceCheckoutLayout(current)) {
+      return current;
+    }
+
+    const parent = path.dirname(current);
+    if (parent === current) {
+      return null;
+    }
+
+    current = parent;
+  }
+}
+
 export function resolveShreyJuniorProductRoot(fromImportMetaUrl = import.meta.url): string {
   const baseDir = path.dirname(fileURLToPath(fromImportMetaUrl));
   const overrideRoot = process.env.KIWI_CONTROL_PRODUCT_ROOT || process.env.SHREY_JUNIOR_PRODUCT_ROOT;

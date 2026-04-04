@@ -22,6 +22,7 @@ import { buildFeedbackSummary } from "./context-feedback.js";
 import type { FeedbackSummary } from "./context-feedback.js";
 import { buildExecutionSummary, recordPreparedScopeCompletion } from "./execution-log.js";
 import type { ExecutionSummary } from "./execution-log.js";
+import { classifyFileArea, deriveTaskArea } from "./task-intent.js";
 
 export interface RepoControlPanelItem {
   label: string;
@@ -64,7 +65,26 @@ export interface KiwiControlContextView {
   confidence: string | null;
   confidenceDetail: string | null;
   keywordMatches: string[];
+  tree: KiwiControlContextTree;
   timestamp: string | null;
+}
+
+export type KiwiControlContextTreeStatus = "selected" | "candidate" | "excluded";
+
+export interface KiwiControlContextTreeNode {
+  name: string;
+  path: string;
+  kind: "directory" | "file";
+  status: KiwiControlContextTreeStatus;
+  expanded: boolean;
+  children: KiwiControlContextTreeNode[];
+}
+
+export interface KiwiControlContextTree {
+  nodes: KiwiControlContextTreeNode[];
+  selectedCount: number;
+  candidateCount: number;
+  excludedCount: number;
 }
 
 export interface KiwiControlTokenAnalytics {
@@ -74,8 +94,8 @@ export interface KiwiControlTokenAnalytics {
   fileCountSelected: number;
   fileCountTotal: number;
   estimationMethod: string | null;
+  estimateNote: string | null;
   topDirectories: Array<{ directory: string; tokens: number; fileCount: number }>;
-  costEstimates: Array<{ model: string; selectedCost: string; fullRepoCost: string; savingsCost: string }>;
   task: string | null;
   timestamp: string | null;
 }
@@ -99,6 +119,8 @@ export interface KiwiControlNextActions {
 export interface KiwiControlFeedback {
   totalRuns: number;
   successRate: number;
+  adaptationLevel: "limited" | "active";
+  note: string;
   recentEntries: Array<{
     task: string;
     success: boolean;
@@ -468,6 +490,7 @@ async function loadKiwiControlState(
     confidence: null,
     confidenceDetail: null,
     keywordMatches: [],
+    tree: emptyContextTree(),
     timestamp: null
   };
 
@@ -481,6 +504,7 @@ async function loadKiwiControlState(
       confidence: selection.confidence ?? null,
       confidenceDetail: describeContextConfidence(selection),
       keywordMatches: selection.signals?.keywordMatches ?? [],
+      tree: buildContextTree(selection),
       timestamp: selection.timestamp
     };
   }
@@ -492,8 +516,8 @@ async function loadKiwiControlState(
     fileCountSelected: 0,
     fileCountTotal: 0,
     estimationMethod: null,
+    estimateNote: null,
     topDirectories: [],
-    costEstimates: [],
     task: null,
     timestamp: null
   };
@@ -517,13 +541,8 @@ async function loadKiwiControlState(
       fileCountSelected: usage.file_count_selected,
       fileCountTotal: usage.file_count_total,
       estimationMethod: usage.estimation_method ?? null,
+      estimateNote: usage.estimate_note ?? null,
       topDirectories: usage.top_directories ?? [],
-      costEstimates: usage.cost_estimates?.tiers?.map((t) => ({
-        model: t.model,
-        selectedCost: t.selectedCost,
-        fullRepoCost: t.fullRepoCost,
-        savingsCost: t.savingsCost
-      })) ?? [],
       task: usage.task,
       timestamp: usage.timestamp
     };
@@ -555,7 +574,7 @@ async function loadKiwiControlState(
   const [decisionOutput, feedbackSummary, executionSummary] = await Promise.all([
     nextActionEngine(targetRoot, validationIssues).catch(() => ({ nextActions: [], summary: "Decision engine unavailable" })),
     buildFeedbackSummary(targetRoot, contextView.task ?? undefined).catch(() => ({
-      totalRuns: 0, successRate: 0, recentEntries: [],
+      totalRuns: 0, successRate: 0, adaptationLevel: "limited" as const, note: "Adaptive feedback is unavailable.", recentEntries: [],
       topBoostedFiles: [], topPenalizedFiles: []
     })),
     buildExecutionSummary(targetRoot).catch(() => ({
@@ -572,6 +591,8 @@ async function loadKiwiControlState(
   const feedback: KiwiControlFeedback = {
     totalRuns: feedbackSummary.totalRuns,
     successRate: feedbackSummary.successRate,
+    adaptationLevel: feedbackSummary.adaptationLevel,
+    note: feedbackSummary.note,
     recentEntries: feedbackSummary.recentEntries,
     topBoostedFiles: feedbackSummary.topBoostedFiles,
     topPenalizedFiles: feedbackSummary.topPenalizedFiles
@@ -626,4 +647,280 @@ function describeContextConfidence(selection: ContextSelectionState): string | n
   }
 
   return "Evidence is narrow or partial, so verify file relevance before editing.";
+}
+
+function emptyContextTree(): KiwiControlContextTree {
+  return {
+    nodes: [],
+    selectedCount: 0,
+    candidateCount: 0,
+    excludedCount: 0
+  };
+}
+
+function buildContextTree(selection: ContextSelectionState): KiwiControlContextTree {
+  const selectedFiles = selection.include.filter(isVisibleContextTreePath);
+  const observedFiles = collectObservedTreeFiles(selection);
+
+  if (observedFiles.length === 0) {
+    return emptyContextTree();
+  }
+
+  const taskArea = deriveTaskArea(selection.task);
+  const selectedSet = new Set(selectedFiles);
+  const directSignals = new Set(
+    [
+      ...selection.signals.changedFiles,
+      ...selection.signals.importNeighbors,
+      ...selection.signals.keywordMatches
+    ].filter(isVisibleContextTreePath)
+  );
+  const scopedPrefixes = deriveContextTreeScopedPrefixes(
+    [...directSignals].filter((file) => classifyFileArea(file) === taskArea),
+    taskArea
+  );
+
+  const statusByFile = new Map<string, KiwiControlContextTreeStatus>();
+  for (const file of observedFiles) {
+    if (selectedSet.has(file)) {
+      statusByFile.set(file, "selected");
+      continue;
+    }
+
+    statusByFile.set(
+      file,
+      isExcludedContextTreeFile(file, taskArea, scopedPrefixes) ? "excluded" : "candidate"
+    );
+  }
+
+  const root = new Map<string, MutableContextTreeNode>();
+  for (const file of sortContextTreePaths([...statusByFile.keys()])) {
+    insertContextTreePath(root, file, statusByFile.get(file) ?? "candidate");
+  }
+
+  const counts = [...statusByFile.values()].reduce(
+    (summary, status) => {
+      if (status === "selected") summary.selectedCount += 1;
+      if (status === "candidate") summary.candidateCount += 1;
+      if (status === "excluded") summary.excludedCount += 1;
+      return summary;
+    },
+    { selectedCount: 0, candidateCount: 0, excludedCount: 0 }
+  );
+
+  return {
+    nodes: [...root.values()].map((node) => finalizeContextTreeNode(node, taskArea, scopedPrefixes)),
+    ...counts
+  };
+}
+
+interface MutableContextTreeNode {
+  name: string;
+  path: string;
+  kind: "directory" | "file";
+  status: KiwiControlContextTreeStatus;
+  children: Map<string, MutableContextTreeNode>;
+}
+
+function collectObservedTreeFiles(selection: ContextSelectionState): string[] {
+  const seen = new Set<string>();
+  const orderedSignals = [
+    selection.include,
+    selection.signals.changedFiles,
+    selection.signals.keywordMatches,
+    selection.signals.importNeighbors,
+    selection.signals.proximityFiles.slice(0, 10),
+    selection.signals.recentFiles.slice(0, 12)
+  ];
+
+  for (const files of orderedSignals) {
+    for (const file of files) {
+      if (!isVisibleContextTreePath(file)) {
+        continue;
+      }
+      seen.add(file);
+    }
+  }
+
+  return [...seen];
+}
+
+function isVisibleContextTreePath(filePath: string): boolean {
+  return !filePath.startsWith(".agent/");
+}
+
+function insertContextTreePath(
+  root: Map<string, MutableContextTreeNode>,
+  filePath: string,
+  status: KiwiControlContextTreeStatus
+): void {
+  const parts = filePath.split("/").filter(Boolean);
+  let currentLevel = root;
+  let currentPath = "";
+
+  for (const [index, part] of parts.entries()) {
+    currentPath = currentPath ? `${currentPath}/${part}` : part;
+    const isFile = index === parts.length - 1;
+    let node = currentLevel.get(part);
+
+    if (!node) {
+      node = {
+        name: part,
+        path: currentPath,
+        kind: isFile ? "file" : "directory",
+        status: isFile ? status : "excluded",
+        children: new Map<string, MutableContextTreeNode>()
+      };
+      currentLevel.set(part, node);
+    }
+
+    if (isFile) {
+      node.status = status;
+      return;
+    }
+
+    currentLevel = node.children;
+  }
+}
+
+function finalizeContextTreeNode(
+  node: MutableContextTreeNode,
+  taskArea: ReturnType<typeof deriveTaskArea>,
+  scopedPrefixes: string[]
+): KiwiControlContextTreeNode {
+  const children = [...node.children.values()]
+    .map((child) => finalizeContextTreeNode(child, taskArea, scopedPrefixes))
+    .sort(compareContextTreeNodes);
+
+  if (node.kind === "file") {
+    return {
+      name: node.name,
+      path: node.path,
+      kind: node.kind,
+      status: node.status,
+      expanded: false,
+      children: []
+    };
+  }
+
+  const status = children.some((child) => child.status === "selected")
+    ? "selected"
+    : children.some((child) => child.status === "candidate")
+      ? "candidate"
+      : "excluded";
+
+  return {
+    name: node.name,
+    path: node.path,
+    kind: "directory",
+    status,
+    expanded: shouldExpandContextTreeDirectory(node.path, taskArea, scopedPrefixes, children),
+    children
+  };
+}
+
+function compareContextTreeNodes(left: KiwiControlContextTreeNode, right: KiwiControlContextTreeNode): number {
+  if (left.kind !== right.kind) {
+    return left.kind === "directory" ? -1 : 1;
+  }
+
+  const rank = { selected: 0, candidate: 1, excluded: 2 };
+  const rankDelta = rank[left.status] - rank[right.status];
+  if (rankDelta !== 0) {
+    return rankDelta;
+  }
+
+  return left.name.localeCompare(right.name);
+}
+
+function sortContextTreePaths(files: string[]): string[] {
+  return [...files].sort((left, right) => {
+    const leftParts = left.split("/").length;
+    const rightParts = right.split("/").length;
+    if (leftParts !== rightParts) {
+      return leftParts - rightParts;
+    }
+    return left.localeCompare(right);
+  });
+}
+
+function deriveContextTreeScopedPrefixes(
+  files: string[],
+  taskArea: ReturnType<typeof deriveTaskArea>
+): string[] {
+  if (taskArea !== "application" && taskArea !== "docs") {
+    return [];
+  }
+
+  const prefixes = new Set<string>();
+  for (const file of files) {
+    const directory = path.dirname(file).replace(/\\/g, "/");
+    if (!directory || directory === ".") {
+      continue;
+    }
+    prefixes.add(directory);
+  }
+
+  return [...prefixes];
+}
+
+function isExcludedContextTreeFile(
+  filePath: string,
+  taskArea: ReturnType<typeof deriveTaskArea>,
+  scopedPrefixes: string[]
+): boolean {
+  if (isAuthorityInstructionTreeFile(filePath)) {
+    return true;
+  }
+
+  if (classifyFileArea(filePath) !== taskArea) {
+    return true;
+  }
+
+  if (scopedPrefixes.length > 0 && !matchesContextTreePrefixes(filePath, scopedPrefixes)) {
+    return true;
+  }
+
+  return false;
+}
+
+function matchesContextTreePrefixes(filePath: string, prefixes: string[]): boolean {
+  if (prefixes.length === 0) {
+    return true;
+  }
+
+  const normalized = filePath.replace(/\\/g, "/");
+  return prefixes.some((prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`));
+}
+
+function isAuthorityInstructionTreeFile(filePath: string): boolean {
+  const normalized = filePath.replace(/\\/g, "/").toLowerCase();
+  const basename = path.basename(normalized);
+
+  return basename === "agents.md"
+    || basename === "claude.md"
+    || basename === "copilot-instructions.md"
+    || normalized.startsWith(".github/instructions/")
+    || normalized.startsWith(".github/agents/");
+}
+
+function shouldExpandContextTreeDirectory(
+  directoryPath: string,
+  taskArea: ReturnType<typeof deriveTaskArea>,
+  scopedPrefixes: string[],
+  children: KiwiControlContextTreeNode[]
+): boolean {
+  if (taskArea === "docs" && (directoryPath === "docs" || directoryPath.startsWith("docs/"))) {
+    return true;
+  }
+
+  if (taskArea === "application" && scopedPrefixes.some((prefix) => prefix === directoryPath || prefix.startsWith(`${directoryPath}/`))) {
+    return true;
+  }
+
+  if (children.some((child) => child.status === "selected") && classifyFileArea(directoryPath) === taskArea) {
+    return true;
+  }
+
+  return false;
 }

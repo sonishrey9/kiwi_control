@@ -3,7 +3,12 @@ import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { PRODUCT_METADATA, isSourceProductCheckout, resolveSourceUiDesktopBundlePath } from "@shrey-junior/sj-core";
+import {
+  PRODUCT_METADATA,
+  findNearestSourceProductCheckout,
+  isSourceProductCheckout,
+  resolveSourceUiDesktopBundlePath
+} from "@shrey-junior/sj-core";
 import { buildRepoControlState } from "@shrey-junior/sj-core/core/ui-state.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 
@@ -141,7 +146,7 @@ export function buildDesktopLaunchTimeoutMessage(repoRoot: string): string {
   return buildDesktopUnavailableMessage(repoRoot);
 }
 
-export function buildDesktopLaunchCandidates(repoRoot?: string): DesktopLaunchCandidate[] {
+export function buildDesktopLaunchCandidates(repoRoot?: string, targetRoot?: string): DesktopLaunchCandidate[] {
   const candidates: DesktopLaunchCandidate[] = [];
   let hasExplicitDesktopOverride = false;
 
@@ -159,8 +164,18 @@ export function buildDesktopLaunchCandidates(repoRoot?: string): DesktopLaunchCa
     return candidates;
   }
 
-  const sourceBundlePath = resolveSourceDesktopLaunchBundle(repoRoot);
-  if (sourceBundlePath) {
+  const discoveredSourceRoots = [
+    repoRoot,
+    findNearestSourceProductCheckout(process.cwd()),
+    targetRoot ? findNearestSourceProductCheckout(targetRoot) : null
+  ].filter((candidate, index, items): candidate is string => Boolean(candidate) && items.indexOf(candidate) === index);
+
+  for (const sourceRoot of discoveredSourceRoots) {
+    const sourceBundlePath = resolveSourceDesktopLaunchBundle(sourceRoot);
+    if (!sourceBundlePath) {
+      continue;
+    }
+
     const sourceBundleExecutable = resolveMacOsBundleExecutable(sourceBundlePath);
     if (sourceBundleExecutable) {
       candidates.push({
@@ -201,7 +216,7 @@ export function resolveDesktopLaunchLogPath(): string {
 }
 
 async function launchDesktopControlSurface(launchRequest: DesktopLaunchRequest, repoRoot?: string): Promise<DesktopLaunchResult | null> {
-  for (const candidate of buildDesktopLaunchCandidates(repoRoot)) {
+  for (const candidate of buildDesktopLaunchCandidates(repoRoot, launchRequest.targetRoot)) {
     if (await tryLaunchDesktopCandidate(candidate, launchRequest)) {
       return { candidate };
     }

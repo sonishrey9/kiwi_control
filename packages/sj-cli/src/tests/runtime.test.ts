@@ -5,6 +5,7 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
+  findNearestSourceProductCheckout,
   isSourceProductCheckout,
   resolveShreyJuniorProductRoot,
   resolveSourceCliEntrypoint,
@@ -83,6 +84,24 @@ test("runtime helpers can derive source entrypoints from an explicit source chec
     assert.equal(desktopBundlePath, null);
   }
   assert.equal(isSourceProductCheckout(productRoot), true);
+});
+
+test("runtime can discover the nearest source checkout from a nested workspace path", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-runtime-nearest-source-"));
+  const checkoutRoot = path.join(tempDir, "repo");
+  const nestedWorkspace = path.join(checkoutRoot, "apps", "sj-ui", "src", "views");
+  await fs.mkdir(path.join(checkoutRoot, "configs"), { recursive: true });
+  await fs.mkdir(path.join(checkoutRoot, "packages", "sj-cli"), { recursive: true });
+  await fs.mkdir(path.join(checkoutRoot, "apps", "sj-ui"), { recursive: true });
+  await fs.mkdir(path.join(checkoutRoot, "scripts"), { recursive: true });
+  await fs.mkdir(nestedWorkspace, { recursive: true });
+  await fs.writeFile(path.join(checkoutRoot, "configs", "global.yaml"), "version: 2\n", "utf8");
+  await fs.writeFile(path.join(checkoutRoot, "packages", "sj-cli", "package.json"), "{}\n", "utf8");
+  await fs.writeFile(path.join(checkoutRoot, "apps", "sj-ui", "package.json"), "{}\n", "utf8");
+  await fs.writeFile(path.join(checkoutRoot, "scripts", "run-ui-dev.mjs"), "", "utf8");
+
+  assert.equal(findNearestSourceProductCheckout(nestedWorkspace), checkoutRoot);
+  assert.equal(findNearestSourceProductCheckout(tempDir), null);
 });
 
 test("runtime resolver honors the Kiwi Control product root override env var", async () => {

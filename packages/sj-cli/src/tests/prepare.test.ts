@@ -7,6 +7,7 @@ import { runCommand } from "@shrey-junior/sj-core/utils/child-process.js";
 import { contextSelector } from "@shrey-junior/sj-core/core/context-selector.js";
 import { generateInstructions, persistInstructions } from "@shrey-junior/sj-core/core/instruction-generator.js";
 import { estimateTokens, persistTokenUsage } from "@shrey-junior/sj-core/core/token-estimator.js";
+import { runPrepare } from "../commands/prepare.js";
 import { pathExists, readText, readJson } from "@shrey-junior/sj-core/utils/fs.js";
 
 test("instruction generator produces valid markdown document", async () => {
@@ -64,6 +65,7 @@ test("token estimator computes savings percentage", async () => {
   assert.ok(estimate.savingsPercent <= 100);
   assert.ok(estimate.fileBreakdown.length >= 3);
   assert.match(estimate.estimationMethod, /rough estimate/i);
+  assert.match(estimate.estimateNote, /pricing is intentionally not shown/i);
 });
 
 test("token estimator persists state to .agent/state/token-usage.json", async () => {
@@ -74,9 +76,40 @@ test("token estimator persists state to .agent/state/token-usage.json", async ()
   const statePath = await persistTokenUsage(tempDir, "test task", estimate);
 
   assert.ok(await pathExists(statePath));
-  const state = await readJson<{ artifactType: string; savings_percent: number }>(statePath);
+  const state = await readJson<{ artifactType: string; savings_percent: number; estimate_note?: string; cost_estimates?: unknown }>(statePath);
   assert.equal(state.artifactType, "kiwi-control/token-usage");
   assert.ok(typeof state.savings_percent === "number");
+  assert.match(state.estimate_note ?? "", /pricing is intentionally not shown/i);
+  assert.equal("cost_estimates" in state, false);
+});
+
+test("prepare output clearly labels token counts as rough estimates and omits pricing", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-prepare-report-"));
+  await runCommand("git", ["init"], tempDir);
+  await fs.writeFile(path.join(tempDir, "README.md"), "# repo\n", "utf8");
+  await fs.writeFile(path.join(tempDir, "app.ts"), "export const app = true;\n", "utf8");
+  await runCommand("git", ["add", "."], tempDir);
+  await runCommand("git", ["-c", "user.name=test", "-c", "user.email=test@test.com", "commit", "-m", "init"], tempDir);
+  await fs.writeFile(path.join(tempDir, "README.md"), "# repo\n\nUpdated docs.\n", "utf8");
+
+  const logs: string[] = [];
+  const exitCode = await runPrepare({
+    repoRoot: tempDir,
+    targetRoot: tempDir,
+    task: "update README docs",
+    logger: {
+      info(message: string) {
+        logs.push(message);
+      },
+      warn() {},
+      error() {}
+    } as never
+  });
+
+  assert.equal(exitCode, 0);
+  assert.match(logs.join("\n"), /rough estimate/i);
+  assert.match(logs.join("\n"), /pricing is intentionally not shown/i);
+  assert.doesNotMatch(logs.join("\n"), /Cost Savings|selected \/ .* full repo \/ .* saved|\$/i);
 });
 
 test("constraints include all mandatory rules", () => {

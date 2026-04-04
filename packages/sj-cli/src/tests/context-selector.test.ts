@@ -182,6 +182,70 @@ test("context selector discovers relevant files in deep nested repos without sha
   );
 });
 
+test("context selector keeps narrow docs tasks focused on docs instead of passive config noise", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ctx-docs-precision-"));
+  await runCommand("git", ["init"], tempDir);
+  await fs.mkdir(path.join(tempDir, "src"), { recursive: true });
+  await fs.writeFile(path.join(tempDir, "README.md"), "# Project\n", "utf8");
+  await fs.writeFile(path.join(tempDir, "AGENTS.md"), "Only modify docs files for docs tasks.\n", "utf8");
+  await fs.writeFile(path.join(tempDir, "CLAUDE.md"), "General assistant guidance.\n", "utf8");
+  await fs.writeFile(path.join(tempDir, "package.json"), '{"name":"docs-precision"}\n', "utf8");
+  await fs.writeFile(path.join(tempDir, "src", "app.ts"), "export const app = true;\n", "utf8");
+  await runCommand("git", ["add", "."], tempDir);
+  await runCommand("git", ["-c", "user.name=test", "-c", "user.email=test@test.com", "commit", "-m", "init"], tempDir);
+
+  await fs.writeFile(path.join(tempDir, "README.md"), "# Project\n\nUpdated docs.\n", "utf8");
+
+  const result = await contextSelector("update README docs", tempDir);
+  const repoFiles = result.include.filter((file) => !file.startsWith(".agent/"));
+
+  assert.ok(result.include.includes("README.md"), `Expected README.md in include list, got: ${result.include.join(", ")}`);
+  assert.equal(result.include.includes("package.json"), false, "package.json should not be included for narrow docs tasks");
+  assert.equal(result.include.includes("src/app.ts"), false, "application files should not be included for narrow docs tasks");
+  assert.deepEqual(repoFiles, ["README.md"]);
+});
+
+test("context selector scopes implementation tasks to the relevant source directory", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ctx-src-scope-"));
+  await runCommand("git", ["init"], tempDir);
+  await fs.mkdir(path.join(tempDir, "src", "auth"), { recursive: true });
+  await fs.mkdir(path.join(tempDir, "src", "marketing"), { recursive: true });
+  await fs.writeFile(
+    path.join(tempDir, "src", "auth", "login.ts"),
+    'import { issueToken } from "./token.ts";\nexport function loginUser() { return issueToken(); }\n',
+    "utf8"
+  );
+  await fs.writeFile(
+    path.join(tempDir, "src", "auth", "token.ts"),
+    "export function issueToken() { return 'token'; }\n",
+    "utf8"
+  );
+  await fs.writeFile(
+    path.join(tempDir, "src", "marketing", "home.ts"),
+    "export function homePage() { return 'home'; }\n",
+    "utf8"
+  );
+  await fs.writeFile(path.join(tempDir, "README.md"), "# Project\n", "utf8");
+  await fs.writeFile(path.join(tempDir, "AGENTS.md"), "General project rules.\n", "utf8");
+  await runCommand("git", ["add", "."], tempDir);
+  await runCommand("git", ["-c", "user.name=test", "-c", "user.email=test@test.com", "commit", "-m", "init"], tempDir);
+
+  await fs.writeFile(
+    path.join(tempDir, "src", "auth", "login.ts"),
+    'import { issueToken } from "./token.ts";\nexport function loginUser() { return issueToken() + "-updated"; }\n',
+    "utf8"
+  );
+
+  const result = await contextSelector("fix auth login token flow", tempDir);
+  const repoFiles = result.include.filter((file) => !file.startsWith(".agent/"));
+
+  assert.ok(repoFiles.includes("src/auth/login.ts"));
+  assert.ok(repoFiles.includes("src/auth/token.ts"));
+  assert.equal(repoFiles.some((file) => file.startsWith("src/marketing/")), false, "unrelated source directories should be excluded");
+  assert.equal(repoFiles.includes("README.md"), false, "docs should not be included for implementation tasks");
+  assert.ok(repoFiles.every((file) => file.startsWith("src/")), `Expected only src files, got: ${repoFiles.join(", ")}`);
+});
+
 test("context selector downgrades confidence when evidence is shallow and narrow", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ctx-confidence-low-"));
   await runCommand("git", ["init"], tempDir);
