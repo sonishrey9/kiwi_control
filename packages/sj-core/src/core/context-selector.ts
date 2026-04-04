@@ -2,6 +2,7 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import type { GitState } from "./git.js";
 import { inspectGitState } from "./git.js";
+import { computeAdaptiveWeights } from "./context-feedback.js";
 import { pathExists, readText, writeText } from "../utils/fs.js";
 
 // ---------------------------------------------------------------------------
@@ -170,6 +171,7 @@ const IMPORTABLE_EXTENSIONS = new Set([
 const SCORE_CHANGED = 10;
 const SCORE_IMPORT_NEIGHBOR = 6;
 const SCORE_KEYWORD = 5;
+const SCORE_ADAPTIVE_MAX = 4;
 const SCORE_PROXIMITY = 3;
 const SCORE_RECENT = 2;
 
@@ -189,7 +191,8 @@ export async function contextSelector(
   const gitState = await inspectGitState(targetRoot);
   const worktree = await buildWorktreeState(targetRoot, gitState);
   const signals = await collectSignals(task, targetRoot, gitState);
-  const selection = rankAndSelect(task, targetRoot, signals);
+  const adaptive = await computeAdaptiveWeights(targetRoot);
+  const selection = rankAndSelect(task, targetRoot, signals, adaptive);
 
   await persistWorktreeState(targetRoot, worktree);
   await persistContextSelection(targetRoot, task, selection, signals);
@@ -447,7 +450,8 @@ async function shallowSourceFiles(
 function rankAndSelect(
   task: string,
   targetRoot: string,
-  signals: ContextSignals
+  signals: ContextSignals,
+  adaptive: { boosted: Map<string, number>; penalized: Map<string, number> }
 ): ContextSelection {
   const scored = new Map<string, number>();
   const keywords = tokenizeTask(task);
@@ -481,6 +485,18 @@ function rankAndSelect(
     if (!scored.has(file)) {
       const kwScore = scoreFileAgainstKeywords(file, keywords);
       scored.set(file, Math.min(kwScore, SCORE_KEYWORD));
+    }
+  }
+
+  // Adaptive feedback: boost historically useful files, penalize wasted ones
+  for (const [file, boost] of adaptive.boosted) {
+    if (scored.has(file)) {
+      scored.set(file, (scored.get(file) ?? 0) + Math.min(boost, SCORE_ADAPTIVE_MAX));
+    }
+  }
+  for (const [file, penalty] of adaptive.penalized) {
+    if (scored.has(file)) {
+      scored.set(file, Math.max(0, (scored.get(file) ?? 0) - Math.min(penalty, SCORE_ADAPTIVE_MAX)));
     }
   }
 

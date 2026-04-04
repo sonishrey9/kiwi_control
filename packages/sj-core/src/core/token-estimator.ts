@@ -26,6 +26,24 @@ export interface TokenEstimate {
     selectedFileCount: number;
   }>;
   costEstimates: CostEstimates;
+  wastedFiles: WastedFileReport;
+  heavyDirectories: HeavyDirectoryReport;
+}
+
+export interface WastedFileReport {
+  files: Array<{ file: string; tokens: number; reason: string }>;
+  totalWastedTokens: number;
+  removalSavingsPercent: number;
+}
+
+export interface HeavyDirectoryReport {
+  directories: Array<{
+    directory: string;
+    tokens: number;
+    fileCount: number;
+    percentOfRepo: number;
+    suggestion: string;
+  }>;
 }
 
 export interface CostEstimates {
@@ -52,6 +70,16 @@ export interface TokenUsageState {
   estimation_method: EstimationMethod;
   top_directories: Array<{ directory: string; tokens: number; fileCount: number }>;
   cost_estimates: CostEstimates;
+  wasted_files: Array<{ file: string; tokens: number; reason: string }>;
+  wasted_tokens_total: number;
+  wasted_removal_savings_percent: number;
+  heavy_directories: Array<{
+    directory: string;
+    tokens: number;
+    fileCount: number;
+    percentOfRepo: number;
+    suggestion: string;
+  }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -171,6 +199,8 @@ export async function estimateTokens(
     .sort((a, b) => b.tokens - a.tokens);
 
   const costEstimates = computeCostEstimates(selectedTokens, fullRepoTokens);
+  const wastedFiles = detectWastedFiles(fileBreakdown, selectedSet);
+  const heavyDirectories = detectHeavyDirectories(directoryBreakdown, fullRepoTokens);
 
   return {
     selectedTokens,
@@ -179,7 +209,9 @@ export async function estimateTokens(
     estimationMethod: ESTIMATION_METHOD,
     fileBreakdown,
     directoryBreakdown,
-    costEstimates
+    costEstimates,
+    wastedFiles,
+    heavyDirectories
   };
 }
 
@@ -260,6 +292,103 @@ async function collectSourceFiles(targetRoot: string): Promise<string[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Wasted file detection
+// ---------------------------------------------------------------------------
+
+const WASTED_FILE_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
+  { pattern: /\.test\.(ts|js|tsx|jsx)$/, reason: "Test file in context — exclude unless task is about testing" },
+  { pattern: /\.spec\.(ts|js|tsx|jsx)$/, reason: "Spec file in context — exclude unless task is about testing" },
+  { pattern: /\.stories\.(ts|js|tsx|jsx)$/, reason: "Storybook story — unlikely to be needed for task" },
+  { pattern: /\.config\.(ts|js|mjs|cjs)$/, reason: "Config file — usually unchanged during feature work" },
+  { pattern: /^README\.md$/i, reason: "README rarely needed for implementation tasks" },
+  { pattern: /\.md$/, reason: "Documentation file — consider excluding if task is code-only" }
+];
+
+function detectWastedFiles(
+  fileBreakdown: TokenEstimate["fileBreakdown"],
+  selectedSet: Set<string>
+): WastedFileReport {
+  const wasted: WastedFileReport["files"] = [];
+
+  for (const entry of fileBreakdown) {
+    if (!entry.selected) continue;
+
+    const basename = path.basename(entry.file);
+    for (const { pattern, reason } of WASTED_FILE_PATTERNS) {
+      if (pattern.test(basename) || pattern.test(entry.file)) {
+        wasted.push({ file: entry.file, tokens: entry.tokens, reason });
+        break;
+      }
+    }
+
+    // Large files that may be wasteful
+    if (entry.tokens > 5000 && !wasted.some((w) => w.file === entry.file)) {
+      wasted.push({
+        file: entry.file,
+        tokens: entry.tokens,
+        reason: `Large file (${Math.round(entry.tokens / 1000)}K tokens) — verify it is needed`
+      });
+    }
+  }
+
+  const totalWastedTokens = wasted.reduce((s, w) => s + w.tokens, 0);
+  const selectedTokens = fileBreakdown
+    .filter((f) => f.selected)
+    .reduce((s, f) => s + f.tokens, 0);
+  const removalSavingsPercent = selectedTokens > 0
+    ? Math.round((totalWastedTokens / selectedTokens) * 100)
+    : 0;
+
+  return {
+    files: wasted.sort((a, b) => b.tokens - a.tokens).slice(0, 10),
+    totalWastedTokens,
+    removalSavingsPercent
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Heavy directory detection
+// ---------------------------------------------------------------------------
+
+const HEAVY_DIR_THRESHOLD_PERCENT = 15;
+
+function detectHeavyDirectories(
+  directoryBreakdown: TokenEstimate["directoryBreakdown"],
+  fullRepoTokens: number
+): HeavyDirectoryReport {
+  const directories: HeavyDirectoryReport["directories"] = [];
+
+  for (const dir of directoryBreakdown) {
+    const percentOfRepo = fullRepoTokens > 0
+      ? Math.round((dir.tokens / fullRepoTokens) * 100)
+      : 0;
+
+    if (percentOfRepo >= HEAVY_DIR_THRESHOLD_PERCENT) {
+      let suggestion: string;
+      if (dir.directory.includes("gen") || dir.directory.includes("generated")) {
+        suggestion = "Generated directory — exclude from context selection";
+      } else if (dir.directory.includes("test") || dir.directory.includes("spec")) {
+        suggestion = "Test directory — exclude unless task is about testing";
+      } else if (dir.directory.includes("doc") || dir.directory.includes("docs")) {
+        suggestion = "Documentation directory — exclude for code-only tasks";
+      } else {
+        suggestion = `Contains ${percentOfRepo}% of repo tokens — consider adding to exclude patterns`;
+      }
+
+      directories.push({
+        directory: dir.directory,
+        tokens: dir.tokens,
+        fileCount: dir.fileCount,
+        percentOfRepo,
+        suggestion
+      });
+    }
+  }
+
+  return { directories: directories.slice(0, 5) };
+}
+
+// ---------------------------------------------------------------------------
 // Persistence
 // ---------------------------------------------------------------------------
 
@@ -291,7 +420,11 @@ export async function persistTokenUsage(
     file_count_total: estimate.fileBreakdown.length,
     estimation_method: estimate.estimationMethod,
     top_directories: topDirectories,
-    cost_estimates: estimate.costEstimates
+    cost_estimates: estimate.costEstimates,
+    wasted_files: estimate.wastedFiles.files,
+    wasted_tokens_total: estimate.wastedFiles.totalWastedTokens,
+    wasted_removal_savings_percent: estimate.wastedFiles.removalSavingsPercent,
+    heavy_directories: estimate.heavyDirectories.directories
   };
 
   await writeText(statePath, `${JSON.stringify(record, null, 2)}\n`);

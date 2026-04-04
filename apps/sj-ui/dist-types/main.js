@@ -1,19 +1,74 @@
 import "./styles.css";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 const BRIDGE_UNAVAILABLE_NEXT_STEP = "Confirm kiwi-control works in Terminal, then run kc ui again.";
+const EMPTY_KC = {
+    contextView: {
+        task: null, selectedFiles: [], excludedPatterns: [], reason: null,
+        confidence: null, keywordMatches: [], timestamp: null
+    },
+    tokenAnalytics: {
+        selectedTokens: 0, fullRepoTokens: 0, savingsPercent: 0,
+        fileCountSelected: 0, fileCountTotal: 0, estimationMethod: null,
+        topDirectories: [], costEstimates: [], task: null, timestamp: null
+    },
+    efficiency: {
+        avoidedRepoScan: false, avoidedWebSearch: false, minimalEditMode: false,
+        instructionsGenerated: false, instructionsPath: null
+    },
+    nextActions: { actions: [], summary: "" },
+    feedback: { totalRuns: 0, successRate: 0, recentEntries: [], topBoostedFiles: [], topPenalizedFiles: [] },
+    execution: { totalExecutions: 0, totalTokensUsed: 0, averageTokensPerRun: 0, successRate: 0, recentExecutions: [], tokenTrend: "insufficient-data" },
+    wastedFiles: { files: [], totalWastedTokens: 0, removalSavingsPercent: 0 },
+    heavyDirectories: { directories: [] }
+};
+// ---------------------------------------------------------------------------
+// Bootstrap
+// ---------------------------------------------------------------------------
 const app = document.querySelector("#app");
 if (!app) {
     throw new Error("App root not found");
 }
 const initialState = buildBridgeUnavailableState("");
-app.innerHTML = `
+// All dynamic values are escaped via escapeHtml() — safe for local Tauri context
+app.innerHTML = buildShellHtml(initialState);
+const activeTargetRootElement = document.querySelector("#active-target-root");
+const activeTargetHintElement = document.querySelector("#active-target-hint");
+const targetInputElement = document.querySelector("#target-root");
+const loadButtonElement = document.querySelector("#load-state");
+const bridgeNoteElement = document.querySelector("#bridge-note");
+const gridElement = document.querySelector(".grid");
+const repoStateBannerElement = document.querySelector("#repo-state-banner");
+const sourceOfTruthNoteElement = document.querySelector("#source-of-truth-note");
+let currentTargetRoot = "";
+let isLoadingRepoState = false;
+let queuedLaunchRequest = null;
+let lastHandledLaunchRequestId = "";
+renderState(initialState);
+bridgeNoteElement.textContent = buildBridgeNote(initialState, "shell");
+loadButtonElement.addEventListener("click", () => {
+    const targetRoot = targetInputElement.value.trim();
+    if (!targetRoot) {
+        bridgeNoteElement.textContent = "Enter a repo path only if you want to switch away from the current repo.";
+        return;
+    }
+    void loadAndRenderTarget(targetRoot, "manual");
+});
+void boot();
+// ---------------------------------------------------------------------------
+// Shell HTML (static structure)
+// ---------------------------------------------------------------------------
+function buildShellHtml(state) {
+    return `
   <main class="shell">
     <header class="hero">
       <p class="eyebrow">Kiwi Control</p>
-      <h1>The current repo, already in view.</h1>
+      <h1>Your repo, already in view.</h1>
       <p class="lede">
-        Launch from Terminal with <code>kc ui</code>. Kiwi Control opens, comes forward, and reads the repo you are standing in without moving authority out of the repo.
+        Launch from Terminal with <code>kc ui</code>. The desktop app reads repo-local state directly &mdash; it never owns or replaces it.
       </p>
     </header>
     <section class="control-bar">
@@ -39,44 +94,14 @@ app.innerHTML = `
     <section id="repo-state-banner" class="repo-state-banner"></section>
     <section class="grid"></section>
     <footer class="footer">
-      <p id="source-of-truth-note">${escapeHtml(initialState.repoState.sourceOfTruthNote)}</p>
+      <p id="source-of-truth-note">${escapeHtml(state.repoState.sourceOfTruthNote)}</p>
     </footer>
   </main>
-`;
-const activeTargetRoot = document.querySelector("#active-target-root");
-const activeTargetHint = document.querySelector("#active-target-hint");
-const targetInput = document.querySelector("#target-root");
-const loadButton = document.querySelector("#load-state");
-const bridgeNote = document.querySelector("#bridge-note");
-const grid = document.querySelector(".grid");
-const repoStateBanner = document.querySelector("#repo-state-banner");
-const sourceOfTruthNote = document.querySelector("#source-of-truth-note");
-if (!activeTargetRoot || !activeTargetHint || !targetInput || !loadButton || !bridgeNote || !grid || !repoStateBanner || !sourceOfTruthNote) {
-    throw new Error("UI shell is missing required elements");
+  `;
 }
-const activeTargetRootElement = activeTargetRoot;
-const activeTargetHintElement = activeTargetHint;
-const targetInputElement = targetInput;
-const loadButtonElement = loadButton;
-const bridgeNoteElement = bridgeNote;
-const gridElement = grid;
-const repoStateBannerElement = repoStateBanner;
-const sourceOfTruthNoteElement = sourceOfTruthNote;
-let currentTargetRoot = "";
-let isLoadingRepoState = false;
-let queuedLaunchRequest = null;
-let lastHandledLaunchRequestId = "";
-renderState(initialState);
-bridgeNoteElement.textContent = buildBridgeNote(initialState, "shell");
-loadButtonElement.addEventListener("click", () => {
-    const targetRoot = targetInputElement.value.trim();
-    if (!targetRoot) {
-        bridgeNoteElement.textContent = "Enter a repo path only if you want to switch away from the current repo.";
-        return;
-    }
-    void loadAndRenderTarget(targetRoot, "manual");
-});
-void boot();
+// ---------------------------------------------------------------------------
+// Boot & Launch Request Lifecycle
+// ---------------------------------------------------------------------------
 async function boot() {
     await registerLaunchRequestListener();
     const initialLaunchRequest = await consumeInitialLaunchRequest();
@@ -92,16 +117,15 @@ async function boot() {
     }, 250);
 }
 async function registerLaunchRequestListener() {
-    if (!isTauriBridgeAvailable()) {
+    if (!isTauriBridgeAvailable())
         return;
-    }
     try {
         await listen("desktop-launch-request", (event) => {
             void handleLaunchRequest(event.payload);
         });
     }
     catch {
-        // Browser-only contexts or incomplete bridge initialization do not need live retarget listeners.
+        // Browser-only contexts do not need live retarget listeners.
     }
 }
 async function handleLaunchRequest(request) {
@@ -115,21 +139,18 @@ async function handleLaunchRequest(request) {
     await loadAndRenderTarget(request.targetRoot, "cli", request.requestId);
 }
 async function pollPendingLaunchRequest() {
-    if (isLoadingRepoState || !isTauriBridgeAvailable()) {
+    if (isLoadingRepoState || !isTauriBridgeAvailable())
         return;
-    }
     const pendingLaunchRequest = await consumeInitialLaunchRequest();
-    if (!pendingLaunchRequest || pendingLaunchRequest.requestId === lastHandledLaunchRequestId) {
+    if (!pendingLaunchRequest || pendingLaunchRequest.requestId === lastHandledLaunchRequestId)
         return;
-    }
     await logUiEvent("ui-fallback-launch-request-consumed", pendingLaunchRequest.requestId, pendingLaunchRequest.targetRoot);
     await handleLaunchRequest(pendingLaunchRequest);
 }
 async function loadAndRenderTarget(targetRoot, source, requestId) {
     if (isLoadingRepoState) {
-        if (requestId) {
+        if (requestId)
             queuedLaunchRequest = { requestId, targetRoot };
-        }
         return;
     }
     isLoadingRepoState = true;
@@ -143,9 +164,8 @@ async function loadAndRenderTarget(targetRoot, source, requestId) {
     targetInputElement.value = state.targetRoot || targetRoot;
     bridgeNoteElement.textContent = buildBridgeNote(state, source);
     await logUiEvent("ui-repo-state-rendered", requestId, state.targetRoot || targetRoot, state.repoState.mode);
-    if (requestId) {
+    if (requestId)
         await acknowledgeLaunchRequest(requestId, state);
-    }
     isLoadingRepoState = false;
     if (queuedLaunchRequest && queuedLaunchRequest.requestId !== requestId) {
         const nextRequest = queuedLaunchRequest;
@@ -159,17 +179,11 @@ async function acknowledgeLaunchRequest(requestId, state) {
     const targetRoot = state.targetRoot || currentTargetRoot;
     const status = state.repoState.mode === "bridge-unavailable" ? "error" : "ready";
     const detail = status === "ready" ? `Loaded repo-local state for ${targetRoot}.` : BRIDGE_UNAVAILABLE_NEXT_STEP;
-    if (!isTauriBridgeAvailable()) {
+    if (!isTauriBridgeAvailable())
         return;
-    }
     try {
         await logUiEvent("ui-ack-attempt", requestId, targetRoot, status);
-        await invoke("ack_launch_request", {
-            requestId,
-            targetRoot,
-            status,
-            detail
-        });
+        await invoke("ack_launch_request", { requestId, targetRoot, status, detail });
         await logUiEvent("ui-ack-succeeded", requestId, targetRoot, status);
     }
     catch (error) {
@@ -178,210 +192,419 @@ async function acknowledgeLaunchRequest(requestId, state) {
     }
 }
 async function logUiEvent(event, requestId, targetRoot, detail) {
-    if (!isTauriBridgeAvailable()) {
+    if (!isTauriBridgeAvailable())
         return;
-    }
     try {
-        await invoke("append_ui_launch_log", {
-            event,
-            requestId,
-            targetRoot,
-            detail
-        });
+        await invoke("append_ui_launch_log", { event, requestId, targetRoot, detail });
     }
     catch {
         // Logging must never interrupt the product flow.
     }
 }
+// ---------------------------------------------------------------------------
+// Render — Main State
+// ---------------------------------------------------------------------------
 function renderState(state) {
     const resolvedTargetRoot = state.targetRoot || "No repo loaded yet";
     activeTargetRootElement.textContent = resolvedTargetRoot;
     activeTargetRootElement.title = resolvedTargetRoot;
     activeTargetHintElement.textContent = buildActiveTargetHint(state);
+    // All values are escaped via escapeHtml() — safe for local Tauri desktop context
     gridElement.innerHTML = renderPanels(state);
     repoStateBannerElement.className = `repo-state-banner repo-state-${state.repoState.mode}`;
-    repoStateBannerElement.innerHTML = `
-    <p class="repo-state-kicker">Repo health</p>
-    <h2>${escapeHtml(state.repoState.title)}</h2>
-    <p>${escapeHtml(state.repoState.detail)}</p>
-  `;
+    repoStateBannerElement.textContent = "";
+    const kickerP = document.createElement("p");
+    kickerP.className = "repo-state-kicker";
+    kickerP.textContent = "Repo health";
+    const titleH2 = document.createElement("h2");
+    titleH2.textContent = state.repoState.title;
+    const detailP = document.createElement("p");
+    detailP.textContent = state.repoState.detail;
+    repoStateBannerElement.appendChild(kickerP);
+    repoStateBannerElement.appendChild(titleH2);
+    repoStateBannerElement.appendChild(detailP);
     sourceOfTruthNoteElement.textContent = state.repoState.sourceOfTruthNote;
 }
+// ---------------------------------------------------------------------------
+// Panel Rendering — 6 Required Components
+// ---------------------------------------------------------------------------
+function renderPanels(state) {
+    const kc = state.kiwiControl ?? EMPTY_KC;
+    return [
+        // 1. Dashboard — high-level stats at a glance
+        renderDashboardPanel(state, kc),
+        // 2. What Next — decision engine output (CRITICAL panel)
+        renderWhatNextPanel(kc),
+        // 3. Context Panel — file selection details
+        renderContextPanel(kc),
+        // 4. Token Analytics — visual bars, wasted files, heavy dirs
+        renderTokenAnalyticsPanel(kc),
+        // 5. Feedback Panel — adaptive learning history
+        renderFeedbackPanel(kc),
+        // 6. Execution Panel — run history + token trends
+        renderExecutionPanel(kc)
+    ].join("");
+}
+// ── Panel 1: Dashboard ──
+function renderDashboardPanel(state, kc) {
+    const savingsColor = kc.tokenAnalytics.savingsPercent >= 50 ? "stat-value-success" : "stat-value-warn";
+    const successColor = kc.feedback.successRate >= 70 ? "stat-value-success" : kc.feedback.successRate > 0 ? "stat-value-warn" : "";
+    const trendHtml = kc.execution.tokenTrend !== "insufficient-data"
+        ? `<span class="trend-badge trend-${escapeHtml(kc.execution.tokenTrend)}">${trendIcon(kc.execution.tokenTrend)} ${escapeHtml(kc.execution.tokenTrend)}</span>`
+        : "";
+    const statsHtml = [
+        renderStatCard(`${kc.tokenAnalytics.savingsPercent}%`, "Token savings", savingsColor),
+        renderStatCard(String(kc.tokenAnalytics.fileCountSelected), "Files selected", ""),
+        renderStatCard(formatTokensShort(kc.tokenAnalytics.selectedTokens), "Selected tokens", ""),
+        renderStatCard(kc.feedback.totalRuns > 0 ? `${kc.feedback.successRate}%` : "\u2014", "Success rate", successColor),
+        renderStatCard(kc.execution.totalExecutions > 0 ? String(kc.execution.totalExecutions) : "\u2014", "Total runs", "")
+    ].join("");
+    const tokenBarHtml = renderTokenBar("Selected vs Full Repo", kc.tokenAnalytics.selectedTokens, kc.tokenAnalytics.fullRepoTokens, "accent");
+    const wastedBarHtml = kc.wastedFiles.totalWastedTokens > 0
+        ? renderTokenBar("Wasted tokens in selection", kc.wastedFiles.totalWastedTokens, kc.tokenAnalytics.selectedTokens, "warn")
+        : "";
+    const rows = [
+        renderPanelRow("Profile", escapeHtml(state.profileName)),
+        renderPanelRow("Project", escapeHtml(state.projectType)),
+        renderPanelRow("Instructions", kc.efficiency.instructionsGenerated ? "Ready" : "Not generated"),
+        kc.contextView.task ? renderPanelRow("Active task", escapeHtml(kc.contextView.task)) : ""
+    ].join("");
+    return `
+    <section class="panel panel-full">
+      <div class="panel-header">
+        <span class="panel-icon panel-icon-accent">&#9632;</span>
+        <h2>Dashboard</h2>
+        ${trendHtml}
+      </div>
+      <div class="stat-grid">${statsHtml}</div>
+      ${tokenBarHtml}
+      ${wastedBarHtml}
+      <dl class="panel-list">${rows}</dl>
+    </section>
+  `;
+}
+// ── Panel 2: What Next (Decision Engine) ──
+function renderWhatNextPanel(kc) {
+    const actions = kc.nextActions.actions;
+    let content;
+    if (actions.length === 0) {
+        content = renderActionCard("low", "All systems nominal", "Context, instructions, and feedback are in order. You're ready for work.", null);
+    }
+    else {
+        content = actions.slice(0, 5).map((a) => renderActionCard(a.priority, a.action, a.reason, a.command)).join("");
+    }
+    return `
+    <section class="panel">
+      <div class="panel-header">
+        <span class="panel-icon panel-icon-warn">&#9654;</span>
+        <h2>What Next</h2>
+      </div>
+      ${content}
+    </section>
+  `;
+}
+// ── Panel 3: Context Panel ──
+function renderContextPanel(kc) {
+    const ctx = kc.contextView;
+    if (!ctx.task) {
+        return `
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-icon panel-icon-accent">&#9881;</span>
+          <h2>Context Selection</h2>
+        </div>
+        ${renderActionCard("normal", "No context yet", 'Run kc prepare "your task" to select files and generate AI instructions.', null)}
+      </section>
+    `;
+    }
+    const confidenceClass = ctx.confidence === "high" ? "panel-row-success" : ctx.confidence === "low" ? "panel-row-warn" : "";
+    const fileItems = ctx.selectedFiles.slice(0, 10).map((f) => `<li><span class="file-name">${escapeHtml(f)}</span></li>`).join("");
+    const moreCount = ctx.selectedFiles.length - 10;
+    const rows = [
+        renderPanelRow("Task", escapeHtml(ctx.task)),
+        `<div class="panel-row ${confidenceClass}"><dt>Confidence</dt><dd>${escapeHtml(ctx.confidence ?? "unknown")}</dd></div>`,
+        renderPanelRow("Files", `${ctx.selectedFiles.length} selected / ${kc.tokenAnalytics.fileCountTotal} total`),
+        ctx.keywordMatches.length > 0 ? renderPanelRow("Keywords", escapeHtml(ctx.keywordMatches.slice(0, 6).join(", "))) : "",
+        ctx.reason ? renderPanelRow("Reason", escapeHtml(ctx.reason)) : ""
+    ].join("");
+    return `
+    <section class="panel">
+      <div class="panel-header">
+        <span class="panel-icon panel-icon-accent">&#9881;</span>
+        <h2>Context Selection</h2>
+      </div>
+      <dl class="panel-list">${rows}</dl>
+      <ul class="file-list">
+        ${fileItems}
+        ${moreCount > 0 ? `<li><span class="file-name">+${moreCount} more files</span></li>` : ""}
+      </ul>
+    </section>
+  `;
+}
+// ── Panel 4: Token Analytics ──
+function renderTokenAnalyticsPanel(kc) {
+    const ta = kc.tokenAnalytics;
+    if (!ta.task) {
+        return `
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-icon panel-icon-accent">&#9879;</span>
+          <h2>Token Analytics</h2>
+        </div>
+        ${renderActionCard("normal", "No token data yet", 'Run kc prepare "task" to compute token savings and cost estimates.', null)}
+      </section>
+    `;
+    }
+    const costRows = ta.costEstimates.slice(0, 3).map((c) => renderPanelRow(escapeHtml(c.model), `${escapeHtml(c.selectedCost)} selected &middot; ${escapeHtml(c.savingsCost)} saved`)).join("");
+    const dirRows = ta.topDirectories.slice(0, 4).map((d) => renderPanelRow(escapeHtml(d.directory), `${formatTokensShort(d.tokens)} &middot; ${d.fileCount} files`)).join("");
+    // Wasted files section
+    const wf = kc.wastedFiles;
+    let wastedHtml = "";
+    if (wf.files.length > 0) {
+        const wastedItems = wf.files.slice(0, 5).map((f) => `
+      <li>
+        <div>
+          <span class="file-name">${escapeHtml(f.file)}</span>
+          <div class="file-reason">${escapeHtml(f.reason)}</div>
+        </div>
+        <span class="file-tokens">${formatTokensShort(f.tokens)}</span>
+      </li>
+    `).join("");
+        wastedHtml = `
+      ${renderPanelRow("Wasted", `${formatTokensShort(wf.totalWastedTokens)} (${wf.removalSavingsPercent}% of selection)`)}
+      <ul class="file-list">${wastedItems}</ul>
+    `;
+    }
+    // Heavy directories section
+    const hd = kc.heavyDirectories;
+    let heavyHtml = "";
+    if (hd.directories.length > 0) {
+        const heavyItems = hd.directories.slice(0, 3).map((d) => `
+      <li>
+        <div>
+          <span class="file-name">${escapeHtml(d.directory)} (${d.percentOfRepo}%)</span>
+          <div class="file-reason">${escapeHtml(d.suggestion)}</div>
+        </div>
+        <span class="file-tokens">${formatTokensShort(d.tokens)}</span>
+      </li>
+    `).join("");
+        heavyHtml = `
+      ${renderPanelRow("Heavy dirs", `${hd.directories.length} director${hd.directories.length === 1 ? "y" : "ies"} over 15% of repo`)}
+      <ul class="file-list">${heavyItems}</ul>
+    `;
+    }
+    const tokenBarHtml = renderTokenBar(`${formatTokensShort(ta.selectedTokens)} selected of ${formatTokensShort(ta.fullRepoTokens)}`, ta.selectedTokens, ta.fullRepoTokens, ta.savingsPercent >= 50 ? "success" : "warn");
+    const mainRows = [
+        renderPanelRow("Savings", `${ta.savingsPercent}%`),
+        renderPanelRow("Files", `${ta.fileCountSelected} / ${ta.fileCountTotal}`),
+        ta.estimationMethod ? renderPanelRow("Method", escapeHtml(ta.estimationMethod)) : "",
+        costRows,
+        dirRows,
+        wastedHtml,
+        heavyHtml
+    ].join("");
+    return `
+    <section class="panel">
+      <div class="panel-header">
+        <span class="panel-icon panel-icon-accent">&#9879;</span>
+        <h2>Token Analytics</h2>
+      </div>
+      ${tokenBarHtml}
+      <dl class="panel-list">${mainRows}</dl>
+    </section>
+  `;
+}
+// ── Panel 5: Feedback Panel ──
+function renderFeedbackPanel(kc) {
+    const fb = kc.feedback;
+    if (fb.totalRuns === 0) {
+        return `
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-icon panel-icon-success">&#10003;</span>
+          <h2>Context Feedback</h2>
+        </div>
+        ${renderActionCard("normal", "No feedback yet", "After AI runs, use kc feedback to record which files were actually used. This trains context selection to improve over time.", null)}
+      </section>
+    `;
+    }
+    const recentEntries = fb.recentEntries.slice(0, 5).map((e) => `
+    <div class="feedback-entry">
+      <span class="feedback-dot ${e.success ? "feedback-dot-success" : "feedback-dot-fail"}"></span>
+      <span class="feedback-task">${escapeHtml(e.task)}</span>
+      <span class="feedback-meta">${e.filesUsed}/${e.filesSelected} used</span>
+    </div>
+  `).join("");
+    const boostedHtml = fb.topBoostedFiles.length > 0
+        ? renderFileScoreList("Boosted", "Files frequently used", fb.topBoostedFiles, "+")
+        : "";
+    const penalizedHtml = fb.topPenalizedFiles.length > 0
+        ? renderFileScoreList("Penalized", "Files frequently wasted", fb.topPenalizedFiles, "-")
+        : "";
+    return `
+    <section class="panel">
+      <div class="panel-header">
+        <span class="panel-icon panel-icon-success">&#10003;</span>
+        <h2>Context Feedback</h2>
+      </div>
+      <div class="stat-grid">
+        ${renderStatCard(String(fb.totalRuns), "Total runs", "")}
+        ${renderStatCard(`${fb.successRate}%`, "Success rate", fb.successRate >= 70 ? "stat-value-success" : "stat-value-warn")}
+      </div>
+      ${recentEntries}
+      ${boostedHtml}
+      ${penalizedHtml}
+    </section>
+  `;
+}
+// ── Panel 6: Execution Panel ──
+function renderExecutionPanel(kc) {
+    const ex = kc.execution;
+    if (ex.totalExecutions === 0) {
+        return `
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-icon panel-icon-accent">&#9889;</span>
+          <h2>Execution History</h2>
+        </div>
+        ${renderActionCard("normal", "No executions recorded", "Execution tracking records token usage, success rates, and performance trends across AI runs.", null)}
+      </section>
+    `;
+    }
+    const trendClass = `trend-${ex.tokenTrend === "insufficient-data" ? "insufficient" : escapeHtml(ex.tokenTrend)}`;
+    const recentRows = ex.recentExecutions.slice(0, 5).map((e) => `
+    <div class="feedback-entry">
+      <span class="feedback-dot ${e.success ? "feedback-dot-success" : "feedback-dot-fail"}"></span>
+      <span class="feedback-task">${escapeHtml(e.task)}</span>
+      <span class="feedback-meta">${formatTokensShort(e.tokensUsed)}</span>
+    </div>
+  `).join("");
+    return `
+    <section class="panel">
+      <div class="panel-header">
+        <span class="panel-icon panel-icon-accent">&#9889;</span>
+        <h2>Execution History</h2>
+      </div>
+      <div class="stat-grid">
+        ${renderStatCard(String(ex.totalExecutions), "Total runs", "")}
+        ${renderStatCard(formatTokensShort(ex.averageTokensPerRun), "Avg tokens/run", "")}
+        ${renderStatCard(`${ex.successRate}%`, "Success rate", ex.successRate >= 70 ? "stat-value-success" : "stat-value-warn")}
+      </div>
+      <div style="margin-bottom: 12px;">
+        <span class="trend-badge ${trendClass}">${trendIcon(ex.tokenTrend)} Token trend: ${escapeHtml(ex.tokenTrend.replace("-", " "))}</span>
+      </div>
+      ${recentRows}
+    </section>
+  `;
+}
+// ---------------------------------------------------------------------------
+// Rendering Helpers
+// ---------------------------------------------------------------------------
+function renderStatCard(value, label, colorClass) {
+    return `
+    <div class="stat-card">
+      <div class="stat-value ${colorClass}">${escapeHtml(value)}</div>
+      <div class="stat-label">${escapeHtml(label)}</div>
+    </div>
+  `;
+}
+function renderPanelRow(label, value) {
+    return `
+    <div class="panel-row">
+      <dt>${escapeHtml(label)}</dt>
+      <dd>${value}</dd>
+    </div>
+  `;
+}
+function renderActionCard(priority, title, reason, command) {
+    return `
+    <div class="action-card">
+      <div class="action-card-title">
+        <span class="priority-badge priority-${escapeHtml(priority)}">${escapeHtml(priority)}</span>
+        ${escapeHtml(title)}
+      </div>
+      <p class="action-card-reason">${escapeHtml(reason)}</p>
+      ${command ? `<code class="action-card-cmd">${escapeHtml(command)}</code>` : ""}
+    </div>
+  `;
+}
+function renderFileScoreList(label, description, files, prefix) {
+    const items = files.slice(0, 3).map((f) => `
+    <li><span class="file-name">${escapeHtml(f.file)}</span><span class="file-tokens">${prefix}${f.score}</span></li>
+  `).join("");
+    return `
+    <dl class="panel-list">
+      ${renderPanelRow(label, description)}
+    </dl>
+    <ul class="file-list">${items}</ul>
+  `;
+}
+function renderTokenBar(label, value, total, color) {
+    if (total <= 0)
+        return "";
+    const pct = Math.min(100, Math.round((value / total) * 100));
+    return `
+    <div class="token-bar-container">
+      <div class="token-bar-label">
+        <span>${escapeHtml(label)}</span>
+        <span>${pct}%</span>
+      </div>
+      <div class="token-bar-track">
+        <div class="token-bar-fill token-bar-fill-${color}" style="width: ${pct}%"></div>
+      </div>
+    </div>
+  `;
+}
+function trendIcon(trend) {
+    switch (trend) {
+        case "improving": return "\u2193";
+        case "worsening": return "\u2191";
+        case "stable": return "\u2194";
+        default: return "\u2022";
+    }
+}
+function formatTokensShort(count) {
+    if (count >= 1_000_000)
+        return `${(count / 1_000_000).toFixed(1)}M`;
+    if (count >= 1_000)
+        return `${(count / 1_000).toFixed(1)}K`;
+    return String(count);
+}
+// ---------------------------------------------------------------------------
+// Bridge & State Loading
+// ---------------------------------------------------------------------------
 function buildActiveTargetHint(state) {
     if (!state.targetRoot) {
-        return "Run kc ui inside a repo to load it automatically. Use “Load another repo” only when you want a different folder.";
+        return "Run kc ui inside a repo to load it automatically.";
     }
     switch (state.repoState.mode) {
         case "healthy":
-            return "Repo-local state is loaded and ready. Load another repo only when you intentionally want a different folder.";
+            return "Repo-local state is loaded and ready.";
         case "repo-not-initialized":
-            return "This folder is not initialized yet. Run kc init in Terminal when you want to standardize it.";
+            return "This folder is not initialized yet. Run kc init in Terminal to get started.";
         case "initialized-invalid":
-            return "This repo needs a little repair before continuity is fully trustworthy.";
+            return "This repo needs repair before continuity is fully trustworthy.";
         case "initialized-with-warnings":
-            return "This repo is usable now, with a few warnings still worth addressing.";
+            return "Repo is usable with a few warnings worth addressing.";
         case "bridge-unavailable":
         default:
             return BRIDGE_UNAVAILABLE_NEXT_STEP;
     }
 }
 function buildBridgeNote(state, source) {
-    if (!state.targetRoot) {
-        return "Run kc ui inside a repo to load it automatically. Keep manual switching as fallback only.";
-    }
-    if (state.repoState.mode === "bridge-unavailable") {
+    if (!state.targetRoot)
+        return "Run kc ui inside a repo to load it automatically.";
+    if (state.repoState.mode === "bridge-unavailable")
         return BRIDGE_UNAVAILABLE_NEXT_STEP;
-    }
-    if (source === "cli") {
-        return `Loaded ${state.targetRoot} from kc ui. Use “Load another repo” only when you want to move to a different folder.`;
-    }
-    if (source === "manual") {
-        return `Loaded ${state.targetRoot}. You can switch again whenever you intentionally want a different repo.`;
-    }
+    if (source === "cli")
+        return `Loaded ${state.targetRoot} from kc ui.`;
+    if (source === "manual")
+        return `Loaded ${state.targetRoot}.`;
     return `Repo-local state for ${state.targetRoot} is ready.`;
 }
-function renderPanels(state) {
-    const kc = state.kiwiControl;
-    return [
-        renderPanel("Dashboard", [
-            { label: "Repo", value: state.targetRoot || "No repo loaded yet", ...(state.targetRoot ? {} : { tone: "warn" }) },
-            { label: "Profile", value: state.profileName },
-            { label: "Project type", value: state.projectType },
-            { label: "Current phase", value: state.repoOverview.find((i) => i.label === "Current phase")?.value ?? "none" },
-            { label: "Next action", value: state.repoOverview.find((i) => i.label === "Next command")?.value ?? "none recorded" },
-            { label: "Repo health", value: state.repoState.title }
-        ]),
-        renderPanel("Context View", kc?.contextView.task ? [
-            { label: "Task", value: kc.contextView.task },
-            { label: "Confidence", value: kc.contextView.confidence ?? "unknown", ...(kc.contextView.confidence === "low" ? { tone: "warn" } : {}) },
-            { label: "Selected files", value: String(kc.contextView.selectedFiles.length) },
-            ...kc.contextView.selectedFiles.slice(0, 8).map((f) => ({ label: "  file", value: f })),
-            ...(kc.contextView.selectedFiles.length > 8 ? [{ label: "  ...", value: `+${kc.contextView.selectedFiles.length - 8} more` }] : []),
-            ...(kc.contextView.keywordMatches.length > 0 ? [{ label: "Keyword matches", value: kc.contextView.keywordMatches.slice(0, 5).join(", ") }] : []),
-            { label: "Excluded patterns", value: String(kc.contextView.excludedPatterns.length) },
-            { label: "Reason", value: kc.contextView.reason ?? "none" }
-        ] : [
-            { label: "Status", value: "No context selection yet", tone: "warn" },
-            { label: "Action", value: "Run kc prepare \"task\" to generate context" }
-        ]),
-        renderPanel("Token Analytics", kc?.tokenAnalytics.task ? [
-            { label: "Task", value: kc.tokenAnalytics.task },
-            { label: "Selected tokens", value: formatTokens(kc.tokenAnalytics.selectedTokens) },
-            { label: "Full repo tokens", value: formatTokens(kc.tokenAnalytics.fullRepoTokens) },
-            { label: "Savings", value: `${kc.tokenAnalytics.savingsPercent}%`, ...(kc.tokenAnalytics.savingsPercent >= 50 ? {} : { tone: "warn" }) },
-            { label: "Files (selected/total)", value: `${kc.tokenAnalytics.fileCountSelected} / ${kc.tokenAnalytics.fileCountTotal}` },
-            ...(kc.tokenAnalytics.estimationMethod ? [{ label: "Method", value: kc.tokenAnalytics.estimationMethod }] : []),
-            ...kc.tokenAnalytics.topDirectories.slice(0, 3).map((d) => ({
-                label: `  ${d.directory}`, value: `${formatTokens(d.tokens)} (${d.fileCount} files)`
-            })),
-            ...kc.tokenAnalytics.costEstimates.slice(0, 3).map((c) => ({
-                label: `  ${c.model}`, value: `${c.selectedCost} selected / ${c.savingsCost} saved`
-            }))
-        ] : [
-            { label: "Status", value: "No token data yet", tone: "warn" },
-            { label: "Action", value: "Run kc prepare \"task\" to compute token savings" }
-        ]),
-        renderPanel("Efficiency", [
-            { label: "Avoided repo scan", value: kc?.efficiency.avoidedRepoScan ? "Yes" : "Not yet" },
-            { label: "Avoided web search", value: kc?.efficiency.avoidedWebSearch ? "Yes" : "Not yet" },
-            { label: "Minimal edit mode", value: kc?.efficiency.minimalEditMode ? "Active" : "Inactive" },
-            { label: "Instructions generated", value: kc?.efficiency.instructionsGenerated ? "Yes" : "No", ...(kc?.efficiency.instructionsGenerated ? {} : { tone: "warn" }) },
-            ...(kc?.efficiency.instructionsPath ? [{ label: "Instructions file", value: kc.efficiency.instructionsPath }] : [])
-        ]),
-        renderPanel("What Next", buildWhatNextItems(state, kc)),
-        renderPanel("Continuity", state.continuity),
-        renderPanel("Specialists", [
-            { label: "Recommended", value: state.specialists.recommendedSpecialist },
-            { label: "Targets", value: state.specialists.handoffTargets.join(", ") || "none recorded" },
-            { label: "Parallel hint", value: state.specialists.safeParallelHint }
-        ]),
-        renderPanel("Validation", [
-            { label: "OK", value: String(state.validation.ok) },
-            { label: "Errors", value: String(state.validation.errors), ...(state.validation.errors ? { tone: "warn" } : {}) },
-            { label: "Warnings", value: String(state.validation.warnings), ...(state.validation.warnings ? { tone: "warn" } : {}) }
-        ])
-    ].join("");
-}
-function buildWhatNextItems(state, kc) {
-    const items = [];
-    // Repo health guidance
-    if (state.repoState.mode === "repo-not-initialized") {
-        items.push({ label: "Priority", value: "Run kc init to initialize the repo", tone: "warn" });
-    }
-    else if (state.repoState.mode === "initialized-invalid") {
-        items.push({ label: "Priority", value: "Run kc check to repair repo contract", tone: "warn" });
-    }
-    // Context preparation guidance
-    if (!kc?.contextView.task) {
-        items.push({ label: "Prepare", value: "Run kc prepare \"your task\" to select context and generate instructions" });
-    }
-    else {
-        const confidence = kc.contextView.confidence ?? "unknown";
-        if (confidence === "low") {
-            items.push({ label: "Caution", value: "Context confidence is LOW — verify selected files before starting work", tone: "warn" });
-        }
-        else if (confidence === "high") {
-            items.push({ label: "Ready", value: `Context is HIGH confidence with ${kc.contextView.selectedFiles.length} files — safe to proceed` });
-        }
-        else {
-            items.push({ label: "Ready", value: `Context selected with ${kc.contextView.selectedFiles.length} files — review before proceeding` });
-        }
-    }
-    // Token guidance
-    if (kc?.tokenAnalytics.task && kc.tokenAnalytics.savingsPercent < 50) {
-        items.push({ label: "Token warning", value: `Only ${kc.tokenAnalytics.savingsPercent}% savings — consider narrowing the task scope`, tone: "warn" });
-    }
-    // Instruction guidance
-    if (!kc?.efficiency.instructionsGenerated) {
-        items.push({ label: "Instructions", value: "No instructions generated yet — run kc prepare to create them" });
-    }
-    else {
-        items.push({ label: "Instructions", value: "Ready — paste generated-instructions.md into your AI tool" });
-    }
-    // Specialist guidance
-    if (state.specialists.recommendedSpecialist) {
-        items.push({ label: "Specialist", value: `Recommended: ${state.specialists.recommendedSpecialist}` });
-    }
-    // Next action from repo overview
-    const nextAction = state.repoOverview.find((i) => i.label === "Next command");
-    if (nextAction && nextAction.value !== "none recorded") {
-        items.push({ label: "Next command", value: nextAction.value });
-    }
-    if (items.length === 0) {
-        items.push({ label: "Status", value: "All clear — ready for work" });
-    }
-    return items;
-}
-function formatTokens(count) {
-    if (count >= 1_000_000)
-        return `${(count / 1_000_000).toFixed(1)}M tokens`;
-    if (count >= 1_000)
-        return `${(count / 1_000).toFixed(1)}K tokens`;
-    return `${count} tokens`;
-}
-function renderPanel(title, items) {
-    return `
-    <section class="panel">
-      <div class="panel-header">
-        <h2>${escapeHtml(title)}</h2>
-      </div>
-      <dl class="panel-list">
-        ${items
-        .map((item) => `
-              <div class="panel-row ${item.tone === "warn" ? "panel-row-warn" : ""}">
-                <dt>${escapeHtml(item.label)}</dt>
-                <dd>${escapeHtml(item.value)}</dd>
-              </div>
-            `)
-        .join("")}
-      </dl>
-    </section>
-  `;
-}
 async function consumeInitialLaunchRequest() {
-    if (!isTauriBridgeAvailable()) {
+    if (!isTauriBridgeAvailable())
         return null;
-    }
     try {
         return await invoke("consume_initial_launch_request");
     }
@@ -390,9 +613,8 @@ async function consumeInitialLaunchRequest() {
     }
 }
 async function loadRepoControlState(targetRoot) {
-    if (!isTauriBridgeAvailable()) {
+    if (!isTauriBridgeAvailable())
         return buildBridgeUnavailableState(targetRoot);
-    }
     try {
         return await invoke("load_repo_control_state", { targetRoot });
     }
@@ -413,106 +635,36 @@ function buildBridgeUnavailableState(targetRoot) {
             title: hasTargetRoot ? "Could not load this repo yet" : "Open a repo",
             detail: hasTargetRoot
                 ? "Kiwi Control could not read repo-local state for this folder yet."
-                : "Run kc ui inside a repo to load it automatically, or use “Load another repo” only when you want a different folder.",
-            sourceOfTruthNote: "Repo-local artifacts under .agent/ and promoted repo instruction files remain the source of truth. The desktop app never replaces that state with hidden app-owned storage."
+                : "Run kc ui inside a repo to load it automatically, or use \u201cLoad another repo\u201d to switch.",
+            sourceOfTruthNote: "Repo-local artifacts under .agent/ and promoted repo instruction files remain the source of truth. The desktop app never replaces that state."
         },
         repoOverview: [
-            {
-                label: "Project type",
-                value: hasTargetRoot ? "unknown (awaiting repo bridge)" : "no repo loaded",
-                ...(hasTargetRoot ? { tone: "warn" } : {})
-            },
+            { label: "Project type", value: hasTargetRoot ? "unknown (awaiting repo bridge)" : "no repo loaded", ...(hasTargetRoot ? { tone: "warn" } : {}) },
             { label: "Active role", value: "none recorded" },
             { label: "Next file", value: hasTargetRoot ? ".agent/project.yaml" : "run kc ui inside a repo" },
             { label: "Next command", value: hasTargetRoot ? "kc ui" : "kc init" },
-            {
-                label: "Validation state",
-                value: hasTargetRoot ? "bridge unavailable" : "waiting for repo",
-                ...(hasTargetRoot ? { tone: "warn" } : {})
-            },
+            { label: "Validation state", value: hasTargetRoot ? "bridge unavailable" : "waiting for repo", ...(hasTargetRoot ? { tone: "warn" } : {}) },
             { label: "Current phase", value: hasTargetRoot ? "restore repo bridge" : "load a repo" }
         ],
         continuity: [
             { label: "Latest checkpoint", value: "none recorded" },
             { label: "Latest handoff", value: "none recorded" },
             { label: "Latest reconcile", value: "none recorded" },
-            {
-                label: "Current focus",
-                value: hasTargetRoot ? `reload repo-local state for ${resolvedTargetRoot}` : "open a repo from the CLI or switch repos manually"
-            },
-            {
-                label: "Open risks",
-                value: hasTargetRoot
-                    ? "Kiwi Control cannot read repo-local state for this folder yet."
-                    : "No repo is loaded yet, so continuity and validation are still waiting on a target folder.",
-                tone: "warn"
-            }
+            { label: "Current focus", value: hasTargetRoot ? `reload repo-local state for ${resolvedTargetRoot}` : "open a repo from the CLI" },
+            { label: "Open risks", value: hasTargetRoot ? "Cannot read repo-local state yet." : "No repo loaded.", tone: "warn" }
         ],
-        memoryBank: [
-            { label: "Repo Facts", path: ".agent/memory/repo-facts.json", present: false },
-            { label: "Architecture Decisions", path: ".agent/memory/architecture-decisions.md", present: false },
-            { label: "Domain Glossary", path: ".agent/memory/domain-glossary.md", present: false },
-            { label: "Known Gotchas", path: ".agent/memory/known-gotchas.md", present: false },
-            { label: "Last Successful Patterns", path: ".agent/memory/last-successful-patterns.md", present: false }
-        ],
+        memoryBank: [],
         specialists: {
             recommendedSpecialist: "review-specialist",
-            handoffTargets: ["qa-specialist", "docs-specialist"],
-            safeParallelHint: "Restore repo-local visibility first. Once Kiwi Control can read the repo again, continuity, specialists, and validation will update automatically."
+            handoffTargets: [],
+            safeParallelHint: "Restore repo-local visibility first."
         },
         mcpPacks: {
-            suggestedPack: {
-                id: "core-pack",
-                description: "Default repo-first pack for filesystem, git-aware reasoning, and contract inspection."
-            },
-            available: [
-                {
-                    id: "core-pack",
-                    description: "Default repo-first pack for filesystem, git-aware reasoning, and contract inspection.",
-                    realismNotes: ["Pack guidance is curated advice, not a universal runtime guarantee."]
-                },
-                {
-                    id: "web-qa-pack",
-                    description: "Browser and verification guidance for web apps, UI review, and smoke testing.",
-                    realismNotes: ["Playwright MCP strength depends on the active runtime and installed tooling."]
-                }
-            ]
+            suggestedPack: { id: "core-pack", description: "Default repo-first pack." },
+            available: []
         },
-        validation: {
-            ok: false,
-            errors: hasTargetRoot ? 1 : 0,
-            warnings: hasTargetRoot ? 0 : 1
-        },
-        kiwiControl: {
-            contextView: {
-                task: null,
-                selectedFiles: [],
-                excludedPatterns: [],
-                reason: null,
-                confidence: null,
-                keywordMatches: [],
-                timestamp: null
-            },
-            tokenAnalytics: {
-                selectedTokens: 0,
-                fullRepoTokens: 0,
-                savingsPercent: 0,
-                fileCountSelected: 0,
-                fileCountTotal: 0,
-                estimationMethod: null,
-                topDirectories: [],
-                costEstimates: [],
-                task: null,
-                timestamp: null
-            },
-            efficiency: {
-                avoidedRepoScan: false,
-                avoidedWebSearch: false,
-                minimalEditMode: false,
-                instructionsGenerated: false,
-                instructionsPath: null
-            }
-        }
+        validation: { ok: false, errors: hasTargetRoot ? 1 : 0, warnings: hasTargetRoot ? 0 : 1 },
+        kiwiControl: EMPTY_KC
     };
 }
 function escapeHtml(value) {

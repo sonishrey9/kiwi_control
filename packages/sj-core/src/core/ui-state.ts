@@ -16,6 +16,12 @@ import { pathExists, readJson, renderDisplayPath } from "../utils/fs.js";
 import type { ContextSelectionState } from "./context-selector.js";
 import type { TokenUsageState } from "./token-estimator.js";
 import { inspectGitState } from "./git.js";
+import { nextActionEngine } from "./next-action.js";
+import type { NextAction } from "./next-action.js";
+import { buildFeedbackSummary } from "./context-feedback.js";
+import type { FeedbackSummary } from "./context-feedback.js";
+import { buildExecutionSummary } from "./execution-log.js";
+import type { ExecutionSummary } from "./execution-log.js";
 
 export interface RepoControlPanelItem {
   label: string;
@@ -81,10 +87,73 @@ export interface KiwiControlEfficiency {
   instructionsPath: string | null;
 }
 
+export interface KiwiControlNextActions {
+  actions: Array<{
+    action: string;
+    file: string | null;
+    command: string | null;
+    reason: string;
+    priority: "critical" | "high" | "normal" | "low";
+  }>;
+  summary: string;
+}
+
+export interface KiwiControlFeedback {
+  totalRuns: number;
+  successRate: number;
+  recentEntries: Array<{
+    task: string;
+    success: boolean;
+    filesSelected: number;
+    filesUsed: number;
+    filesWasted: number;
+    timestamp: string;
+  }>;
+  topBoostedFiles: Array<{ file: string; score: number }>;
+  topPenalizedFiles: Array<{ file: string; score: number }>;
+}
+
+export interface KiwiControlExecution {
+  totalExecutions: number;
+  totalTokensUsed: number;
+  averageTokensPerRun: number;
+  successRate: number;
+  recentExecutions: Array<{
+    task: string;
+    success: boolean;
+    tokensUsed: number;
+    filesTouched: number;
+    tool: string | null;
+    timestamp: string;
+  }>;
+  tokenTrend: "improving" | "stable" | "worsening" | "insufficient-data";
+}
+
+export interface KiwiControlWastedFiles {
+  files: Array<{ file: string; tokens: number; reason: string }>;
+  totalWastedTokens: number;
+  removalSavingsPercent: number;
+}
+
+export interface KiwiControlHeavyDirectories {
+  directories: Array<{
+    directory: string;
+    tokens: number;
+    fileCount: number;
+    percentOfRepo: number;
+    suggestion: string;
+  }>;
+}
+
 export interface KiwiControlState {
   contextView: KiwiControlContextView;
   tokenAnalytics: KiwiControlTokenAnalytics;
   efficiency: KiwiControlEfficiency;
+  nextActions: KiwiControlNextActions;
+  feedback: KiwiControlFeedback;
+  execution: KiwiControlExecution;
+  wastedFiles: KiwiControlWastedFiles;
+  heavyDirectories: KiwiControlHeavyDirectories;
 }
 
 export interface RepoControlState {
@@ -426,6 +495,16 @@ async function loadKiwiControlState(targetRoot: string): Promise<KiwiControlStat
     timestamp: null
   };
 
+  let wastedFiles: KiwiControlWastedFiles = {
+    files: [],
+    totalWastedTokens: 0,
+    removalSavingsPercent: 0
+  };
+
+  let heavyDirectories: KiwiControlHeavyDirectories = {
+    directories: []
+  };
+
   if (await pathExists(tokenUsagePath)) {
     const usage = await readJson<TokenUsageState>(tokenUsagePath);
     tokenAnalytics = {
@@ -445,6 +524,14 @@ async function loadKiwiControlState(targetRoot: string): Promise<KiwiControlStat
       task: usage.task,
       timestamp: usage.timestamp
     };
+    wastedFiles = {
+      files: usage.wasted_files ?? [],
+      totalWastedTokens: usage.wasted_tokens_total ?? 0,
+      removalSavingsPercent: usage.wasted_removal_savings_percent ?? 0
+    };
+    heavyDirectories = {
+      directories: usage.heavy_directories ?? []
+    };
   }
 
   const hasInstructions = await pathExists(instructionsPath);
@@ -457,5 +544,43 @@ async function loadKiwiControlState(targetRoot: string): Promise<KiwiControlStat
     instructionsPath: hasInstructions ? instructionsPath : null
   };
 
-  return { contextView, tokenAnalytics, efficiency };
+  // Load decision engine, feedback, and execution data in parallel
+  const [decisionOutput, feedbackSummary, executionSummary] = await Promise.all([
+    nextActionEngine(targetRoot).catch(() => ({ nextActions: [], summary: "Decision engine unavailable" })),
+    buildFeedbackSummary(targetRoot).catch(() => ({
+      totalRuns: 0, successRate: 0, recentEntries: [],
+      topBoostedFiles: [], topPenalizedFiles: []
+    })),
+    buildExecutionSummary(targetRoot).catch(() => ({
+      totalExecutions: 0, totalTokensUsed: 0, averageTokensPerRun: 0,
+      successRate: 0, recentExecutions: [], tokenTrend: "insufficient-data" as const
+    }))
+  ]);
+
+  const nextActions: KiwiControlNextActions = {
+    actions: decisionOutput.nextActions,
+    summary: decisionOutput.summary
+  };
+
+  const feedback: KiwiControlFeedback = {
+    totalRuns: feedbackSummary.totalRuns,
+    successRate: feedbackSummary.successRate,
+    recentEntries: feedbackSummary.recentEntries,
+    topBoostedFiles: feedbackSummary.topBoostedFiles,
+    topPenalizedFiles: feedbackSummary.topPenalizedFiles
+  };
+
+  const execution: KiwiControlExecution = {
+    totalExecutions: executionSummary.totalExecutions,
+    totalTokensUsed: executionSummary.totalTokensUsed,
+    averageTokensPerRun: executionSummary.averageTokensPerRun,
+    successRate: executionSummary.successRate,
+    recentExecutions: executionSummary.recentExecutions,
+    tokenTrend: executionSummary.tokenTrend
+  };
+
+  return {
+    contextView, tokenAnalytics, efficiency,
+    nextActions, feedback, execution, wastedFiles, heavyDirectories
+  };
 }

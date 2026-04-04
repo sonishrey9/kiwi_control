@@ -12,6 +12,9 @@ import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 import { pathExists, readJson, renderDisplayPath } from "@shrey-junior/sj-core/utils/fs.js";
 import type { TokenUsageState } from "@shrey-junior/sj-core/core/token-estimator.js";
 import type { ContextSelectionState } from "@shrey-junior/sj-core/core/context-selector.js";
+import { nextActionEngine } from "@shrey-junior/sj-core/core/next-action.js";
+import { buildFeedbackSummary } from "@shrey-junior/sj-core/core/context-feedback.js";
+import { buildExecutionSummary } from "@shrey-junior/sj-core/core/execution-log.js";
 import path from "node:path";
 
 export interface StatusOptions {
@@ -194,6 +197,36 @@ export async function runStatus(options: StatusOptions): Promise<number> {
     lines.push(`context reason: ${ctxSelection.reason}`);
   } else {
     lines.push("context selection: not yet computed (run kc prepare to generate)");
+  }
+
+  // Decision engine — NEXT ACTION
+  const decision = await nextActionEngine(options.targetRoot);
+  const topAction = decision.nextActions[0] ?? null;
+  if (topAction) {
+    lines.push(`\nNEXT ACTION: ${topAction.action} [${topAction.priority}]`);
+    lines.push(`WHY: ${topAction.reason}`);
+    if (topAction.command) lines.push(`RUN: ${topAction.command}`);
+    if (decision.nextActions.length > 1) {
+      lines.push(`also pending: ${decision.nextActions.slice(1, 4).map((a) => `${a.action} [${a.priority}]`).join(" | ")}`);
+    }
+  }
+
+  // Feedback summary
+  const feedback = await buildFeedbackSummary(options.targetRoot);
+  if (feedback.totalRuns > 0) {
+    lines.push(`\ncontext feedback: ${feedback.totalRuns} runs, ${feedback.successRate}% success rate`);
+    if (feedback.topBoostedFiles.length > 0) {
+      lines.push(`boosted files: ${feedback.topBoostedFiles.slice(0, 3).map((f) => `${f.file} (+${f.score})`).join(" | ")}`);
+    }
+    if (feedback.topPenalizedFiles.length > 0) {
+      lines.push(`penalized files: ${feedback.topPenalizedFiles.slice(0, 3).map((f) => `${f.file} (-${f.score})`).join(" | ")}`);
+    }
+  }
+
+  // Execution summary
+  const execution = await buildExecutionSummary(options.targetRoot);
+  if (execution.totalExecutions > 0) {
+    lines.push(`\nexecution log: ${execution.totalExecutions} runs, avg ${formatTokenCount(execution.averageTokensPerRun)} tokens/run, ${execution.successRate}% success, trend=${execution.tokenTrend}`);
   }
 
   options.logger.info(lines.join("\n"));
