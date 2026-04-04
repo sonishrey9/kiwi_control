@@ -55,6 +55,8 @@ export interface KiwiControlContextView {
   selectedFiles: string[];
   excludedPatterns: string[];
   reason: string | null;
+  confidence: string | null;
+  keywordMatches: string[];
   timestamp: string | null;
 }
 
@@ -64,6 +66,9 @@ export interface KiwiControlTokenAnalytics {
   savingsPercent: number;
   fileCountSelected: number;
   fileCountTotal: number;
+  estimationMethod: string | null;
+  topDirectories: Array<{ directory: string; tokens: number; fileCount: number }>;
+  costEstimates: Array<{ model: string; selectedCost: string; fullRepoCost: string; savingsCost: string }>;
   task: string | null;
   timestamp: string | null;
 }
@@ -390,6 +395,8 @@ async function loadKiwiControlState(targetRoot: string): Promise<KiwiControlStat
     selectedFiles: [],
     excludedPatterns: [],
     reason: null,
+    confidence: null,
+    keywordMatches: [],
     timestamp: null
   };
 
@@ -400,6 +407,8 @@ async function loadKiwiControlState(targetRoot: string): Promise<KiwiControlStat
       selectedFiles: selection.include,
       excludedPatterns: selection.exclude,
       reason: selection.reason,
+      confidence: selection.confidence ?? null,
+      keywordMatches: selection.signals?.keywordMatches ?? [],
       timestamp: selection.timestamp
     };
   }
@@ -410,6 +419,9 @@ async function loadKiwiControlState(targetRoot: string): Promise<KiwiControlStat
     savingsPercent: 0,
     fileCountSelected: 0,
     fileCountTotal: 0,
+    estimationMethod: null,
+    topDirectories: [],
+    costEstimates: [],
     task: null,
     timestamp: null
   };
@@ -422,6 +434,14 @@ async function loadKiwiControlState(targetRoot: string): Promise<KiwiControlStat
       savingsPercent: usage.savings_percent,
       fileCountSelected: usage.file_count_selected,
       fileCountTotal: usage.file_count_total,
+      estimationMethod: usage.estimation_method ?? null,
+      topDirectories: usage.top_directories ?? [],
+      costEstimates: usage.cost_estimates?.tiers?.map((t) => ({
+        model: t.model,
+        selectedCost: t.selectedCost,
+        fullRepoCost: t.fullRepoCost,
+        savingsCost: t.savingsCost
+      })) ?? [],
       task: usage.task,
       timestamp: usage.timestamp
     };

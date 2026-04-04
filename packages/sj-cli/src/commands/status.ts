@@ -174,9 +174,15 @@ export async function runStatus(options: StatusOptions): Promise<number> {
   if (await pathExists(tokenUsagePath)) {
     const tokenUsage = await readJson<TokenUsageState>(tokenUsagePath);
     lines.push(
-      `token usage: selected=${formatTokenCount(tokenUsage.selected_tokens)} full_repo=${formatTokenCount(tokenUsage.full_repo_tokens)} savings=${tokenUsage.savings_percent}%`
+      `token usage: selected=${formatTokenCount(tokenUsage.selected_tokens)} full_repo=${formatTokenCount(tokenUsage.full_repo_tokens)} savings=${tokenUsage.savings_percent}% [${tokenUsage.estimation_method ?? "chars/4-heuristic"}]`
     );
     lines.push(`token files: selected=${tokenUsage.file_count_selected} total=${tokenUsage.file_count_total}`);
+    if (tokenUsage.top_directories?.length) {
+      lines.push(`token hotspots: ${tokenUsage.top_directories.slice(0, 3).map((d) => `${d.directory} (${formatTokenCount(d.tokens)}, ${d.fileCount} files)`).join(" | ")}`);
+    }
+    if (tokenUsage.cost_estimates?.tiers?.length) {
+      lines.push(`cost savings per call: ${tokenUsage.cost_estimates.tiers.map((t) => `${t.model}=${t.savingsCost}`).join(" | ")}`);
+    }
   } else {
     lines.push("token usage: not yet computed (run kc prepare to generate)");
   }
@@ -184,7 +190,7 @@ export async function runStatus(options: StatusOptions): Promise<number> {
   const contextSelectionPath = path.join(options.targetRoot, ".agent", "state", "context-selection.json");
   if (await pathExists(contextSelectionPath)) {
     const ctxSelection = await readJson<ContextSelectionState>(contextSelectionPath);
-    lines.push(`context selection: ${ctxSelection.include.length} files for "${ctxSelection.task}"`);
+    lines.push(`context selection: ${ctxSelection.include.length} files for "${ctxSelection.task}" [confidence=${ctxSelection.confidence ?? "unknown"}]`);
     lines.push(`context reason: ${ctxSelection.reason}`);
   } else {
     lines.push("context selection: not yet computed (run kc prepare to generate)");

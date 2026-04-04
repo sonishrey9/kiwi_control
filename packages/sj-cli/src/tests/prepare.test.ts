@@ -27,7 +27,11 @@ test("instruction generator produces valid markdown document", async () => {
   assert.ok(instructions.raw.includes("## FORBIDDEN FILES"));
   assert.ok(instructions.raw.includes("## STEPS"));
   assert.ok(instructions.raw.includes("## CONSTRAINTS"));
+  assert.ok(instructions.raw.includes("## VALIDATION"));
+  assert.ok(instructions.raw.includes("## STOP CONDITIONS"));
   assert.ok(instructions.constraints.length > 0);
+  assert.ok(instructions.validationSteps.length > 0);
+  assert.ok(instructions.stopConditions.length > 0);
 });
 
 test("instruction generator persists to .agent/context/generated-instructions.md", async () => {
@@ -79,7 +83,8 @@ test("constraints include all mandatory rules", () => {
     include: ["file.ts"],
     exclude: ["node_modules"],
     reason: "test",
-    signals: { changedFiles: ["file.ts"], recentFiles: [], importNeighbors: [], proximityFiles: [] }
+    confidence: "high" as const,
+    signals: { changedFiles: ["file.ts"], recentFiles: [], importNeighbors: [], proximityFiles: [], keywordMatches: [] }
   };
 
   const instructions = generateInstructions("test task", selection);
@@ -89,4 +94,40 @@ test("constraints include all mandatory rules", () => {
   assert.ok(instructions.constraints.some((c) => c.includes("No refactoring")));
   assert.ok(instructions.constraints.some((c) => c.includes("No unnecessary web search")));
   assert.ok(instructions.constraints.some((c) => c.includes("No over-explaining")));
+  assert.ok(instructions.constraints.some((c) => c.includes("Read each file before editing")));
+});
+
+test("instruction generator includes validation and stop conditions", () => {
+  const selection = {
+    include: ["app.ts"],
+    exclude: [],
+    reason: "test",
+    confidence: "medium" as const,
+    signals: { changedFiles: ["app.ts"], recentFiles: [], importNeighbors: [], proximityFiles: [], keywordMatches: [] }
+  };
+
+  const instructions = generateInstructions("update app", selection);
+
+  assert.ok(instructions.validationSteps.length > 0, "should have validation steps");
+  assert.ok(instructions.stopConditions.length > 0, "should have stop conditions");
+  assert.ok(instructions.validationSteps.some((v) => v.includes("build")));
+  assert.ok(instructions.stopConditions.some((s) => s.includes("STOP")));
+  assert.ok(instructions.raw.includes("## VALIDATION"));
+  assert.ok(instructions.raw.includes("## STOP CONDITIONS"));
+});
+
+test("low confidence selection adds orientation step", () => {
+  const selection = {
+    include: ["utils.ts"],
+    exclude: [],
+    reason: "test",
+    confidence: "low" as const,
+    signals: { changedFiles: [], recentFiles: ["utils.ts"], importNeighbors: [], proximityFiles: [], keywordMatches: [] }
+  };
+
+  const instructions = generateInstructions("refactor utils", selection);
+
+  assert.ok(instructions.steps.some((s) => s.includes("ORIENTATION")));
+  assert.ok(instructions.constraints.some((c) => c.includes("LOW")));
+  assert.equal(instructions.confidence, "low");
 });

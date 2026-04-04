@@ -20,6 +20,8 @@ type KiwiControlContextView = {
   selectedFiles: string[];
   excludedPatterns: string[];
   reason: string | null;
+  confidence: string | null;
+  keywordMatches: string[];
   timestamp: string | null;
 };
 
@@ -29,6 +31,9 @@ type KiwiControlTokenAnalytics = {
   savingsPercent: number;
   fileCountSelected: number;
   fileCountTotal: number;
+  estimationMethod: string | null;
+  topDirectories: Array<{ directory: string; tokens: number; fileCount: number }>;
+  costEstimates: Array<{ model: string; selectedCost: string; fullRepoCost: string; savingsCost: string }>;
   task: string | null;
   timestamp: string | null;
 };
@@ -387,9 +392,11 @@ function renderPanels(state: RepoControlState): string {
     ]),
     renderPanel("Context View", kc?.contextView.task ? [
       { label: "Task", value: kc.contextView.task },
+      { label: "Confidence", value: kc.contextView.confidence ?? "unknown", ...(kc.contextView.confidence === "low" ? { tone: "warn" as const } : {}) },
       { label: "Selected files", value: String(kc.contextView.selectedFiles.length) },
       ...kc.contextView.selectedFiles.slice(0, 8).map((f) => ({ label: "  file", value: f })),
       ...(kc.contextView.selectedFiles.length > 8 ? [{ label: "  ...", value: `+${kc.contextView.selectedFiles.length - 8} more` }] : []),
+      ...(kc.contextView.keywordMatches.length > 0 ? [{ label: "Keyword matches", value: kc.contextView.keywordMatches.slice(0, 5).join(", ") }] : []),
       { label: "Excluded patterns", value: String(kc.contextView.excludedPatterns.length) },
       { label: "Reason", value: kc.contextView.reason ?? "none" }
     ] : [
@@ -401,7 +408,14 @@ function renderPanels(state: RepoControlState): string {
       { label: "Selected tokens", value: formatTokens(kc.tokenAnalytics.selectedTokens) },
       { label: "Full repo tokens", value: formatTokens(kc.tokenAnalytics.fullRepoTokens) },
       { label: "Savings", value: `${kc.tokenAnalytics.savingsPercent}%`, ...(kc.tokenAnalytics.savingsPercent >= 50 ? {} : { tone: "warn" as const }) },
-      { label: "Files (selected/total)", value: `${kc.tokenAnalytics.fileCountSelected} / ${kc.tokenAnalytics.fileCountTotal}` }
+      { label: "Files (selected/total)", value: `${kc.tokenAnalytics.fileCountSelected} / ${kc.tokenAnalytics.fileCountTotal}` },
+      ...(kc.tokenAnalytics.estimationMethod ? [{ label: "Method", value: kc.tokenAnalytics.estimationMethod }] : []),
+      ...kc.tokenAnalytics.topDirectories.slice(0, 3).map((d) => ({
+        label: `  ${d.directory}`, value: `${formatTokens(d.tokens)} (${d.fileCount} files)`
+      })),
+      ...kc.tokenAnalytics.costEstimates.slice(0, 3).map((c) => ({
+        label: `  ${c.model}`, value: `${c.selectedCost} selected / ${c.savingsCost} saved`
+      }))
     ] : [
       { label: "Status", value: "No token data yet", tone: "warn" as const },
       { label: "Action", value: "Run kc prepare \"task\" to compute token savings" }
@@ -413,6 +427,7 @@ function renderPanels(state: RepoControlState): string {
       { label: "Instructions generated", value: kc?.efficiency.instructionsGenerated ? "Yes" : "No", ...(kc?.efficiency.instructionsGenerated ? {} : { tone: "warn" as const }) },
       ...(kc?.efficiency.instructionsPath ? [{ label: "Instructions file", value: kc.efficiency.instructionsPath }] : [])
     ]),
+    renderPanel("What Next", buildWhatNextItems(state, kc)),
     renderPanel("Continuity", state.continuity),
     renderPanel("Specialists", [
       { label: "Recommended", value: state.specialists.recommendedSpecialist },
@@ -425,6 +440,60 @@ function renderPanels(state: RepoControlState): string {
       { label: "Warnings", value: String(state.validation.warnings), ...(state.validation.warnings ? { tone: "warn" as const } : {}) }
     ])
   ].join("");
+}
+
+function buildWhatNextItems(state: RepoControlState, kc: KiwiControlState | undefined): PanelItem[] {
+  const items: PanelItem[] = [];
+
+  // Repo health guidance
+  if (state.repoState.mode === "repo-not-initialized") {
+    items.push({ label: "Priority", value: "Run kc init to initialize the repo", tone: "warn" });
+  } else if (state.repoState.mode === "initialized-invalid") {
+    items.push({ label: "Priority", value: "Run kc check to repair repo contract", tone: "warn" });
+  }
+
+  // Context preparation guidance
+  if (!kc?.contextView.task) {
+    items.push({ label: "Prepare", value: "Run kc prepare \"your task\" to select context and generate instructions" });
+  } else {
+    const confidence = kc.contextView.confidence ?? "unknown";
+    if (confidence === "low") {
+      items.push({ label: "Caution", value: "Context confidence is LOW — verify selected files before starting work", tone: "warn" });
+    } else if (confidence === "high") {
+      items.push({ label: "Ready", value: `Context is HIGH confidence with ${kc.contextView.selectedFiles.length} files — safe to proceed` });
+    } else {
+      items.push({ label: "Ready", value: `Context selected with ${kc.contextView.selectedFiles.length} files — review before proceeding` });
+    }
+  }
+
+  // Token guidance
+  if (kc?.tokenAnalytics.task && kc.tokenAnalytics.savingsPercent < 50) {
+    items.push({ label: "Token warning", value: `Only ${kc.tokenAnalytics.savingsPercent}% savings — consider narrowing the task scope`, tone: "warn" });
+  }
+
+  // Instruction guidance
+  if (!kc?.efficiency.instructionsGenerated) {
+    items.push({ label: "Instructions", value: "No instructions generated yet — run kc prepare to create them" });
+  } else {
+    items.push({ label: "Instructions", value: "Ready — paste generated-instructions.md into your AI tool" });
+  }
+
+  // Specialist guidance
+  if (state.specialists.recommendedSpecialist) {
+    items.push({ label: "Specialist", value: `Recommended: ${state.specialists.recommendedSpecialist}` });
+  }
+
+  // Next action from repo overview
+  const nextAction = state.repoOverview.find((i) => i.label === "Next command");
+  if (nextAction && nextAction.value !== "none recorded") {
+    items.push({ label: "Next command", value: nextAction.value });
+  }
+
+  if (items.length === 0) {
+    items.push({ label: "Status", value: "All clear — ready for work" });
+  }
+
+  return items;
 }
 
 function formatTokens(count: number): string {
@@ -571,6 +640,8 @@ function buildBridgeUnavailableState(targetRoot: string): RepoControlState {
         selectedFiles: [],
         excludedPatterns: [],
         reason: null,
+        confidence: null,
+        keywordMatches: [],
         timestamp: null
       },
       tokenAnalytics: {
@@ -579,6 +650,9 @@ function buildBridgeUnavailableState(targetRoot: string): RepoControlState {
         savingsPercent: 0,
         fileCountSelected: 0,
         fileCountTotal: 0,
+        estimationMethod: null,
+        topDirectories: [],
+        costEstimates: [],
         task: null,
         timestamp: null
       },
