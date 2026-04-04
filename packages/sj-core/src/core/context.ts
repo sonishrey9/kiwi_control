@@ -56,6 +56,23 @@ interface SourceContent {
   content: string;
 }
 
+const MAX_SOURCE_CONTEXT_CHARS = 8_000;
+const SOURCE_CHUNK_TARGET_CHARS = 1_600;
+const SOURCE_RULE_PATTERNS: ReadonlyArray<RegExp> = [
+  /\bdo not\b/i,
+  /\bnever\b/i,
+  /\bmust\b/i,
+  /\brequired\b/i,
+  /\bsource of truth\b/i,
+  /\bmachine-local\b/i,
+  /\bgenerated outputs?\b/i,
+  /\bglobal tool settings?\b/i,
+  /\bvalidation\b/i,
+  /\bverify\b/i,
+  /\bchecks?\b/i,
+  /\bcanonical\b/i
+];
+
 export async function compileRepoContext(options: {
   targetRoot: string;
   config: LoadedConfig;
@@ -164,7 +181,7 @@ async function collectSourceContents(targetRoot: string, config: LoadedConfig): 
     if (isSensitivePath(fullPath) || isMetadataOnlyPath(fullPath)) {
       continue;
     }
-    const content = (await readText(fullPath)).slice(0, 4000);
+    const content = extractRelevantSourceContent(fullPath, await readText(fullPath));
     if (!content.trim()) {
       continue;
     }
@@ -179,7 +196,7 @@ async function collectSourceContents(targetRoot: string, config: LoadedConfig): 
     if (isSensitivePath(fullPath) || isMetadataOnlyPath(fullPath)) {
       continue;
     }
-    const content = (await readText(fullPath)).slice(0, 4000);
+    const content = extractRelevantSourceContent(fullPath, await readText(fullPath));
     if (!content.trim()) {
       continue;
     }
@@ -247,6 +264,198 @@ function summarizeSource(filePath: string, content: string): string {
     .map((line) => line.trim())
     .filter((line) => Boolean(line) && !line.startsWith("#") && !line.startsWith("<!--") && !line.startsWith("```"));
   return (lines[0] ?? "repo guidance").slice(0, 180);
+}
+
+function extractRelevantSourceContent(filePath: string, rawContent: string): string {
+  const normalized = rawContent.replace(/\r\n/g, "\n").trim();
+  if (!normalized) {
+    return "";
+  }
+
+  const chunks = buildSourceChunks(filePath, normalized);
+  if (chunks.length === 0) {
+    return normalized;
+  }
+
+  if (chunks.length === 1 && chunks[0]!.length <= MAX_SOURCE_CONTEXT_CHARS) {
+    return chunks[0]!;
+  }
+
+  const selectedIndexes = new Set<number>();
+  let usedChars = 0;
+
+  const scoredChunks = chunks.map((chunk, index) => ({
+    index,
+    score: scoreSourceChunk(chunk, index, chunks.length)
+  }));
+
+  const tryAddChunk = (index: number): void => {
+    if (selectedIndexes.has(index)) {
+      return;
+    }
+
+    const chunk = chunks[index];
+    if (!chunk) {
+      return;
+    }
+
+    if (usedChars > 0 && usedChars + chunk.length > MAX_SOURCE_CONTEXT_CHARS) {
+      return;
+    }
+
+    selectedIndexes.add(index);
+    usedChars += chunk.length;
+  };
+
+  tryAddChunk(0);
+  tryAddChunk(chunks.length - 1);
+
+  for (const candidate of scoredChunks.sort((left, right) => {
+    if (left.score !== right.score) {
+      return right.score - left.score;
+    }
+    return left.index - right.index;
+  })) {
+    tryAddChunk(candidate.index);
+  }
+
+  if (selectedIndexes.size === 0) {
+    return chunks[0]!;
+  }
+
+  return [...selectedIndexes]
+    .sort((left, right) => left - right)
+    .map((index) => chunks[index]!)
+    .join("\n\n");
+}
+
+function buildSourceChunks(filePath: string, content: string): string[] {
+  const extension = path.extname(filePath).toLowerCase();
+  if (extension === ".md" || extension === ".mdx") {
+    return splitMarkdownSections(content);
+  }
+
+  return splitGenericChunks(content);
+}
+
+function splitMarkdownSections(content: string): string[] {
+  const lines = content.split("\n");
+  const sections: string[] = [];
+  let current: string[] = [];
+
+  const flushCurrent = (): void => {
+    if (current.length === 0) {
+      return;
+    }
+    const section = current.join("\n").trim();
+    if (section) {
+      sections.push(...splitLargeChunk(section));
+    }
+    current = [];
+  };
+
+  for (const line of lines) {
+    if (/^#{1,6}\s+/.test(line) && current.length > 0) {
+      flushCurrent();
+    }
+    current.push(line);
+  }
+
+  flushCurrent();
+  return sections;
+}
+
+function splitGenericChunks(content: string): string[] {
+  const blocks = content.split(/\n{2,}/);
+  const chunks: string[] = [];
+  let current = "";
+
+  for (const block of blocks) {
+    const trimmed = block.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    const candidate = current ? `${current}\n\n${trimmed}` : trimmed;
+    if (candidate.length <= SOURCE_CHUNK_TARGET_CHARS) {
+      current = candidate;
+      continue;
+    }
+
+    if (current) {
+      chunks.push(...splitLargeChunk(current));
+    }
+    current = trimmed;
+  }
+
+  if (current) {
+    chunks.push(...splitLargeChunk(current));
+  }
+
+  return chunks;
+}
+
+function splitLargeChunk(chunk: string): string[] {
+  if (chunk.length <= SOURCE_CHUNK_TARGET_CHARS) {
+    return [chunk];
+  }
+
+  const pieces: string[] = [];
+  const lines = chunk.split("\n");
+  let current = "";
+
+  for (const line of lines) {
+    const candidate = current ? `${current}\n${line}` : line;
+    if (candidate.length <= SOURCE_CHUNK_TARGET_CHARS) {
+      current = candidate;
+      continue;
+    }
+
+    if (current) {
+      pieces.push(current.trim());
+    }
+
+    if (line.length <= SOURCE_CHUNK_TARGET_CHARS) {
+      current = line;
+      continue;
+    }
+
+    for (let start = 0; start < line.length; start += SOURCE_CHUNK_TARGET_CHARS) {
+      pieces.push(line.slice(start, start + SOURCE_CHUNK_TARGET_CHARS).trim());
+    }
+    current = "";
+  }
+
+  if (current.trim()) {
+    pieces.push(current.trim());
+  }
+
+  return pieces.filter(Boolean);
+}
+
+function scoreSourceChunk(chunk: string, index: number, totalChunks: number): number {
+  let score = 0;
+
+  if (index === 0) {
+    score += 4;
+  }
+  if (index === totalChunks - 1) {
+    score += 5;
+  }
+  if (/^#{1,6}\s+/m.test(chunk)) {
+    score += 1;
+  }
+  if (/(?:docs|\.agent\/context)\/[A-Za-z0-9._/-]+\.md/.test(chunk)) {
+    score += 3;
+  }
+
+  for (const pattern of SOURCE_RULE_PATTERNS) {
+    if (pattern.test(chunk)) {
+      score += 2;
+    }
+  }
+
+  return score;
 }
 
 function buildRepoContextSummary(sources: ContextSourceSummary[]): string {
@@ -368,7 +577,7 @@ async function collectDirectoryMarkdownContents(targetRoot: string, relativeDirs
       if (isSensitivePath(fullPath) || isMetadataOnlyPath(fullPath)) {
         continue;
       }
-      const content = (await readText(fullPath)).slice(0, 4000);
+      const content = extractRelevantSourceContent(fullPath, await readText(fullPath));
       if (!content.trim()) {
         continue;
       }
@@ -493,7 +702,7 @@ async function collectPromotedDocs(targetRoot: string, sources: SourceContent[])
       ) {
         continue;
       }
-      const content = (await readText(fullPath)).slice(0, 4000);
+      const content = extractRelevantSourceContent(fullPath, await readText(fullPath));
       if (!content.trim()) {
         continue;
       }

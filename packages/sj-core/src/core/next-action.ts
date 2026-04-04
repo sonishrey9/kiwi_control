@@ -3,6 +3,7 @@ import { inspectGitState } from "./git.js";
 import { loadPreparedScope, validateTouchedFilesAgainstAllowedFiles } from "./prepared-scope.js";
 import { PRODUCT_METADATA } from "./product.js";
 import { loadContinuitySnapshot } from "./state.js";
+import type { ValidationIssue } from "./validator.js";
 import { pathExists } from "../utils/fs.js";
 
 export interface NextAction {
@@ -18,7 +19,10 @@ export interface DecisionEngineOutput {
   summary: string;
 }
 
-export async function nextActionEngine(targetRoot: string): Promise<DecisionEngineOutput> {
+export async function nextActionEngine(
+  targetRoot: string,
+  validationIssues: ValidationIssue[] = []
+): Promise<DecisionEngineOutput> {
   const primaryCommand = PRODUCT_METADATA.cli.primaryCommand;
   const agentDir = path.join(targetRoot, ".agent");
 
@@ -45,6 +49,9 @@ export async function nextActionEngine(targetRoot: string): Promise<DecisionEngi
   ]);
 
   const actions: NextAction[] = [];
+  const liveValidationAction = buildLiveValidationAction(validationIssues, targetRoot, primaryCommand);
+  const hasLiveValidationIssues = validationIssues.length > 0;
+  const hasBlockingValidationIssue = validationIssues.some((issue) => issue.level === "error");
   const nextSuggestedCommand =
     continuity.currentFocus?.nextSuggestedCommand ??
     continuity.latestCheckpoint?.nextSuggestedCommand ??
@@ -55,7 +62,11 @@ export async function nextActionEngine(targetRoot: string): Promise<DecisionEngi
     continuity.currentFocus?.currentFocus ??
     "repo-local continuity already points to the next step";
 
-  if (!preparedScope) {
+  if (liveValidationAction) {
+    actions.push(liveValidationAction);
+  }
+
+  if (!preparedScope && !hasBlockingValidationIssue) {
     const suggestedTask = continuity.currentFocus?.currentFocus ?? "describe your task";
     actions.push({
       action: "Prepare the current task",
@@ -80,7 +91,7 @@ export async function nextActionEngine(targetRoot: string): Promise<DecisionEngi
     });
   }
 
-  if (preparedScope && (!hasInstructions || !hasTokenUsage)) {
+  if (preparedScope && (!hasInstructions || !hasTokenUsage) && !hasBlockingValidationIssue) {
     actions.push({
       action: "Rebuild prepared artifacts",
       file: null,
@@ -90,22 +101,7 @@ export async function nextActionEngine(targetRoot: string): Promise<DecisionEngi
     });
   }
 
-  const failedChecks = continuity.latestCheckpoint?.checksFailed ?? [];
-  if (continuity.latestPhase?.status === "blocked" || failedChecks.length > 0) {
-    actions.push({
-      action: "Resolve repo validation issues",
-      file: null,
-      command: `${primaryCommand} check`,
-      reason:
-        failedChecks[0] ??
-        continuity.latestPhase?.openIssues[0] ??
-        continuity.latestPhase?.warnings[0] ??
-        "The latest recorded phase is blocked.",
-      priority: "high"
-    });
-  }
-
-  if (gitState.changedFiles.length > 0 && typeof nextSuggestedCommand === "string" && nextSuggestedCommand.length > 0) {
+  if (!hasLiveValidationIssues && gitState.changedFiles.length > 0 && typeof nextSuggestedCommand === "string" && nextSuggestedCommand.length > 0) {
     actions.push({
       action: "Continue the active repo task",
       file: nextFileToRead,
@@ -113,7 +109,7 @@ export async function nextActionEngine(targetRoot: string): Promise<DecisionEngi
       reason: `There are ${gitState.changedFiles.length} changed file(s) in the current working tree, and ${recordedAction.toLowerCase()}.`,
       priority: actions.length === 0 ? "high" : "normal"
     });
-  } else if (gitState.changedFiles.length > 0) {
+  } else if (!hasLiveValidationIssues && gitState.changedFiles.length > 0) {
     actions.push({
       action: "Capture current progress",
       file: null,
@@ -121,7 +117,7 @@ export async function nextActionEngine(targetRoot: string): Promise<DecisionEngi
       reason: `There are ${gitState.changedFiles.length} changed file(s), but no stronger repo-local next step is recorded.`,
       priority: "normal"
     });
-  } else if (typeof nextSuggestedCommand === "string" && nextSuggestedCommand.length > 0) {
+  } else if (!hasLiveValidationIssues && typeof nextSuggestedCommand === "string" && nextSuggestedCommand.length > 0) {
     actions.push({
       action: "Resume the recorded focus",
       file: nextFileToRead,
@@ -149,4 +145,70 @@ export async function nextActionEngine(targetRoot: string): Promise<DecisionEngi
     nextActions: actions,
     summary: topAction ? `${topAction.action}: ${topAction.reason}` : "No next action available."
   };
+}
+
+function buildLiveValidationAction(
+  validationIssues: ValidationIssue[],
+  targetRoot: string,
+  primaryCommand: string
+): NextAction | null {
+  if (validationIssues.length === 0) {
+    return null;
+  }
+
+  const topIssue = [...validationIssues].sort((left, right) => {
+    const leftSeverity = left.level === "error" ? 0 : 1;
+    const rightSeverity = right.level === "error" ? 0 : 1;
+    if (leftSeverity !== rightSeverity) {
+      return leftSeverity - rightSeverity;
+    }
+
+    const leftIsTargetIssue = left.filePath?.startsWith(targetRoot) ? 0 : 1;
+    const rightIsTargetIssue = right.filePath?.startsWith(targetRoot) ? 0 : 1;
+    return leftIsTargetIssue - rightIsTargetIssue;
+  })[0] ?? null;
+
+  if (!topIssue) {
+    return null;
+  }
+
+  const target = formatValidationTarget(topIssue.filePath, targetRoot);
+  const action = buildValidationActionLabel(topIssue, target);
+
+  return {
+    action,
+    file: topIssue.filePath ?? null,
+    command: `${primaryCommand} check`,
+    reason: target ? `${target}: ${topIssue.message}.` : `${topIssue.message}.`,
+    priority: topIssue.level === "error" ? "critical" : "high"
+  };
+}
+
+function formatValidationTarget(filePath: string | undefined, targetRoot: string): string | null {
+  if (!filePath) {
+    return null;
+  }
+
+  if (filePath.startsWith(targetRoot)) {
+    return path.relative(targetRoot, filePath) || path.basename(filePath);
+  }
+
+  return path.basename(filePath);
+}
+
+function buildValidationActionLabel(issue: ValidationIssue, target: string | null): string {
+  const subject = target ?? "repo validation issue";
+  if (issue.message === "generated repo-local state missing" || issue.message === "native repo surface missing" || issue.message === "required file missing") {
+    return `Restore ${subject}`;
+  }
+
+  if (issue.message === "managed markers are unbalanced" || issue.message.startsWith("invalid JSON") || issue.message.startsWith("invalid YAML")) {
+    return `Repair ${subject}`;
+  }
+
+  if (issue.level === "warn") {
+    return `Review ${subject}`;
+  }
+
+  return `Fix ${subject}`;
 }

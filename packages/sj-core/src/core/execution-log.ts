@@ -1,4 +1,6 @@
 import path from "node:path";
+import { inspectGitState } from "./git.js";
+import { loadPreparedScope, validateTouchedFilesAgainstAllowedFiles, type ScopeValidationResult } from "./prepared-scope.js";
 import { pathExists, readJson, writeText } from "../utils/fs.js";
 
 // ---------------------------------------------------------------------------
@@ -14,16 +16,33 @@ export interface ExecutionEntry {
   duration: number | null;
   tool: string | null;
   confidence: string;
+  runKey?: string;
+  completionSource?: string | null;
+  outOfScopeFiles?: string[];
 }
 
 export interface ExecutionLogState {
   artifactType: "kiwi-control/execution-log";
-  version: 1;
+  version: 2;
   entries: ExecutionEntry[];
   totalExecutions: number;
   totalTokensUsed: number;
   averageTokensPerRun: number;
   successRate: number;
+}
+
+export interface ExecutionCompletionOptions {
+  completionSource: string;
+  confidence?: string | null;
+  tokensUsed?: number | null;
+  tool?: string | null;
+}
+
+export interface ExecutionCompletionResult {
+  evaluated: boolean;
+  recorded: boolean;
+  validation: ScopeValidationResult | null;
+  entry: ExecutionEntry | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -43,13 +62,13 @@ function logPath(targetRoot: string): string {
 export async function loadExecutionLog(targetRoot: string): Promise<ExecutionLogState> {
   const fp = logPath(targetRoot);
   if (!(await pathExists(fp))) {
-    return {
-      artifactType: "kiwi-control/execution-log",
-      version: 1,
-      entries: [],
-      totalExecutions: 0,
-      totalTokensUsed: 0,
-      averageTokensPerRun: 0,
+      return {
+        artifactType: "kiwi-control/execution-log",
+        version: 2,
+        entries: [],
+        totalExecutions: 0,
+        totalTokensUsed: 0,
+        averageTokensPerRun: 0,
       successRate: 0
     };
   }
@@ -74,6 +93,9 @@ export async function recordExecution(
   entry: Omit<ExecutionEntry, "timestamp">
 ): Promise<ExecutionLogState> {
   const state = await loadExecutionLog(targetRoot);
+  if (entry.runKey && state.entries.some((existing) => existing.runKey === entry.runKey)) {
+    return state;
+  }
 
   const fullEntry: ExecutionEntry = {
     ...entry,
@@ -94,7 +116,7 @@ export async function recordExecution(
 
   const updated: ExecutionLogState = {
     artifactType: "kiwi-control/execution-log",
-    version: 1,
+    version: 2,
     entries,
     totalExecutions,
     totalTokensUsed,
@@ -104,6 +126,76 @@ export async function recordExecution(
 
   await persistExecutionLog(targetRoot, updated);
   return updated;
+}
+
+export async function recordPreparedScopeCompletion(
+  targetRoot: string,
+  options: ExecutionCompletionOptions
+): Promise<ExecutionCompletionResult> {
+  const preparedScope = await loadPreparedScope(targetRoot);
+  if (!preparedScope) {
+    return {
+      evaluated: false,
+      recorded: false,
+      validation: null,
+      entry: null
+    };
+  }
+
+  const gitState = await inspectGitState(targetRoot);
+  if (!gitState.isGitRepo || gitState.changedFiles.length === 0) {
+    return {
+      evaluated: false,
+      recorded: false,
+      validation: null,
+      entry: null
+    };
+  }
+
+  const validation = validateTouchedFilesAgainstAllowedFiles(preparedScope.allowedFiles, gitState.changedFiles);
+  if (validation.touchedFiles.length === 0) {
+    return {
+      evaluated: false,
+      recorded: false,
+      validation,
+      entry: null
+    };
+  }
+
+  const runKey = buildPreparedScopeRunKey(preparedScope.timestamp, validation.touchedFiles);
+  const state = await loadExecutionLog(targetRoot);
+  if (state.entries.some((entry) => entry.runKey === runKey)) {
+    return {
+      evaluated: true,
+      recorded: false,
+      validation,
+      entry: state.entries.find((entry) => entry.runKey === runKey) ?? null
+    };
+  }
+
+  const entry: Omit<ExecutionEntry, "timestamp"> = {
+    task: preparedScope.task,
+    tokensUsed: Math.max(0, options.tokensUsed ?? 0),
+    filesTouched: validation.touchedFiles,
+    success: validation.ok,
+    duration: null,
+    tool: options.tool ?? null,
+    confidence: options.confidence ?? "unknown",
+    runKey,
+    completionSource: options.completionSource,
+    ...(validation.ok ? {} : { outOfScopeFiles: validation.outOfScopeFiles })
+  };
+
+  await recordExecution(targetRoot, entry);
+  return {
+    evaluated: true,
+    recorded: true,
+    validation,
+    entry: {
+      ...entry,
+      timestamp: new Date().toISOString()
+    }
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -160,4 +252,9 @@ export async function buildExecutionSummary(targetRoot: string): Promise<Executi
     recentExecutions,
     tokenTrend
   };
+}
+
+function buildPreparedScopeRunKey(scopeTimestamp: string, touchedFiles: string[]): string {
+  const sortedTouchedFiles = [...touchedFiles].sort();
+  return `${scopeTimestamp}::${sortedTouchedFiles.join("|")}`;
 }

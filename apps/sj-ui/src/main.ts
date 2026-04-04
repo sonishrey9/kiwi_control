@@ -25,6 +25,7 @@ type KiwiControlContextView = {
   excludedPatterns: string[];
   reason: string | null;
   confidence: string | null;
+  confidenceDetail: string | null;
   keywordMatches: string[];
   timestamp: string | null;
 };
@@ -164,7 +165,7 @@ const BRIDGE_UNAVAILABLE_NEXT_STEP = "Confirm kiwi-control works in Terminal, th
 const EMPTY_KC: KiwiControlState = {
   contextView: {
     task: null, selectedFiles: [], excludedPatterns: [], reason: null,
-    confidence: null, keywordMatches: [], timestamp: null
+    confidence: null, confidenceDetail: null, keywordMatches: [], timestamp: null
   },
   tokenAnalytics: {
     selectedTokens: 0, fullRepoTokens: 0, savingsPercent: 0,
@@ -525,6 +526,7 @@ function renderContextPanel(kc: KiwiControlState): string {
   const rows = [
     renderPanelRow("Task", escapeHtml(ctx.task)),
     `<div class="panel-row ${confidenceClass}"><dt>Confidence</dt><dd>${escapeHtml(ctx.confidence ?? "unknown")}</dd></div>`,
+    ctx.confidenceDetail ? renderPanelRow("Confidence note", escapeHtml(ctx.confidenceDetail)) : "",
     renderPanelRow("Files", `${ctx.selectedFiles.length} selected / ${kc.tokenAnalytics.fileCountTotal} total`),
     ctx.keywordMatches.length > 0 ? renderPanelRow("Keywords", escapeHtml(ctx.keywordMatches.slice(0, 6).join(", "))) : "",
     ctx.reason ? renderPanelRow("Reason", escapeHtml(ctx.reason)) : ""

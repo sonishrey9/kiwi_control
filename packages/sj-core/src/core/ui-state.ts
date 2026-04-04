@@ -20,7 +20,7 @@ import { nextActionEngine } from "./next-action.js";
 import type { NextAction } from "./next-action.js";
 import { buildFeedbackSummary } from "./context-feedback.js";
 import type { FeedbackSummary } from "./context-feedback.js";
-import { buildExecutionSummary } from "./execution-log.js";
+import { buildExecutionSummary, recordPreparedScopeCompletion } from "./execution-log.js";
 import type { ExecutionSummary } from "./execution-log.js";
 
 export interface RepoControlPanelItem {
@@ -62,6 +62,7 @@ export interface KiwiControlContextView {
   excludedPatterns: string[];
   reason: string | null;
   confidence: string | null;
+  confidenceDetail: string | null;
   keywordMatches: string[];
   timestamp: string | null;
 }
@@ -312,7 +313,7 @@ export async function buildRepoControlStateFromConfig(options: {
         : recommendedSpecialist;
   const repoOverview = summarizeRepoOverview();
 
-  const kiwiControl = await loadKiwiControlState(options.targetRoot);
+  const kiwiControl = await loadKiwiControlState(options.targetRoot, validationIssues);
 
   return {
     targetRoot: options.targetRoot,
@@ -451,7 +452,10 @@ function buildSafeParallelHint(mode: RepoControlMode, taskFileCount: number): st
   return "Keep generic repos quiet. Fan out only when file ownership and reconcile responsibilities are explicit.";
 }
 
-async function loadKiwiControlState(targetRoot: string): Promise<KiwiControlState> {
+async function loadKiwiControlState(
+  targetRoot: string,
+  validationIssues: ValidationIssue[]
+): Promise<KiwiControlState> {
   const contextSelectionPath = path.join(targetRoot, ".agent", "state", "context-selection.json");
   const tokenUsagePath = path.join(targetRoot, ".agent", "state", "token-usage.json");
   const instructionsPath = path.join(targetRoot, ".agent", "context", "generated-instructions.md");
@@ -462,6 +466,7 @@ async function loadKiwiControlState(targetRoot: string): Promise<KiwiControlStat
     excludedPatterns: [],
     reason: null,
     confidence: null,
+    confidenceDetail: null,
     keywordMatches: [],
     timestamp: null
   };
@@ -474,6 +479,7 @@ async function loadKiwiControlState(targetRoot: string): Promise<KiwiControlStat
       excludedPatterns: selection.exclude,
       reason: selection.reason,
       confidence: selection.confidence ?? null,
+      confidenceDetail: describeContextConfidence(selection),
       keywordMatches: selection.signals?.keywordMatches ?? [],
       timestamp: selection.timestamp
     };
@@ -538,9 +544,16 @@ async function loadKiwiControlState(targetRoot: string): Promise<KiwiControlStat
     instructionsPath: hasInstructions ? instructionsPath : null
   };
 
+  await recordPreparedScopeCompletion(targetRoot, {
+    completionSource: "repo-control",
+    confidence: contextView.confidence,
+    tokensUsed: tokenAnalytics.selectedTokens,
+    tool: PRODUCT_METADATA.cli.primaryCommand
+  }).catch(() => null);
+
   // Load decision engine, feedback, and execution data in parallel
   const [decisionOutput, feedbackSummary, executionSummary] = await Promise.all([
-    nextActionEngine(targetRoot).catch(() => ({ nextActions: [], summary: "Decision engine unavailable" })),
+    nextActionEngine(targetRoot, validationIssues).catch(() => ({ nextActions: [], summary: "Decision engine unavailable" })),
     buildFeedbackSummary(targetRoot, contextView.task ?? undefined).catch(() => ({
       totalRuns: 0, successRate: 0, recentEntries: [],
       topBoostedFiles: [], topPenalizedFiles: []
@@ -577,4 +590,40 @@ async function loadKiwiControlState(targetRoot: string): Promise<KiwiControlStat
     contextView, tokenAnalytics, efficiency,
     nextActions, feedback, execution, wastedFiles, heavyDirectories
   };
+}
+
+function describeContextConfidence(selection: ContextSelectionState): string | null {
+  const confidence = selection.confidence ?? null;
+  if (!confidence) {
+    return null;
+  }
+
+  const maxDepthExplored = selection.signals.discovery?.maxDepthExplored ?? 0;
+  const budgetLimited = Boolean(
+    selection.signals.discovery?.fileBudgetReached || selection.signals.discovery?.directoryBudgetReached
+  );
+
+  if (confidence === "high") {
+    return "Multiple repo-local signals agree and current coverage looks healthy.";
+  }
+
+  if (confidence === "medium") {
+    if (budgetLimited) {
+      return "Useful evidence was found, but discovery hit a budget limit.";
+    }
+    if (maxDepthExplored >= 4) {
+      return "Useful evidence was found across the repo, but coverage is still partial.";
+    }
+    return "Useful evidence was found, but the file set should still be treated as partial.";
+  }
+
+  if (budgetLimited) {
+    return "Evidence is narrow and discovery hit a budget limit.";
+  }
+
+  if (maxDepthExplored < 4) {
+    return "Evidence is narrow and repo coverage is still limited.";
+  }
+
+  return "Evidence is narrow or partial, so verify file relevance before editing.";
 }

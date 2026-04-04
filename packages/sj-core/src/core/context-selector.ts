@@ -26,6 +26,7 @@ export interface ContextSignals {
   proximityFiles: string[];
   keywordMatches: string[];
   repoContextFiles: string[];
+  discovery?: ContextDiscoveryMetrics;
 }
 
 export type ContextConfidence = "high" | "medium" | "low";
@@ -56,6 +57,33 @@ export interface ContextSelectionState {
   reason: string;
   confidence: ContextConfidence;
   signals: ContextSignals;
+}
+
+interface DiscoveredSourceFile {
+  file: string;
+  mtime: number;
+  depth: number;
+}
+
+export interface ContextDiscoveryMetrics {
+  discoveredFiles: number;
+  visitedDirectories: number;
+  maxDepthExplored: number;
+  fileBudgetReached: boolean;
+  directoryBudgetReached: boolean;
+}
+
+interface DiscoveryResult {
+  files: DiscoveredSourceFile[];
+  metrics: ContextDiscoveryMetrics;
+}
+
+interface ConfidenceAssessment {
+  level: ContextConfidence;
+  signalDiversity: number;
+  signalCoverage: number;
+  discoveryBudgetLimited: boolean;
+  maxDepthExplored: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -181,8 +209,21 @@ const SCORE_RECENT = 2;
 
 const CONTEXT_TOKEN_BUDGET = 12_000;
 const MAX_RECENT_FILES = 20;
-const RECENT_SCAN_DEPTH = 3;
 const MAX_IMPORT_SEED_FILES = 15;
+const DISCOVERY_FILE_BUDGET = 1_500;
+const DISCOVERY_DIRECTORY_BUDGET = 600;
+const DISCOVERY_PRIORITY_DIRECTORIES = [
+  "packages",
+  "apps",
+  "src",
+  "app",
+  "lib",
+  "features",
+  "modules",
+  "services",
+  "components",
+  "tests"
+];
 
 // ---------------------------------------------------------------------------
 // Main entry point
@@ -270,7 +311,8 @@ async function collectSignals(
     (f) => isSourceFile(f) && !isExcludedPath(f) && !isExcludedFile(f)
   );
 
-  const recentFiles = await collectRecentFiles(targetRoot, MAX_RECENT_FILES);
+  const discovery = await discoverSourceFiles(targetRoot);
+  const recentFiles = collectRecentFiles(discovery.files, MAX_RECENT_FILES);
 
   const importNeighbors = await collectImportNeighbors(
     targetRoot,
@@ -285,7 +327,7 @@ async function collectSignals(
 
   const keywordMatches = await collectKeywordMatches(
     task,
-    targetRoot,
+    discovery.files,
     changedFiles,
     recentFiles
   );
@@ -296,8 +338,104 @@ async function collectSignals(
     importNeighbors,
     proximityFiles,
     keywordMatches,
-    repoContextFiles
+    repoContextFiles,
+    discovery: discovery.metrics
   };
+}
+
+async function discoverSourceFiles(targetRoot: string): Promise<DiscoveryResult> {
+  const discovered: DiscoveredSourceFile[] = [];
+  const pendingDirectories: Array<{ dir: string; depth: number }> = [{ dir: targetRoot, depth: 0 }];
+  let visitedDirectories = 0;
+  let maxDepthExplored = 0;
+
+  while (pendingDirectories.length > 0) {
+    if (visitedDirectories >= DISCOVERY_DIRECTORY_BUDGET || discovered.length >= DISCOVERY_FILE_BUDGET) {
+      break;
+    }
+
+    const current = pendingDirectories.shift();
+    if (!current) {
+      break;
+    }
+
+    visitedDirectories += 1;
+    maxDepthExplored = Math.max(maxDepthExplored, current.depth);
+
+    let entries: import("node:fs").Dirent[];
+    try {
+      entries = await fs.readdir(current.dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    const directories = entries
+      .filter((entry) => entry.isDirectory())
+      .sort((left, right) => compareDiscoveryEntries(left.name, right.name));
+    const files = entries
+      .filter((entry) => entry.isFile())
+      .sort((left, right) => left.name.localeCompare(right.name));
+
+    for (const entry of directories) {
+      if (entry.name.startsWith(".") || EXCLUDED_DIRECTORIES.has(entry.name)) {
+        continue;
+      }
+
+      pendingDirectories.push({ dir: path.join(current.dir, entry.name), depth: current.depth + 1 });
+    }
+
+    for (const entry of files) {
+      if (!isSourceFile(entry.name) || isExcludedFile(entry.name)) {
+        continue;
+      }
+
+      const fullPath = path.join(current.dir, entry.name);
+      const relativePath = path.relative(targetRoot, fullPath);
+      if (isExcludedPath(relativePath)) {
+        continue;
+      }
+
+      try {
+        const stat = await fs.stat(fullPath);
+        discovered.push({
+          file: relativePath,
+          mtime: stat.mtimeMs,
+          depth: current.depth
+        });
+      } catch {
+        continue;
+      }
+
+      if (discovered.length >= DISCOVERY_FILE_BUDGET) {
+        break;
+      }
+    }
+  }
+
+  return {
+    files: discovered,
+    metrics: {
+      discoveredFiles: discovered.length,
+      visitedDirectories,
+      maxDepthExplored,
+      fileBudgetReached: discovered.length >= DISCOVERY_FILE_BUDGET,
+      directoryBudgetReached: visitedDirectories >= DISCOVERY_DIRECTORY_BUDGET
+    }
+  };
+}
+
+function compareDiscoveryEntries(left: string, right: string): number {
+  const leftPriority = discoveryPriority(left);
+  const rightPriority = discoveryPriority(right);
+  if (leftPriority !== rightPriority) {
+    return leftPriority - rightPriority;
+  }
+  return left.localeCompare(right);
+}
+
+function discoveryPriority(name: string): number {
+  const index = DISCOVERY_PRIORITY_DIRECTORIES.indexOf(name.toLowerCase());
+  return index === -1 ? DISCOVERY_PRIORITY_DIRECTORIES.length : index;
 }
 
 async function collectSelectiveAgentFiles(targetRoot: string): Promise<string[]> {
@@ -387,7 +525,7 @@ function scoreFileAgainstKeywords(filePath: string, keywords: string[]): number 
 
 async function collectKeywordMatches(
   task: string,
-  targetRoot: string,
+  discoveredFiles: DiscoveredSourceFile[],
   changedFiles: string[],
   recentFiles: string[]
 ): Promise<string[]> {
@@ -405,16 +543,11 @@ async function collectKeywordMatches(
     }
   }
 
-  // Also scan top-level source directories for keyword matches
-  const topDirs = await listSourceDirectories(targetRoot);
-  for (const dir of topDirs) {
-    const files = await shallowSourceFiles(path.join(targetRoot, dir), targetRoot, 2);
-    for (const file of files) {
-      if (alreadyKnown.has(file)) continue;
-      const score = scoreFileAgainstKeywords(file, keywords);
-      if (score >= 2) {
-        matches.push({ file, score });
-      }
+  for (const { file } of discoveredFiles) {
+    if (alreadyKnown.has(file)) continue;
+    const score = scoreFileAgainstKeywords(file, keywords);
+    if (score >= 2) {
+      matches.push({ file, score });
     }
   }
 
@@ -422,56 +555,6 @@ async function collectKeywordMatches(
     .sort((a, b) => b.score - a.score)
     .slice(0, 15)
     .map((m) => m.file);
-}
-
-async function listSourceDirectories(targetRoot: string): Promise<string[]> {
-  const dirs: string[] = [];
-  try {
-    const entries = await fs.readdir(targetRoot, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      if (entry.name.startsWith(".")) continue;
-      if (EXCLUDED_DIRECTORIES.has(entry.name)) continue;
-      dirs.push(entry.name);
-    }
-  } catch {
-    // Ignore read errors
-  }
-  return dirs;
-}
-
-async function shallowSourceFiles(
-  dir: string,
-  targetRoot: string,
-  maxDepth: number
-): Promise<string[]> {
-  const results: string[] = [];
-
-  async function scan(current: string, depth: number): Promise<void> {
-    if (depth > maxDepth) return;
-    let entries: import("node:fs").Dirent[];
-    try {
-      entries = await fs.readdir(current, { withFileTypes: true });
-    } catch {
-      return;
-    }
-
-    for (const entry of entries) {
-      if (entry.name.startsWith(".") || EXCLUDED_DIRECTORIES.has(entry.name)) continue;
-      const fullPath = path.join(current, entry.name);
-
-      if (entry.isDirectory()) {
-        await scan(fullPath, depth + 1);
-        continue;
-      }
-
-      if (!isSourceFile(entry.name) || isExcludedFile(entry.name)) continue;
-      results.push(path.relative(targetRoot, fullPath));
-    }
-  }
-
-  await scan(dir, 0);
-  return results;
 }
 
 // ---------------------------------------------------------------------------
@@ -546,7 +629,8 @@ async function rankAndSelect(
   );
   const exclude = buildExcludeList();
 
-  const confidence = assessConfidence(signals, include);
+  const confidenceAssessment = assessConfidence(signals, include);
+  const confidence = confidenceAssessment.level;
 
   const topSignal = signals.changedFiles.length > 0
     ? "working tree changes"
@@ -564,6 +648,9 @@ async function rankAndSelect(
       `${signals.repoContextFiles.length} repo context files, ` +
       `${signals.proximityFiles.length} proximity, ` +
       `${signals.recentFiles.length} recent. ` +
+      `Coverage: ${Math.round(confidenceAssessment.signalCoverage * 100)}% of candidate signal files. ` +
+      `Diversity: ${confidenceAssessment.signalDiversity} signal types. ` +
+      `Discovery depth: ${confidenceAssessment.maxDepthExplored}${confidenceAssessment.discoveryBudgetLimited ? " (budget-limited)" : ""}. ` +
       `Budget: ~${await estimateSelectionTokens(targetRoot, include)} tokens. ` +
       `Confidence: ${confidence}.`;
 
@@ -624,19 +711,87 @@ async function estimateFileTokens(targetRoot: string, relativePath: string): Pro
 function assessConfidence(
   signals: ContextSignals,
   selected: string[]
-): ContextConfidence {
-  if (selected.length === 0) return "low";
+): ConfidenceAssessment {
+  if (selected.length === 0) {
+    return {
+      level: "low",
+      signalDiversity: 0,
+      signalCoverage: 0,
+      discoveryBudgetLimited: Boolean(signals.discovery?.fileBudgetReached || signals.discovery?.directoryBudgetReached),
+      maxDepthExplored: signals.discovery?.maxDepthExplored ?? 0
+    };
+  }
+
+  const selectedSet = new Set(selected);
+  const candidateSignalFiles = new Set([
+    ...signals.changedFiles,
+    ...signals.importNeighbors,
+    ...signals.keywordMatches,
+    ...signals.repoContextFiles,
+    ...signals.proximityFiles
+  ]);
+  const coveredSignalFiles = [...candidateSignalFiles].filter((file) => selectedSet.has(file)).length;
+  const signalCoverage = candidateSignalFiles.size > 0 ? coveredSignalFiles / candidateSignalFiles.size : 0;
 
   const hasChangedFiles = signals.changedFiles.length > 0;
   const hasImportNeighbors = signals.importNeighbors.length > 0;
   const hasKeywordMatches = signals.keywordMatches.length > 0;
+  const hasRepoContextFiles = signals.repoContextFiles.length > 0;
+  const hasProximityFiles = signals.proximityFiles.length > 0;
+  const hasRecentFiles = signals.recentFiles.length > 0;
+  const signalDiversity = [
+    hasChangedFiles,
+    hasImportNeighbors,
+    hasKeywordMatches,
+    hasRepoContextFiles,
+    hasProximityFiles
+  ].filter(Boolean).length;
 
-  const signalCount = [hasChangedFiles, hasImportNeighbors, hasKeywordMatches]
-    .filter(Boolean).length;
+  const discoveryBudgetLimited = Boolean(
+    signals.discovery?.fileBudgetReached || signals.discovery?.directoryBudgetReached
+  );
+  const maxDepthExplored = signals.discovery?.maxDepthExplored ?? 0;
 
-  if (signalCount >= 2 && hasChangedFiles) return "high";
-  if (signalCount >= 1 && (hasChangedFiles || hasKeywordMatches)) return "medium";
-  return "low";
+  let level: ContextConfidence = "low";
+
+  if (
+    hasChangedFiles &&
+    (hasImportNeighbors || hasRepoContextFiles) &&
+    signalDiversity >= 3 &&
+    signalCoverage >= 0.6 &&
+    !discoveryBudgetLimited
+  ) {
+    level = "high";
+  } else if (
+    (hasChangedFiles && signalDiversity >= 2 && signalCoverage >= 0.4) ||
+    (hasKeywordMatches && signalDiversity >= 2 && signalCoverage >= 0.5 && maxDepthExplored >= 4)
+  ) {
+    level = "medium";
+  } else if (hasChangedFiles && signalCoverage >= 0.25) {
+    level = "medium";
+  } else if (hasKeywordMatches && hasRecentFiles && signalCoverage >= 0.5 && maxDepthExplored >= 4 && !discoveryBudgetLimited) {
+    level = "medium";
+  }
+
+  if (discoveryBudgetLimited && level === "high") {
+    level = "medium";
+  }
+
+  if (!hasChangedFiles && signalDiversity < 2) {
+    level = "low";
+  }
+
+  if (!hasChangedFiles && maxDepthExplored < 4 && level === "medium") {
+    level = "low";
+  }
+
+  return {
+    level,
+    signalDiversity,
+    signalCoverage,
+    discoveryBudgetLimited,
+    maxDepthExplored
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -682,52 +837,14 @@ function buildExcludeList(): string[] {
 // Recent files collection
 // ---------------------------------------------------------------------------
 
-async function collectRecentFiles(
-  targetRoot: string,
+function collectRecentFiles(
+  discoveredFiles: DiscoveredSourceFile[],
   limit: number
-): Promise<string[]> {
-  const candidates: Array<{ file: string; mtime: number }> = [];
-
-  async function scanDir(dir: string, depth: number): Promise<void> {
-    if (depth > RECENT_SCAN_DEPTH) return;
-
-    let entries: import("node:fs").Dirent[];
-    try {
-      entries = await fs.readdir(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-
-    for (const entry of entries) {
-      if (entry.name.startsWith(".") || EXCLUDED_DIRECTORIES.has(entry.name)) {
-        continue;
-      }
-
-      const fullPath = path.join(dir, entry.name);
-
-      if (entry.isDirectory()) {
-        await scanDir(fullPath, depth + 1);
-        continue;
-      }
-
-      if (!isSourceFile(entry.name) || isExcludedFile(entry.name)) continue;
-
-      try {
-        const stat = await fs.stat(fullPath);
-        const relativePath = path.relative(targetRoot, fullPath);
-        candidates.push({ file: relativePath, mtime: stat.mtimeMs });
-      } catch {
-        continue;
-      }
-    }
-  }
-
-  await scanDir(targetRoot, 0);
-
-  return candidates
+): string[] {
+  return [...discoveredFiles]
     .sort((a, b) => b.mtime - a.mtime)
     .slice(0, limit)
-    .map((c) => c.file);
+    .map((candidate) => candidate.file);
 }
 
 // ---------------------------------------------------------------------------

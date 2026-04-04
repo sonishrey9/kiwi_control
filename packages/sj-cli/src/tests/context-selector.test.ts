@@ -153,3 +153,76 @@ test("context selector is constrained by token budget instead of a fixed 30-file
 
   assert.ok(result.include.length >= 35, `Expected at least 35 files in scope, got ${result.include.length}`);
 });
+
+test("context selector discovers relevant files in deep nested repos without shallow depth limits", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ctx-deep-"));
+  await runCommand("git", ["init"], tempDir);
+
+  const authDir = path.join(tempDir, "packages", "app", "src", "features", "auth", "flows", "magic-link");
+  const marketingDir = path.join(tempDir, "packages", "site", "src", "pages", "marketing");
+  await fs.mkdir(authDir, { recursive: true });
+  await fs.mkdir(marketingDir, { recursive: true });
+
+  await fs.writeFile(path.join(authDir, "login-handler.ts"), "export function loginHandler() { return 'ok'; }\n", "utf8");
+  await fs.writeFile(path.join(authDir, "token-service.ts"), "export function issueToken() { return 'token'; }\n", "utf8");
+  await fs.writeFile(path.join(marketingDir, "home.ts"), "export function homePage() { return 'home'; }\n", "utf8");
+
+  await runCommand("git", ["add", "."], tempDir);
+  await runCommand("git", ["-c", "user.name=test", "-c", "user.email=test@test.com", "commit", "-m", "init"], tempDir);
+
+  const result = await contextSelector("fix auth login handler token flow", tempDir);
+
+  assert.ok(
+    result.include.includes("packages/app/src/features/auth/flows/magic-link/login-handler.ts"),
+    `Expected deep auth file in include list, got: ${result.include.join(", ")}`
+  );
+  assert.ok(
+    result.signals.keywordMatches.includes("packages/app/src/features/auth/flows/magic-link/login-handler.ts"),
+    `Expected deep auth file in keyword matches, got: ${result.signals.keywordMatches.join(", ")}`
+  );
+});
+
+test("context selector downgrades confidence when evidence is shallow and narrow", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ctx-confidence-low-"));
+  await runCommand("git", ["init"], tempDir);
+  await fs.writeFile(path.join(tempDir, "auth.ts"), "export function authHelper() { return true; }\n", "utf8");
+  await fs.writeFile(path.join(tempDir, "billing.ts"), "export function charge() { return true; }\n", "utf8");
+  await runCommand("git", ["add", "."], tempDir);
+  await runCommand("git", ["-c", "user.name=test", "-c", "user.email=test@test.com", "commit", "-m", "init"], tempDir);
+
+  const result = await contextSelector("fix auth helper", tempDir);
+
+  assert.equal(result.confidence, "low");
+});
+
+test("context selector raises confidence only when multiple strong signals agree", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ctx-confidence-high-"));
+  await runCommand("git", ["init"], tempDir);
+  await fs.mkdir(path.join(tempDir, "src", "auth"), { recursive: true });
+  await fs.mkdir(path.join(tempDir, ".agent", "memory"), { recursive: true });
+  await fs.writeFile(
+    path.join(tempDir, "src", "auth", "login.ts"),
+    'import { issueToken } from "./token.ts";\nexport function loginUser() { return issueToken(); }\n',
+    "utf8"
+  );
+  await fs.writeFile(
+    path.join(tempDir, "src", "auth", "token.ts"),
+    "export function issueToken() { return 'token'; }\n",
+    "utf8"
+  );
+  await fs.writeFile(path.join(tempDir, ".agent", "memory", "current-focus.json"), '{"currentFocus":"fix auth login token flow"}\n', "utf8");
+  await runCommand("git", ["add", "."], tempDir);
+  await runCommand("git", ["-c", "user.name=test", "-c", "user.email=test@test.com", "commit", "-m", "init"], tempDir);
+
+  await fs.writeFile(
+    path.join(tempDir, "src", "auth", "login.ts"),
+    'import { issueToken } from "./token.ts";\nexport function loginUser() { return issueToken() + "-updated"; }\n',
+    "utf8"
+  );
+
+  const result = await contextSelector("fix auth login token flow", tempDir);
+
+  assert.equal(result.confidence, "high");
+  assert.ok(result.reason.includes("Diversity:"));
+  assert.ok(result.reason.includes("Coverage:"));
+});

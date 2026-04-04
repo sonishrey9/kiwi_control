@@ -132,6 +132,67 @@ test("low confidence selection adds orientation step", () => {
   assert.ok(instructions.steps.some((s) => s.includes("ORIENTATION")));
   assert.ok(instructions.constraints.some((c) => c.includes("LOW")));
   assert.equal(instructions.confidence, "low");
+  assert.match(instructions.raw, /Context confidence: \*\*LOW\*\* — /);
+});
+
+test("medium confidence keeps instruction language cautious", () => {
+  const selection = {
+    include: ["auth.ts"],
+    exclude: [],
+    reason: "partial coverage",
+    confidence: "medium" as const,
+    signals: {
+      changedFiles: ["auth.ts"],
+      recentFiles: ["auth.ts"],
+      importNeighbors: [],
+      proximityFiles: [],
+      keywordMatches: ["auth.ts"],
+      repoContextFiles: [],
+      discovery: {
+        discoveredFiles: 12,
+        visitedDirectories: 4,
+        maxDepthExplored: 2,
+        fileBudgetReached: false,
+        directoryBudgetReached: false
+      }
+    }
+  };
+
+  const instructions = generateInstructions("fix auth behavior", selection);
+
+  assert.ok(instructions.constraints.some((c) => c.includes("coverage is still partial")));
+  assert.ok(instructions.steps.some((s) => s.includes("Context confidence is medium")));
+  assert.doesNotMatch(instructions.raw, /strongly correlated/i);
+});
+
+test("high confidence avoids overstating certainty", () => {
+  const selection = {
+    include: ["src/auth/login.ts", "src/auth/token.ts", ".agent/memory/current-focus.json"],
+    exclude: [],
+    reason: "strong evidence",
+    confidence: "high" as const,
+    signals: {
+      changedFiles: ["src/auth/login.ts"],
+      recentFiles: ["src/auth/login.ts", "src/auth/token.ts"],
+      importNeighbors: ["src/auth/token.ts"],
+      proximityFiles: [],
+      keywordMatches: ["src/auth/login.ts", "src/auth/token.ts"],
+      repoContextFiles: [".agent/memory/current-focus.json"],
+      discovery: {
+        discoveredFiles: 40,
+        visitedDirectories: 10,
+        maxDepthExplored: 5,
+        fileBudgetReached: false,
+        directoryBudgetReached: false
+      }
+    }
+  };
+
+  const instructions = generateInstructions("fix auth login token flow", selection);
+
+  assert.ok(instructions.constraints.some((c) => c.includes("multiple repo-local signals agree")));
+  assert.doesNotMatch(instructions.raw, /strongly correlated/i);
+  assert.match(instructions.raw, /Context confidence: \*\*HIGH\*\* — /);
 });
 
 test("instruction generator allows external verification for API tasks", () => {

@@ -14,6 +14,7 @@ import { buildTemplateContext, resolveRoutingDecision, selectPortableContract } 
 import { recommendNextSpecialist } from "@shrey-junior/sj-core/core/specialists.js";
 import { buildPhaseId, loadActiveRoleHints, loadLatestCheckpoint, parseCsvFlag, type CheckpointRecord, type PhaseStatus, type PhaseRecord, updateActiveRoleHints, writeCheckpointArtifacts, writePhaseRecord } from "@shrey-junior/sj-core/core/state.js";
 import { loadCurrentPhase } from "@shrey-junior/sj-core/core/state.js";
+import { recordPreparedScopeCompletion } from "@shrey-junior/sj-core/core/execution-log.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 import { relativeFrom } from "@shrey-junior/sj-core/utils/fs.js";
 
@@ -68,6 +69,10 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
   const scopeValidation = preparedScope
     ? validateTouchedFilesAgainstAllowedFiles(preparedScope.allowedFiles, gitState.changedFiles)
     : null;
+  await recordPreparedScopeCompletion(options.targetRoot, {
+    completionSource: "checkpoint",
+    tool: PRODUCT_METADATA.cli.primaryCommand
+  }).catch(() => null);
   const scopeFailure = scopeValidation && !scopeValidation.ok
     ? `Prepared scope violated by touched files: ${scopeValidation.outOfScopeFiles.slice(0, 5).join(", ")}`
     : null;

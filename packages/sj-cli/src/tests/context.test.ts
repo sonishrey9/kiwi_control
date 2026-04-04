@@ -79,3 +79,55 @@ test("context compilation reports authority conflicts from safe repo surfaces", 
   assert.equal(compiled.promotedAuthorityDocs.some((item) => item.endsWith("docs/agent-shared.md")), true);
   assert.equal(compiled.authorityOrder.findIndex((item) => item.endsWith("docs/agent-shared.md")) < compiled.authorityOrder.findIndex((item) => item.endsWith("README.md")), true);
 });
+
+test("context compilation keeps critical late authority rules instead of clipping them away", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-context-late-rules-"));
+  await fs.mkdir(path.join(tempDir, "docs"), { recursive: true });
+
+  const filler = Array.from({ length: 500 }, (_, index) => `Filler guidance line ${index + 1}.`).join("\n");
+  await fs.writeFile(
+    path.join(tempDir, "AGENTS.md"),
+    `${filler}\n\nDo not change global tool settings.\nRead \`docs/late-contract.md\` before implementation.\n`,
+    "utf8"
+  );
+  await fs.writeFile(path.join(tempDir, "CLAUDE.md"), "Modify global tool settings when needed.\n", "utf8");
+  await fs.writeFile(path.join(tempDir, "docs", "late-contract.md"), "Late canonical contract.\n", "utf8");
+
+  const config = {
+    guardrails: {
+      forbidden_scope: {
+        default: [],
+        defaultProfile: []
+      }
+    },
+    global: {
+      defaults: {
+        authority_files: ["AGENTS.md", "CLAUDE.md"]
+      }
+    },
+    mcpServers: {
+      mcpServers: {}
+    }
+  } as unknown as LoadedConfig;
+
+  const compiled = await compileRepoContext({
+    targetRoot: tempDir,
+    config,
+    profileName: "defaultProfile",
+    profile: {
+      packet: {
+        high_risk_required_roles: ["planner"],
+        medium_risk_required_roles: ["reviewer"]
+      }
+    } as LoadedConfig["routing"]["profiles"][string],
+    overlay: null,
+    executionMode: "guarded",
+    taskType: "implementation",
+    fileArea: "application",
+    changeSize: "medium",
+    riskLevel: "medium"
+  });
+
+  assert.equal(compiled.conflicts.some((conflict) => conflict.topic === "global-config"), true);
+  assert.equal(compiled.promotedAuthorityDocs.some((item) => item.endsWith("docs/late-contract.md")), true);
+});

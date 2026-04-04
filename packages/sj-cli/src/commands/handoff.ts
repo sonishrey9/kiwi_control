@@ -11,6 +11,7 @@ import { recommendMcpPack } from "@shrey-junior/sj-core/core/recommendations.js"
 import { isKnownSpecialistId, normalizeSpecialistId, recommendNextSpecialist } from "@shrey-junior/sj-core/core/specialists.js";
 import { loadActiveRoleHints, loadCurrentPhase, loadLatestCheckpoint, updateActiveRoleHints, writeHandoffArtifacts } from "@shrey-junior/sj-core/core/state.js";
 import { buildTemplateContext, selectPortableContract } from "@shrey-junior/sj-core/core/router.js";
+import { recordPreparedScopeCompletion } from "@shrey-junior/sj-core/core/execution-log.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 import type { ToolName } from "@shrey-junior/sj-core/core/config.js";
 
@@ -46,6 +47,10 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
   const scopeValidation = preparedScope
     ? validateTouchedFilesAgainstAllowedFiles(preparedScope.allowedFiles, gitState.changedFiles)
     : null;
+  await recordPreparedScopeCompletion(options.targetRoot, {
+    completionSource: "handoff",
+    tool: PRODUCT_METADATA.cli.primaryCommand
+  }).catch(() => null);
   const scopeFailure = scopeValidation && !scopeValidation.ok
     ? `Prepared scope violated by touched files: ${scopeValidation.outOfScopeFiles.slice(0, 5).join(", ")}`
     : null;
