@@ -12,6 +12,7 @@ import { isKnownSpecialistId, normalizeSpecialistId, recommendNextSpecialist } f
 import { loadActiveRoleHints, loadCurrentPhase, loadLatestCheckpoint, updateActiveRoleHints, writeHandoffArtifacts } from "@shrey-junior/sj-core/core/state.js";
 import { buildTemplateContext, selectPortableContract } from "@shrey-junior/sj-core/core/router.js";
 import { recordPreparedScopeCompletion } from "@shrey-junior/sj-core/core/execution-log.js";
+import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 import type { ToolName } from "@shrey-junior/sj-core/core/config.js";
 
@@ -151,6 +152,20 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
     })
   });
   await writeOpenRisksRecord(options.targetRoot, "handoff", handoff.risks);
+  await recordRuntimeProgress(options.targetRoot, {
+    type: scopeFailure ? "validation_checkpoint" : "handoff_recorded",
+    stage: scopeFailure ? "blocked" : "handed-off",
+    status: scopeFailure ? "error" : "ok",
+    summary: scopeFailure
+      ? `Handoff to ${targetSpecialistId} blocked by scope drift.`
+      : `Handoff to ${targetSpecialistId} recorded successfully.`,
+    task: currentPhase?.goal ?? null,
+    command: handoff.nextCommand,
+    files: gitState.changedFiles.slice(0, 12),
+    validationStatus: scopeFailure ? "error" : "ok",
+    nextSuggestedCommand: handoff.nextCommand,
+    nextRecommendedAction: handoff.nextStep
+  }).catch(() => null);
   options.logger.info(`handoff markdown: ${artifacts.markdownPath}`);
   options.logger.info(`handoff json: ${artifacts.jsonPath}`);
   options.logger.info(`handoff brief: ${artifacts.briefPath}`);

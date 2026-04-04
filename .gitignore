@@ -4,3 +4,8 @@ dist/
 ._*
 *.log
 coverage/
+.code-review-graph/
+.omc/
+.omx/
+.lean-ctx/
+.repomix-output.xml

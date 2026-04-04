@@ -31,6 +31,7 @@ export interface TokenEstimate {
   }>;
   wastedFiles: WastedFileReport;
   heavyDirectories: HeavyDirectoryReport;
+  tokenBreakdown: TokenBreakdownState;
 }
 
 export interface WastedFileReport {
@@ -74,6 +75,26 @@ export interface TokenUsageState {
   }>;
 }
 
+export interface TokenReductionCategory {
+  category: "node_modules" | "dist" | "skipped dirs" | "selection filter";
+  estimated_tokens_avoided: number;
+  file_count: number;
+  basis: "measured" | "heuristic";
+  note: string;
+}
+
+export interface TokenBreakdownState {
+  artifactType: "kiwi-control/token-breakdown";
+  version: 1;
+  timestamp: string;
+  task: string;
+  selected_tokens: number;
+  full_repo_tokens: number;
+  savings_percent: number;
+  partial_scan: boolean;
+  categories: TokenReductionCategory[];
+}
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -82,6 +103,7 @@ const CHARS_PER_TOKEN = 4;
 const ESTIMATION_METHOD: EstimationMethod = "rough estimate (chars/4 heuristic)";
 const ESTIMATE_NOTE =
   "Estimated token counts use a chars/4 heuristic. File counts are measured directly; token counts and savings percentages are approximate, and pricing is intentionally not shown.";
+const SKIPPED_DIR_SCAN_LIMIT = 400;
 
 const SKIP_DIRS = new Set([
   "node_modules", ".git", "dist", "build", ".next", ".output",
@@ -132,7 +154,8 @@ export async function estimateTokens(
   selectedFiles: string[],
   task = ""
 ): Promise<TokenEstimate> {
-  const allFiles = await collectSourceFiles(targetRoot);
+  const collected = await collectSourceFiles(targetRoot);
+  const allFiles = collected.files;
   const selectedSet = new Set(selectedFiles.map((f) => normalizePath(f)));
 
   const fileBreakdown: TokenEstimate["fileBreakdown"] = [];
@@ -188,6 +211,14 @@ export async function estimateTokens(
 
   const wastedFiles = detectWastedFiles(fileBreakdown, task);
   const heavyDirectories = detectHeavyDirectories(directoryBreakdown, fullRepoTokens, task);
+  const tokenBreakdown = await buildTokenBreakdown(
+    targetRoot,
+    task,
+    selectedTokens,
+    fullRepoTokens,
+    savingsPercent,
+    collected.skippedDirectories
+  );
 
   return {
     selectedTokens,
@@ -198,7 +229,8 @@ export async function estimateTokens(
     fileBreakdown,
     directoryBreakdown,
     wastedFiles,
-    heavyDirectories
+    heavyDirectories,
+    tokenBreakdown
   };
 }
 
@@ -218,8 +250,9 @@ function isSkippedFile(name: string): boolean {
   return SKIP_FILE_PATTERNS.some((re) => re.test(name));
 }
 
-async function collectSourceFiles(targetRoot: string): Promise<string[]> {
+async function collectSourceFiles(targetRoot: string): Promise<{ files: string[]; skippedDirectories: string[] }> {
   const files: string[] = [];
+  const skippedDirectories = new Set<string>();
 
   async function scanDir(dir: string, depth: number): Promise<void> {
     if (depth > 5) return;
@@ -233,11 +266,14 @@ async function collectSourceFiles(targetRoot: string): Promise<string[]> {
 
     for (const entry of entries) {
       if (entry.name.startsWith(".") && entry.name !== ".agent") continue;
-      if (SKIP_DIRS.has(entry.name)) continue;
 
       const fullPath = path.join(dir, entry.name);
 
       if (entry.isDirectory()) {
+        if (SKIP_DIRS.has(entry.name)) {
+          skippedDirectories.add(normalizePath(path.relative(targetRoot, fullPath)));
+          continue;
+        }
         await scanDir(fullPath, depth + 1);
         continue;
       }
@@ -260,7 +296,7 @@ async function collectSourceFiles(targetRoot: string): Promise<string[]> {
     }
   }
 
-  return files;
+  return { files, skippedDirectories: [...skippedDirectories] };
 }
 
 async function collectSelectiveAgentFiles(targetRoot: string): Promise<string[]> {
@@ -420,6 +456,143 @@ function detectHeavyDirectories(
   return { directories: directories.slice(0, 5) };
 }
 
+async function buildTokenBreakdown(
+  targetRoot: string,
+  task: string,
+  selectedTokens: number,
+  fullRepoTokens: number,
+  savingsPercent: number,
+  skippedDirectories: string[]
+): Promise<TokenBreakdownState> {
+  const nodeModulesDirs = skippedDirectories.filter((directory) => path.basename(directory) === "node_modules");
+  const distDirs = skippedDirectories.filter((directory) => ["dist", "build", ".next", ".output"].includes(path.basename(directory)));
+  const otherSkippedDirs = skippedDirectories.filter(
+    (directory) => !nodeModulesDirs.includes(directory) && !distDirs.includes(directory)
+  );
+
+  const [nodeModulesEstimate, distEstimate, skippedDirEstimate] = await Promise.all([
+    estimateSkippedDirectoryTokens(targetRoot, nodeModulesDirs),
+    estimateSkippedDirectoryTokens(targetRoot, distDirs),
+    estimateSkippedDirectoryTokens(targetRoot, otherSkippedDirs)
+  ]);
+
+  const selectionFilterSavings = Math.max(0, fullRepoTokens - selectedTokens);
+
+  return {
+    artifactType: "kiwi-control/token-breakdown",
+    version: 1,
+    timestamp: new Date().toISOString(),
+    task,
+    selected_tokens: selectedTokens,
+    full_repo_tokens: fullRepoTokens,
+    savings_percent: savingsPercent,
+    partial_scan: nodeModulesEstimate.partial || distEstimate.partial || skippedDirEstimate.partial,
+    categories: [
+      {
+        category: "selection filter",
+        estimated_tokens_avoided: selectionFilterSavings,
+        file_count: 0,
+        basis: "measured",
+        note: "Measured reduction from selecting a bounded working set instead of every scanned file."
+      },
+      {
+        category: "node_modules",
+        estimated_tokens_avoided: nodeModulesEstimate.tokens,
+        file_count: nodeModulesEstimate.fileCount,
+        basis: "heuristic",
+        note: nodeModulesEstimate.note
+      },
+      {
+        category: "dist",
+        estimated_tokens_avoided: distEstimate.tokens,
+        file_count: distEstimate.fileCount,
+        basis: "heuristic",
+        note: distEstimate.note
+      },
+      {
+        category: "skipped dirs",
+        estimated_tokens_avoided: skippedDirEstimate.tokens,
+        file_count: skippedDirEstimate.fileCount,
+        basis: "heuristic",
+        note: skippedDirEstimate.note
+      }
+    ]
+  };
+}
+
+async function estimateSkippedDirectoryTokens(
+  targetRoot: string,
+  directories: string[]
+): Promise<{ tokens: number; fileCount: number; partial: boolean; note: string }> {
+  if (directories.length === 0) {
+    return {
+      tokens: 0,
+      fileCount: 0,
+      partial: false,
+      note: "No matching skipped directories were observed in the current repo scan."
+    };
+  }
+
+  let tokens = 0;
+  let fileCount = 0;
+  let visitedFiles = 0;
+  let partial = false;
+
+  const visit = async (absolutePath: string): Promise<void> => {
+    if (visitedFiles >= SKIPPED_DIR_SCAN_LIMIT) {
+      partial = true;
+      return;
+    }
+
+    let entries: import("node:fs").Dirent[];
+    try {
+      entries = await fs.readdir(absolutePath, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      if (visitedFiles >= SKIPPED_DIR_SCAN_LIMIT) {
+        partial = true;
+        break;
+      }
+
+      const fullPath = path.join(absolutePath, entry.name);
+      if (entry.isDirectory()) {
+        await visit(fullPath);
+        continue;
+      }
+
+      const ext = path.extname(entry.name).toLowerCase();
+      if (!SOURCE_EXTENSIONS.has(ext) || isSkippedFile(entry.name)) {
+        continue;
+      }
+
+      try {
+        const stat = await fs.stat(fullPath);
+        tokens += Math.max(1, Math.ceil(stat.size / CHARS_PER_TOKEN));
+        fileCount += 1;
+        visitedFiles += 1;
+      } catch {
+        continue;
+      }
+    }
+  };
+
+  for (const directory of directories) {
+    await visit(path.join(targetRoot, directory));
+  }
+
+  return {
+    tokens,
+    fileCount,
+    partial,
+    note: partial
+      ? `Heuristic estimate from a partial sample of ${fileCount} file(s) across skipped directories.`
+      : `Heuristic estimate from ${fileCount} source-like file(s) under skipped directories.`
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Persistence
 // ---------------------------------------------------------------------------
@@ -460,5 +633,15 @@ export async function persistTokenUsage(
   };
 
   await writeText(statePath, `${JSON.stringify(record, null, 2)}\n`);
+  await persistTokenBreakdown(targetRoot, estimate.tokenBreakdown);
+  return statePath;
+}
+
+export async function persistTokenBreakdown(
+  targetRoot: string,
+  breakdown: TokenBreakdownState
+): Promise<string> {
+  const statePath = path.join(targetRoot, ".agent", "state", "token-breakdown.json");
+  await writeText(statePath, `${JSON.stringify(breakdown, null, 2)}\n`);
   return statePath;
 }

@@ -13,6 +13,7 @@ import { inspectBootstrapTarget } from "@shrey-junior/sj-core/core/project-detec
 import { PRODUCT_METADATA } from "@shrey-junior/sj-core/core/product.js";
 import { loadContinuitySnapshot, updateActiveRoleHints } from "@shrey-junior/sj-core/core/state.js";
 import { resolveSpecialist } from "@shrey-junior/sj-core/core/specialists.js";
+import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 
 export interface RunOptions {
@@ -127,6 +128,18 @@ export async function runRun(options: RunOptions): Promise<number> {
       fileArea: decision.fileArea
     })
   });
+  await recordRuntimeProgress(options.targetRoot, {
+    type: "packets_generated",
+    stage: "packetized",
+    status: "ok",
+    summary: `Generated ${results.length} task packet${results.length === 1 ? "" : "s"} for "${options.goal}".`,
+    task: options.goal,
+    command: `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "<milestone>"`,
+    files: packets.map((packet) => packet.relativePath).slice(0, 12),
+    validationStatus: risk.level === "high" ? "warn" : "ok",
+    nextSuggestedCommand: `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "<milestone>"`,
+    nextRecommendedAction: `Execute the generated ${decision.primaryTool} packet and checkpoint progress before widening scope.`
+  }).catch(() => null);
   options.logger.info(summarizeWrites(results, options.targetRoot));
   return 0;
 }

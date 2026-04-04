@@ -72,6 +72,39 @@ test("context selector finds import neighbors", async () => {
   );
 });
 
+test("context selector uses the incremental import index to surface reverse dependents of changed files", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ctx-impact-"));
+  await runCommand("git", ["init"], tempDir);
+
+  await fs.writeFile(
+    path.join(tempDir, "main.ts"),
+    'import { helper } from "./helper.js";\nexport function run() { return helper(); }\n',
+    "utf8"
+  );
+  await fs.writeFile(
+    path.join(tempDir, "helper.ts"),
+    "export function helper() { return 42; }\n",
+    "utf8"
+  );
+  await runCommand("git", ["add", "."], tempDir);
+  await runCommand("git", ["-c", "user.name=test", "-c", "user.email=test@test.com", "commit", "-m", "init"], tempDir);
+
+  await contextSelector("inspect helper impact", tempDir);
+  await fs.writeFile(
+    path.join(tempDir, "helper.ts"),
+    "export function helper() { return 43; }\n",
+    "utf8"
+  );
+
+  const result = await contextSelector("fix helper behavior", tempDir);
+
+  assert.ok(result.signals.changedFiles.includes("helper.ts"));
+  assert.ok(
+    result.signals.importNeighbors.includes("main.ts"),
+    `Expected main.ts as a reverse dependent, got: ${result.signals.importNeighbors.join(", ")}`
+  );
+});
+
 test("context selector persists worktree and selection state", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ctx-persist-"));
   await runCommand("git", ["init"], tempDir);
@@ -82,17 +115,58 @@ test("context selector persists worktree and selection state", async () => {
 
   const worktreePath = path.join(tempDir, ".agent", "state", "worktree.json");
   const selectionPath = path.join(tempDir, ".agent", "state", "context-selection.json");
+  const contextTracePath = path.join(tempDir, ".agent", "state", "context-trace.json");
+  const indexingPath = path.join(tempDir, ".agent", "state", "indexing.json");
+  const contextIndexPath = path.join(tempDir, ".agent", "state", "context-index.json");
 
   assert.ok(await pathExists(worktreePath), "worktree.json should be persisted");
   assert.ok(await pathExists(selectionPath), "context-selection.json should be persisted");
+  assert.ok(await pathExists(contextTracePath), "context-trace.json should be persisted");
+  assert.ok(await pathExists(indexingPath), "indexing.json should be persisted");
+  assert.ok(await pathExists(contextIndexPath), "context-index.json should be persisted");
 
   const worktree = await readJson<{ artifactType: string; dirty: boolean }>(worktreePath);
   assert.equal(worktree.artifactType, "kiwi-control/worktree");
   assert.equal(worktree.dirty, true);
 
-  const selection = await readJson<{ artifactType: string; task: string }>(selectionPath);
+  const selection = await readJson<{ artifactType: string; task: string; version: number }>(selectionPath);
   assert.equal(selection.artifactType, "kiwi-control/context-selection");
   assert.equal(selection.task, "build feature");
+  assert.equal(selection.version, 3);
+
+  const trace = await readJson<{
+    artifactType: string;
+    fileAnalysis: { selectedFiles: number; scannedFiles: number };
+    expansionSteps: Array<{ step: string }>;
+  }>(contextTracePath);
+  assert.equal(trace.artifactType, "kiwi-control/context-trace");
+  assert.ok(trace.fileAnalysis.scannedFiles >= trace.fileAnalysis.selectedFiles);
+  assert.ok(trace.expansionSteps.length > 0);
+
+  const indexing = await readJson<{
+    artifactType: string;
+    analyzedFiles: number;
+    totalFiles: number;
+    ignoreRulesApplied: string[];
+    indexedFiles?: number;
+  }>(indexingPath);
+  assert.equal(indexing.artifactType, "kiwi-control/indexing");
+  assert.ok(indexing.totalFiles >= indexing.analyzedFiles);
+  assert.equal(Array.isArray(indexing.ignoreRulesApplied), true);
+  assert.equal((indexing.indexedFiles ?? 0) >= 0, true);
+
+  const contextIndex = await readJson<{
+    artifactType: string;
+    indexedFiles: number;
+    updatedFiles: string[];
+    reusedFiles: number;
+    lastImpact: { impactedFiles: string[] };
+  }>(contextIndexPath);
+  assert.equal(contextIndex.artifactType, "kiwi-control/context-index");
+  assert.ok(contextIndex.indexedFiles >= 0);
+  assert.equal(Array.isArray(contextIndex.updatedFiles), true);
+  assert.ok(typeof contextIndex.reusedFiles === "number");
+  assert.equal(Array.isArray(contextIndex.lastImpact.impactedFiles), true);
 });
 
 test("context selector excludes node_modules and dist paths", async () => {

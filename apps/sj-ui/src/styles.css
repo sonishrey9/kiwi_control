@@ -46,6 +46,38 @@
     monospace;
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: oklch(0.975 0.01 240);
+  --foreground: oklch(0.24 0.02 255);
+  --card: oklch(0.995 0.005 240);
+  --card-foreground: oklch(0.24 0.02 255);
+  --popover: oklch(0.985 0.005 240);
+  --popover-foreground: oklch(0.24 0.02 255);
+  --primary: oklch(0.63 0.18 160);
+  --primary-foreground: oklch(0.985 0.005 240);
+  --secondary: oklch(0.94 0.01 240);
+  --secondary-foreground: oklch(0.36 0.02 255);
+  --muted: oklch(0.95 0.008 240);
+  --muted-foreground: oklch(0.53 0.02 255);
+  --accent: oklch(0.93 0.02 165);
+  --accent-foreground: oklch(0.28 0.02 255);
+  --warning: oklch(0.76 0.16 80);
+  --warning-foreground: oklch(0.2 0.02 255);
+  --success: oklch(0.64 0.17 160);
+  --success-foreground: oklch(0.985 0.005 240);
+  --destructive: oklch(0.59 0.19 24);
+  --destructive-foreground: oklch(0.985 0.005 240);
+  --border: oklch(0.88 0.01 240);
+  --border-strong: oklch(0.8 0.015 240);
+  --sidebar: oklch(0.95 0.01 240);
+  --sidebar-foreground: oklch(0.52 0.02 255);
+  --sidebar-border: oklch(0.86 0.01 240);
+  --sidebar-accent: oklch(0.9 0.03 165);
+  --shadow-soft: 0 20px 50px rgba(17, 24, 39, 0.12);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -68,6 +100,13 @@ body {
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+:root[data-theme="light"] body {
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 10%, transparent), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(72, 102, 255, 0.04), transparent 24%),
+    var(--background);
 }
 
 button,
@@ -118,6 +157,15 @@ button {
   flex-direction: column;
   overflow: hidden;
   background: var(--background);
+}
+
+.kc-shell[data-platform="macos"] {
+  --radius: 0.55rem;
+}
+
+.kc-shell[data-platform="windows"] {
+  --radius: 0.25rem;
+  --shadow-card: none;
 }
 
 .kc-topbar {
@@ -813,6 +861,16 @@ button {
   color: var(--secondary-foreground);
 }
 
+.kc-inline-badge.is-active {
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+}
+
+.kc-inline-badge.is-muted {
+  opacity: 0.7;
+}
+
 .kc-badge {
   background: color-mix(in srgb, var(--secondary) 80%, transparent);
   color: var(--foreground);
@@ -1253,6 +1311,195 @@ button {
 
 .kc-log-line.is-warn strong {
   color: color-mix(in srgb, var(--warning) 84%, white);
+}
+
+.kc-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--secondary) 68%, transparent);
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.kc-theme-toggle:hover,
+.kc-panel:hover,
+.kc-subpanel:hover,
+.kc-stat-card:hover,
+.kc-fold-card:hover,
+.kc-capability-card:hover {
+  border-color: var(--border-strong);
+  background: color-mix(in srgb, var(--secondary) 82%, transparent);
+}
+
+.kc-theme-toggle:hover {
+  transform: translateY(-1px);
+}
+
+.kc-theme-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+
+.kc-panel,
+.kc-subpanel,
+.kc-stat-card,
+.kc-capability-card,
+.kc-fold-card,
+.kc-note-row,
+.kc-memory-row {
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.kc-shell[data-platform="macos"] .kc-topbar,
+.kc-shell[data-platform="macos"] .kc-rail,
+.kc-shell[data-platform="macos"] .kc-inspector,
+.kc-shell[data-platform="macos"] .kc-log-drawer {
+  backdrop-filter: blur(18px);
+}
+
+.kc-shell[data-platform="windows"] .kc-topbar,
+.kc-shell[data-platform="windows"] .kc-rail,
+.kc-shell[data-platform="windows"] .kc-panel,
+.kc-shell[data-platform="windows"] .kc-subpanel,
+.kc-shell[data-platform="windows"] .kc-stat-card,
+.kc-shell[data-platform="windows"] .kc-inspector,
+.kc-shell[data-platform="windows"] .kc-log-drawer {
+  border-color: var(--border-strong);
+}
+
+.kc-support-copy {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.kc-bullet-row {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.kc-bullet-dot {
+  width: 6px;
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 86%, white);
+}
+
+.kc-capability-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--secondary) 54%, transparent);
+}
+
+.kc-capability-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.kc-capability-head strong {
+  display: block;
+  color: var(--foreground);
+  font-size: 13px;
+}
+
+.kc-capability-head span {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+.kc-capability-card p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.kc-capability-notes {
+  display: grid;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.kc-fold-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.kc-fold-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--secondary) 38%, transparent);
+  overflow: hidden;
+}
+
+.kc-fold-card summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.kc-fold-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.kc-fold-card summary strong {
+  display: block;
+  color: var(--foreground);
+  font-size: 13px;
+}
+
+.kc-fold-card summary span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.kc-fold-body {
+  display: grid;
+  gap: 10px;
+  padding: 0 16px 16px;
+}
+
+:root[data-theme="light"] .kc-panel-primary {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 16%, white), color-mix(in srgb, var(--card) 94%, white)),
+    var(--card);
+}
+
+:root[data-theme="light"] .kc-topbar,
+:root[data-theme="light"] .kc-rail,
+:root[data-theme="light"] .kc-inspector,
+:root[data-theme="light"] .kc-log-drawer {
+  background: color-mix(in srgb, var(--card) 96%, white);
 }
 
 @media (max-width: 1320px) {

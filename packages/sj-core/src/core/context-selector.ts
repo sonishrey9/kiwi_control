@@ -3,9 +3,18 @@ import { promises as fs } from "node:fs";
 import type { GitState } from "./git.js";
 import { inspectGitState } from "./git.js";
 import { computeAdaptiveWeights } from "./context-feedback.js";
+import { buildContextIndex } from "./context-index.js";
 import { getMemoryPaths } from "./memory.js";
 import { getStatePaths } from "./state.js";
 import { classifyFileArea, deriveTaskArea, deriveTaskCategory } from "./task-intent.js";
+import type {
+  ContextTraceState,
+  ExplainabilityReason,
+  FileAnalysisEntry,
+  IndexingState,
+  SkippedPathEntry
+} from "./context-trace.js";
+import { persistContextTrace, persistIndexingState } from "./context-trace.js";
 import { pathExists, readText, writeText } from "../utils/fs.js";
 
 // ---------------------------------------------------------------------------
@@ -50,7 +59,7 @@ export interface WorktreeState {
 
 export interface ContextSelectionState {
   artifactType: "kiwi-control/context-selection";
-  version: 2;
+  version: 3;
   timestamp: string;
   task: string;
   include: string[];
@@ -67,16 +76,54 @@ interface DiscoveredSourceFile {
 }
 
 export interface ContextDiscoveryMetrics {
+  totalFiles: number;
   discoveredFiles: number;
+  analyzedFiles: number;
+  skippedFiles: number;
+  skippedDirectories: number;
   visitedDirectories: number;
   maxDepthExplored: number;
   fileBudgetReached: boolean;
   directoryBudgetReached: boolean;
+  partialScan: boolean;
+  ignoreRulesApplied: string[];
+  skipped: SkippedPathEntry[];
+  indexedFiles?: number;
+  indexUpdatedFiles?: number;
+  indexReusedFiles?: number;
+  impactFiles?: number;
 }
 
 interface DiscoveryResult {
   files: DiscoveredSourceFile[];
   metrics: ContextDiscoveryMetrics;
+}
+
+interface ExplainabilityLedgerEntry {
+  score: number;
+  reasons: Set<ExplainabilityReason>;
+}
+
+interface RankedContextSelection extends ContextSelection {
+  explainability: {
+    fileAnalysis: {
+      selected: FileAnalysisEntry[];
+      excluded: FileAnalysisEntry[];
+    };
+    expansionSteps: ContextTraceState["expansionSteps"];
+  };
+}
+
+interface PrecisionTrimmedFile {
+  file: string;
+  reason: ExplainabilityReason;
+  note: string;
+}
+
+interface PrecisionRefinementResult {
+  include: string[];
+  reason: string | null;
+  removed: PrecisionTrimmedFile[];
 }
 
 interface ConfidenceAssessment {
@@ -242,6 +289,10 @@ export async function contextSelector(
 
   await persistWorktreeState(targetRoot, worktree);
   await persistContextSelection(targetRoot, task, selection, signals);
+  if (signals.discovery) {
+    await persistIndexingState(targetRoot, buildIndexingState(task, signals.discovery));
+  }
+  await persistContextTrace(targetRoot, buildContextTrace(task, selection, signals));
 
   return selection;
 }
@@ -314,11 +365,29 @@ async function collectSignals(
 
   const discovery = await discoverSourceFiles(targetRoot);
   const recentFiles = collectRecentFiles(discovery.files, MAX_RECENT_FILES);
+  let importNeighbors = await collectImportNeighbors(targetRoot, changedFiles);
+  let discoveryMetrics = discovery.metrics;
 
-  const importNeighbors = await collectImportNeighbors(
-    targetRoot,
-    changedFiles
-  );
+  try {
+    const contextIndex = await buildContextIndex({
+      targetRoot,
+      discoveredFiles: discovery.files.map((entry) => ({
+        file: entry.file,
+        mtime: entry.mtime
+      })),
+      changedFiles
+    });
+    importNeighbors = contextIndex.lastImpact.impactedFiles;
+    discoveryMetrics = {
+      ...discovery.metrics,
+      indexedFiles: contextIndex.indexedFiles,
+      indexUpdatedFiles: contextIndex.updatedFiles.length,
+      indexReusedFiles: contextIndex.reusedFiles,
+      impactFiles: contextIndex.lastImpact.impactedFiles.length
+    };
+  } catch {
+    // Fall back to direct changed-file import scanning when the incremental index is unavailable.
+  }
   const repoContextFiles = await collectSelectiveAgentFiles(targetRoot);
 
   const proximityFiles = collectProximityFiles(
@@ -340,18 +409,33 @@ async function collectSignals(
     proximityFiles,
     keywordMatches,
     repoContextFiles,
-    discovery: discovery.metrics
+    discovery: discoveryMetrics
   };
 }
 
 async function discoverSourceFiles(targetRoot: string): Promise<DiscoveryResult> {
   const discovered: DiscoveredSourceFile[] = [];
   const pendingDirectories: Array<{ dir: string; depth: number }> = [{ dir: targetRoot, depth: 0 }];
+  const ignoreRulesApplied = new Set<string>();
+  const skipped: SkippedPathEntry[] = [];
   let visitedDirectories = 0;
   let maxDepthExplored = 0;
+  let totalFiles = 0;
+  let analyzedFiles = 0;
+  let skippedFiles = 0;
+  let skippedDirectories = 0;
+  let partialScan = false;
+
+  const noteSkipped = (entry: SkippedPathEntry): void => {
+    if (skipped.length >= 20) {
+      return;
+    }
+    skipped.push(entry);
+  };
 
   while (pendingDirectories.length > 0) {
     if (visitedDirectories >= DISCOVERY_DIRECTORY_BUDGET || discovered.length >= DISCOVERY_FILE_BUDGET) {
+      partialScan = true;
       break;
     }
 
@@ -378,7 +462,21 @@ async function discoverSourceFiles(targetRoot: string): Promise<DiscoveryResult>
       .sort((left, right) => left.name.localeCompare(right.name));
 
     for (const entry of directories) {
-      if (entry.name.startsWith(".") || EXCLUDED_DIRECTORIES.has(entry.name)) {
+      const relativeDir = path.relative(targetRoot, path.join(current.dir, entry.name));
+
+      if (entry.name.startsWith(".")) {
+        skippedDirectories += 1;
+        partialScan = true;
+        ignoreRulesApplied.add("hidden directory");
+        noteSkipped({ path: relativeDir, reason: "hidden directory rule" });
+        continue;
+      }
+
+      if (EXCLUDED_DIRECTORIES.has(entry.name)) {
+        skippedDirectories += 1;
+        partialScan = true;
+        ignoreRulesApplied.add(`directory ignore: ${entry.name}`);
+        noteSkipped({ path: relativeDir, reason: `ignored directory (${entry.name})`, estimated: true });
         continue;
       }
 
@@ -386,13 +484,26 @@ async function discoverSourceFiles(targetRoot: string): Promise<DiscoveryResult>
     }
 
     for (const entry of files) {
-      if (!isSourceFile(entry.name) || isExcludedFile(entry.name)) {
+      if (!isSourceFile(entry.name)) {
         continue;
       }
 
       const fullPath = path.join(current.dir, entry.name);
       const relativePath = path.relative(targetRoot, fullPath);
+      totalFiles += 1;
+
+      if (isExcludedFile(entry.name)) {
+        skippedFiles += 1;
+        ignoreRulesApplied.add("file ignore pattern");
+        noteSkipped({ path: relativePath, reason: "file ignore rule" });
+        continue;
+      }
+
       if (isExcludedPath(relativePath)) {
+        skippedFiles += 1;
+        partialScan = true;
+        ignoreRulesApplied.add("path ignore rule");
+        noteSkipped({ path: relativePath, reason: "path ignore rule" });
         continue;
       }
 
@@ -403,6 +514,7 @@ async function discoverSourceFiles(targetRoot: string): Promise<DiscoveryResult>
           mtime: stat.mtimeMs,
           depth: current.depth
         });
+        analyzedFiles += 1;
       } catch {
         continue;
       }
@@ -416,11 +528,18 @@ async function discoverSourceFiles(targetRoot: string): Promise<DiscoveryResult>
   return {
     files: discovered,
     metrics: {
+      totalFiles,
       discoveredFiles: discovered.length,
+      analyzedFiles,
+      skippedFiles,
+      skippedDirectories,
       visitedDirectories,
       maxDepthExplored,
       fileBudgetReached: discovered.length >= DISCOVERY_FILE_BUDGET,
-      directoryBudgetReached: visitedDirectories >= DISCOVERY_DIRECTORY_BUDGET
+      directoryBudgetReached: visitedDirectories >= DISCOVERY_DIRECTORY_BUDGET,
+      partialScan,
+      ignoreRulesApplied: [...ignoreRulesApplied],
+      skipped
     }
   };
 }
@@ -567,37 +686,46 @@ async function rankAndSelect(
   targetRoot: string,
   signals: ContextSignals,
   adaptive: { boosted: Map<string, number>; penalized: Map<string, number> }
-): Promise<ContextSelection> {
+): Promise<RankedContextSelection> {
   const scored = new Map<string, number>();
+  const explainabilityLedger = new Map<string, ExplainabilityLedgerEntry>();
   const keywords = tokenizeTask(task);
   const taskCategory = deriveTaskCategory(task);
   const taskArea = deriveTaskArea(task);
 
+  const addScore = (file: string, amount: number, reason: ExplainabilityReason): void => {
+    scored.set(file, (scored.get(file) ?? 0) + amount);
+    const entry = explainabilityLedger.get(file) ?? { score: 0, reasons: new Set<ExplainabilityReason>() };
+    entry.score = scored.get(file) ?? amount;
+    entry.reasons.add(reason);
+    explainabilityLedger.set(file, entry);
+  };
+
   for (const file of signals.changedFiles) {
-    scored.set(file, (scored.get(file) ?? 0) + SCORE_CHANGED);
+    addScore(file, SCORE_CHANGED, "changed file");
   }
 
   for (const file of signals.repoContextFiles) {
-    scored.set(file, (scored.get(file) ?? 0) + SCORE_REPO_CONTEXT);
+    addScore(file, SCORE_REPO_CONTEXT, "repo context");
   }
 
   for (const file of signals.importNeighbors) {
-    scored.set(file, (scored.get(file) ?? 0) + SCORE_IMPORT_NEIGHBOR);
+    addScore(file, SCORE_IMPORT_NEIGHBOR, "import dependency");
   }
 
   for (const file of signals.proximityFiles) {
-    scored.set(file, (scored.get(file) ?? 0) + SCORE_PROXIMITY);
+    addScore(file, SCORE_PROXIMITY, "proximity");
   }
 
   for (const file of signals.recentFiles) {
-    scored.set(file, (scored.get(file) ?? 0) + SCORE_RECENT);
+    addScore(file, SCORE_RECENT, "recent file");
   }
 
   // Keyword scoring — applied to ALL candidates, using tokenized matching
   for (const [file] of scored) {
     const kwScore = scoreFileAgainstKeywords(file, keywords);
     if (kwScore > 0) {
-      scored.set(file, (scored.get(file) ?? 0) + Math.min(kwScore, SCORE_KEYWORD));
+      addScore(file, Math.min(kwScore, SCORE_KEYWORD), "keyword match");
     }
   }
 
@@ -605,36 +733,47 @@ async function rankAndSelect(
   for (const file of signals.keywordMatches) {
     if (!scored.has(file)) {
       const kwScore = scoreFileAgainstKeywords(file, keywords);
-      scored.set(file, Math.min(kwScore, SCORE_KEYWORD));
+      addScore(file, Math.min(kwScore, SCORE_KEYWORD), "keyword match");
     }
   }
 
   // Adaptive feedback: boost historically useful files, penalize wasted ones
   for (const [file, boost] of adaptive.boosted) {
     if (scored.has(file)) {
-      scored.set(file, (scored.get(file) ?? 0) + Math.min(boost, SCORE_ADAPTIVE_MAX));
+      addScore(file, Math.min(boost, SCORE_ADAPTIVE_MAX), "adaptive boost");
     }
   }
   for (const [file, penalty] of adaptive.penalized) {
     if (scored.has(file)) {
       scored.set(file, Math.max(0, (scored.get(file) ?? 0) - Math.min(penalty, SCORE_ADAPTIVE_MAX)));
+      const entry = explainabilityLedger.get(file) ?? { score: 0, reasons: new Set<ExplainabilityReason>() };
+      entry.score = scored.get(file) ?? 0;
+      entry.reasons.add("adaptive penalty");
+      explainabilityLedger.set(file, entry);
     }
   }
 
   for (const [file, score] of scored) {
-    scored.set(file, Math.max(0, score + scoreFileForTask(file, taskCategory, taskArea)));
+    const taskFit = scoreFileForTask(file, taskCategory, taskArea);
+    scored.set(file, Math.max(0, score + taskFit));
+    if (taskFit !== 0) {
+      const entry = explainabilityLedger.get(file) ?? { score: 0, reasons: new Set<ExplainabilityReason>() };
+      entry.score = scored.get(file) ?? 0;
+      entry.reasons.add("task fit");
+      explainabilityLedger.set(file, entry);
+    }
   }
 
   const sorted = [...scored.entries()]
     .sort((a, b) => b[1] - a[1]);
 
-  const include = await selectFilesWithinBudget(
+  const includeBeforeTrim = await selectFilesWithinBudget(
     targetRoot,
     sorted,
     new Set([...signals.changedFiles, ...signals.repoContextFiles]),
     CONTEXT_TOKEN_BUDGET
   );
-  const precisionRefinement = refineSelectionForTask(task, include, signals);
+  const precisionRefinement = refineSelectionForTask(task, includeBeforeTrim, signals);
   const exclude = buildExcludeList();
 
   const confidenceAssessment = assessConfidence(signals, precisionRefinement.include);
@@ -649,7 +788,7 @@ async function rankAndSelect(
         : "proximity heuristics";
 
   const reason =
-    `Selected ${include.length} files based on ${topSignal}. ` +
+    `Selected ${precisionRefinement.include.length} files based on ${topSignal}. ` +
       `Signals: ${signals.changedFiles.length} changed, ` +
       `${signals.importNeighbors.length} import neighbors, ` +
       `${signals.keywordMatches.length} keyword matches, ` +
@@ -663,7 +802,46 @@ async function rankAndSelect(
       `Budget: ~${await estimateSelectionTokens(targetRoot, precisionRefinement.include)} tokens. ` +
       `Confidence: ${confidence}.`;
 
-  return { include: precisionRefinement.include, exclude, reason, signals, confidence };
+  const trimmedByFile = new Map(
+    precisionRefinement.removed.map((entry) => [entry.file, entry] as const)
+  );
+  const finalSelectedSet = new Set(precisionRefinement.include);
+  const selected = precisionRefinement.include.map((file) =>
+    buildFileAnalysisEntry(file, explainabilityLedger.get(file), [])
+  );
+  const excluded = sorted
+    .filter(([file]) => !finalSelectedSet.has(file))
+    .map(([file, score]) => {
+      const trimmed = trimmedByFile.get(file);
+      const baseReasons: ExplainabilityReason[] = trimmed
+        ? [trimmed.reason]
+        : [score <= 1 ? "low relevance" : "selection filter"];
+      const note = trimmed?.note ?? (score <= 1
+        ? "Signal strength stayed too weak to justify inclusion."
+        : "The file did not make the bounded working set.");
+      return buildFileAnalysisEntry(file, explainabilityLedger.get(file), baseReasons, note);
+    });
+
+  return {
+    include: precisionRefinement.include,
+    exclude,
+    reason,
+    signals,
+    confidence,
+    explainability: {
+      fileAnalysis: {
+        selected,
+        excluded
+      },
+      expansionSteps: buildExpansionSteps(
+        signals,
+        sorted,
+        includeBeforeTrim,
+        precisionRefinement,
+        precisionRefinement.include
+      )
+    }
+  };
 }
 
 async function selectFilesWithinBudget(
@@ -803,17 +981,168 @@ function assessConfidence(
   };
 }
 
+function buildFileAnalysisEntry(
+  file: string,
+  ledgerEntry: ExplainabilityLedgerEntry | undefined,
+  fallbackReasons: ExplainabilityReason[],
+  note?: string
+): FileAnalysisEntry {
+  const reasons = uniqueReasons([
+    ...(ledgerEntry ? [...ledgerEntry.reasons] : []),
+    ...fallbackReasons
+  ]);
+
+  return {
+    file,
+    reasons,
+    ...(typeof ledgerEntry?.score === "number" ? { score: ledgerEntry.score } : {}),
+    ...(note ? { note } : {})
+  };
+}
+
+function buildExpansionSteps(
+  signals: ContextSignals,
+  sorted: Array<[string, number]>,
+  includeBeforeTrim: string[],
+  precisionRefinement: PrecisionRefinementResult,
+  finalSelection: string[]
+): ContextTraceState["expansionSteps"] {
+  const seedFiles = uniqueFiles([
+    ...signals.changedFiles,
+    ...signals.importNeighbors,
+    ...signals.keywordMatches,
+    ...signals.repoContextFiles,
+    ...signals.proximityFiles
+  ]);
+  const expandedCandidates = uniqueFiles(sorted.map(([file]) => file));
+
+  const steps: ContextTraceState["expansionSteps"] = [
+    {
+      step: "initial signals",
+      summary:
+        `Seeded selection from ${signals.changedFiles.length} changed, ` +
+        `${signals.importNeighbors.length} import, ${signals.keywordMatches.length} keyword, ` +
+        `${signals.proximityFiles.length} proximity, and ${signals.repoContextFiles.length} repo-context signals.`,
+      filesAdded: seedFiles.slice(0, 12)
+    },
+    {
+      step: "expansion",
+      summary:
+        `Expanded the working set to ${expandedCandidates.length} candidate files using weighted signals and task-fit heuristics` +
+        (signals.discovery?.indexedFiles
+          ? ` while reusing an incremental import index (${signals.discovery.indexUpdatedFiles ?? 0} updated, ${signals.discovery.indexReusedFiles ?? 0} reused).`
+          : "."),
+      filesAdded: expandedCandidates.slice(0, 12)
+    },
+    {
+      step: "budget selection",
+      summary: `Selected ${includeBeforeTrim.length} files within the bounded context budget before task-specific precision trimming.`,
+      filesAdded: includeBeforeTrim
+    }
+  ];
+
+  if (precisionRefinement.removed.length > 0) {
+    steps.push({
+      step: "precision trim",
+      summary: precisionRefinement.reason ?? "Removed low-relevance files after scoring.",
+      filesAdded: finalSelection,
+      filesRemoved: precisionRefinement.removed.map((entry) => entry.file)
+    });
+  }
+
+  return steps;
+}
+
+function buildContextTrace(
+  task: string,
+  selection: RankedContextSelection,
+  signals: ContextSignals
+): ContextTraceState {
+  const discovery = signals.discovery;
+  const scannedFiles = selection.explainability.fileAnalysis.selected.length + selection.explainability.fileAnalysis.excluded.length;
+  const skippedFiles = discovery?.skipped.length ?? 0;
+  return {
+    artifactType: "kiwi-control/context-trace",
+    version: 1,
+    timestamp: new Date().toISOString(),
+    task,
+    fileAnalysis: {
+      totalFiles: scannedFiles + skippedFiles,
+      scannedFiles,
+      skippedFiles,
+      selectedFiles: selection.explainability.fileAnalysis.selected.length,
+      excludedFiles: selection.explainability.fileAnalysis.excluded.length,
+      selected: selection.explainability.fileAnalysis.selected,
+      excluded: selection.explainability.fileAnalysis.excluded,
+      skipped: discovery?.skipped ?? []
+    },
+    initialSignals: {
+      changedFiles: signals.changedFiles,
+      recentFiles: signals.recentFiles,
+      importNeighbors: signals.importNeighbors,
+      proximityFiles: signals.proximityFiles,
+      keywordMatches: signals.keywordMatches,
+      repoContextFiles: signals.repoContextFiles
+    },
+    expansionSteps: selection.explainability.expansionSteps,
+    finalSelection: {
+      include: selection.include,
+      excludePatterns: selection.exclude,
+      reason: selection.reason,
+      confidence: selection.confidence
+    },
+    honesty: {
+      heuristic: true,
+      lowConfidence: selection.confidence === "low",
+      partialScan: Boolean(discovery?.partialScan || discovery?.fileBudgetReached || discovery?.directoryBudgetReached)
+    }
+  };
+}
+
+function buildIndexingState(task: string, discovery: ContextDiscoveryMetrics): IndexingState {
+  return {
+    artifactType: "kiwi-control/indexing",
+    version: 1,
+    timestamp: new Date().toISOString(),
+    task,
+    totalFiles: discovery.totalFiles,
+    discoveredFiles: discovery.discoveredFiles,
+    analyzedFiles: discovery.analyzedFiles,
+    skippedFiles: discovery.skippedFiles,
+    visitedDirectories: discovery.visitedDirectories,
+    skippedDirectories: discovery.skippedDirectories,
+    maxDepthExplored: discovery.maxDepthExplored,
+    fileBudgetReached: discovery.fileBudgetReached,
+    directoryBudgetReached: discovery.directoryBudgetReached,
+    partialScan: discovery.partialScan,
+    ignoreRulesApplied: discovery.ignoreRulesApplied,
+    skipped: discovery.skipped,
+    ...(typeof discovery.indexedFiles === "number" ? { indexedFiles: discovery.indexedFiles } : {}),
+    ...(typeof discovery.indexUpdatedFiles === "number" ? { indexUpdatedFiles: discovery.indexUpdatedFiles } : {}),
+    ...(typeof discovery.indexReusedFiles === "number" ? { indexReusedFiles: discovery.indexReusedFiles } : {}),
+    ...(typeof discovery.impactFiles === "number" ? { impactFiles: discovery.impactFiles } : {})
+  };
+}
+
+function uniqueFiles(files: string[]): string[] {
+  return [...new Set(files)];
+}
+
+function uniqueReasons(reasons: ExplainabilityReason[]): ExplainabilityReason[] {
+  return [...new Set(reasons)];
+}
+
 function refineSelectionForTask(
   task: string,
   selected: string[],
   signals: ContextSignals
-): { include: string[]; reason: string | null } {
+): PrecisionRefinementResult {
   const taskCategory = deriveTaskCategory(task);
   const taskArea = deriveTaskArea(task);
   const precisionSensitiveCategories = new Set(["docs", "testing", "config", "ui", "implementation"]);
 
   if (!precisionSensitiveCategories.has(taskCategory)) {
-    return { include: selected, reason: null };
+    return { include: selected, reason: null, removed: [] };
   }
 
   const repoContextFiles = new Set(signals.repoContextFiles);
@@ -825,12 +1154,13 @@ function refineSelectionForTask(
   const hasAreaAlignedDirectSignal = [...directSignals].some((file) => classifyFileArea(file) === taskArea);
 
   if (!hasAreaAlignedDirectSignal) {
-    return { include: selected, reason: null };
+    return { include: selected, reason: null, removed: [] };
   }
 
   const scopedPrefixes = deriveScopedPrefixes([...directSignals].filter((file) => classifyFileArea(file) === taskArea), taskArea);
 
   const refined: string[] = [];
+  const removed: PrecisionTrimmedFile[] = [];
   let trimmedPassiveFiles = 0;
   let trimmedAuthorityFiles = 0;
   let trimmedOutOfScopeFiles = 0;
@@ -843,16 +1173,31 @@ function refineSelectionForTask(
 
     if (isAuthorityInstructionFile(file)) {
       trimmedAuthorityFiles += 1;
+      removed.push({
+        file,
+        reason: "passive authority",
+        note: "Authority guidance existed, but a stronger task-aligned signal already covered this area."
+      });
       continue;
     }
 
     if (classifyFileArea(file) !== taskArea) {
       trimmedPassiveFiles += 1;
+      removed.push({
+        file,
+        reason: "file-type mismatch",
+        note: `This ${classifyFileArea(file)} file did not match the ${taskArea} task area.`
+      });
       continue;
     }
 
      if (!matchesScopedPrefixes(file, scopedPrefixes)) {
       trimmedOutOfScopeFiles += 1;
+      removed.push({
+        file,
+        reason: "out-of-directory",
+        note: "This file sat outside the strongest task-aligned directory prefix."
+      });
       continue;
     }
 
@@ -875,7 +1220,8 @@ function refineSelectionForTask(
     include: refined,
     reason: trimmedFiles > 0
       ? `Precision trim removed ${trimmedFiles} low-relevance file${trimmedFiles === 1 ? "" : "s"} for this ${taskCategory} task (${trimReasons.join(", ")}).`
-      : null
+      : null,
+    removed
   };
 }
 
@@ -1180,7 +1526,7 @@ async function persistContextSelection(
   );
   const record: ContextSelectionState = {
     artifactType: "kiwi-control/context-selection",
-    version: 2,
+    version: 3,
     timestamp: new Date().toISOString(),
     task,
     include: selection.include,

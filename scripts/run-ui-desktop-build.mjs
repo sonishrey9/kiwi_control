@@ -42,7 +42,8 @@ async function main() {
   await fs.rm(cargoTargetDir, { recursive: true, force: true });
 
   const npmExecutable = process.platform === "win32" ? "npm.cmd" : "npm";
-  const child = spawn(npmExecutable, ["run", "tauri:build", "-w", "@shrey-junior/sj-ui", ...process.argv.slice(2)], {
+  const tauriArgs = withDefaultDesktopBundleArgs(process.argv.slice(2));
+  const child = spawn(npmExecutable, ["run", "tauri:build", "-w", "@shrey-junior/sj-ui", ...tauriArgs], {
     cwd: repoRoot,
     stdio: "inherit",
     env: {
@@ -73,6 +74,14 @@ function resolveCargoTargetDir() {
   return process.platform === "darwin"
     ? path.join(os.tmpdir(), "kiwi-control-tauri-target")
     : repoTargetDir;
+}
+
+function withDefaultDesktopBundleArgs(args) {
+  if (args.some((arg) => arg === "--bundles" || arg.startsWith("--bundles="))) {
+    return args;
+  }
+
+  return [...args, "--", "--bundles", "app"];
 }
 
 async function syncBundleArtifacts(cargoTargetDir) {

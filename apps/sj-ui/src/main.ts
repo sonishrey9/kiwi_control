@@ -131,6 +131,123 @@ type KiwiControlHeavyDirectories = {
   }>;
 };
 
+type FileAnalysisEntry = {
+  file: string;
+  reasons: string[];
+  score?: number;
+  note?: string;
+};
+
+type SkippedPathEntry = {
+  path: string;
+  reason: string;
+  estimated?: boolean;
+};
+
+type ContextTraceStep = {
+  step: string;
+  summary: string;
+  filesAdded: string[];
+  filesRemoved?: string[];
+};
+
+type KiwiControlIndexing = {
+  totalFiles: number;
+  observedFiles: number;
+  selectedFiles: number;
+  candidateFiles: number;
+  excludedFiles: number;
+  discoveredFiles: number;
+  analyzedFiles: number;
+  skippedFiles: number;
+  skippedDirectories: number;
+  visitedDirectories: number;
+  maxDepthExplored: number;
+  fileBudgetReached: boolean;
+  directoryBudgetReached: boolean;
+  partialScan: boolean;
+  ignoreRulesApplied: string[];
+  skipped: SkippedPathEntry[];
+  indexedFiles: number;
+  indexUpdatedFiles: number;
+  indexReusedFiles: number;
+  impactFiles: number;
+  changedSignals: number;
+  keywordSignals: number;
+  importSignals: number;
+  repoContextSignals: number;
+  scopeArea: string | null;
+  coverageNote: string;
+  selectionReason: string | null;
+};
+
+type KiwiControlFileAnalysis = {
+  totalFiles: number;
+  scannedFiles: number;
+  skippedFiles: number;
+  selectedFiles: number;
+  excludedFiles: number;
+  selected: FileAnalysisEntry[];
+  excluded: FileAnalysisEntry[];
+  skipped: SkippedPathEntry[];
+};
+
+type KiwiControlContextTrace = {
+  initialSignals: {
+    changedFiles: string[];
+    recentFiles: string[];
+    importNeighbors: string[];
+    proximityFiles: string[];
+    keywordMatches: string[];
+    repoContextFiles: string[];
+  };
+  expansionSteps: ContextTraceStep[];
+  honesty: {
+    heuristic: boolean;
+    lowConfidence: boolean;
+    partialScan: boolean;
+  };
+};
+
+type KiwiControlTokenBreakdown = {
+  partialScan: boolean;
+  categories: Array<{
+    category: string;
+    estimated_tokens_avoided: number;
+    file_count: number;
+    basis: "measured" | "heuristic";
+    note: string;
+  }>;
+};
+
+type KiwiControlDecisionLogic = {
+  summary: string;
+  decisionPriority: "critical" | "high" | "normal" | "low";
+  inputSignals: string[];
+  reasoningChain: string[];
+  ignoredSignals: string[];
+};
+
+type RuntimeLifecycleEvent = {
+  timestamp: string;
+  type: string;
+  stage: string;
+  status: "ok" | "warn" | "error";
+  summary: string;
+  task: string | null;
+  command: string | null;
+  files: string[];
+};
+
+type KiwiControlRuntimeLifecycle = {
+  currentTask: string | null;
+  currentStage: string;
+  validationStatus: "ok" | "warn" | "error" | null;
+  nextSuggestedCommand: string | null;
+  nextRecommendedAction: string | null;
+  recentEvents: RuntimeLifecycleEvent[];
+};
+
 type KiwiControlState = {
   contextView: KiwiControlContextView;
   tokenAnalytics: KiwiControlTokenAnalytics;
@@ -140,6 +257,12 @@ type KiwiControlState = {
   execution: KiwiControlExecution;
   wastedFiles: KiwiControlWastedFiles;
   heavyDirectories: KiwiControlHeavyDirectories;
+  indexing: KiwiControlIndexing;
+  fileAnalysis: KiwiControlFileAnalysis;
+  contextTrace: KiwiControlContextTrace;
+  tokenBreakdown: KiwiControlTokenBreakdown;
+  decisionLogic: KiwiControlDecisionLogic;
+  runtimeLifecycle: KiwiControlRuntimeLifecycle;
 };
 
 type RepoControlState = {
@@ -157,14 +280,52 @@ type RepoControlState = {
   continuity: PanelItem[];
   memoryBank: Array<{ label: string; path: string; present: boolean }>;
   specialists: {
+    activeSpecialist: string;
     recommendedSpecialist: string;
-    available?: Array<{ specialistId: string; displayName?: string; name?: string }>;
+    available?: Array<{
+      specialistId: string;
+      name?: string;
+      purpose?: string;
+      aliases?: string[];
+      allowedProfiles?: string[];
+      preferredTools?: string[];
+      riskPosture?: string;
+    }>;
+    activeProfile?: {
+      specialistId: string;
+      name?: string;
+      purpose?: string;
+      aliases?: string[];
+      preferredTools?: string[];
+      riskPosture?: string;
+    } | null;
+    recommendedProfile?: {
+      specialistId: string;
+      name?: string;
+      purpose?: string;
+      aliases?: string[];
+      preferredTools?: string[];
+      riskPosture?: string;
+    } | null;
     handoffTargets: string[];
     safeParallelHint: string;
   };
   mcpPacks: {
-    suggestedPack: { id: string; name?: string; description: string };
-    available: Array<{ id: string; name?: string; description: string; realismNotes: string[] }>;
+    suggestedPack: { id: string; name?: string; description: string; realismNotes?: string[]; guidance?: string[] };
+    available: Array<{ id: string; name?: string; description: string; realismNotes: string[]; guidance?: string[] }>;
+    compatibleCapabilities: Array<{
+      id: string;
+      category: string;
+      purpose: string;
+      trustLevel: "low" | "medium" | "high";
+      readOnly: boolean;
+      writeCapable: boolean;
+      approvalRequired: boolean;
+      usageGuidance: string[];
+      antiPatterns: string[];
+    }>;
+    capabilityStatus: "compatible" | "limited";
+    note: string;
   };
   validation: {
     ok: boolean;
@@ -180,19 +341,22 @@ type LaunchRequestPayload = {
   targetRoot: string;
 };
 
-type NavView = "overview" | "context" | "validation" | "activity" | "tokens" | "handoffs" | "feedback";
-type LogTab = "validation" | "actions";
+type NavView = "overview" | "context" | "tokens" | "feedback" | "mcps" | "specialists" | "system" | "validation";
+type LogTab = "validation" | "history" | "logs";
 type ValidationTab = "all" | "issues" | "pending";
 type HandoffTab = "handoffs" | "checkpoints";
+type ThemeMode = "dark" | "light";
+type PlatformMode = "macos" | "windows" | "linux";
 
 const NAV_ITEMS: Array<{ id: NavView; label: string; icon: string }> = [
   { id: "overview", label: "Overview", icon: iconSvg("overview") },
   { id: "context", label: "Context", icon: iconSvg("context") },
-  { id: "validation", label: "Validation", icon: iconSvg("validation") },
-  { id: "activity", label: "Activity", icon: iconSvg("activity") },
   { id: "tokens", label: "Tokens", icon: iconSvg("tokens") },
-  { id: "handoffs", label: "Handoffs", icon: iconSvg("handoffs") },
-  { id: "feedback", label: "Feedback", icon: iconSvg("feedback") }
+  { id: "feedback", label: "Feedback", icon: iconSvg("feedback") },
+  { id: "mcps", label: "MCPs", icon: iconSvg("mcps") },
+  { id: "specialists", label: "Specialists", icon: iconSvg("specialists") },
+  { id: "system", label: "System", icon: iconSvg("system") },
+  { id: "validation", label: "Validation", icon: iconSvg("validation") }
 ];
 
 const BRIDGE_UNAVAILABLE_NEXT_STEP = "Confirm kiwi-control works in Terminal, then run kc ui again.";
@@ -253,6 +417,80 @@ const EMPTY_KC: KiwiControlState = {
   },
   heavyDirectories: {
     directories: []
+  },
+  indexing: {
+    totalFiles: 0,
+    observedFiles: 0,
+    selectedFiles: 0,
+    candidateFiles: 0,
+    excludedFiles: 0,
+    discoveredFiles: 0,
+    analyzedFiles: 0,
+    skippedFiles: 0,
+    skippedDirectories: 0,
+    visitedDirectories: 0,
+    maxDepthExplored: 0,
+    fileBudgetReached: false,
+    directoryBudgetReached: false,
+    partialScan: false,
+    ignoreRulesApplied: [],
+    skipped: [],
+    indexedFiles: 0,
+    indexUpdatedFiles: 0,
+    indexReusedFiles: 0,
+    impactFiles: 0,
+    changedSignals: 0,
+    keywordSignals: 0,
+    importSignals: 0,
+    repoContextSignals: 0,
+    scopeArea: null,
+    coverageNote: "Run kiwi-control prepare to record indexing coverage and selection reasoning.",
+    selectionReason: null
+  },
+  fileAnalysis: {
+    totalFiles: 0,
+    scannedFiles: 0,
+    skippedFiles: 0,
+    selectedFiles: 0,
+    excludedFiles: 0,
+    selected: [],
+    excluded: [],
+    skipped: []
+  },
+  contextTrace: {
+    initialSignals: {
+      changedFiles: [],
+      recentFiles: [],
+      importNeighbors: [],
+      proximityFiles: [],
+      keywordMatches: [],
+      repoContextFiles: []
+    },
+    expansionSteps: [],
+    honesty: {
+      heuristic: true,
+      lowConfidence: false,
+      partialScan: false
+    }
+  },
+  tokenBreakdown: {
+    partialScan: false,
+    categories: []
+  },
+  decisionLogic: {
+    summary: "",
+    decisionPriority: "low",
+    inputSignals: [],
+    reasoningChain: [],
+    ignoredSignals: []
+  },
+  runtimeLifecycle: {
+    currentTask: null,
+    currentStage: "idle",
+    validationStatus: null,
+    nextSuggestedCommand: null,
+    nextRecommendedAction: null,
+    recentEvents: []
   }
 };
 
@@ -263,15 +501,18 @@ if (!app) {
 }
 
 let activeView: NavView = "overview";
-let activeLogTab: LogTab = "validation";
+let activeLogTab: LogTab = "history";
 let activeValidationTab: ValidationTab = "all";
 let activeHandoffTab: HandoffTab = "handoffs";
 let isLogDrawerOpen = true;
 let isInspectorOpen = true;
 let currentState = buildBridgeUnavailableState("");
+let activeTheme: ThemeMode = loadStoredTheme();
+const platformMode = detectPlatform();
 
 app.innerHTML = buildShellHtml();
 
+const shellElement = requireElement<HTMLElement>(".kc-shell");
 const railNavElement = requireElement<HTMLElement>("#rail-nav");
 const bridgeNoteElement = requireElement<HTMLElement>("#bridge-note");
 const topbarElement = requireElement<HTMLElement>("#topbar");
@@ -285,6 +526,7 @@ let isLoadingRepoState = false;
 let queuedLaunchRequest: LaunchRequestPayload | null = null;
 let lastHandledLaunchRequestId = "";
 
+applyChromePreferences();
 renderState(currentState);
 bridgeNoteElement.textContent = buildBridgeNote(currentState, "shell");
 
@@ -327,9 +569,9 @@ app.addEventListener("click", (event) => {
     return;
   }
 
-  const handoffTabButton = target.closest<HTMLElement>("[data-handoff-tab]");
-  if (handoffTabButton?.dataset.handoffTab) {
-    activeHandoffTab = handoffTabButton.dataset.handoffTab as HandoffTab;
+  if (target.closest("[data-theme-toggle]")) {
+    activeTheme = activeTheme === "dark" ? "light" : "dark";
+    applyChromePreferences();
     renderState(currentState);
     return;
   }
@@ -349,6 +591,42 @@ function requireElement<T extends Element>(selector: string): T {
     throw new Error(`Shell mount point not found: ${selector}`);
   }
   return element;
+}
+
+function loadStoredTheme(): ThemeMode {
+  try {
+    const stored = window.localStorage.getItem("kiwi-control-theme");
+    if (stored === "dark" || stored === "light") {
+      return stored;
+    }
+  } catch {
+    // Ignore storage failures and fall back to dark mode.
+  }
+  return "dark";
+}
+
+function detectPlatform(): PlatformMode {
+  const userAgent = navigator.userAgent.toLowerCase();
+  if (userAgent.includes("win")) {
+    return "windows";
+  }
+  if (userAgent.includes("mac")) {
+    return "macos";
+  }
+  return "linux";
+}
+
+function applyChromePreferences(): void {
+  shellElement.dataset.theme = activeTheme;
+  shellElement.dataset.platform = platformMode;
+  document.documentElement.dataset.theme = activeTheme;
+  document.documentElement.dataset.platform = platformMode;
+
+  try {
+    window.localStorage.setItem("kiwi-control-theme", activeTheme);
+  } catch {
+    // Theme persistence is best-effort only.
+  }
 }
 
 function buildShellHtml(): string {
@@ -533,6 +811,8 @@ function renderTopBar(state: RepoControlState): string {
   const activeRole = getPanelValue(state.repoOverview, "Active role");
   const validationState = getPanelValue(state.repoOverview, "Validation state");
   const packLabel = state.mcpPacks.suggestedPack.name ?? state.mcpPacks.suggestedPack.id;
+  const capabilityCount = state.mcpPacks.compatibleCapabilities.length;
+  const themeLabel = activeTheme === "dark" ? "Light mode" : "Dark mode";
 
   return `
     <div class="kc-topbar-left">
@@ -547,12 +827,17 @@ function renderTopBar(state: RepoControlState): string {
     <div class="kc-topbar-center">
       ${renderHeaderMeta("Role", activeRole)}
       ${renderHeaderMeta("Pack", packLabel)}
+      ${renderHeaderMeta("MCPs", `${capabilityCount} compatible`)}
     </div>
     <div class="kc-topbar-right">
       <div class="kc-status-chip">
         <strong>repo-local state only</strong>
         <span>${escapeHtml(validationState)}</span>
       </div>
+      <button class="kc-theme-toggle" type="button" data-theme-toggle>
+        ${iconSvg(activeTheme === "dark" ? "sun" : "moon")}
+        <span>${escapeHtml(themeLabel)}</span>
+      </button>
       <button class="kc-icon-button" type="button" data-toggle-logs>
         ${isLogDrawerOpen ? iconSvg("logs-open") : iconSvg("logs-closed")}
       </button>
@@ -576,16 +861,18 @@ function renderCenterView(state: RepoControlState): string {
   switch (activeView) {
     case "context":
       return renderContextView(state);
-    case "validation":
-      return renderValidationView(state);
-    case "activity":
-      return renderActivityView(state);
     case "tokens":
       return renderTokensView(state);
-    case "handoffs":
-      return renderHandoffsView(state);
     case "feedback":
       return renderFeedbackView(state);
+    case "mcps":
+      return renderMcpView(state);
+    case "specialists":
+      return renderSpecialistsView(state);
+    case "system":
+      return renderSystemView(state);
+    case "validation":
+      return renderValidationView(state);
     case "overview":
     default:
       return renderOverviewView(state);
@@ -595,11 +882,11 @@ function renderCenterView(state: RepoControlState): string {
 function renderOverviewView(state: RepoControlState): string {
   const kc = state.kiwiControl ?? EMPTY_KC;
   const primaryAction = kc.nextActions.actions[0] ?? null;
-  const latestExecution = kc.execution.recentExecutions[0] ?? null;
   const currentFocus = getPanelValue(state.continuity, "Current focus");
-  const latestCheckpoint = getPanelValue(state.continuity, "Latest checkpoint");
-  const latestHandoff = getPanelValue(state.continuity, "Latest handoff");
-  const memoryPresentCount = state.memoryBank.filter((entry) => entry.present).length;
+  const activeSpecialist = state.specialists.activeProfile?.name ?? state.specialists.activeSpecialist;
+  const selectedTask = kc.contextView.task ?? "No prepared task";
+  const compatibleMcpCount = state.mcpPacks.compatibleCapabilities.length;
+  const learnedFiles = kc.feedback.topBoostedFiles.slice(0, 3).map((entry) => entry.file);
 
   return `
     <div class="kc-view-shell">
@@ -620,42 +907,75 @@ function renderOverviewView(state: RepoControlState): string {
 
       <div class="kc-stat-grid">
         ${renderStatCard("Repo Health", state.repoState.title, state.validation.ok ? "passing" : `${state.validation.errors + state.validation.warnings} issues`, state.validation.ok ? "success" : "warn")}
-        ${renderStatCard("Context", String(kc.contextView.tree.selectedCount), "selected files", "neutral")}
-        ${renderStatCard("Validation", String(state.validation.errors + state.validation.warnings), "repo issues", state.validation.errors > 0 ? "critical" : state.validation.warnings > 0 ? "warn" : "success")}
-        ${renderStatCard("Feedback", String(kc.feedback.totalRuns), kc.feedback.adaptationLevel, "neutral")}
+        ${renderStatCard("Task", selectedTask, kc.contextView.confidenceDetail ?? "no prepared scope", "neutral")}
+        ${renderStatCard("Selected", String(kc.contextView.tree.selectedCount), "files Kiwi chose", "neutral")}
+        ${renderStatCard("Ignored", String(kc.contextView.tree.excludedCount), "files Kiwi filtered out", "warn")}
+        ${renderStatCard("Lifecycle", kc.runtimeLifecycle.currentStage, kc.runtimeLifecycle.nextRecommendedAction ?? "runtime stage not recorded yet", "neutral")}
       </div>
 
       <div class="kc-two-column">
         <section class="kc-panel">
-          ${renderPanelHeader("Current Focus", "Repo-local continuity guidance")}
-          <div class="kc-keyline-value">
-            <strong>${escapeHtml(currentFocus)}</strong>
-            <span>${escapeHtml(getPanelValue(state.repoOverview, "Next command"))}</span>
+          ${renderPanelHeader("Repo State", "Current repo truth, routing, and system fit.")}
+          <div class="kc-info-grid">
+            ${renderInfoRow("Project type", state.projectType)}
+            ${renderInfoRow("Execution mode", state.executionMode)}
+            ${renderInfoRow("Active specialist", activeSpecialist)}
+            ${renderInfoRow("Suggested pack", state.mcpPacks.suggestedPack.name ?? state.mcpPacks.suggestedPack.id)}
+            ${renderInfoRow("Compatible MCPs", String(compatibleMcpCount))}
+            ${renderInfoRow("Feedback", `${kc.feedback.adaptationLevel} (${kc.feedback.totalRuns} runs)`)}
           </div>
         </section>
         <section class="kc-panel">
-          ${renderPanelHeader("Latest Checkpoint", "Most recent saved continuity surface")}
+          ${renderPanelHeader("Task Summary", "What Kiwi knows right now about the active working set.")}
           <div class="kc-keyline-value">
-            <strong>${escapeHtml(latestCheckpoint)}</strong>
-            <span>${escapeHtml(latestHandoff)}</span>
+            <strong>${escapeHtml(selectedTask)}</strong>
+            <span>${escapeHtml((kc.indexing.selectionReason ?? kc.contextView.reason ?? kc.nextActions.summary) || state.repoState.detail)}</span>
           </div>
+        </section>
+      </div>
+
+      <section class="kc-panel">
+        <div class="kc-panel-head-row">
+          ${renderPanelHeader("Context Tree", "What Kiwi selected, considered, and ignored from the live selector state.")}
+          ${renderHeaderBadge(kc.contextView.confidence?.toUpperCase() ?? "UNKNOWN", kc.contextView.confidence === "high" ? "success" : kc.contextView.confidence === "low" ? "warn" : "neutral")}
+        </div>
+        ${kc.contextView.tree.nodes.length > 0
+          ? renderContextTree(kc.contextView.tree)
+          : renderEmptyState('Run kc prepare "your task" to build a repo-local context tree.')}
+      </section>
+
+      <div class="kc-two-column">
+        <section class="kc-panel">
+          ${renderPanelHeader("What Kiwi Knows", "Immediate operating context exposed as concrete system signals.")}
+          <div class="kc-stack-list">
+            ${renderNoteRow("Reasoning", kc.contextView.confidence?.toUpperCase() ?? "unknown", kc.contextView.confidenceDetail ?? "No context confidence has been recorded yet.")}
+            ${renderNoteRow("Indexing", `${kc.indexing.discoveredFiles} files`, kc.indexing.coverageNote)}
+            ${renderNoteRow("Validation", `${state.validation.errors} errors / ${state.validation.warnings} warnings`, state.repoState.detail)}
+          </div>
+        </section>
+        <section class="kc-panel">
+          ${renderPanelHeader("What Kiwi Learned", "Adaptive feedback and recent system memory for this task scope.")}
+          ${learnedFiles.length > 0
+            ? renderListBadges(learnedFiles)
+            : renderEmptyState("No learned file preference is strong enough to surface yet.")}
         </section>
       </div>
 
       <div class="kc-two-column">
         <section class="kc-panel">
-          ${renderPanelHeader("Recent Scope", latestExecution ? "Latest recorded execution" : "No execution history yet")}
-          ${latestExecution
-            ? `<div class="kc-tag-stack">${latestExecution.filesTouched > 0
-                ? latestExecution.task
-                : latestExecution.task}
-                ${renderListBadges(buildRecentTouchedFiles(state, latestExecution))}
-              </div>`
-            : renderEmptyState("No executions have been recorded yet.")}
+          ${renderPanelHeader("HOW IT WORKS", "What Kiwi did, how it did it, and what it intentionally left out.")}
+          <div class="kc-stack-list">
+            ${renderNoteRow("What was done", `${kc.fileAnalysis.selectedFiles} selected`, "Kiwi built a bounded working set from repo-local signals, then trimmed low-relevance files.")}
+            ${renderNoteRow("How it was done", `${kc.contextTrace.expansionSteps.length} trace steps`, kc.contextTrace.expansionSteps[0]?.summary ?? "No context trace has been recorded yet.")}
+            ${renderNoteRow("Why it was done", kc.decisionLogic.decisionPriority, kc.decisionLogic.summary || "No decision summary is recorded yet.")}
+            ${renderNoteRow("What was ignored", `${kc.fileAnalysis.excludedFiles} excluded / ${kc.fileAnalysis.skippedFiles} skipped`, kc.decisionLogic.ignoredSignals[0] ?? kc.fileAnalysis.excluded[0]?.note ?? "No ignored signals are currently surfaced.")}
+          </div>
         </section>
         <section class="kc-panel">
-          ${renderPanelHeader("Repo Memory", `${memoryPresentCount}/${state.memoryBank.length} repo-local memory surfaces present`)}
-          ${renderMemoryPresenceList(state.memoryBank.slice(0, 6))}
+          ${renderPanelHeader("DECISION LOGIC", "The reasoning chain behind the current primary action.")}
+          ${kc.decisionLogic.reasoningChain.length > 0
+            ? `<div class="kc-stack-list">${kc.decisionLogic.reasoningChain.slice(0, 4).map((item) => renderBulletRow(item)).join("")}</div>`
+            : renderEmptyState("No decision reasoning is available yet.")}
         </section>
       </div>
     </div>
@@ -665,6 +985,7 @@ function renderOverviewView(state: RepoControlState): string {
 function renderContextView(state: RepoControlState): string {
   const kc = state.kiwiControl ?? EMPTY_KC;
   const ctx = kc.contextView;
+  const indexing = kc.indexing;
 
   return `
     <div class="kc-view-shell">
@@ -696,9 +1017,24 @@ function renderContextView(state: RepoControlState): string {
           ${renderPanelHeader("Selection State", ctx.reason ?? "No selection reason recorded.")}
           <div class="kc-info-grid">
             ${renderInfoRow("Confidence", ctx.confidence?.toUpperCase() ?? "UNKNOWN")}
+            ${renderInfoRow("Scope area", indexing.scopeArea ?? "unknown")}
             ${renderInfoRow("Selected files", String(ctx.selectedFiles.length))}
-            ${renderInfoRow("Excluded patterns", String(ctx.excludedPatterns.length))}
-            ${renderInfoRow("Keyword matches", ctx.keywordMatches.length > 0 ? ctx.keywordMatches.join(", ") : "none")}
+            ${renderInfoRow("Observed files", String(indexing.observedFiles))}
+            ${renderInfoRow("Indexed files", String(indexing.indexedFiles))}
+            ${renderInfoRow("Impact files", String(indexing.impactFiles))}
+            ${renderInfoRow("Keyword matches", String(indexing.keywordSignals))}
+            ${renderInfoRow("Import neighbors", String(indexing.importSignals))}
+            ${renderInfoRow("Discovery depth", String(indexing.maxDepthExplored))}
+          </div>
+          <div class="kc-divider"></div>
+          <div class="kc-stack-block">
+            <p class="kc-stack-label">Coverage</p>
+            <p class="kc-support-copy">${escapeHtml(indexing.coverageNote)}</p>
+            <div class="kc-inline-badges">
+              ${renderInlineBadge(`visited ${indexing.visitedDirectories} dirs`)}
+              ${renderInlineBadge(indexing.fileBudgetReached ? "file budget hit" : "file budget clear")}
+              ${renderInlineBadge(indexing.directoryBudgetReached ? "dir budget hit" : "dir budget clear")}
+            </div>
           </div>
           <div class="kc-divider"></div>
           <div class="kc-stack-block">
@@ -707,6 +1043,69 @@ function renderContextView(state: RepoControlState): string {
           </div>
         </section>
       </div>
+
+      <div class="kc-two-column">
+        <section class="kc-panel">
+          ${renderPanelHeader("FILE ANALYSIS PANEL", "Measured scan counts plus why files were selected, excluded, or skipped.")}
+          <div class="kc-info-grid">
+            ${renderInfoRow("Total files", String(kc.fileAnalysis.totalFiles))}
+            ${renderInfoRow("Scanned files", String(kc.fileAnalysis.scannedFiles))}
+            ${renderInfoRow("Skipped files", String(kc.fileAnalysis.skippedFiles))}
+            ${renderInfoRow("Selected files", String(kc.fileAnalysis.selectedFiles))}
+            ${renderInfoRow("Excluded files", String(kc.fileAnalysis.excludedFiles))}
+          </div>
+          <div class="kc-divider"></div>
+          <div class="kc-stack-list">
+            ${kc.fileAnalysis.selected.slice(0, 3).map((entry) => renderNoteRow(entry.file, "selected", entry.reasons.join(", "))).join("")}
+            ${kc.fileAnalysis.excluded.slice(0, 3).map((entry) => renderNoteRow(entry.file, "excluded", entry.note ?? entry.reasons.join(", "))).join("")}
+            ${kc.fileAnalysis.skipped.slice(0, 3).map((entry) => renderNoteRow(entry.path, "skipped", entry.reason)).join("")}
+          </div>
+        </section>
+        <section class="kc-panel">
+          ${renderPanelHeader("CONTEXT TRACE", "Initial signals, expansion steps, and final bounded selection.")}
+          ${kc.contextTrace.expansionSteps.length > 0
+            ? `<div class="kc-fold-grid">${kc.contextTrace.expansionSteps.map((step) => `
+                <details class="kc-fold-card" open>
+                  <summary>
+                    <div>
+                      <strong>${escapeHtml(step.step)}</strong>
+                      <span>${escapeHtml(step.summary)}</span>
+                    </div>
+                    ${renderHeaderBadge(`${step.filesAdded.length} files`, "neutral")}
+                  </summary>
+                  <div class="kc-fold-body">
+                    ${step.filesAdded.length > 0 ? renderListBadges(step.filesAdded.slice(0, 8)) : renderEmptyState("No files recorded for this step.")}
+                    ${step.filesRemoved && step.filesRemoved.length > 0 ? `<div class="kc-divider"></div>${renderListBadges(step.filesRemoved.slice(0, 8))}` : ""}
+                  </div>
+                </details>
+              `).join("")}</div>`
+            : renderEmptyState("Run kc prepare to record a trace of how Kiwi built the working set.")}
+        </section>
+      </div>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("INDEXING", "How the repo scan progressed, where it stopped, and which ignore rules were applied.")}
+        <div class="kc-info-grid">
+          ${renderInfoRow("Directories visited", String(indexing.visitedDirectories))}
+          ${renderInfoRow("Skipped directories", String(indexing.skippedDirectories))}
+          ${renderInfoRow("Depth reached", String(indexing.maxDepthExplored))}
+          ${renderInfoRow("Files discovered", String(indexing.discoveredFiles))}
+          ${renderInfoRow("Files analyzed", String(indexing.analyzedFiles))}
+          ${renderInfoRow("Index reused", String(indexing.indexReusedFiles))}
+          ${renderInfoRow("Index refreshed", String(indexing.indexUpdatedFiles))}
+          ${renderInfoRow("Ignore rules", String(indexing.ignoreRulesApplied.length))}
+        </div>
+        <div class="kc-divider"></div>
+        <div class="kc-inline-badges">
+          ${renderExplainabilityBadge("heuristic", kc.contextTrace.honesty.heuristic)}
+          ${renderExplainabilityBadge("low confidence", kc.contextTrace.honesty.lowConfidence)}
+          ${renderExplainabilityBadge("partial scan", kc.contextTrace.honesty.partialScan || indexing.partialScan)}
+        </div>
+        <div class="kc-divider"></div>
+        <div class="kc-stack-list">
+          ${indexing.ignoreRulesApplied.slice(0, 4).map((rule) => renderBulletRow(rule)).join("")}
+        </div>
+      </section>
     </div>
   `;
 }
@@ -862,6 +1261,265 @@ function renderTokensView(state: RepoControlState): string {
           ? `<div class="kc-stack-list">${kc.heavyDirectories.directories.slice(0, 4).map((directory) => renderNoteRow(directory.directory, `${directory.percentOfRepo}% of repo`, directory.suggestion)).join("")}</div>`
           : renderEmptyState("No heavy-directory warnings are recorded for this repo.")}
       </section>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("TOKEN BREAKDOWN", "Where token reduction came from, and whether that reduction is measured or heuristic.")}
+        ${kc.tokenBreakdown.categories.length > 0
+          ? `<div class="kc-stack-list">${kc.tokenBreakdown.categories.map((category) => renderNoteRow(
+              category.category,
+              `${category.basis} · ~${formatTokensShort(category.estimated_tokens_avoided)}`,
+              category.note
+            )).join("")}</div>`
+          : renderEmptyState("No token breakdown has been recorded yet.")}
+      </section>
+    </div>
+  `;
+}
+
+function renderMcpView(state: RepoControlState): string {
+  const capabilities = state.mcpPacks.compatibleCapabilities;
+  const highTrustCount = capabilities.filter((entry) => entry.trustLevel === "high").length;
+  const writeCapableCount = capabilities.filter((entry) => entry.writeCapable).length;
+  const approvalCount = capabilities.filter((entry) => entry.approvalRequired).length;
+
+  return `
+    <div class="kc-view-shell">
+      <section class="kc-view-header">
+        <div>
+          <p class="kc-view-kicker">MCP Surface</p>
+          <h1>${escapeHtml(state.mcpPacks.suggestedPack.name ?? state.mcpPacks.suggestedPack.id)}</h1>
+          <p>${escapeHtml(state.mcpPacks.suggestedPack.description)}</p>
+        </div>
+        ${renderHeaderBadge(state.mcpPacks.capabilityStatus, state.mcpPacks.capabilityStatus === "compatible" ? "success" : "warn")}
+      </section>
+
+      <div class="kc-stat-grid">
+        ${renderStatCard("Compatible MCPs", String(capabilities.length), "active specialist + profile", capabilities.length > 0 ? "success" : "warn")}
+        ${renderStatCard("High Trust", String(highTrustCount), "preferred first", highTrustCount > 0 ? "success" : "neutral")}
+        ${renderStatCard("Write Capable", String(writeCapableCount), "requires judgment", writeCapableCount > 0 ? "warn" : "neutral")}
+        ${renderStatCard("Approval Gates", String(approvalCount), "extra caution", approvalCount > 0 ? "warn" : "neutral")}
+      </div>
+
+      <div class="kc-two-column">
+        <section class="kc-panel">
+          ${renderPanelHeader("Suggested Pack", state.mcpPacks.note)}
+          <div class="kc-stack-list">
+            ${(state.mcpPacks.suggestedPack.guidance ?? []).map((item: string) => renderBulletRow(item)).join("")}
+          </div>
+          <div class="kc-divider"></div>
+          <div class="kc-stack-list">
+            ${(state.mcpPacks.suggestedPack.realismNotes ?? []).map((item: string) => renderNoteRow("Reality check", "advisory", item)).join("")}
+          </div>
+        </section>
+        <section class="kc-panel">
+          ${renderPanelHeader("Compatible MCP Capabilities", "These are the currently compatible MCP capabilities for the active specialist and repo profile.")}
+          ${capabilities.length > 0
+            ? `<div class="kc-stack-list">${capabilities.map((capability) => renderCapabilityCard(capability)).join("")}</div>`
+            : renderEmptyState("No compatible MCP capabilities are currently exposed for this specialist and profile.")}
+        </section>
+      </div>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("Available Packs", "Pack guidance shapes operator expectations, but does not imply universal runtime parity.")}
+        <div class="kc-fold-grid">
+          ${state.mcpPacks.available.map((pack) => `
+            <details class="kc-fold-card" ${pack.id === state.mcpPacks.suggestedPack.id ? "open" : ""}>
+              <summary>
+                <div>
+                  <strong>${escapeHtml(pack.name ?? pack.id)}</strong>
+                  <span>${escapeHtml(pack.description)}</span>
+                </div>
+                ${renderHeaderBadge(pack.id === state.mcpPacks.suggestedPack.id ? "selected" : "available", pack.id === state.mcpPacks.suggestedPack.id ? "success" : "neutral")}
+              </summary>
+              <div class="kc-fold-body">
+                <div class="kc-stack-list">
+                  ${(pack.guidance ?? []).map((item) => renderBulletRow(item)).join("")}
+                </div>
+              </div>
+            </details>
+          `).join("")}
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function renderSpecialistsView(state: RepoControlState): string {
+  const activeProfile = state.specialists.activeProfile;
+  const recommendedProfile = state.specialists.recommendedProfile;
+
+  return `
+    <div class="kc-view-shell">
+      <section class="kc-view-header">
+        <div>
+          <p class="kc-view-kicker">Specialists</p>
+          <h1>${escapeHtml(activeProfile?.name ?? state.specialists.activeSpecialist)}</h1>
+          <p>${escapeHtml(activeProfile?.purpose ?? "Specialist routing is derived from repo-local role hints, task type, and file area.")}</p>
+        </div>
+        ${renderHeaderBadge(activeProfile?.riskPosture ?? "active", activeProfile?.riskPosture === "conservative" ? "success" : "neutral")}
+      </section>
+
+      <div class="kc-stat-grid">
+        ${renderStatCard("Active", activeProfile?.name ?? state.specialists.activeSpecialist, "current role fit", "neutral")}
+        ${renderStatCard("Recommended", recommendedProfile?.name ?? state.specialists.recommendedSpecialist, "best next handoff", "success")}
+        ${renderStatCard("Targets", String(state.specialists.handoffTargets.length), "handoff candidates", "neutral")}
+        ${renderStatCard("Preferred Tools", String(activeProfile?.preferredTools?.length ?? 0), "active specialist", "neutral")}
+      </div>
+
+      <div class="kc-two-column">
+        <section class="kc-panel">
+          ${renderPanelHeader("Active Specialist", "The role currently shaping the workspace and compatible capability set.")}
+          ${activeProfile ? renderSpecialistCard(activeProfile) : renderEmptyState("No active specialist is currently recorded.")}
+        </section>
+        <section class="kc-panel">
+          ${renderPanelHeader("Routing Safety", state.specialists.safeParallelHint)}
+          <div class="kc-stack-list">
+            ${renderNoteRow("Current role", state.specialists.activeSpecialist, activeProfile?.purpose ?? "No active specialist profile is available.")}
+            ${renderNoteRow("Recommended next", state.specialists.recommendedSpecialist, recommendedProfile?.purpose ?? "No recommended specialist profile is available.")}
+            ${renderNoteRow("Handoff targets", `${state.specialists.handoffTargets.length}`, state.specialists.safeParallelHint)}
+          </div>
+        </section>
+      </div>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("Specialist Catalog", "Available specialists for the current profile, including their role and risk posture.")}
+        <div class="kc-fold-grid">
+          ${(state.specialists.available ?? []).map((specialist) => `
+            <details class="kc-fold-card" ${specialist.specialistId === state.specialists.activeSpecialist ? "open" : ""}>
+              <summary>
+                <div>
+                  <strong>${escapeHtml(specialist.name ?? specialist.specialistId)}</strong>
+                  <span>${escapeHtml(specialist.purpose ?? "No purpose recorded.")}</span>
+                </div>
+                ${renderHeaderBadge(specialist.riskPosture ?? "neutral", specialist.specialistId === state.specialists.activeSpecialist ? "success" : "neutral")}
+              </summary>
+              <div class="kc-fold-body">
+                ${renderSpecialistCard(specialist)}
+              </div>
+            </details>
+          `).join("")}
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function renderSystemView(state: RepoControlState): string {
+  const kc = state.kiwiControl ?? EMPTY_KC;
+  const failures = Math.max(0, kc.execution.totalExecutions - Math.round((kc.execution.successRate / 100) * kc.execution.totalExecutions));
+  const activityItems = buildActivityItems(state);
+
+  return `
+    <div class="kc-view-shell">
+      <section class="kc-view-header">
+        <div>
+          <p class="kc-view-kicker">System State</p>
+          <h1>System visibility</h1>
+          <p>Execution health, indexing coverage, adaptive learning, and repo-control operating signals.</p>
+        </div>
+        ${renderHeaderBadge(kc.execution.tokenTrend, kc.execution.tokenTrend === "improving" ? "success" : kc.execution.tokenTrend === "worsening" ? "warn" : "neutral")}
+      </section>
+
+      <div class="kc-stat-grid">
+        ${renderStatCard("Executions", String(kc.execution.totalExecutions), "tracked runs", "neutral")}
+        ${renderStatCard("Failures", String(failures), "recorded scope or completion failures", failures > 0 ? "warn" : "success")}
+        ${renderStatCard("Success Rate", `${kc.execution.successRate}%`, "real completion history", kc.execution.successRate >= 80 ? "success" : "warn")}
+        ${renderStatCard("Feedback Strength", kc.feedback.adaptationLevel, `${kc.feedback.totalRuns} successful runs`, kc.feedback.adaptationLevel === "active" ? "success" : "neutral")}
+        ${renderStatCard("Lifecycle", kc.runtimeLifecycle.currentStage, kc.runtimeLifecycle.validationStatus ?? "no validation status", "neutral")}
+      </div>
+
+      <div class="kc-two-column">
+        <section class="kc-panel">
+          ${renderPanelHeader("Indexing & Structure", kc.indexing.coverageNote)}
+          <div class="kc-info-grid">
+            ${renderInfoRow("Observed files", String(kc.indexing.observedFiles))}
+            ${renderInfoRow("Discovered files", String(kc.indexing.discoveredFiles))}
+            ${renderInfoRow("Indexed files", String(kc.indexing.indexedFiles))}
+            ${renderInfoRow("Impact files", String(kc.indexing.impactFiles))}
+            ${renderInfoRow("Visited directories", String(kc.indexing.visitedDirectories))}
+            ${renderInfoRow("Max depth", String(kc.indexing.maxDepthExplored))}
+            ${renderInfoRow("Changed signals", String(kc.indexing.changedSignals))}
+            ${renderInfoRow("Repo-context signals", String(kc.indexing.repoContextSignals))}
+          </div>
+          <div class="kc-divider"></div>
+          <div class="kc-inline-badges">
+            ${renderInlineBadge(kc.indexing.fileBudgetReached ? "file budget limited" : "file budget clear")}
+            ${renderInlineBadge(kc.indexing.directoryBudgetReached ? "dir budget limited" : "dir budget clear")}
+            ${renderInlineBadge(`scope: ${kc.indexing.scopeArea ?? "unknown"}`)}
+          </div>
+        </section>
+        <section class="kc-panel">
+          ${renderPanelHeader("Execution Health", "Real runtime accounting from repo-local execution history.")}
+          ${activityItems.length > 0
+            ? `<div class="kc-timeline">${activityItems.slice(0, 5).map((item) => `
+                <article class="kc-timeline-item">
+                  <div class="kc-timeline-marker ${item.tone}">
+                    ${item.icon}
+                  </div>
+                  <div class="kc-timeline-copy">
+                    <div class="kc-timeline-head">
+                      <strong>${escapeHtml(item.title)}</strong>
+                      <span>${escapeHtml(item.timestamp)}</span>
+                    </div>
+                    <p>${escapeHtml(item.detail)}</p>
+                  </div>
+                </article>
+              `).join("")}</div>`
+            : renderEmptyState("No execution history has been recorded yet.")}
+        </section>
+      </div>
+
+      <div class="kc-two-column">
+        <section class="kc-panel">
+          ${renderPanelHeader("Task Lifecycle", "A lightweight runtime trail from prepare to packet generation, checkpoint, and handoff.")}
+          <div class="kc-stack-list">
+            ${renderNoteRow("Current stage", kc.runtimeLifecycle.currentStage, kc.runtimeLifecycle.nextRecommendedAction ?? "No next runtime action is recorded yet.")}
+            ${renderNoteRow("Validation", kc.runtimeLifecycle.validationStatus ?? "unknown", kc.runtimeLifecycle.nextSuggestedCommand ?? "No suggested command is recorded yet.")}
+            ${renderNoteRow("Task", kc.runtimeLifecycle.currentTask ?? "none recorded", kc.runtimeLifecycle.recentEvents[0]?.summary ?? "No lifecycle events are recorded yet.")}
+          </div>
+        </section>
+        <section class="kc-panel">
+          ${renderPanelHeader("Waste & Weight", "Files and directories that inflate scope without helping the task.")}
+          ${kc.wastedFiles.files.length > 0
+            ? `<div class="kc-stack-list">${kc.wastedFiles.files.slice(0, 4).map((file) => renderNoteRow(file.file, `${formatTokensShort(file.tokens)} tokens`, file.reason)).join("")}</div>`
+            : renderEmptyState("No wasted files are recorded in the current selection.")}
+        </section>
+        <section class="kc-panel">
+          ${renderPanelHeader("Heavy Directories", "Areas that dominate estimated token volume and deserve tighter scoping.")}
+          ${kc.heavyDirectories.directories.length > 0
+            ? `<div class="kc-stack-list">${kc.heavyDirectories.directories.slice(0, 4).map((directory) => renderNoteRow(directory.directory, `${directory.percentOfRepo}%`, directory.suggestion)).join("")}</div>`
+            : renderEmptyState("No heavy-directory signal is recorded for this repo yet.")}
+        </section>
+      </div>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("DECISION LOGIC", "Which signals won, and which signals were intentionally ignored.")}
+        <div class="kc-two-column">
+          <section class="kc-subpanel">
+            ${renderPanelHeader("Reasoning chain", kc.decisionLogic.summary || "No decision summary recorded.")}
+            ${kc.decisionLogic.reasoningChain.length > 0
+              ? `<div class="kc-stack-list">${kc.decisionLogic.reasoningChain.map((item) => renderBulletRow(item)).join("")}</div>`
+              : renderEmptyState("No reasoning chain is available yet.")}
+          </section>
+          <section class="kc-subpanel">
+            ${renderPanelHeader("Ignored signals", "Signals Kiwi saw but did not let dominate the next action.")}
+            ${kc.decisionLogic.ignoredSignals.length > 0
+              ? `<div class="kc-stack-list">${kc.decisionLogic.ignoredSignals.map((item) => renderBulletRow(item)).join("")}</div>`
+              : renderEmptyState("No ignored signals are currently recorded.")}
+          </section>
+        </div>
+      </section>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("Runtime Events", "Hook-style events emitted by Kiwi’s lightweight runtime integration.")}
+        ${kc.runtimeLifecycle.recentEvents.length > 0
+          ? `<div class="kc-stack-list">${kc.runtimeLifecycle.recentEvents.slice(0, 6).map((event) => renderNoteRow(
+              `${event.type} · ${event.stage}`,
+              event.status,
+              event.summary
+            )).join("")}</div>`
+          : renderEmptyState("No runtime events are recorded yet.")}
+      </section>
     </div>
   `;
 }
@@ -985,12 +1643,8 @@ function renderFeedbackView(state: RepoControlState): string {
 function renderInspector(state: RepoControlState): string {
   const kc = state.kiwiControl ?? EMPTY_KC;
   const primaryAction = kc.nextActions.actions[0] ?? null;
-  const validationState = state.validation.ok
-    ? "passing"
-    : `${state.validation.errors} errors / ${state.validation.warnings} warnings`;
-  const affectedScope = primaryAction?.file
-    ? [primaryAction.file, ...kc.contextView.selectedFiles.filter((file) => file !== primaryAction.file).slice(0, 4)]
-    : kc.contextView.selectedFiles.slice(0, 5);
+  const activeSpecialist = state.specialists.activeProfile;
+  const topCapability = state.mcpPacks.compatibleCapabilities[0] ?? null;
 
   return `
     <div class="kc-inspector-shell">
@@ -1005,8 +1659,71 @@ function renderInspector(state: RepoControlState): string {
       </div>
 
       <section class="kc-inspector-section">
-        <p class="kc-section-micro">Why now</p>
+        <p class="kc-section-micro">Reasoning</p>
         <p>${escapeHtml(primaryAction?.reason ?? (kc.nextActions.summary || state.repoState.detail))}</p>
+        <div class="kc-inline-badges">
+          ${renderInlineBadge(kc.contextView.confidence?.toUpperCase() ?? "UNKNOWN")}
+          ${renderInlineBadge(kc.contextView.confidenceDetail ?? "No confidence detail")}
+          ${renderExplainabilityBadge("heuristic", kc.contextTrace.honesty.heuristic)}
+          ${renderExplainabilityBadge("low confidence", kc.contextTrace.honesty.lowConfidence)}
+          ${renderExplainabilityBadge("partial scan", kc.contextTrace.honesty.partialScan || kc.tokenBreakdown.partialScan || kc.indexing.partialScan)}
+        </div>
+      </section>
+
+      <section class="kc-inspector-section">
+        <p class="kc-section-micro">Decision inputs</p>
+        ${kc.decisionLogic.inputSignals.length > 0
+          ? `<div class="kc-stack-list">${kc.decisionLogic.inputSignals.slice(0, 5).map((item) => renderBulletRow(item)).join("")}</div>`
+          : "<p>No decision inputs are currently surfaced.</p>"}
+      </section>
+
+      <section class="kc-inspector-section">
+        <p class="kc-section-micro">Lifecycle</p>
+        <div class="kc-gate-list">
+          ${renderGateRow("Stage", kc.runtimeLifecycle.currentStage, "default")}
+          ${renderGateRow("Validation", kc.runtimeLifecycle.validationStatus ?? "unknown", kc.runtimeLifecycle.validationStatus === "error" ? "warn" : "default")}
+        </div>
+        <p>${escapeHtml(kc.runtimeLifecycle.nextRecommendedAction ?? "No runtime lifecycle recommendation is recorded yet.")}</p>
+      </section>
+
+      <section class="kc-inspector-section">
+        <p class="kc-section-micro">Token estimate</p>
+        <div class="kc-gate-list">
+          ${renderGateRow("Selected", `~${formatTokensShort(kc.tokenAnalytics.selectedTokens)}`, "default")}
+          ${renderGateRow("Full repo", `~${formatTokensShort(kc.tokenAnalytics.fullRepoTokens)}`, "default")}
+          ${renderGateRow("Saved", `~${kc.tokenAnalytics.savingsPercent}%`, "success")}
+        </div>
+        <p>${escapeHtml(kc.tokenAnalytics.estimateNote ?? "No repo-local token estimate is available yet.")}</p>
+      </section>
+
+      <section class="kc-inspector-section">
+        <p class="kc-section-micro">Feedback</p>
+        <div class="kc-gate-list">
+          ${renderGateRow("Adaptation", kc.feedback.adaptationLevel, kc.feedback.adaptationLevel === "active" ? "success" : "default")}
+          ${renderGateRow("Runs", String(kc.feedback.totalRuns), "default")}
+          ${renderGateRow("Success", `${kc.feedback.successRate}%`, kc.feedback.successRate >= 80 ? "success" : "default")}
+        </div>
+        <p>${escapeHtml(kc.feedback.note)}</p>
+      </section>
+
+      <section class="kc-inspector-section">
+        <p class="kc-section-micro">MCP usage</p>
+        <div class="kc-gate-list">
+          ${renderGateRow("Pack", state.mcpPacks.suggestedPack.name ?? state.mcpPacks.suggestedPack.id, "default")}
+          ${renderGateRow("Compatible", String(state.mcpPacks.compatibleCapabilities.length), state.mcpPacks.compatibleCapabilities.length > 0 ? "success" : "warn")}
+          ${renderGateRow("Top capability", topCapability?.id ?? "none", topCapability ? "success" : "warn")}
+        </div>
+        <p>${escapeHtml(state.mcpPacks.note)}</p>
+      </section>
+
+      <section class="kc-inspector-section">
+        <p class="kc-section-micro">Specialist usage</p>
+        <div class="kc-gate-list">
+          ${renderGateRow("Active", activeSpecialist?.name ?? state.specialists.activeSpecialist, "default")}
+          ${renderGateRow("Risk", activeSpecialist?.riskPosture ?? "unknown", activeSpecialist?.riskPosture === "conservative" ? "success" : "default")}
+          ${renderGateRow("Tool fit", (activeSpecialist?.preferredTools ?? []).join(", ") || "none", "default")}
+        </div>
+        <p>${escapeHtml(activeSpecialist?.purpose ?? state.specialists.safeParallelHint)}</p>
       </section>
 
       <section class="kc-inspector-section">
@@ -1015,39 +1732,21 @@ function renderInspector(state: RepoControlState): string {
           ? `<code class="kc-command-block">${escapeHtml(primaryAction.command)}</code>`
           : `<p>No command recorded for the current state.</p>`}
       </section>
-
-      <section class="kc-inspector-section">
-        <p class="kc-section-micro">Affected scope</p>
-        ${affectedScope.length > 0 ? renderListBadges(affectedScope) : renderEmptyState("No file scope is selected yet.")}
-      </section>
-
-      <section class="kc-inspector-section">
-        <p class="kc-section-micro">State gates</p>
-        <div class="kc-gate-list">
-          ${renderGateRow("Repo validation", validationState, state.validation.ok ? "success" : "warn")}
-          ${renderGateRow("Instructions", kc.efficiency.instructionsGenerated ? "ready" : "not generated", kc.efficiency.instructionsGenerated ? "success" : "warn")}
-          ${renderGateRow("Feedback", `${kc.feedback.adaptationLevel} (${kc.feedback.totalRuns} runs)`, kc.feedback.adaptationLevel === "active" ? "success" : "default")}
-          ${renderGateRow("Token estimate", kc.tokenAnalytics.estimationMethod ?? "not generated", kc.tokenAnalytics.estimationMethod ? "default" : "warn")}
-        </div>
-      </section>
-
-      <section class="kc-inspector-section">
-        <p class="kc-section-micro">Repo memory</p>
-        ${renderMemoryPresenceList(state.memoryBank.slice(0, 5))}
-      </section>
     </div>
   `;
 }
 
 function renderLogDrawer(state: RepoControlState): string {
   const lines = buildLogLines(state);
+  const executions = (state.kiwiControl ?? EMPTY_KC).execution.recentExecutions;
 
   return `
     <div class="kc-log-shell">
       <div class="kc-log-header">
         <div class="kc-tab-row">
+          ${renderTabButton("history", activeLogTab, "Execution History", "data-log-tab")}
           ${renderTabButton("validation", activeLogTab, "Validation Output", "data-log-tab")}
-          ${renderTabButton("actions", activeLogTab, "Recent Actions", "data-log-tab")}
+          ${renderTabButton("logs", activeLogTab, "System Logs", "data-log-tab")}
         </div>
         <button class="kc-icon-button" type="button" data-toggle-logs>
           ${iconSvg("close")}
@@ -1056,7 +1755,16 @@ function renderLogDrawer(state: RepoControlState): string {
       <div class="kc-log-body">
         ${activeLogTab === "validation"
           ? renderValidationLogBody(state.validation)
-          : lines.length > 0
+          : activeLogTab === "history"
+            ? executions.length > 0
+              ? executions.map((execution) => `
+                  <div class="kc-log-line ${execution.success ? "" : "is-warn"}">
+                    <span>${escapeHtml(execution.success ? "run" : "failed")}</span>
+                    <strong>${escapeHtml(`${execution.task} · ${execution.filesTouched} files · ~${formatTokensShort(execution.tokensUsed)} tokens · ${formatTimestamp(execution.timestamp)}`)}</strong>
+                  </div>
+                `).join("")
+              : renderEmptyState("No execution history is recorded yet.")
+            : lines.length > 0
             ? lines.map((line) => `
                 <div class="kc-log-line">
                   <span>${escapeHtml(line.label)}</span>
@@ -1125,9 +1833,18 @@ function renderInfoRow(label: string, value: string, tone: "default" | "warn" = 
 
 function renderHeaderBadge(
   label: string,
-  tone: RepoControlMode | NextActionItem["priority"] | "neutral" | "success" | "warn"
+  tone: RepoControlMode | NextActionItem["priority"] | "neutral" | "success" | "warn" | "low" | "medium" | "high"
 ): string {
-  const normalizedTone = tone === "bridge-unavailable" ? "warn" : tone;
+  const normalizedTone =
+    tone === "bridge-unavailable"
+      ? "warn"
+      : tone === "low"
+        ? "warn"
+        : tone === "medium"
+          ? "neutral"
+          : tone === "high"
+            ? "success"
+            : tone;
   return `<span class="kc-badge badge-${escapeHtml(normalizedTone)}">${escapeHtml(label)}</span>`;
 }
 
@@ -1151,6 +1868,82 @@ function renderTabButton(
 
 function renderListBadges(values: string[]): string {
   return `<div class="kc-inline-badges">${values.map((value) => `<span class="kc-inline-badge">${escapeHtml(value)}</span>`).join("")}</div>`;
+}
+
+function renderInlineBadge(value: string): string {
+  return `<span class="kc-inline-badge">${escapeHtml(value)}</span>`;
+}
+
+function renderExplainabilityBadge(label: string, active: boolean): string {
+  return `<span class="kc-inline-badge ${active ? "is-active" : "is-muted"}">${escapeHtml(label)}</span>`;
+}
+
+function renderBulletRow(copy: string): string {
+  return `
+    <div class="kc-bullet-row">
+      <span class="kc-bullet-dot"></span>
+      <span>${escapeHtml(copy)}</span>
+    </div>
+  `;
+}
+
+function renderCapabilityCard(capability: {
+  id: string;
+  category: string;
+  purpose: string;
+  trustLevel: "low" | "medium" | "high";
+  readOnly: boolean;
+  writeCapable: boolean;
+  approvalRequired: boolean;
+  usageGuidance: string[];
+  antiPatterns: string[];
+}): string {
+  return `
+    <article class="kc-capability-card">
+      <div class="kc-capability-head">
+        <div>
+          <strong>${escapeHtml(capability.id)}</strong>
+          <span>${escapeHtml(capability.category)}</span>
+        </div>
+        ${renderHeaderBadge(capability.trustLevel, capability.trustLevel === "high" ? "success" : capability.trustLevel === "low" ? "warn" : "neutral")}
+      </div>
+      <p>${escapeHtml(capability.purpose)}</p>
+      <div class="kc-inline-badges">
+        ${renderInlineBadge(capability.readOnly ? "read only" : "read write")}
+        ${renderInlineBadge(capability.writeCapable ? "write capable" : "no writes")}
+        ${renderInlineBadge(capability.approvalRequired ? "approval required" : "self-serve")}
+      </div>
+      ${capability.usageGuidance.length > 0
+        ? `<div class="kc-capability-notes">${capability.usageGuidance.slice(0, 2).map(renderBulletRow).join("")}</div>`
+        : ""}
+    </article>
+  `;
+}
+
+function renderSpecialistCard(specialist: {
+  specialistId: string;
+  name?: string;
+  purpose?: string;
+  aliases?: string[];
+  preferredTools?: string[];
+  riskPosture?: string;
+}): string {
+  return `
+    <div class="kc-stack-list">
+      <div class="kc-note-row">
+        <div>
+          <strong>${escapeHtml(specialist.name ?? specialist.specialistId)}</strong>
+          <span>${escapeHtml(specialist.purpose ?? "No purpose recorded.")}</span>
+        </div>
+        <em>${escapeHtml(specialist.riskPosture ?? "unknown")}</em>
+      </div>
+      <div class="kc-inline-badges">
+        ${renderInlineBadge(`id: ${specialist.specialistId}`)}
+        ${renderInlineBadge(`tools: ${(specialist.preferredTools ?? []).join(", ") || "none"}`)}
+        ${renderInlineBadge(`aliases: ${(specialist.aliases ?? []).join(", ") || "none"}`)}
+      </div>
+    </div>
+  `;
 }
 
 function renderMemoryPresenceList(entries: Array<{ label: string; path: string; present: boolean }>): string {
@@ -1321,6 +2114,27 @@ function buildActivityItems(state: RepoControlState): Array<{
     });
   }
 
+  for (const event of kc.runtimeLifecycle.recentEvents.slice(0, 4)) {
+    items.push({
+      title: `Runtime ${event.type}`,
+      detail: event.summary,
+      timestamp: formatTimestamp(event.timestamp),
+      tone:
+        event.status === "error"
+          ? "tone-warn"
+          : event.status === "warn"
+            ? "tone-neutral"
+            : "tone-success",
+      icon:
+        event.status === "error"
+          ? iconSvg("alert")
+          : event.status === "warn"
+            ? iconSvg("system")
+            : iconSvg("check"),
+      ...(event.files.length > 0 ? { meta: event.files.slice(0, 3) } : {})
+    });
+  }
+
   const latestCheckpoint = getPanelValue(state.continuity, "Latest checkpoint");
   if (latestCheckpoint !== "none recorded") {
     items.push({
@@ -1409,6 +2223,12 @@ function iconSvg(name: string): string {
       return `<svg ${common}><path d="m7 7 5-4 5 4"/><path d="M12 3v14"/><path d="m17 17-5 4-5-4"/></svg>`;
     case "feedback":
       return `<svg ${common}><path d="M12 3v6"/><path d="m15 12 6-3"/><path d="m9 12-6-3"/><path d="m15 15 4 4"/><path d="m9 15-4 4"/><circle cx="12" cy="12" r="3"/></svg>`;
+    case "mcps":
+      return `<svg ${common}><path d="M4 12h16"/><path d="M12 4v16"/><path d="m6.5 6.5 11 11"/><path d="m17.5 6.5-11 11"/></svg>`;
+    case "specialists":
+      return `<svg ${common}><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>`;
+    case "system":
+      return `<svg ${common}><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 4v16"/><path d="M15 4v16"/><path d="M4 9h16"/><path d="M4 15h16"/></svg>`;
     case "logs-open":
       return `<svg ${common}><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/><path d="m19 15-3 3 3 3"/></svg>`;
     case "logs-closed":
@@ -1427,6 +2247,10 @@ function iconSvg(name: string): string {
       return `<svg ${common}><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>`;
     case "checkpoint":
       return `<svg ${common}><path d="M6 4h12v6H6z"/><path d="M9 10v10"/><path d="M15 10v10"/></svg>`;
+    case "sun":
+      return `<svg ${common}><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>`;
+    case "moon":
+      return `<svg ${common}><path d="M12 3a6 6 0 1 0 9 9A9 9 0 1 1 12 3Z"/></svg>`;
     default:
       return `<svg ${common}><circle cx="12" cy="12" r="8"/></svg>`;
   }
@@ -1569,13 +2393,24 @@ function buildBridgeUnavailableState(targetRoot: string): RepoControlState {
     ],
     memoryBank: [],
     specialists: {
+      activeSpecialist: "review-specialist",
       recommendedSpecialist: "review-specialist",
+      activeProfile: null,
+      recommendedProfile: null,
       handoffTargets: [],
       safeParallelHint: "Restore repo-local visibility first."
     },
     mcpPacks: {
-      suggestedPack: { id: "core-pack", description: "Default repo-first pack." },
-      available: []
+      suggestedPack: {
+        id: "core-pack",
+        description: "Default repo-first pack.",
+        guidance: [],
+        realismNotes: []
+      },
+      available: [],
+      compatibleCapabilities: [],
+      capabilityStatus: "limited",
+      note: "No compatible MCP capabilities are available until repo-local state can be loaded."
     },
     validation: { ok: false, errors: hasTargetRoot ? 1 : 0, warnings: hasTargetRoot ? 0 : 1, issues: [] },
     kiwiControl: EMPTY_KC

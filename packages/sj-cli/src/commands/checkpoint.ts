@@ -15,6 +15,7 @@ import { recommendNextSpecialist } from "@shrey-junior/sj-core/core/specialists.
 import { buildPhaseId, loadActiveRoleHints, loadLatestCheckpoint, parseCsvFlag, type CheckpointRecord, type PhaseStatus, type PhaseRecord, updateActiveRoleHints, writeCheckpointArtifacts, writePhaseRecord } from "@shrey-junior/sj-core/core/state.js";
 import { loadCurrentPhase } from "@shrey-junior/sj-core/core/state.js";
 import { recordPreparedScopeCompletion } from "@shrey-junior/sj-core/core/execution-log.js";
+import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 import { relativeFrom } from "@shrey-junior/sj-core/utils/fs.js";
 
@@ -263,6 +264,20 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
     latestMemoryFocus: relativeFrom(options.targetRoot, memoryPaths.currentFocus),
     latestCheckpoint: relativeFrom(options.targetRoot, checkpointArtifacts.latestJsonPath)
   });
+  await recordRuntimeProgress(options.targetRoot, {
+    type: scopeFailure ? "validation_checkpoint" : "checkpoint_recorded",
+    stage: scopeFailure ? "blocked" : "checkpointed",
+    status: scopeFailure ? "error" : "ok",
+    summary: scopeFailure
+      ? `Checkpoint "${options.label}" detected scope drift.`
+      : `Checkpoint "${options.label}" recorded successfully.`,
+    task: goal,
+    command: nextSuggestedCommand,
+    files: gitState.changedFiles.slice(0, 12),
+    validationStatus: scopeFailure ? "error" : "ok",
+    nextSuggestedCommand,
+    nextRecommendedAction: record.nextRecommendedStep
+  }).catch(() => null);
   options.logger.info(`checkpoint recorded: ${paths.currentPhasePath}`);
   options.logger.info(`history entry: ${paths.historyPath}`);
   options.logger.info(`latest checkpoint: ${checkpointArtifacts.latestJsonPath}`);

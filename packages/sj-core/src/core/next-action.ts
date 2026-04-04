@@ -2,9 +2,10 @@ import path from "node:path";
 import { inspectGitState } from "./git.js";
 import { loadPreparedScope, validateTouchedFilesAgainstAllowedFiles } from "./prepared-scope.js";
 import { PRODUCT_METADATA } from "./product.js";
+import { loadRuntimeLifecycle } from "./runtime-lifecycle.js";
 import { loadContinuitySnapshot } from "./state.js";
 import type { ValidationIssue } from "./validator.js";
-import { pathExists } from "../utils/fs.js";
+import { pathExists, writeText } from "../utils/fs.js";
 
 export interface NextAction {
   action: string;
@@ -17,6 +18,18 @@ export interface NextAction {
 export interface DecisionEngineOutput {
   nextActions: NextAction[];
   summary: string;
+  decisionLogic: DecisionLogicState;
+}
+
+export interface DecisionLogicState {
+  artifactType: "kiwi-control/decision-logic";
+  version: 1;
+  timestamp: string;
+  summary: string;
+  decisionPriority: NextAction["priority"];
+  inputSignals: string[];
+  reasoningChain: string[];
+  ignoredSignals: string[];
 }
 
 export async function nextActionEngine(
@@ -25,6 +38,9 @@ export async function nextActionEngine(
 ): Promise<DecisionEngineOutput> {
   const primaryCommand = PRODUCT_METADATA.cli.primaryCommand;
   const agentDir = path.join(targetRoot, ".agent");
+  const inputSignals: string[] = [];
+  const reasoningChain: string[] = [];
+  const ignoredSignals: string[] = [];
 
   if (!(await pathExists(agentDir))) {
     const action: NextAction = {
@@ -34,18 +50,18 @@ export async function nextActionEngine(
       reason: "Kiwi Control has not been initialized in this folder yet.",
       priority: "critical"
     };
-    return {
-      nextActions: [action],
-      summary: `${action.action}: ${action.reason}`
-    };
+    inputSignals.push("repo not initialized");
+    reasoningChain.push("Initialization is the first priority because no repo-local control plane exists yet.");
+    return finalizeDecisionOutput(targetRoot, [action], `${action.action}: ${action.reason}`, inputSignals, reasoningChain, ignoredSignals);
   }
 
-  const [gitState, continuity, preparedScope, hasInstructions, hasTokenUsage] = await Promise.all([
+  const [gitState, continuity, preparedScope, hasInstructions, hasTokenUsage, runtimeLifecycle] = await Promise.all([
     inspectGitState(targetRoot),
     loadContinuitySnapshot(targetRoot),
     loadPreparedScope(targetRoot),
     pathExists(path.join(targetRoot, ".agent", "context", "generated-instructions.md")),
-    pathExists(path.join(targetRoot, ".agent", "state", "token-usage.json"))
+    pathExists(path.join(targetRoot, ".agent", "state", "token-usage.json")),
+    loadRuntimeLifecycle(targetRoot)
   ]);
 
   const actions: NextAction[] = [];
@@ -61,9 +77,18 @@ export async function nextActionEngine(
     continuity.latestPhase?.nextRecommendedStep ??
     continuity.currentFocus?.currentFocus ??
     "repo-local continuity already points to the next step";
+  inputSignals.push(`${validationIssues.length} validation issue(s)`);
+  inputSignals.push(preparedScope ? "prepared scope present" : "prepared scope missing");
+  inputSignals.push(`${gitState.changedFiles.length} changed file(s)`);
+  inputSignals.push(nextSuggestedCommand ? "continuity next command recorded" : "no continuity command recorded");
+  inputSignals.push(`runtime lifecycle: ${runtimeLifecycle.currentStage}`);
 
   if (liveValidationAction) {
     actions.push(liveValidationAction);
+    reasoningChain.push("A live validation issue exists, so repo correctness outranks continuity guidance.");
+    if (nextSuggestedCommand) {
+      ignoredSignals.push("Ignored recorded continue/resume guidance until the validation issue is fixed.");
+    }
   }
 
   if (!preparedScope && !hasBlockingValidationIssue) {
@@ -75,6 +100,7 @@ export async function nextActionEngine(
       reason: "Repo-local state exists, but there is no prepared task scope yet.",
       priority: gitState.changedFiles.length > 0 ? "critical" : "high"
     });
+    reasoningChain.push("Preparation is required before Kiwi can make bounded, trustworthy file decisions.");
   }
 
   const scopeValidation = preparedScope
@@ -89,6 +115,11 @@ export async function nextActionEngine(
       reason: `Changed files drifted outside the prepared scope: ${scopeValidation.outOfScopeFiles.slice(0, 3).join(", ")}.`,
       priority: "critical"
     });
+    inputSignals.push(`${scopeValidation.outOfScopeFiles.length} out-of-scope file(s)`);
+    reasoningChain.push("Prepared scope drift was detected, so refreshing scope takes priority over continuing the task.");
+    if (nextSuggestedCommand) {
+      ignoredSignals.push("Ignored recorded next-step continuity because the working tree drifted outside the prepared scope.");
+    }
   }
 
   if (preparedScope && (!hasInstructions || !hasTokenUsage) && !hasBlockingValidationIssue) {
@@ -99,6 +130,40 @@ export async function nextActionEngine(
       reason: "The prepared task scope exists, but generated instructions or token state are missing.",
       priority: "high"
     });
+    reasoningChain.push("Prepared artifacts are incomplete, so Kiwi should rebuild instructions and token state before continuing.");
+  }
+
+  if (
+    preparedScope &&
+    hasInstructions &&
+    hasTokenUsage &&
+    gitState.changedFiles.length === 0 &&
+    !hasLiveValidationIssues &&
+    runtimeLifecycle.currentStage === "prepared"
+  ) {
+    actions.push({
+      action: "Start the prepared task",
+      file: preparedScope.allowedFiles[0] ?? null,
+      command: null,
+      reason: "The prepared scope, instructions, and token estimate are ready. Begin work inside the selected files before widening scope.",
+      priority: actions.length === 0 ? "high" : "normal"
+    });
+    reasoningChain.push("A prepared task with no working-tree changes should start from the bounded instructions instead of falling back to generic status guidance.");
+  }
+
+  if (
+    gitState.changedFiles.length === 0 &&
+    !hasLiveValidationIssues &&
+    runtimeLifecycle.currentStage === "packetized"
+  ) {
+    actions.push({
+      action: "Execute the generated run packet",
+      file: nextFileToRead,
+      command: nextSuggestedCommand,
+      reason: runtimeLifecycle.nextRecommendedAction ?? "Run packets are written and ready for the assigned execution flow.",
+      priority: actions.length === 0 ? "high" : "normal"
+    });
+    reasoningChain.push("Packet generation already happened, so the next helpful step is execution rather than another planning pass.");
   }
 
   if (!hasLiveValidationIssues && gitState.changedFiles.length > 0 && typeof nextSuggestedCommand === "string" && nextSuggestedCommand.length > 0) {
@@ -109,6 +174,7 @@ export async function nextActionEngine(
       reason: `There are ${gitState.changedFiles.length} changed file(s) in the current working tree, and ${recordedAction.toLowerCase()}.`,
       priority: actions.length === 0 ? "high" : "normal"
     });
+    reasoningChain.push("Changed work plus a recorded next command makes continuation the strongest non-corrective action.");
   } else if (!hasLiveValidationIssues && gitState.changedFiles.length > 0) {
     actions.push({
       action: "Capture current progress",
@@ -117,6 +183,7 @@ export async function nextActionEngine(
       reason: `There are ${gitState.changedFiles.length} changed file(s), but no stronger repo-local next step is recorded.`,
       priority: "normal"
     });
+    reasoningChain.push("Changed work exists, but continuity is weak, so capturing progress is the safest recommendation.");
   } else if (!hasLiveValidationIssues && typeof nextSuggestedCommand === "string" && nextSuggestedCommand.length > 0) {
     actions.push({
       action: "Resume the recorded focus",
@@ -125,6 +192,7 @@ export async function nextActionEngine(
       reason: "The working tree is clean, and repo-local continuity already records the next recommended command.",
       priority: actions.length === 0 ? "normal" : "low"
     });
+    reasoningChain.push("With a clean tree and a recorded next command, resume guidance is safe but lower-priority than corrective actions.");
   }
 
   if (actions.length === 0) {
@@ -135,16 +203,54 @@ export async function nextActionEngine(
       reason: "Repo-local state is present and there is no higher-priority corrective action.",
       priority: "low"
     });
+    reasoningChain.push("No corrective or continuity signal dominated, so the system falls back to status review.");
   }
 
   const priorityOrder = { critical: 0, high: 1, normal: 2, low: 3 };
   actions.sort((left, right) => priorityOrder[left.priority] - priorityOrder[right.priority]);
 
   const topAction = actions[0];
-  return {
-    nextActions: actions,
-    summary: topAction ? `${topAction.action}: ${topAction.reason}` : "No next action available."
+  return finalizeDecisionOutput(
+    targetRoot,
+    actions,
+    topAction ? `${topAction.action}: ${topAction.reason}` : "No next action available.",
+    inputSignals,
+    reasoningChain,
+    ignoredSignals
+  );
+}
+
+async function finalizeDecisionOutput(
+  targetRoot: string,
+  nextActions: NextAction[],
+  summary: string,
+  inputSignals: string[],
+  reasoningChain: string[],
+  ignoredSignals: string[]
+): Promise<DecisionEngineOutput> {
+  const topPriority = nextActions[0]?.priority ?? "low";
+  const decisionLogic: DecisionLogicState = {
+    artifactType: "kiwi-control/decision-logic",
+    version: 1,
+    timestamp: new Date().toISOString(),
+    summary,
+    decisionPriority: topPriority,
+    inputSignals,
+    reasoningChain,
+    ignoredSignals
   };
+
+  await persistDecisionLogic(targetRoot, decisionLogic).catch(() => null);
+  return { nextActions, summary, decisionLogic };
+}
+
+async function persistDecisionLogic(
+  targetRoot: string,
+  logic: DecisionLogicState
+): Promise<string> {
+  const statePath = path.join(targetRoot, ".agent", "state", "decision-logic.json");
+  await writeText(statePath, `${JSON.stringify(logic, null, 2)}\n`);
+  return statePath;
 }
 
 function buildLiveValidationAction(

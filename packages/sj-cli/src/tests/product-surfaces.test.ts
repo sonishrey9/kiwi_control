@@ -6,6 +6,7 @@ import { promises as fs } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { bootstrapTarget } from "@shrey-junior/sj-core/core/bootstrap.js";
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
+import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
 import { runSpecialists } from "../commands/specialists.js";
 import {
   buildDesktopLaunchCandidates,
@@ -90,6 +91,14 @@ test("ui command returns structured repo-control state in json mode", async () =
     },
     config
   );
+  await recordRuntimeProgress(target, {
+    type: "prepare_completed",
+    stage: "prepared",
+    status: "ok",
+    summary: "Prepared the repo for a bounded task.",
+    task: "demo task",
+    nextRecommendedAction: "Begin work in the prepared scope."
+  });
 
   const logs: string[] = [];
   const exitCode = await runUi({
@@ -111,9 +120,17 @@ test("ui command returns structured repo-control state in json mode", async () =
     repoOverview: Array<{ label: string }>;
     continuity: Array<{ label: string }>;
     memoryBank: Array<{ label: string; present: boolean }>;
-    specialists: { recommendedSpecialist: string };
-    mcpPacks: { suggestedPack: { id: string } };
+    specialists: { recommendedSpecialist: string; activeSpecialist: string };
+    mcpPacks: { suggestedPack: { id: string }; compatibleCapabilities: Array<{ id: string }>; note: string };
     validation: { ok: boolean };
+    kiwiControl: {
+      indexing: { coverageNote: string; discoveredFiles: number };
+      fileAnalysis: { totalFiles: number; selected: Array<{ file: string }> };
+      contextTrace: { expansionSteps: Array<{ step: string }> };
+      tokenBreakdown: { categories: Array<{ category: string }> };
+      decisionLogic: { reasoningChain: string[]; inputSignals: string[] };
+      runtimeLifecycle: { currentStage: string; recentEvents: Array<{ type: string }> };
+    };
   };
 
   assert.equal(payload.repoState.mode, "healthy");
@@ -121,8 +138,21 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(payload.continuity.some((entry) => entry.label === "Latest checkpoint"), true);
   assert.equal(payload.memoryBank.some((entry) => entry.label === "Repo Facts" && entry.present), true);
   assert.match(payload.specialists.recommendedSpecialist, /-specialist$/);
+  assert.match(payload.specialists.activeSpecialist, /-specialist$/);
   assert.equal(typeof payload.mcpPacks.suggestedPack.id, "string");
+  assert.equal(Array.isArray(payload.mcpPacks.compatibleCapabilities), true);
+  assert.match(payload.mcpPacks.note, /MCP/i);
   assert.equal(payload.validation.ok, true);
+  assert.equal(typeof payload.kiwiControl.indexing.discoveredFiles, "number");
+  assert.equal(typeof payload.kiwiControl.indexing.coverageNote, "string");
+  assert.equal(typeof payload.kiwiControl.fileAnalysis.totalFiles, "number");
+  assert.equal(Array.isArray(payload.kiwiControl.fileAnalysis.selected), true);
+  assert.equal(Array.isArray(payload.kiwiControl.contextTrace.expansionSteps), true);
+  assert.equal(Array.isArray(payload.kiwiControl.tokenBreakdown.categories), true);
+  assert.equal(Array.isArray(payload.kiwiControl.decisionLogic.reasoningChain), true);
+  assert.equal(Array.isArray(payload.kiwiControl.decisionLogic.inputSignals), true);
+  assert.equal(typeof payload.kiwiControl.runtimeLifecycle.currentStage, "string");
+  assert.equal(Array.isArray(payload.kiwiControl.runtimeLifecycle.recentEvents), true);
 });
 
 test("ui command reports repo-not-initialized for an uninitialized generic repo while still returning json", async () => {

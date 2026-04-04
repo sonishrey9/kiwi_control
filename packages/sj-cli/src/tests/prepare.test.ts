@@ -81,6 +81,13 @@ test("token estimator persists state to .agent/state/token-usage.json", async ()
   assert.ok(typeof state.savings_percent === "number");
   assert.match(state.estimate_note ?? "", /pricing is intentionally not shown/i);
   assert.equal("cost_estimates" in state, false);
+
+  const breakdown = await readJson<{ artifactType: string; categories: Array<{ category: string; basis: string }> }>(
+    path.join(tempDir, ".agent", "state", "token-breakdown.json")
+  );
+  assert.equal(breakdown.artifactType, "kiwi-control/token-breakdown");
+  assert.equal(breakdown.categories.some((entry) => entry.category === "selection filter" && entry.basis === "measured"), true);
+  assert.equal(breakdown.categories.some((entry) => entry.category === "node_modules"), true);
 });
 
 test("prepare output clearly labels token counts as rough estimates and omits pricing", async () => {
@@ -109,7 +116,22 @@ test("prepare output clearly labels token counts as rough estimates and omits pr
   assert.equal(exitCode, 0);
   assert.match(logs.join("\n"), /rough estimate/i);
   assert.match(logs.join("\n"), /pricing is intentionally not shown/i);
+  assert.match(logs.join("\n"), /How It Works:/i);
+  assert.match(logs.join("\n"), /File Analysis:/i);
+  assert.match(logs.join("\n"), /Context Trace:/i);
+  assert.match(logs.join("\n"), /Indexing:/i);
+  assert.match(logs.join("\n"), /Token Breakdown:/i);
+  assert.match(logs.join("\n"), /heuristic/i);
   assert.doesNotMatch(logs.join("\n"), /Cost Savings|selected \/ .* full repo \/ .* saved|\$/i);
+
+  const runtimeLifecycle = await readJson<{
+    artifactType: string;
+    currentStage: string;
+    recentEvents: Array<{ type: string }>;
+  }>(path.join(tempDir, ".agent", "state", "runtime-lifecycle.json"));
+  assert.equal(runtimeLifecycle.artifactType, "kiwi-control/runtime-lifecycle");
+  assert.equal(runtimeLifecycle.currentStage, "prepared");
+  assert.equal(runtimeLifecycle.recentEvents.some((event) => event.type === "prepare_completed"), true);
 });
 
 test("constraints include all mandatory rules", () => {
@@ -182,11 +204,18 @@ test("medium confidence keeps instruction language cautious", () => {
       keywordMatches: ["auth.ts"],
       repoContextFiles: [],
       discovery: {
+        totalFiles: 12,
         discoveredFiles: 12,
+        analyzedFiles: 12,
+        skippedFiles: 0,
+        skippedDirectories: 0,
         visitedDirectories: 4,
         maxDepthExplored: 2,
         fileBudgetReached: false,
-        directoryBudgetReached: false
+        directoryBudgetReached: false,
+        partialScan: false,
+        ignoreRulesApplied: [],
+        skipped: []
       }
     }
   };
@@ -212,11 +241,18 @@ test("high confidence avoids overstating certainty", () => {
       keywordMatches: ["src/auth/login.ts", "src/auth/token.ts"],
       repoContextFiles: [".agent/memory/current-focus.json"],
       discovery: {
+        totalFiles: 40,
         discoveredFiles: 40,
+        analyzedFiles: 40,
+        skippedFiles: 0,
+        skippedDirectories: 0,
         visitedDirectories: 10,
         maxDepthExplored: 5,
         fileBudgetReached: false,
-        directoryBudgetReached: false
+        directoryBudgetReached: false,
+        partialScan: false,
+        ignoreRulesApplied: [],
+        skipped: []
       }
     }
   };

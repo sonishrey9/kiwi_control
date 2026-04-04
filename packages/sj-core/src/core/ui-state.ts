@@ -8,16 +8,23 @@ import { inspectBootstrapTarget } from "./project-detect.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "./profiles.js";
 import { getMcpPackDefinition, listMcpPacks, recommendMcpPack } from "./recommendations.js";
 import { loadLatestReconcileReport } from "./reconcile.js";
-import { listSpecialists, normalizeSpecialistId, recommendNextSpecialist } from "./specialists.js";
+import {
+  listEligibleMcpCapabilities,
+  listSpecialists,
+  normalizeSpecialistId,
+  recommendNextSpecialist
+} from "./specialists.js";
 import { loadActiveRoleHints, loadContinuitySnapshot, loadLatestTaskPacketSet } from "./state.js";
 import type { ValidationIssue } from "./validator.js";
 import { validateControlPlane, validateTargetRepo } from "./validator.js";
 import { pathExists, readJson, renderDisplayPath } from "../utils/fs.js";
 import type { ContextSelectionState } from "./context-selector.js";
-import type { TokenUsageState } from "./token-estimator.js";
+import type { ContextTraceState, FileAnalysisEntry, IndexingState, SkippedPathEntry } from "./context-trace.js";
+import type { RuntimeLifecycleState } from "./runtime-lifecycle.js";
+import type { TokenBreakdownState, TokenUsageState } from "./token-estimator.js";
 import { inspectGitState } from "./git.js";
 import { nextActionEngine } from "./next-action.js";
-import type { NextAction } from "./next-action.js";
+import type { DecisionLogicState, NextAction } from "./next-action.js";
 import { buildFeedbackSummary } from "./context-feedback.js";
 import type { FeedbackSummary } from "./context-feedback.js";
 import { buildExecutionSummary, recordPreparedScopeCompletion } from "./execution-log.js";
@@ -165,6 +172,75 @@ export interface KiwiControlHeavyDirectories {
   }>;
 }
 
+export interface KiwiControlIndexing {
+  totalFiles: number;
+  observedFiles: number;
+  selectedFiles: number;
+  candidateFiles: number;
+  excludedFiles: number;
+  discoveredFiles: number;
+  analyzedFiles: number;
+  skippedFiles: number;
+  skippedDirectories: number;
+  visitedDirectories: number;
+  maxDepthExplored: number;
+  fileBudgetReached: boolean;
+  directoryBudgetReached: boolean;
+  partialScan: boolean;
+  ignoreRulesApplied: string[];
+  skipped: SkippedPathEntry[];
+  indexedFiles: number;
+  indexUpdatedFiles: number;
+  indexReusedFiles: number;
+  impactFiles: number;
+  changedSignals: number;
+  keywordSignals: number;
+  importSignals: number;
+  repoContextSignals: number;
+  scopeArea: string | null;
+  coverageNote: string;
+  selectionReason: string | null;
+}
+
+export interface KiwiControlFileAnalysis {
+  totalFiles: number;
+  scannedFiles: number;
+  skippedFiles: number;
+  selectedFiles: number;
+  excludedFiles: number;
+  selected: FileAnalysisEntry[];
+  excluded: FileAnalysisEntry[];
+  skipped: SkippedPathEntry[];
+}
+
+export interface KiwiControlContextTrace {
+  initialSignals: ContextTraceState["initialSignals"];
+  expansionSteps: ContextTraceState["expansionSteps"];
+  honesty: ContextTraceState["honesty"];
+}
+
+export interface KiwiControlTokenBreakdown {
+  partialScan: boolean;
+  categories: TokenBreakdownState["categories"];
+}
+
+export interface KiwiControlDecisionLogic {
+  summary: string;
+  decisionPriority: NextAction["priority"];
+  inputSignals: string[];
+  reasoningChain: string[];
+  ignoredSignals: string[];
+}
+
+export interface KiwiControlRuntimeLifecycle {
+  currentTask: string | null;
+  currentStage: string;
+  validationStatus: "ok" | "warn" | "error" | null;
+  nextSuggestedCommand: string | null;
+  nextRecommendedAction: string | null;
+  recentEvents: RuntimeLifecycleState["recentEvents"];
+}
+
 export interface KiwiControlState {
   contextView: KiwiControlContextView;
   tokenAnalytics: KiwiControlTokenAnalytics;
@@ -174,6 +250,12 @@ export interface KiwiControlState {
   execution: KiwiControlExecution;
   wastedFiles: KiwiControlWastedFiles;
   heavyDirectories: KiwiControlHeavyDirectories;
+  indexing: KiwiControlIndexing;
+  fileAnalysis: KiwiControlFileAnalysis;
+  contextTrace: KiwiControlContextTrace;
+  tokenBreakdown: KiwiControlTokenBreakdown;
+  decisionLogic: KiwiControlDecisionLogic;
+  runtimeLifecycle: KiwiControlRuntimeLifecycle;
 }
 
 export interface RepoControlState {
@@ -186,14 +268,20 @@ export interface RepoControlState {
   continuity: RepoControlPanelItem[];
   memoryBank: RepoMemoryBankEntry[];
   specialists: {
+    activeSpecialist: string;
     recommendedSpecialist: string;
     available: ReturnType<typeof listSpecialists>;
+    activeProfile: ReturnType<typeof listSpecialists>[number] | null;
+    recommendedProfile: ReturnType<typeof listSpecialists>[number] | null;
     handoffTargets: string[];
     safeParallelHint: string;
   };
   mcpPacks: {
     suggestedPack: ReturnType<typeof getMcpPackDefinition>;
     available: ReturnType<typeof listMcpPacks>;
+    compatibleCapabilities: ReturnType<typeof listEligibleMcpCapabilities>;
+    capabilityStatus: "compatible" | "limited";
+    note: string;
   };
   validation: RepoValidationSummary;
   kiwiControl: KiwiControlState;
@@ -333,6 +421,17 @@ export async function buildRepoControlStateFromConfig(options: {
       : repoState.mode === "initialized-invalid"
         ? "review-specialist"
         : recommendedSpecialist;
+  const activeSpecialistId =
+    normalizeSpecialistId(options.config, activeRoleHints?.activeRole, defaultRecommendedSpecialist) ??
+    defaultRecommendedSpecialist;
+  const activeSpecialistProfile = availableSpecialists.find((entry) => entry.specialistId === activeSpecialistId) ?? null;
+  const recommendedSpecialistProfile =
+    availableSpecialists.find((entry) => entry.specialistId === defaultRecommendedSpecialist) ?? null;
+  const compatibleMcpCapabilities = listEligibleMcpCapabilities({
+    config: options.config,
+    profileName: selection.profileName,
+    specialistId: activeSpecialistId
+  });
   const repoOverview = summarizeRepoOverview();
 
   const kiwiControl = await loadKiwiControlState(options.targetRoot, validationIssues);
@@ -347,14 +446,23 @@ export async function buildRepoControlStateFromConfig(options: {
     continuity: continuityItems,
     memoryBank,
     specialists: {
+      activeSpecialist: activeSpecialistId,
       recommendedSpecialist: defaultRecommendedSpecialist,
       available: availableSpecialists,
+      activeProfile: activeSpecialistProfile,
+      recommendedProfile: recommendedSpecialistProfile,
       handoffTargets: availableSpecialists.map((specialist) => specialist.specialistId).slice(0, 8),
       safeParallelHint: buildSafeParallelHint(repoState.mode, latestTaskPacketSet?.files.length ?? 0)
     },
     mcpPacks: {
       suggestedPack,
-      available: listMcpPacks()
+      available: listMcpPacks(),
+      compatibleCapabilities: compatibleMcpCapabilities,
+      capabilityStatus: compatibleMcpCapabilities.length > 0 ? "compatible" : "limited",
+      note:
+        compatibleMcpCapabilities.length > 0
+          ? `${compatibleMcpCapabilities.length} specialist-compatible MCP capabilities are currently available for this repo profile.`
+          : "No specialist-compatible MCP capabilities are currently exposed for this repo profile."
     },
     validation,
     kiwiControl
@@ -479,7 +587,11 @@ async function loadKiwiControlState(
   validationIssues: ValidationIssue[]
 ): Promise<KiwiControlState> {
   const contextSelectionPath = path.join(targetRoot, ".agent", "state", "context-selection.json");
+  const contextTracePath = path.join(targetRoot, ".agent", "state", "context-trace.json");
+  const runtimeLifecyclePath = path.join(targetRoot, ".agent", "state", "runtime-lifecycle.json");
+  const indexingPath = path.join(targetRoot, ".agent", "state", "indexing.json");
   const tokenUsagePath = path.join(targetRoot, ".agent", "state", "token-usage.json");
+  const tokenBreakdownPath = path.join(targetRoot, ".agent", "state", "token-breakdown.json");
   const instructionsPath = path.join(targetRoot, ".agent", "context", "generated-instructions.md");
 
   let contextView: KiwiControlContextView = {
@@ -494,8 +606,69 @@ async function loadKiwiControlState(
     timestamp: null
   };
 
+  let indexing: KiwiControlIndexing = {
+    totalFiles: 0,
+    observedFiles: 0,
+    selectedFiles: 0,
+    candidateFiles: 0,
+    excludedFiles: 0,
+    discoveredFiles: 0,
+    analyzedFiles: 0,
+    skippedFiles: 0,
+    skippedDirectories: 0,
+    visitedDirectories: 0,
+    maxDepthExplored: 0,
+    fileBudgetReached: false,
+    directoryBudgetReached: false,
+    partialScan: false,
+    ignoreRulesApplied: [],
+    skipped: [],
+    indexedFiles: 0,
+    indexUpdatedFiles: 0,
+    indexReusedFiles: 0,
+    impactFiles: 0,
+    changedSignals: 0,
+    keywordSignals: 0,
+    importSignals: 0,
+    repoContextSignals: 0,
+    scopeArea: null,
+    coverageNote: "Run kiwi-control prepare to record indexing coverage and selection reasoning.",
+    selectionReason: null
+  };
+
+  let fileAnalysis: KiwiControlFileAnalysis = {
+    totalFiles: 0,
+    scannedFiles: 0,
+    skippedFiles: 0,
+    selectedFiles: 0,
+    excludedFiles: 0,
+    selected: [],
+    excluded: [],
+    skipped: []
+  };
+
+  let contextTrace: KiwiControlContextTrace = {
+    initialSignals: {
+      changedFiles: [],
+      recentFiles: [],
+      importNeighbors: [],
+      proximityFiles: [],
+      keywordMatches: [],
+      repoContextFiles: []
+    },
+    expansionSteps: [],
+    honesty: {
+      heuristic: true,
+      lowConfidence: false,
+      partialScan: false
+    }
+  };
+
   if (await pathExists(contextSelectionPath)) {
     const selection = await readJson<ContextSelectionState>(contextSelectionPath);
+    const tree = buildContextTree(selection);
+    const observedFiles = collectObservedTreeFiles(selection).length;
+    const discovery = selection.signals.discovery;
     contextView = {
       task: selection.task,
       selectedFiles: selection.include,
@@ -504,8 +677,79 @@ async function loadKiwiControlState(
       confidence: selection.confidence ?? null,
       confidenceDetail: describeContextConfidence(selection),
       keywordMatches: selection.signals?.keywordMatches ?? [],
-      tree: buildContextTree(selection),
+      tree,
       timestamp: selection.timestamp
+    };
+    indexing = {
+      totalFiles: discovery?.totalFiles ?? observedFiles,
+      observedFiles,
+      selectedFiles: tree.selectedCount,
+      candidateFiles: tree.candidateCount,
+      excludedFiles: tree.excludedCount,
+      discoveredFiles: discovery?.discoveredFiles ?? observedFiles,
+      analyzedFiles: discovery?.analyzedFiles ?? observedFiles,
+      skippedFiles: discovery?.skippedFiles ?? 0,
+      skippedDirectories: discovery?.skippedDirectories ?? 0,
+      visitedDirectories: discovery?.visitedDirectories ?? 0,
+      maxDepthExplored: discovery?.maxDepthExplored ?? 0,
+      fileBudgetReached: Boolean(discovery?.fileBudgetReached),
+      directoryBudgetReached: Boolean(discovery?.directoryBudgetReached),
+      partialScan: Boolean(discovery?.partialScan),
+      ignoreRulesApplied: discovery?.ignoreRulesApplied ?? [],
+      skipped: discovery?.skipped ?? [],
+      indexedFiles: discovery?.indexedFiles ?? 0,
+      indexUpdatedFiles: discovery?.indexUpdatedFiles ?? 0,
+      indexReusedFiles: discovery?.indexReusedFiles ?? 0,
+      impactFiles: discovery?.impactFiles ?? 0,
+      changedSignals: (selection.signals.changedFiles ?? []).length,
+      keywordSignals: (selection.signals.keywordMatches ?? []).length,
+      importSignals: (selection.signals.importNeighbors ?? []).length,
+      repoContextSignals: (selection.signals.repoContextFiles ?? []).length,
+      scopeArea: deriveTaskArea(selection.task),
+      coverageNote: describeIndexingCoverage(selection, observedFiles),
+      selectionReason: selection.reason
+    };
+  }
+
+  if (await pathExists(indexingPath)) {
+    const persistedIndexing = await readJson<IndexingState>(indexingPath);
+    indexing = {
+      ...indexing,
+      totalFiles: persistedIndexing.totalFiles,
+      discoveredFiles: persistedIndexing.discoveredFiles,
+      analyzedFiles: persistedIndexing.analyzedFiles,
+      skippedFiles: persistedIndexing.skippedFiles,
+      skippedDirectories: persistedIndexing.skippedDirectories,
+      visitedDirectories: persistedIndexing.visitedDirectories,
+      maxDepthExplored: persistedIndexing.maxDepthExplored,
+      fileBudgetReached: persistedIndexing.fileBudgetReached,
+      directoryBudgetReached: persistedIndexing.directoryBudgetReached,
+      partialScan: persistedIndexing.partialScan,
+      ignoreRulesApplied: persistedIndexing.ignoreRulesApplied,
+      skipped: persistedIndexing.skipped,
+      indexedFiles: persistedIndexing.indexedFiles ?? indexing.indexedFiles,
+      indexUpdatedFiles: persistedIndexing.indexUpdatedFiles ?? indexing.indexUpdatedFiles,
+      indexReusedFiles: persistedIndexing.indexReusedFiles ?? indexing.indexReusedFiles,
+      impactFiles: persistedIndexing.impactFiles ?? indexing.impactFiles
+    };
+  }
+
+  if (await pathExists(contextTracePath)) {
+    const trace = await readJson<ContextTraceState>(contextTracePath);
+    fileAnalysis = {
+      totalFiles: trace.fileAnalysis.totalFiles,
+      scannedFiles: trace.fileAnalysis.scannedFiles,
+      skippedFiles: trace.fileAnalysis.skippedFiles,
+      selectedFiles: trace.fileAnalysis.selectedFiles,
+      excludedFiles: trace.fileAnalysis.excludedFiles,
+      selected: trace.fileAnalysis.selected,
+      excluded: trace.fileAnalysis.excluded,
+      skipped: trace.fileAnalysis.skipped
+    };
+    contextTrace = {
+      initialSignals: trace.initialSignals,
+      expansionSteps: trace.expansionSteps,
+      honesty: trace.honesty
     };
   }
 
@@ -532,6 +776,20 @@ async function loadKiwiControlState(
     directories: []
   };
 
+  let tokenBreakdown: KiwiControlTokenBreakdown = {
+    partialScan: false,
+    categories: []
+  };
+
+  let runtimeLifecycle: KiwiControlRuntimeLifecycle = {
+    currentTask: null,
+    currentStage: "idle",
+    validationStatus: null,
+    nextSuggestedCommand: null,
+    nextRecommendedAction: null,
+    recentEvents: []
+  };
+
   if (await pathExists(tokenUsagePath)) {
     const usage = await readJson<TokenUsageState>(tokenUsagePath);
     tokenAnalytics = {
@@ -556,6 +814,26 @@ async function loadKiwiControlState(
     };
   }
 
+  if (await pathExists(tokenBreakdownPath)) {
+    const persistedTokenBreakdown = await readJson<TokenBreakdownState>(tokenBreakdownPath);
+    tokenBreakdown = {
+      partialScan: persistedTokenBreakdown.partial_scan,
+      categories: persistedTokenBreakdown.categories
+    };
+  }
+
+  if (await pathExists(runtimeLifecyclePath)) {
+    const persistedRuntimeLifecycle = await readJson<RuntimeLifecycleState>(runtimeLifecyclePath);
+    runtimeLifecycle = {
+      currentTask: persistedRuntimeLifecycle.currentTask,
+      currentStage: persistedRuntimeLifecycle.currentStage,
+      validationStatus: persistedRuntimeLifecycle.validationStatus,
+      nextSuggestedCommand: persistedRuntimeLifecycle.nextSuggestedCommand,
+      nextRecommendedAction: persistedRuntimeLifecycle.nextRecommendedAction,
+      recentEvents: persistedRuntimeLifecycle.recentEvents
+    };
+  }
+
   const hasInstructions = await pathExists(instructionsPath);
 
   const efficiency: KiwiControlEfficiency = {
@@ -572,7 +850,20 @@ async function loadKiwiControlState(
 
   // Load decision engine, feedback, and execution data in parallel
   const [decisionOutput, feedbackSummary, executionSummary] = await Promise.all([
-    nextActionEngine(targetRoot, validationIssues).catch(() => ({ nextActions: [], summary: "Decision engine unavailable" })),
+    nextActionEngine(targetRoot, validationIssues).catch(() => ({
+      nextActions: [],
+      summary: "Decision engine unavailable",
+      decisionLogic: {
+        artifactType: "kiwi-control/decision-logic" as const,
+        version: 1 as const,
+        timestamp: new Date().toISOString(),
+        summary: "Decision engine unavailable",
+        decisionPriority: "low" as const,
+        inputSignals: [],
+        reasoningChain: [],
+        ignoredSignals: []
+      }
+    })),
     buildFeedbackSummary(targetRoot, contextView.task ?? undefined).catch(() => ({
       totalRuns: 0, successRate: 0, adaptationLevel: "limited" as const, note: "Adaptive feedback is unavailable.", recentEntries: [],
       topBoostedFiles: [], topPenalizedFiles: []
@@ -586,6 +877,14 @@ async function loadKiwiControlState(
   const nextActions: KiwiControlNextActions = {
     actions: decisionOutput.nextActions,
     summary: decisionOutput.summary
+  };
+
+  const decisionLogic: KiwiControlDecisionLogic = {
+    summary: decisionOutput.decisionLogic?.summary ?? decisionOutput.summary,
+    decisionPriority: decisionOutput.decisionLogic?.decisionPriority ?? "low",
+    inputSignals: decisionOutput.decisionLogic?.inputSignals ?? [],
+    reasoningChain: decisionOutput.decisionLogic?.reasoningChain ?? [],
+    ignoredSignals: decisionOutput.decisionLogic?.ignoredSignals ?? []
   };
 
   const feedback: KiwiControlFeedback = {
@@ -609,8 +908,31 @@ async function loadKiwiControlState(
 
   return {
     contextView, tokenAnalytics, efficiency,
-    nextActions, feedback, execution, wastedFiles, heavyDirectories
+    nextActions, feedback, execution, wastedFiles, heavyDirectories, indexing,
+    fileAnalysis, contextTrace, tokenBreakdown, decisionLogic, runtimeLifecycle
   };
+}
+
+function describeIndexingCoverage(selection: ContextSelectionState, observedFiles: number): string {
+  const discovery = selection.signals.discovery;
+  if (!discovery) {
+    return `Showing ${observedFiles} observed files from live selector signals.`;
+  }
+
+  const indexNote =
+    typeof discovery.indexReusedFiles === "number" || typeof discovery.indexUpdatedFiles === "number"
+      ? ` The incremental import index reused ${discovery.indexReusedFiles ?? 0} files and refreshed ${discovery.indexUpdatedFiles ?? 0}.`
+      : "";
+
+  if (discovery.fileBudgetReached || discovery.directoryBudgetReached) {
+    return `Discovery hit a budget limit, so coverage is intentionally partial and bounded.${indexNote}`;
+  }
+
+  if (discovery.maxDepthExplored >= 4) {
+    return `Discovery reached depth ${discovery.maxDepthExplored} and stayed within budget.${indexNote}`;
+  }
+
+  return `Discovery stayed shallow at depth ${discovery.maxDepthExplored}, which usually means strong early signals narrowed the scope quickly.${indexNote}`;
 }
 
 function describeContextConfidence(selection: ContextSelectionState): string | null {

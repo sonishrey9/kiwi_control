@@ -2,7 +2,7 @@ import { existsSync, promises as fs, readdirSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import {
   PRODUCT_METADATA,
   findNearestSourceProductCheckout,
@@ -339,6 +339,8 @@ async function readDesktopLaunchStatus(): Promise<DesktopLaunchStatus | null> {
 }
 
 async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate, launchRequest: DesktopLaunchRequest): Promise<boolean> {
+  await terminateConflictingDesktopProcesses(candidate, launchRequest);
+
   await appendDesktopLaunchLog({
     event: "launch-attempt",
     requestId: launchRequest.requestId,
@@ -382,14 +384,13 @@ async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate, laun
         args: candidate.args
       });
 
-      child.unref();
-
       setTimeout(() => {
         if (settled) {
           return;
         }
 
         settled = true;
+        child.unref();
         resolve(true);
       }, DESKTOP_LAUNCH_PROBE_SETTLE_MS);
     });
@@ -420,6 +421,81 @@ async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate, laun
       resolve(false);
     });
   });
+}
+
+async function terminateConflictingDesktopProcesses(
+  candidate: DesktopLaunchCandidate,
+  launchRequest: DesktopLaunchRequest
+): Promise<void> {
+  if (
+    process.platform !== "darwin" ||
+    !path.isAbsolute(candidate.command) ||
+    !candidate.command.includes(`${PRODUCT_METADATA.desktop.appName}.app/Contents/MacOS/`)
+  ) {
+    return;
+  }
+
+  const runningProcesses = listRunningDesktopProcesses().filter((processInfo) => !processInfo.command.includes(candidate.command));
+  if (runningProcesses.length === 0) {
+    return;
+  }
+
+  for (const processInfo of runningProcesses) {
+    try {
+      process.kill(processInfo.pid, "SIGTERM");
+      await appendDesktopLaunchLog({
+        event: "launch-conflict-terminated",
+        requestId: launchRequest.requestId,
+        targetRoot: launchRequest.targetRoot,
+        command: processInfo.command,
+        detail: `terminated conflicting desktop process ${processInfo.pid}`
+      });
+    } catch (error) {
+      await appendDesktopLaunchLog({
+        event: "launch-conflict-termination-failed",
+        requestId: launchRequest.requestId,
+        targetRoot: launchRequest.targetRoot,
+        command: processInfo.command,
+        detail: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  await delay(400);
+}
+
+function listRunningDesktopProcesses(): Array<{ pid: number; command: string }> {
+  if (process.platform !== "darwin") {
+    return [];
+  }
+
+  const result = spawnSync("ps", ["-axo", "pid=,command="], {
+    encoding: "utf8"
+  });
+  if (result.status !== 0 || !result.stdout) {
+    return [];
+  }
+
+  return result.stdout
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const match = line.match(/^(\d+)\s+(.+)$/);
+      const [, pidText = "", commandText = ""] = match ?? [];
+      if (!match || !pidText || !commandText) {
+        return null;
+      }
+
+      const pid = Number.parseInt(pidText, 10);
+      const command = commandText.trim();
+      if (!Number.isFinite(pid) || !command.includes(`${PRODUCT_METADATA.desktop.appName}.app/Contents/MacOS/`)) {
+        return null;
+      }
+
+      return { pid, command };
+    })
+    .filter((entry): entry is { pid: number; command: string } => Boolean(entry));
 }
 
 async function appendDesktopLaunchLog(entry: Omit<DesktopLaunchLogEntry, "reportedAt">): Promise<void> {
