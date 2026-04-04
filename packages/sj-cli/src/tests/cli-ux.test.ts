@@ -107,6 +107,9 @@ test("inside-folder workflow uses the current working directory by default", asy
   assert.match(statusResult.stdout, /repo status:/);
   assert.match(statusResult.stdout, /next action:/);
   assert.match(statusResult.stdout, /token summary:/);
+  assert.match(statusResult.stdout, /NEXT ACTION PLAN:/);
+  assert.match(statusResult.stdout, /Run: kiwi-control prepare/);
+  assert.match(statusResult.stdout, /Run: kiwi-control status --json/);
 
   const checkResult = runCliInCwd(["check"], repoDir);
   assert.equal(checkResult.code, 0);
@@ -181,6 +184,8 @@ test("status records an out-of-scope completion failure once and points back to 
   assert.equal(exitCode, 0);
   assert.match(logs.join("\n"), /Refresh prepared scope/);
   assert.match(logs.join("\n"), /kiwi-control prepare "update README docs"/);
+  assert.match(logs.join("\n"), /NEXT ACTION PLAN:/);
+  assert.doesNotMatch(logs.join("\n"), /Continue the active repo task/);
 
   const executionLog = await loadExecutionLog(repoDir);
   assert.equal(executionLog.entries.length, 1);

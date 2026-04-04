@@ -348,6 +348,22 @@ type KiwiControlExecutionTrace = {
   whyThisHappened: string;
 };
 
+type ExecutionPlanStep = {
+  id: string;
+  description: string;
+  command: string;
+  expectedOutput: string;
+  validation: string;
+  status: "pending" | "running" | "completed" | "failed";
+};
+
+type KiwiControlExecutionPlan = {
+  summary: string;
+  blocked: boolean;
+  steps: ExecutionPlanStep[];
+  nextCommands: string[];
+};
+
 type KiwiControlState = {
   contextView: KiwiControlContextView;
   tokenAnalytics: KiwiControlTokenAnalytics;
@@ -367,6 +383,7 @@ type KiwiControlState = {
   skills: KiwiControlSkills;
   workflow: KiwiControlWorkflow;
   executionTrace: KiwiControlExecutionTrace;
+  executionPlan: KiwiControlExecutionPlan;
 };
 
 type RepoControlState = {
@@ -632,6 +649,12 @@ const EMPTY_KC: KiwiControlState = {
   executionTrace: {
     steps: [],
     whyThisHappened: ""
+  },
+  executionPlan: {
+    summary: "",
+    blocked: false,
+    steps: [],
+    nextCommands: []
   }
 };
 
@@ -1076,6 +1099,17 @@ function renderOverviewView(state: RepoControlState): string {
           </div>
         </section>
       </div>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("Execution Plan", kc.executionPlan.summary || "No execution plan is recorded yet.")}
+        ${kc.executionPlan.steps.length > 0
+          ? `<div class="kc-stack-list">${kc.executionPlan.steps.map((step) => renderNoteRow(
+              `${step.description}`,
+              step.status,
+              `${step.command} | verify: ${step.validation}`
+            )).join("")}</div>`
+          : renderEmptyState("No execution plan is available yet.")}
+      </section>
 
       <section class="kc-panel">
         <div class="kc-panel-head-row">
@@ -1701,6 +1735,13 @@ function renderSystemView(state: RepoControlState): string {
         </section>
       </div>
 
+      <section class="kc-panel">
+        ${renderPanelHeader("Next Commands", "Exact CLI commands from the current execution plan.")}
+        ${kc.executionPlan.nextCommands.length > 0
+          ? renderListBadges(kc.executionPlan.nextCommands)
+          : renderEmptyState("No next commands are currently recorded.")}
+      </section>
+
       <div class="kc-two-column">
         <section class="kc-panel">
           ${renderPanelHeader("Workflow Steps", "Linear workflow state for the active task.")}
@@ -2010,6 +2051,13 @@ function renderInspector(state: RepoControlState): string {
         ${primaryAction?.command
           ? `<code class="kc-command-block">${escapeHtml(primaryAction.command)}</code>`
           : `<p>No command recorded for the current state.</p>`}
+      </section>
+
+      <section class="kc-inspector-section">
+        <p class="kc-section-micro">Next Commands</p>
+        ${kc.executionPlan.nextCommands.length > 0
+          ? `<div class="kc-stack-list">${kc.executionPlan.nextCommands.map((command) => renderBulletRow(command)).join("")}</div>`
+          : `<p>No execution plan commands are currently recorded.</p>`}
       </section>
     </div>
   `;

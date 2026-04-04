@@ -3,6 +3,8 @@ import type { LoadedConfig } from "./config.js";
 import { loadCanonicalConfig } from "./config.js";
 import { PRODUCT_METADATA } from "./product.js";
 import { compileRepoContext } from "./context.js";
+import { buildExecutionPlan, persistExecutionPlan } from "./execution-plan.js";
+import type { ExecutionPlanState } from "./execution-plan.js";
 import { getMemoryPaths, loadOpenRisks } from "./memory.js";
 import { inspectBootstrapTarget } from "./project-detect.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "./profiles.js";
@@ -33,6 +35,7 @@ import { buildFeedbackSummary } from "./context-feedback.js";
 import type { FeedbackSummary } from "./context-feedback.js";
 import { buildExecutionSummary, recordPreparedScopeCompletion } from "./execution-log.js";
 import type { ExecutionSummary } from "./execution-log.js";
+import { loadPreparedScope, validateTouchedFilesAgainstAllowedFiles } from "./prepared-scope.js";
 import { classifyFileArea, deriveTaskArea } from "./task-intent.js";
 import type { WorkflowState } from "./workflow-engine.js";
 
@@ -301,6 +304,13 @@ export interface KiwiControlExecutionTrace {
   whyThisHappened: string;
 }
 
+export interface KiwiControlExecutionPlan {
+  summary: string;
+  blocked: boolean;
+  steps: ExecutionPlanState["steps"];
+  nextCommands: string[];
+}
+
 export interface KiwiControlState {
   contextView: KiwiControlContextView;
   tokenAnalytics: KiwiControlTokenAnalytics;
@@ -320,6 +330,7 @@ export interface KiwiControlState {
   skills: KiwiControlSkills;
   workflow: KiwiControlWorkflow;
   executionTrace: KiwiControlExecutionTrace;
+  executionPlan: KiwiControlExecutionPlan;
 }
 
 export interface RepoControlState {
@@ -877,7 +888,10 @@ async function loadKiwiControlState(
     totalSkills: 0
   };
 
-  let workflow: KiwiControlWorkflow = {
+  let workflowState: WorkflowState = {
+    artifactType: "kiwi-control/workflow",
+    version: 2,
+    timestamp: new Date().toISOString(),
     task: null,
     status: "pending",
     currentStepId: null,
@@ -963,15 +977,11 @@ async function loadKiwiControlState(
 
   if (await pathExists(workflowPath)) {
     const persistedWorkflow = await readJson<WorkflowState>(workflowPath);
-    workflow = {
-      task: persistedWorkflow.task,
-      status: persistedWorkflow.status,
-      currentStepId: persistedWorkflow.currentStepId,
-      steps: persistedWorkflow.steps
-    };
+    workflowState = persistedWorkflow;
   }
 
   const hasInstructions = await pathExists(instructionsPath);
+  const preparedScope = await loadPreparedScope(targetRoot).catch(() => null);
 
   const efficiency: KiwiControlEfficiency = {
     instructionsGenerated: hasInstructions,
@@ -1047,7 +1057,7 @@ async function loadKiwiControlState(
   };
 
   const executionTrace: KiwiControlExecutionTrace = {
-    steps: workflow.steps.map((step) => ({
+    steps: workflowState.steps.map((step) => ({
       stepId: step.stepId,
       action: step.action,
       status: step.status,
@@ -1070,11 +1080,41 @@ async function loadKiwiControlState(
     whyThisHappened: decisionLogic.summary
   };
 
+  const scopeViolation = Boolean(
+    preparedScope &&
+    !validateTouchedFilesAgainstAllowedFiles(preparedScope.allowedFiles, (await inspectGitState(targetRoot)).changedFiles).ok
+  );
+  const executionPlan = buildExecutionPlan({
+    targetRoot,
+    task: contextView.task ?? workflowState.task,
+    workflow: workflowState,
+    nextAction: nextActions.actions[0] ?? null,
+    validationErrors: validationIssues.filter((issue) => issue.level === "error").length,
+    hasPreparedScope: Boolean(preparedScope),
+    hasInstructions,
+    hasTokenUsage: Boolean(tokenAnalytics.estimationMethod),
+    scopeViolation
+  });
+  await persistExecutionPlan(targetRoot, executionPlan).catch(() => null);
+
   return {
     contextView, tokenAnalytics, efficiency,
     nextActions, feedback, execution, wastedFiles, heavyDirectories, indexing,
     fileAnalysis, contextTrace, tokenBreakdown, decisionLogic, runtimeLifecycle,
-    measuredUsage, skills, workflow, executionTrace
+    measuredUsage, skills,
+    workflow: {
+      task: workflowState.task,
+      status: workflowState.status,
+      currentStepId: workflowState.currentStepId,
+      steps: workflowState.steps
+    },
+    executionTrace,
+    executionPlan: {
+      summary: executionPlan.summary,
+      blocked: executionPlan.blocked,
+      steps: executionPlan.steps,
+      nextCommands: executionPlan.nextCommands
+    }
   };
 }
 

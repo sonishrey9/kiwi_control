@@ -135,6 +135,7 @@ test("ui command returns structured repo-control state in json mode", async () =
       feedback: { basedOnPastRuns: boolean; reusedPattern: string | null; similarTasks: Array<{ task: string }> };
       workflow: { steps: Array<{ stepId: string }> };
       executionTrace: { steps: Array<{ stepId: string }>; whyThisHappened: string };
+      executionPlan: { blocked: boolean; steps: Array<{ command: string; validation: string }>; nextCommands: string[] };
     };
   };
 
@@ -171,6 +172,9 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(Array.isArray(payload.kiwiControl.workflow.steps), true);
   assert.equal(Array.isArray(payload.kiwiControl.executionTrace.steps), true);
   assert.equal(typeof payload.kiwiControl.executionTrace.whyThisHappened, "string");
+  assert.equal(typeof payload.kiwiControl.executionPlan.blocked, "boolean");
+  assert.equal(Array.isArray(payload.kiwiControl.executionPlan.steps), true);
+  assert.equal(Array.isArray(payload.kiwiControl.executionPlan.nextCommands), true);
 });
 
 test("ui command reports repo-not-initialized for an uninitialized generic repo while still returning json", async () => {

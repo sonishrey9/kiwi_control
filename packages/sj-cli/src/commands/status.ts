@@ -25,12 +25,14 @@ export async function runStatus(options: StatusOptions): Promise<number> {
   const tokenSummary = renderTokenSummary(controlState);
   const nextActionSummary = renderNextActionSummary(topAction, controlState.kiwiControl.nextActions.summary);
   const contextTreeSummary = renderContextTreeSummary(controlState.kiwiControl.contextView.tree);
+  const executionPlanSummary = renderExecutionPlan(controlState);
 
   options.logger.info(
     [
       `repo status: ${controlState.repoState.title} — ${controlState.repoState.detail}`,
       `next action: ${nextActionSummary}`,
       `token summary: ${tokenSummary}`,
+      executionPlanSummary,
       ...(contextTreeSummary ? [`context tree:\n${contextTreeSummary}`] : [])
     ].join("\n")
   );
@@ -84,6 +86,34 @@ function renderContextTreeSummary(
     `  ${tree.selectedCount} selected / ${tree.candidateCount} candidate / ${tree.excludedCount} excluded`,
     ...renderContextTreeNodes(tree.nodes, 1, { remaining: 12 })
   ];
+
+  return lines.join("\n");
+}
+
+function renderExecutionPlan(
+  state: Awaited<ReturnType<typeof buildRepoControlState>>
+): string {
+  const plan = state.kiwiControl.executionPlan;
+  const lines = ["NEXT ACTION PLAN:"];
+
+  for (const [index, step] of plan.steps.entries()) {
+    lines.push(`${index + 1}. ${step.description}`);
+    lines.push(`   Run: ${step.command}`);
+    lines.push(`   Expect: ${step.expectedOutput}`);
+    lines.push(`   Verify: ${step.validation}`);
+    lines.push(`   Status: ${step.status}`);
+  }
+
+  if (plan.blocked) {
+    lines.push("   Failure handling: run the corrective command above first. Do not continue until the blocking issue is cleared.");
+  }
+
+  if (plan.nextCommands.length > 0) {
+    lines.push("Next commands:");
+    for (const command of plan.nextCommands) {
+      lines.push(`- ${command}`);
+    }
+  }
 
   return lines.join("\n");
 }
