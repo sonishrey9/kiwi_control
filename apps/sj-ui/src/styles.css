@@ -318,6 +318,24 @@ button {
   color: var(--foreground);
 }
 
+.kc-action-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.kc-action-hint strong {
+  color: var(--foreground);
+  font-size: 12px;
+}
+
+.kc-action-hint.is-blocked strong {
+  color: var(--warning);
+}
+
 .kc-topbar-left,
 .kc-topbar-center,
 .kc-topbar-right {

@@ -29,7 +29,7 @@ export function renderGraphViewPanel(context: GraphPanelRenderContext): string {
           ? `
             <div class="kc-graph-shell">
               <svg class="kc-graph-canvas" data-graph-surface viewBox="0 0 1200 720" role="img" aria-label="Repo graph">
-                <g transform="translate(${graphPan.x} ${graphPan.y}) scale(${graphZoom})">
+                <g class="kc-graph-viewport" data-graph-viewport transform="translate(${graphPan.x} ${graphPan.y}) scale(${graphZoom})">
                 ${graph.edges.map((edge) => `
                   <line
                     x1="${edge.from.x}"
@@ -40,7 +40,12 @@ export function renderGraphViewPanel(context: GraphPanelRenderContext): string {
                   />
                 `).join("")}
                 ${graph.nodes.map((node) => `
-                  <g transform="translate(${node.x}, ${node.y})" class="kc-graph-node-wrap ${node.highlighted ? "is-highlighted" : ""}">
+                  <g
+                    transform="translate(${node.x}, ${node.y})"
+                    class="kc-graph-node-wrap ${node.highlighted ? "is-highlighted" : ""}"
+                    data-graph-node-wrap
+                    data-path="${escapeAttribute(node.path)}"
+                  >
                     <circle
                       r="${node.radius}"
                       data-graph-node

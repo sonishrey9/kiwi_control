@@ -16,6 +16,7 @@ export function renderTopBarView(context: TopBarRenderContext): string {
     commandState,
     currentTask,
     retryEnabled,
+    composerConstraint,
     loadStatus,
     helpers
   } = context;
@@ -90,9 +91,15 @@ export function renderTopBarView(context: TopBarRenderContext): string {
                   `).join("")}
                 </select>`
               : `<input class="kc-action-input" data-command-draft value="${escapeAttribute(commandState.draftValue)}" placeholder="${escapeAttribute(commandState.composer === "checkpoint" ? "checkpoint label" : "run description")}" />`}
-            <button class="kc-secondary-button kc-action-button is-primary" type="button" data-composer-submit="${commandState.composer}" ${commandState.loading ? "disabled" : ""}>Run</button>
+            <button class="kc-secondary-button kc-action-button is-primary" type="button" data-composer-submit="${commandState.composer}" ${commandState.loading || composerConstraint?.blocked ? "disabled" : ""}>Run</button>
             <button class="kc-secondary-button kc-action-button" type="button" data-composer-cancel ${commandState.loading ? "disabled" : ""}>Cancel</button>
           </div>
+          ${composerConstraint
+            ? `<div class="kc-action-hint ${composerConstraint.blocked ? "is-blocked" : ""}">
+                <strong>${escapeHtml(composerConstraint.reason)}</strong>
+                ${composerConstraint.nextCommand ? `<code class="kc-command-chip">${escapeHtml(composerConstraint.nextCommand)}</code>` : ""}
+              </div>`
+            : ""}
         `
         : ""}
     </div>

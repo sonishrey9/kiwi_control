@@ -1,4 +1,4 @@
-import { existsSync, promises as fs, readdirSync } from "node:fs";
+import { existsSync, promises as fs, readdirSync, realpathSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
@@ -34,7 +34,7 @@ interface DesktopLaunchRequest {
 interface DesktopLaunchStatus {
   requestId: string;
   targetRoot: string;
-  state: "ready" | "error";
+  state: "ready" | "hydrating" | "error";
   detail: string;
   reportedAt: string;
 }
@@ -114,7 +114,7 @@ export async function runUi(options: UiOptions): Promise<number> {
       targetRoot: launchStatus.targetRoot,
       detail: launchStatus.detail
     });
-    options.logger.info(`Opened ${PRODUCT_METADATA.desktop.appName} for ${options.targetRoot}. The app is visible and loading this repo now.`);
+    options.logger.info(`Opened ${PRODUCT_METADATA.desktop.appName} via ${describeDesktopLaunchCandidate(launched.candidate)} for ${options.targetRoot}. The app is visible and loading this repo now.`);
     return 0;
   }
 
@@ -125,7 +125,7 @@ export async function runUi(options: UiOptions): Promise<number> {
       targetRoot: launchStatus.targetRoot,
       detail: launchStatus.detail
     });
-    options.logger.info(`Opened ${PRODUCT_METADATA.desktop.appName} for ${options.targetRoot}. ${launchStatus.detail}`);
+    options.logger.info(`Opened ${PRODUCT_METADATA.desktop.appName} via ${describeDesktopLaunchCandidate(launched.candidate)} for ${options.targetRoot}. ${launchStatus.detail}`);
     return 0;
   }
 
@@ -148,7 +148,7 @@ export async function runUi(options: UiOptions): Promise<number> {
     detail: `No matching desktop launch status arrived within ${DESKTOP_LAUNCH_WAIT_TIMEOUT_MS}ms`
   });
   options.logger.info(
-    `${PRODUCT_METADATA.desktop.appName} launched, but repo hydration is still in progress for ${options.targetRoot}. Watch the desktop app for the final ready state.`
+    `${PRODUCT_METADATA.desktop.appName} launched via ${describeDesktopLaunchCandidate(launched.candidate)}, but repo hydration is still in progress for ${options.targetRoot}. Watch the desktop app for the final ready state.`
   );
   return 0;
 }
@@ -211,18 +211,13 @@ export function buildDesktopLaunchCandidates(repoRoot?: string, targetRoot?: str
     return candidates;
   }
 
-  if (process.platform === "darwin") {
-    for (const installedBundlePath of buildInstalledMacOsDesktopBundlePaths()) {
-      candidates.push(buildDesktopCandidateFromEnvValue(installedBundlePath));
-    }
-  }
-
-  const discoveredSourceRoots = [
+  const discoveredSourceRoots = dedupeResolvedPaths([
     repoRoot,
     findNearestSourceProductCheckout(process.cwd()),
     targetRoot ? findNearestSourceProductCheckout(targetRoot) : null
-  ].filter((candidate, index, items): candidate is string => Boolean(candidate) && items.indexOf(candidate) === index);
+  ]);
 
+  const sourceCandidates: DesktopLaunchCandidate[] = [];
   for (const sourceRoot of discoveredSourceRoots) {
     const sourceBundlePath = resolveSourceDesktopLaunchBundle(sourceRoot);
     if (!sourceBundlePath) {
@@ -231,12 +226,28 @@ export function buildDesktopLaunchCandidates(repoRoot?: string, targetRoot?: str
 
     const sourceBundleExecutable = resolveMacOsBundleExecutable(sourceBundlePath);
     if (sourceBundleExecutable) {
-      candidates.push({
+      sourceCandidates.push({
         command: sourceBundleExecutable,
         args: []
       });
     }
-    candidates.push(buildDesktopCandidateFromEnvValue(sourceBundlePath));
+    sourceCandidates.push(buildDesktopCandidateFromEnvValue(sourceBundlePath));
+  }
+
+  const preferSourceBundle = sourceCandidates.length > 0;
+
+  if (preferSourceBundle) {
+    candidates.push(...sourceCandidates);
+  }
+
+  if (process.platform === "darwin") {
+    for (const installedBundlePath of buildInstalledMacOsDesktopBundlePaths()) {
+      candidates.push(buildDesktopCandidateFromEnvValue(installedBundlePath));
+    }
+  }
+
+  if (!preferSourceBundle) {
+    candidates.push(...sourceCandidates);
   }
 
   if (process.platform === "darwin") {
@@ -254,6 +265,64 @@ export function buildDesktopLaunchCandidates(repoRoot?: string, targetRoot?: str
   }
 
   return candidates;
+}
+
+function dedupeResolvedPaths(candidates: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+
+    const resolved = resolveComparablePath(candidate);
+    if (seen.has(resolved)) {
+      continue;
+    }
+
+    seen.add(resolved);
+    deduped.push(candidate);
+  }
+
+  return deduped;
+}
+
+function resolveComparablePath(candidate: string): string {
+  try {
+    return realpathSync(candidate);
+  } catch {
+    return path.resolve(candidate);
+  }
+}
+
+function describeDesktopLaunchCandidate(candidate: DesktopLaunchCandidate): string {
+  const [firstArg = ""] = candidate.args;
+
+  if (
+    candidate.command.includes("/src-tauri/target/release/bundle/macos/")
+    || firstArg.includes("/src-tauri/target/release/bundle/macos/")
+  ) {
+    return "the local source bundle";
+  }
+
+  if (
+    candidate.command === "open"
+    && firstArg.endsWith(".app")
+    && (firstArg.startsWith("/Applications/") || firstArg.includes("/Applications/"))
+  ) {
+    return firstArg;
+  }
+
+  if (candidate.command === "open" && firstArg === "-a") {
+    return `${PRODUCT_METADATA.desktop.appName} from LaunchServices`;
+  }
+
+  if (candidate.command === "node" && firstArg.endsWith(".js")) {
+    return "the desktop launcher script";
+  }
+
+  return candidate.command;
 }
 
 function buildInstalledMacOsDesktopBundlePaths(): string[] {
@@ -559,7 +628,12 @@ async function terminateConflictingDesktopProcesses(
     return;
   }
 
-  const runningProcesses = listRunningDesktopProcesses().filter((processInfo) => !processInfo.command.includes(candidateExecutable));
+  const sourceBundleLaunch = candidateExecutable.includes(`${path.sep}src-tauri${path.sep}target${path.sep}release${path.sep}bundle${path.sep}macos${path.sep}`);
+  const runningProcesses = listRunningDesktopProcesses().filter((processInfo) =>
+    sourceBundleLaunch
+      ? true
+      : !processInfo.command.includes(candidateExecutable)
+  );
   if (runningProcesses.length === 0) {
     return;
   }

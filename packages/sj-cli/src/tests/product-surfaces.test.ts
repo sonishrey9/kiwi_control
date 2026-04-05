@@ -406,7 +406,7 @@ writeFileSync(statusPath, JSON.stringify({
       const finalMarker = await fs.readFile(markerPath, "utf8");
       assert.equal(exitCode, 0);
       assert.equal(finalMarker.trim(), tempDir);
-      assert.match(logs.join("\n"), new RegExp(`Opened Kiwi Control for ${tempDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+      assert.match(logs.join("\n"), new RegExp(`Opened Kiwi Control via .* for ${tempDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
     } finally {
       if (previousDesktopLauncher === undefined) {
         delete process.env.KIWI_CONTROL_DESKTOP;
@@ -489,7 +489,7 @@ writeFileSync(${JSON.stringify(launchStatusPath)}, JSON.stringify({
   });
 });
 
-test("ui command prefers installed Kiwi Control app bundles before falling back to a locally built source bundle", async () => {
+test("ui command prefers the local source bundle before installed app bundles when running from a source checkout", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-source-bundle-"));
   const sourceRepo = path.join(tempDir, "repo");
   const bundlePath =
@@ -515,31 +515,52 @@ test("ui command prefers installed Kiwi Control app bundles before falling back 
     await fs.writeFile(bundleExecutablePath, "", "utf8");
   }
 
-  const candidates = buildDesktopLaunchCandidates(sourceRepo);
+  const previousCwd = process.cwd();
+  const previousDesktopLauncher = process.env.KIWI_CONTROL_DESKTOP;
+  const previousLegacyDesktopLauncher = process.env.SHREY_JUNIOR_DESKTOP;
+  delete process.env.KIWI_CONTROL_DESKTOP;
+  delete process.env.SHREY_JUNIOR_DESKTOP;
+  process.chdir(sourceRepo);
 
-  if (process.platform === "darwin") {
-    assert.deepEqual(candidates[0], {
-      command: "open",
-      args: ["/Applications/Kiwi Control.app"]
-    });
-    assert.deepEqual(candidates[1], {
-      command: "open",
-      args: [path.join(os.homedir(), "Applications", "Kiwi Control.app")]
-    });
-    assert.deepEqual(candidates[2], {
-      command: bundleExecutablePath,
-      args: []
-    });
-    assert.deepEqual(candidates[3], {
-      command: "open",
-      args: [bundlePath]
-    });
-  } else {
-    assert.equal(candidates.some((candidate) => candidate.args.includes("Kiwi Control.app")), false);
+  try {
+    const candidates = buildDesktopLaunchCandidates(sourceRepo);
+
+    if (process.platform === "darwin") {
+      assert.deepEqual(candidates[0], {
+        command: bundleExecutablePath,
+        args: []
+      });
+      assert.deepEqual(candidates[1], {
+        command: "open",
+        args: [bundlePath]
+      });
+      assert.deepEqual(candidates[2], {
+        command: "open",
+        args: ["/Applications/Kiwi Control.app"]
+      });
+      assert.deepEqual(candidates[3], {
+        command: "open",
+        args: [path.join(os.homedir(), "Applications", "Kiwi Control.app")]
+      });
+    } else {
+      assert.equal(candidates.some((candidate) => candidate.args.includes("Kiwi Control.app")), false);
+    }
+  } finally {
+    process.chdir(previousCwd);
+    if (previousDesktopLauncher === undefined) {
+      delete process.env.KIWI_CONTROL_DESKTOP;
+    } else {
+      process.env.KIWI_CONTROL_DESKTOP = previousDesktopLauncher;
+    }
+    if (previousLegacyDesktopLauncher === undefined) {
+      delete process.env.SHREY_JUNIOR_DESKTOP;
+    } else {
+      process.env.SHREY_JUNIOR_DESKTOP = previousLegacyDesktopLauncher;
+    }
   }
 });
 
-test("ui command still offers the current workspace source bundle after installed app candidates", async () => {
+test("ui command still offers installed app bundles after the current workspace source bundle", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-source-cwd-bundle-"));
   const sourceRepo = path.join(tempDir, "repo");
   const installedRoot = path.join(tempDir, "installed-cli-root");
@@ -570,30 +591,44 @@ test("ui command still offers the current workspace source bundle after installe
   }
 
   const previousCwd = process.cwd();
+  const previousDesktopLauncher = process.env.KIWI_CONTROL_DESKTOP;
+  const previousLegacyDesktopLauncher = process.env.SHREY_JUNIOR_DESKTOP;
+  delete process.env.KIWI_CONTROL_DESKTOP;
+  delete process.env.SHREY_JUNIOR_DESKTOP;
   process.chdir(sourceRepo);
 
   try {
     const candidates = buildDesktopLaunchCandidates(installedRoot, path.join(tempDir, "target-repo"));
 
     if (process.platform === "darwin") {
-      assert.deepEqual(candidates[0], {
+      assert.equal(candidates[0]?.args.length, 0);
+      assert.equal(await fs.realpath(candidates[0]?.command ?? ""), await fs.realpath(bundleExecutablePath ?? ""));
+      assert.equal(candidates[1]?.command, "open");
+      assert.equal(candidates[1]?.args.length, 1);
+      assert.equal(await fs.realpath(candidates[1]?.args[0] ?? ""), await fs.realpath(bundlePath ?? ""));
+      assert.deepEqual(candidates[2], {
         command: "open",
         args: ["/Applications/Kiwi Control.app"]
       });
-      assert.deepEqual(candidates[1], {
+      assert.deepEqual(candidates[3], {
         command: "open",
         args: [path.join(os.homedir(), "Applications", "Kiwi Control.app")]
       });
-      assert.equal(candidates[2]?.args.length, 0);
-      assert.equal(await fs.realpath(candidates[2]?.command ?? ""), await fs.realpath(bundleExecutablePath ?? ""));
-      assert.equal(candidates[3]?.command, "open");
-      assert.deepEqual(candidates[3]?.args.length, 1);
-      assert.equal(await fs.realpath(candidates[3]?.args[0] ?? ""), await fs.realpath(bundlePath ?? ""));
     } else {
       assert.equal(candidates.some((candidate) => candidate.args.includes("Kiwi Control.app")), false);
     }
   } finally {
     process.chdir(previousCwd);
+    if (previousDesktopLauncher === undefined) {
+      delete process.env.KIWI_CONTROL_DESKTOP;
+    } else {
+      process.env.KIWI_CONTROL_DESKTOP = previousDesktopLauncher;
+    }
+    if (previousLegacyDesktopLauncher === undefined) {
+      delete process.env.SHREY_JUNIOR_DESKTOP;
+    } else {
+      process.env.SHREY_JUNIOR_DESKTOP = previousLegacyDesktopLauncher;
+    }
   }
 });
 

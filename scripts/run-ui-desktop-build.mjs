@@ -38,11 +38,12 @@ async function main() {
     console.log(`Sanitized ${removedMetadataCount} macOS metadata artifact${removedMetadataCount === 1 ? "" : "s"} before building Kiwi Control.`);
   }
 
-  const cargoTargetDir = resolveCargoTargetDir();
+  const cargoTargetDir = await resolveCargoTargetDir();
   await fs.rm(cargoTargetDir, { recursive: true, force: true });
 
   const npmExecutable = process.platform === "win32" ? "npm.cmd" : "npm";
   const tauriArgs = withDefaultDesktopBundleArgs(process.argv.slice(2));
+  let cleanupInterval = null;
   const child = spawn(npmExecutable, ["run", "tauri:build", "-w", "@shrey-junior/sj-ui", ...tauriArgs], {
     cwd: repoRoot,
     stdio: "inherit",
@@ -56,7 +57,15 @@ async function main() {
     }
   });
 
+  cleanupInterval = setInterval(() => {
+    void removeMacMetadataArtifacts(cargoTargetDir).catch(() => null);
+  }, 500);
+
   child.on("exit", async (code, signal) => {
+    if (cleanupInterval) {
+      clearInterval(cleanupInterval);
+      cleanupInterval = null;
+    }
     if (signal) {
       process.kill(process.pid, signal);
       return;
@@ -64,16 +73,28 @@ async function main() {
 
     if (code === 0) {
       await syncBundleArtifacts(cargoTargetDir);
+      const bundleRoot = path.join(repoTargetDir, "release", "bundle", "macos", "Kiwi Control.app");
+      if (existsSync(bundleRoot)) {
+        console.log(`Built Kiwi Control desktop bundle at ${bundleRoot}`);
+      }
     }
 
     process.exit(code ?? 1);
   });
 }
 
-function resolveCargoTargetDir() {
-  return process.platform === "darwin"
-    ? path.join(os.tmpdir(), "kiwi-control-tauri-target")
-    : repoTargetDir;
+async function resolveCargoTargetDir() {
+  const explicitTargetDir = process.env.KIWI_CONTROL_CARGO_TARGET_DIR?.trim();
+  if (explicitTargetDir) {
+    return explicitTargetDir;
+  }
+
+  if (process.platform === "darwin") {
+    const tmpRoot = await fs.realpath(os.tmpdir()).catch(() => os.tmpdir());
+    return path.join(tmpRoot, "kiwi-control-tauri-target");
+  }
+
+  return repoTargetDir;
 }
 
 function withDefaultDesktopBundleArgs(args) {

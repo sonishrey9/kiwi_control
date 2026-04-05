@@ -648,8 +648,8 @@ fn build_allowlisted_cli_args(
                 .filter(|value| !value.trim().is_empty())
                 .ok_or_else(|| String::from("run-auto requires a task description"))?;
             cli_args.push(String::from("run"));
-            cli_args.push(String::from("--auto"));
             cli_args.push(task.clone());
+            cli_args.push(String::from("--auto"));
             String::from("run --auto")
         }
         "checkpoint" => {

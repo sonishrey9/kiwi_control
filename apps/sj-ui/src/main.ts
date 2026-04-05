@@ -655,6 +655,7 @@ const NAV_ITEMS: Array<{ id: NavView; label: string; icon: string }> = [
 const BRIDGE_UNAVAILABLE_NEXT_STEP = "Confirm kiwi-control works in Terminal, then run kc ui again.";
 const AUTO_REFRESH_INTERVAL_MS = 45_000;
 const AUTO_REFRESH_MIN_AGE_MS = 30_000;
+const READY_STATE_PULSE_MS = 4_500;
 const MACHINE_LIGHTWEIGHT_SECTIONS: MachineSectionName[] = [
   "inventory",
   "configHealth",
@@ -879,8 +880,16 @@ let currentLoadSource: "cli" | "manual" | "auto" | null = null;
 let lastRepoRefreshAt = 0;
 let lastRepoLoadFailure: string | null = null;
 let renderQueued = false;
+let centerRenderQueued = false;
 let deferredMachineHydrationTimer: number | null = null;
 let activeInteractiveTargetRoot = "";
+let lastReadyStateSignal:
+  | {
+      at: number;
+      detail: string;
+    }
+  | null = null;
+let readyStateTimer: number | null = null;
 let commandState: CommandState = {
   activeCommand: null,
   loading: false,
@@ -916,6 +925,7 @@ let derivedTreeCache:
       flatNodes: KiwiControlContextTreeNode[];
     }
   | null = null;
+let graphViewportElement: SVGGElement | null = null;
 
 try {
   app.innerHTML = buildShellHtml();
@@ -1036,7 +1046,9 @@ try {
     event.preventDefault();
     const delta = event.deltaY > 0 ? -0.12 : 0.12;
     graphZoom = Math.max(0.65, Math.min(2.4, Number((graphZoom + delta).toFixed(2))));
-    scheduleRenderState();
+    if (!updateGraphViewportTransform()) {
+      scheduleCenterRender();
+    }
   }, { passive: false });
 
   app.addEventListener("pointerdown", (event) => {
@@ -1076,7 +1088,9 @@ try {
       };
       graphInteraction.lastClientX = event.clientX;
       graphInteraction.lastClientY = event.clientY;
-      scheduleRenderState();
+      if (!updateGraphViewportTransform()) {
+        scheduleCenterRender();
+      }
       return;
     }
     const existing = graphNodePositions.get(graphInteraction.path) ?? { x: 0, y: 0 };
@@ -1086,10 +1100,13 @@ try {
     });
     graphInteraction.lastClientX = event.clientX;
     graphInteraction.lastClientY = event.clientY;
-    scheduleRenderState();
+    scheduleCenterRender();
   });
 
   window.addEventListener("pointerup", () => {
+    if (graphInteraction) {
+      scheduleCenterRender();
+    }
     graphInteraction = null;
   });
 
@@ -1309,6 +1326,7 @@ async function loadAndRenderTarget(
   currentLoadSource = source;
   currentTargetRoot = targetRoot;
   lastRepoLoadFailure = null;
+  lastReadyStateSignal = null;
   bridgeNoteElement.textContent =
     source === "cli"
       ? `Opening ${targetRoot} from ${requestId ? "kc ui" : "the CLI"}...`
@@ -1350,6 +1368,8 @@ async function loadAndRenderTarget(
     }
 
     startMachineHydrationCycle(false);
+    noteReadyState(`Fresh repo-local state is ready for ${getRepoLabel(currentTargetRoot)}.`);
+    scheduleRenderState();
 
     if (requestId) {
       await acknowledgeLaunchRequest(
@@ -1424,6 +1444,8 @@ async function refreshFreshRepoState(targetRoot: string, requestId?: string): Pr
     bridgeNoteElement.textContent = buildBridgeNote(freshState, "manual");
     await logUiEvent("ui-repo-state-refreshed", requestId, currentTargetRoot, freshState.repoState.mode);
     startMachineHydrationCycle(false);
+    noteReadyState(`Fresh repo-local state is ready for ${getRepoLabel(currentTargetRoot)}.`);
+    scheduleRenderState();
 
     if (requestId) {
       await acknowledgeLaunchRequest(
@@ -2004,7 +2026,7 @@ async function executeKiwiCommand(
       expectJson: options.expectJson
     });
     commandState.lastResult = result;
-    commandState.lastError = result.ok ? null : result.stderr || result.stdout || `${result.commandLabel} failed`;
+    commandState.lastError = result.ok ? null : summarizeCliCommandFailure(result);
     if (result.ok) {
       commandState.composer = null;
       commandState.draftValue = "";
@@ -2037,6 +2059,63 @@ async function openRepoPath(path: string): Promise<void> {
     commandState.lastError = error instanceof Error ? error.message : String(error);
     renderState(currentState);
   }
+}
+
+function summarizeCliCommandFailure(result: CliCommandResultPayload): string {
+  const payload = result.jsonPayload;
+  if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+    const record = payload as Record<string, unknown>;
+    const failureReason = typeof record.failureReason === "string" ? record.failureReason.trim() : "";
+    const validation = typeof record.validation === "string" ? record.validation.trim() : "";
+    const detail = typeof record.detail === "string" ? record.detail.trim() : "";
+    const nextCommand =
+      typeof record.nextCommand === "string"
+        ? record.nextCommand.trim()
+        : typeof record.nextSuggestedCommand === "string"
+          ? record.nextSuggestedCommand.trim()
+          : "";
+
+    const summary = failureReason || validation || detail;
+    if (summary) {
+      return nextCommand ? `${summary} Next: ${nextCommand}` : summary;
+    }
+  }
+
+  return result.stderr || result.stdout || `${result.commandLabel} failed`;
+}
+
+function noteReadyState(detail: string): void {
+  lastReadyStateSignal = {
+    at: Date.now(),
+    detail
+  };
+  if (readyStateTimer != null) {
+    window.clearTimeout(readyStateTimer);
+  }
+  readyStateTimer = window.setTimeout(() => {
+    readyStateTimer = null;
+    scheduleRenderState();
+  }, READY_STATE_PULSE_MS + 32);
+}
+
+function resolveGraphViewportElement(): SVGGElement | null {
+  if (graphViewportElement?.isConnected) {
+    return graphViewportElement;
+  }
+  graphViewportElement = centerMainElement.querySelector<SVGGElement>("[data-graph-viewport]");
+  return graphViewportElement;
+}
+
+function updateGraphViewportTransform(): boolean {
+  if (activeView !== "graph") {
+    return false;
+  }
+  const viewport = resolveGraphViewportElement();
+  if (!viewport) {
+    return false;
+  }
+  viewport.setAttribute("transform", `translate(${graphPan.x} ${graphPan.y}) scale(${graphZoom})`);
+  return true;
 }
 
 function parseKiwiCommand(commandText: string): { command: UiCommandName; args: string[] } | null {
@@ -2635,7 +2714,7 @@ function renderState(state: RepoControlState): void {
 
   railNavElement.innerHTML = renderRailNav();
   topbarElement.innerHTML = renderTopBar(state);
-  centerMainElement.innerHTML = `${renderCommandBanner()}${renderCenterView(state)}`;
+  renderCenterSurface(state);
   inspectorElement.innerHTML = renderInspector(state);
   logDrawerElement.innerHTML = renderLogDrawer(state);
 
@@ -2643,6 +2722,11 @@ function renderState(state: RepoControlState): void {
   workspaceSurfaceElement.classList.toggle("is-log-open", isLogDrawerOpen);
   inspectorElement.classList.toggle("is-hidden", !isInspectorOpen);
   logDrawerElement.classList.toggle("is-hidden", !isLogDrawerOpen);
+}
+
+function renderCenterSurface(state: RepoControlState): void {
+  centerMainElement.innerHTML = `${renderCommandBanner()}${renderCenterView(state)}`;
+  graphViewportElement = null;
 }
 
 function scheduleRenderState(): void {
@@ -2653,6 +2737,17 @@ function scheduleRenderState(): void {
   window.requestAnimationFrame(() => {
     renderQueued = false;
     renderState(currentState);
+  });
+}
+
+function scheduleCenterRender(): void {
+  if (centerRenderQueued || renderQueued) {
+    return;
+  }
+  centerRenderQueued = true;
+  window.requestAnimationFrame(() => {
+    centerRenderQueued = false;
+    renderCenterSurface(currentState);
   });
 }
 
@@ -2792,6 +2887,18 @@ function buildLoadStatus(state: RepoControlState): {
       detail: state.loadState.detail,
       progress: 18,
       tone: "degraded"
+    };
+  }
+
+  if (lastReadyStateSignal && Date.now() - lastReadyStateSignal.at < READY_STATE_PULSE_MS) {
+    return {
+      visible: true,
+      label: "Ready",
+      detail: machineHydrationInFlight
+        ? `${lastReadyStateSignal.detail} ${describeMachineHydration()}`
+        : lastReadyStateSignal.detail,
+      progress: 100,
+      tone: "ready"
     };
   }
 

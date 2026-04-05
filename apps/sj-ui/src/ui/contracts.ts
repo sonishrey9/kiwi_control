@@ -279,6 +279,11 @@ export interface TopBarRenderContext {
   commandState: CommandState;
   currentTask: string;
   retryEnabled: boolean;
+  composerConstraint: {
+    blocked: boolean;
+    reason: string;
+    nextCommand: string | null;
+  } | null;
   loadStatus: {
     visible: boolean;
     label: string;
