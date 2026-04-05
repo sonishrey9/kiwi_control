@@ -17,6 +17,17 @@ const DESKTOP_APP_BUNDLE_ID: &str = "com.kiwicontrol.desktop";
 const BRIDGE_UNAVAILABLE_NEXT_STEP: &str = "Confirm kiwi-control works in Terminal, then run kc ui again.";
 const MACHINE_ADVISORY_FAST_ENV: &str = "KIWI_MACHINE_ADVISORY_FAST";
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CliCommandResult {
+    ok: bool,
+    exit_code: i32,
+    stdout: String,
+    stderr: String,
+    json_payload: Option<serde_json::Value>,
+    command_label: String,
+}
+
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct DesktopLaunchRequest {
@@ -139,6 +150,64 @@ fn load_machine_advisory_section(section: String, refresh: Option<bool>) -> Resu
 
     serde_json::from_slice(&output.stdout)
         .map_err(|error| format!("invalid machine advisory json payload: {error}"))
+}
+
+#[tauri::command]
+fn run_cli_command(
+    command: String,
+    args: Vec<String>,
+    target_root: String,
+    expect_json: Option<bool>,
+) -> Result<CliCommandResult, String> {
+    let trimmed_target_root = target_root.trim();
+    if trimmed_target_root.is_empty() {
+        return Err(String::from("targetRoot is required"));
+    }
+
+    let (command_label, cli_args) = build_allowlisted_cli_args(&command, &args, trimmed_target_root)?;
+    let output = run_cli_process(&cli_args, trimmed_target_root)
+        .map_err(|error| format!("failed to run Kiwi Control CLI command: {error}"))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    let exit_code = output.status.code().unwrap_or_default();
+    let json_payload = if expect_json.unwrap_or(false) && !stdout.is_empty() {
+        Some(
+            serde_json::from_str::<serde_json::Value>(&stdout)
+                .map_err(|error| format!("failed to parse CLI json output for {command_label}: {error}"))?,
+        )
+    } else {
+        None
+    };
+
+    Ok(CliCommandResult {
+        ok: output.status.success(),
+        exit_code,
+        stdout,
+        stderr,
+        json_payload,
+        command_label,
+    })
+}
+
+#[tauri::command]
+fn open_path(target_root: String, path: String) -> Result<(), String> {
+    let root = fs::canonicalize(&target_root)
+        .map_err(|error| format!("failed to resolve target root: {error}"))?;
+    let requested = PathBuf::from(path.trim());
+    let candidate = if requested.is_absolute() {
+        requested
+    } else {
+        root.join(requested)
+    };
+    let resolved = fs::canonicalize(&candidate)
+        .map_err(|error| format!("failed to resolve requested path: {error}"))?;
+
+    if !resolved.starts_with(&root) {
+        return Err(String::from("requested path is outside the active repo root"));
+    }
+
+    open_path_with_default_app(&resolved)
 }
 
 #[tauri::command]
@@ -312,6 +381,8 @@ fn main() {
             consume_initial_launch_request,
             load_repo_control_state,
             load_machine_advisory_section,
+            run_cli_command,
+            open_path,
             ack_launch_request,
             append_ui_launch_log
         ])
@@ -539,6 +610,104 @@ fn run_ui_bridge_command(args: &[&str], fast_mode: bool) -> Result<std::process:
     ))
 }
 
+fn build_allowlisted_cli_args(
+    command: &str,
+    args: &[String],
+    target_root: &str,
+) -> Result<(String, Vec<String>), String> {
+    let mut cli_args: Vec<String> = Vec::new();
+    let command_label = match command {
+        "guide" | "next" | "retry" | "resume" | "status" | "trace" => {
+            cli_args.push(command.to_string());
+            if args.iter().any(|arg| arg == "--json") {
+                cli_args.push(String::from("--json"));
+            }
+            command.to_string()
+        }
+        "validate" => {
+            cli_args.push(String::from("validate"));
+            if let Some(task) = args.first().filter(|value| !value.trim().is_empty() && *value != "--json") {
+                cli_args.push(task.clone());
+            }
+            if args.iter().any(|arg| arg == "--json") {
+                cli_args.push(String::from("--json"));
+            }
+            String::from("validate")
+        }
+        "run-auto" => {
+            let task = args
+                .first()
+                .filter(|value| !value.trim().is_empty())
+                .ok_or_else(|| String::from("run-auto requires a task description"))?;
+            cli_args.push(String::from("run"));
+            cli_args.push(String::from("--auto"));
+            cli_args.push(task.clone());
+            String::from("run --auto")
+        }
+        "checkpoint" => {
+            let label = args
+                .first()
+                .filter(|value| !value.trim().is_empty())
+                .ok_or_else(|| String::from("checkpoint requires a label"))?;
+            cli_args.push(String::from("checkpoint"));
+            cli_args.push(label.clone());
+            String::from("checkpoint")
+        }
+        "handoff" => {
+            let target = args
+                .first()
+                .filter(|value| !value.trim().is_empty())
+                .ok_or_else(|| String::from("handoff requires a specialist target"))?;
+            cli_args.push(String::from("handoff"));
+            cli_args.push(String::from("--to"));
+            cli_args.push(target.clone());
+            String::from("handoff")
+        }
+        _ => {
+            return Err(format!("unsupported cli command: {command}"));
+        }
+    };
+
+    cli_args.push(String::from("--target"));
+    cli_args.push(target_root.to_string());
+    Ok((command_label, cli_args))
+}
+
+fn run_cli_process(args: &[String], target_root: &str) -> Result<std::process::Output, std::io::Error> {
+    if let Some(script_path) = resolve_source_cli_script() {
+        if let Some(node_binary) = resolve_node_binary() {
+            let mut command = Command::new(node_binary);
+            command.current_dir(target_root);
+            command.arg(script_path);
+            for arg in args {
+                command.arg(arg);
+            }
+            return command.output();
+        }
+    }
+
+    for cli_path in resolve_installed_cli_paths() {
+        if !cli_path.exists() {
+            continue;
+        }
+        let mut command = Command::new(&cli_path);
+        command.current_dir(target_root);
+        for arg in args {
+            command.arg(arg);
+        }
+        match command.output() {
+            Ok(output) => return Ok(output),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(error),
+        }
+    }
+
+    Err(std::io::Error::new(
+        std::io::ErrorKind::NotFound,
+        "Kiwi Control CLI was not found",
+    ))
+}
+
 fn resolve_installed_cli_paths() -> Vec<PathBuf> {
     let mut candidates: Vec<PathBuf> = Vec::new();
 
@@ -664,6 +833,20 @@ fn resolve_node_binary() -> Option<PathBuf> {
     None
 }
 
+fn resolve_source_cli_script() -> Option<PathBuf> {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let candidate = manifest_dir
+        .join("..")
+        .join("..")
+        .join("..")
+        .join("packages")
+        .join("sj-cli")
+        .join("dist")
+        .join("cli.js");
+
+    candidate.exists().then_some(candidate)
+}
+
 fn resolve_source_ui_bridge_script() -> Option<PathBuf> {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let candidate = manifest_dir
@@ -677,6 +860,52 @@ fn resolve_source_ui_bridge_script() -> Option<PathBuf> {
         .join("ui-bridge.js");
 
     candidate.exists().then_some(candidate)
+}
+
+#[cfg(target_os = "macos")]
+fn open_path_with_default_app(path: &PathBuf) -> Result<(), String> {
+    Command::new("open")
+        .arg(path)
+        .status()
+        .map_err(|error| format!("failed to open path: {error}"))
+        .and_then(|status| {
+            if status.success() {
+                Ok(())
+            } else {
+                Err(String::from("open command failed"))
+            }
+        })
+}
+
+#[cfg(target_os = "windows")]
+fn open_path_with_default_app(path: &PathBuf) -> Result<(), String> {
+    Command::new("cmd")
+        .args(["/C", "start", ""])
+        .arg(path)
+        .status()
+        .map_err(|error| format!("failed to open path: {error}"))
+        .and_then(|status| {
+            if status.success() {
+                Ok(())
+            } else {
+                Err(String::from("start command failed"))
+            }
+        })
+}
+
+#[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+fn open_path_with_default_app(path: &PathBuf) -> Result<(), String> {
+    Command::new("xdg-open")
+        .arg(path)
+        .status()
+        .map_err(|error| format!("failed to open path: {error}"))
+        .and_then(|status| {
+            if status.success() {
+                Ok(())
+            } else {
+                Err(String::from("xdg-open command failed"))
+            }
+        })
 }
 
 fn read_launch_request() -> Result<Option<DesktopLaunchRequest>, String> {

@@ -213,6 +213,30 @@ let isLoadingRepoState = false;
 let queuedLaunchRequest = null;
 let lastHandledLaunchRequestId = "";
 let machineHydrationRound = 0;
+let activeInteractiveTargetRoot = "";
+let commandState = {
+    activeCommand: null,
+    loading: false,
+    composer: null,
+    draftValue: "",
+    lastResult: null,
+    lastError: null
+};
+let focusedItem = null;
+let contextOverrides = new Map();
+let contextOverrideHistory = [];
+let graphNodePositions = new Map();
+let graphPan = { x: 0, y: 0 };
+let graphZoom = 1;
+let graphDepth = 2;
+let graphSelectedPath = null;
+let graphInteraction = null;
+let localPlanOrder = [];
+let localPlanSkipped = new Set();
+let localPlanEdits = new Map();
+let editingPlanStepId = null;
+let editingPlanDraft = "";
+let approvalMarkers = new Map();
 try {
     app.innerHTML = buildShellHtml();
     shellElement = requireElement(".kc-shell");
@@ -233,6 +257,7 @@ try {
         if (!target) {
             return;
         }
+        const mouseEvent = event;
         const viewButton = target.closest("[data-view]");
         if (viewButton?.dataset.view) {
             activeView = viewButton.dataset.view;
@@ -277,10 +302,123 @@ try {
             renderState(currentState);
             return;
         }
+        if (handleInteractiveClick(mouseEvent, target)) {
+            return;
+        }
         if (target.closest("[data-reload-state]")) {
             if (currentTargetRoot) {
                 void loadAndRenderTarget(currentTargetRoot, "manual");
             }
+        }
+    });
+    app.addEventListener("input", (event) => {
+        const target = event.target;
+        if (!target) {
+            return;
+        }
+        if (target.matches("[data-command-draft]")) {
+            commandState.draftValue = target.value;
+            return;
+        }
+        if (target.matches("[data-plan-edit-input]")) {
+            editingPlanDraft = target.value;
+        }
+    });
+    app.addEventListener("change", (event) => {
+        const target = event.target;
+        if (!target) {
+            return;
+        }
+        if (target.matches("[data-command-draft]")) {
+            commandState.draftValue = target.value;
+        }
+    });
+    app.addEventListener("wheel", (event) => {
+        const target = event.target;
+        if (!target || !target.closest("[data-graph-surface]")) {
+            return;
+        }
+        event.preventDefault();
+        const delta = event.deltaY > 0 ? -0.12 : 0.12;
+        graphZoom = Math.max(0.65, Math.min(2.4, Number((graphZoom + delta).toFixed(2))));
+        renderState(currentState);
+    }, { passive: false });
+    app.addEventListener("pointerdown", (event) => {
+        const target = event.target;
+        if (!target) {
+            return;
+        }
+        const node = target.closest("[data-graph-node]");
+        if (node?.dataset.path) {
+            graphInteraction = {
+                mode: "drag-node",
+                path: node.dataset.path,
+                lastClientX: event.clientX,
+                lastClientY: event.clientY
+            };
+            return;
+        }
+        if (target.closest("[data-graph-surface]")) {
+            graphInteraction = {
+                mode: "pan",
+                lastClientX: event.clientX,
+                lastClientY: event.clientY
+            };
+        }
+    });
+    window.addEventListener("pointermove", (event) => {
+        if (!graphInteraction) {
+            return;
+        }
+        const deltaX = event.clientX - graphInteraction.lastClientX;
+        const deltaY = event.clientY - graphInteraction.lastClientY;
+        if (graphInteraction.mode === "pan") {
+            graphPan = {
+                x: graphPan.x + deltaX,
+                y: graphPan.y + deltaY
+            };
+            graphInteraction.lastClientX = event.clientX;
+            graphInteraction.lastClientY = event.clientY;
+            renderState(currentState);
+            return;
+        }
+        const existing = graphNodePositions.get(graphInteraction.path) ?? { x: 0, y: 0 };
+        graphNodePositions.set(graphInteraction.path, {
+            x: existing.x + deltaX / graphZoom,
+            y: existing.y + deltaY / graphZoom
+        });
+        graphInteraction.lastClientX = event.clientX;
+        graphInteraction.lastClientY = event.clientY;
+        renderState(currentState);
+    });
+    window.addEventListener("pointerup", () => {
+        graphInteraction = null;
+    });
+    window.addEventListener("keydown", (event) => {
+        const activeElement = document.activeElement;
+        if (activeElement instanceof HTMLInputElement
+            || activeElement instanceof HTMLTextAreaElement
+            || activeElement instanceof HTMLSelectElement) {
+            return;
+        }
+        if (event.altKey && event.key.toLowerCase() === "g") {
+            event.preventDefault();
+            void executeKiwiCommand("guide", [], { expectJson: true });
+            return;
+        }
+        if (event.altKey && event.key.toLowerCase() === "n") {
+            event.preventDefault();
+            void executeKiwiCommand("next", [], { expectJson: true });
+            return;
+        }
+        if (event.altKey && event.key.toLowerCase() === "v") {
+            event.preventDefault();
+            void executeKiwiCommand("validate", [], { expectJson: true });
+            return;
+        }
+        if (event.altKey && event.key === "Enter") {
+            event.preventDefault();
+            void executeKiwiCommand("run-auto", [seedComposerDraft("run-auto")], { expectJson: false });
         }
     });
     void boot();
@@ -580,11 +718,748 @@ function recomputeMachineSystemHealth(machine) {
         okCount
     };
 }
+function syncInteractiveSessionState(state) {
+    const targetRoot = state.targetRoot || "";
+    if (targetRoot !== activeInteractiveTargetRoot) {
+        activeInteractiveTargetRoot = targetRoot;
+        commandState = {
+            activeCommand: null,
+            loading: false,
+            composer: null,
+            draftValue: "",
+            lastResult: null,
+            lastError: null
+        };
+        focusedItem = null;
+        contextOverrides = new Map();
+        contextOverrideHistory = [];
+        graphNodePositions = new Map();
+        graphPan = { x: 0, y: 0 };
+        graphZoom = 1;
+        graphDepth = 2;
+        graphSelectedPath = null;
+        localPlanOrder = [];
+        localPlanSkipped = new Set();
+        localPlanEdits = new Map();
+        editingPlanStepId = null;
+        editingPlanDraft = "";
+        approvalMarkers = new Map();
+    }
+    mergePlanUiState(state);
+    ensureFocusedItem(state);
+}
+function ensureFocusedItem(state) {
+    const currentFocus = focusedItem;
+    if (currentFocus?.kind === "path" && findContextNodeByPath(state, currentFocus.path)) {
+        return;
+    }
+    if (currentFocus?.kind === "step" && deriveDisplayExecutionPlanSteps(state).some((step) => step.id === currentFocus.id)) {
+        return;
+    }
+    const selectedFiles = deriveInteractiveSelectedFiles(state);
+    const firstSelectedFile = selectedFiles[0];
+    if (firstSelectedFile) {
+        focusedItem = {
+            kind: "path",
+            id: firstSelectedFile,
+            label: basenameForPath(firstSelectedFile),
+            path: firstSelectedFile
+        };
+        return;
+    }
+    const primaryStep = deriveDisplayExecutionPlanSteps(state)[0];
+    if (primaryStep) {
+        focusedItem = {
+            kind: "step",
+            id: primaryStep.id,
+            label: primaryStep.displayTitle
+        };
+    }
+}
+function mergePlanUiState(state) {
+    const stepIds = (state.kiwiControl ?? EMPTY_KC).executionPlan.steps.map((step) => step.id);
+    if (stepIds.length === 0) {
+        localPlanOrder = [];
+        localPlanSkipped.clear();
+        localPlanEdits.clear();
+        editingPlanStepId = null;
+        editingPlanDraft = "";
+        return;
+    }
+    if (localPlanOrder.length === 0) {
+        localPlanOrder = [...stepIds];
+    }
+    else {
+        localPlanOrder = [
+            ...localPlanOrder.filter((stepId) => stepIds.includes(stepId)),
+            ...stepIds.filter((stepId) => !localPlanOrder.includes(stepId))
+        ];
+    }
+    for (const stepId of [...localPlanSkipped]) {
+        if (!stepIds.includes(stepId)) {
+            localPlanSkipped.delete(stepId);
+        }
+    }
+    for (const stepId of [...localPlanEdits.keys()]) {
+        if (!stepIds.includes(stepId)) {
+            localPlanEdits.delete(stepId);
+        }
+    }
+}
+function deriveInteractiveTree(state) {
+    const baseTree = (state.kiwiControl ?? EMPTY_KC).contextView.tree;
+    const nodes = baseTree.nodes.map((node) => applyOverridesToTreeNode(node));
+    const counts = countTreeStatuses(nodes);
+    return {
+        nodes,
+        selectedCount: counts.selected,
+        candidateCount: counts.candidate,
+        excludedCount: counts.excluded
+    };
+}
+function applyOverridesToTreeNode(node) {
+    const override = contextOverrides.get(node.path);
+    const status = override == null
+        ? node.status
+        : override === "include"
+            ? "selected"
+            : "excluded";
+    return {
+        ...node,
+        status,
+        children: node.children.map((child) => applyOverridesToTreeNode(child))
+    };
+}
+function countTreeStatuses(nodes) {
+    return nodes.reduce((accumulator, node) => {
+        if (node.status === "selected") {
+            accumulator.selected += 1;
+        }
+        else if (node.status === "candidate") {
+            accumulator.candidate += 1;
+        }
+        else {
+            accumulator.excluded += 1;
+        }
+        const childCounts = countTreeStatuses(node.children);
+        accumulator.selected += childCounts.selected;
+        accumulator.candidate += childCounts.candidate;
+        accumulator.excluded += childCounts.excluded;
+        return accumulator;
+    }, { selected: 0, candidate: 0, excluded: 0 });
+}
+function deriveInteractiveSelectedFiles(state) {
+    return flattenContextNodes(deriveInteractiveTree(state).nodes)
+        .filter((node) => node.kind === "file" && node.status === "selected")
+        .map((node) => node.path);
+}
+function flattenContextNodes(nodes) {
+    return nodes.flatMap((node) => [node, ...flattenContextNodes(node.children)]);
+}
+function findContextNodeByPath(state, path) {
+    return flattenContextNodes(deriveInteractiveTree(state).nodes).find((node) => node.path === path) ?? null;
+}
+function pushContextOverrideHistory() {
+    contextOverrideHistory.push(new Map(contextOverrides));
+    if (contextOverrideHistory.length > 20) {
+        contextOverrideHistory.shift();
+    }
+}
+function applyLocalContextOverride(path, mode) {
+    pushContextOverrideHistory();
+    contextOverrides.set(path, mode);
+    focusedItem = {
+        kind: "path",
+        id: path,
+        label: basenameForPath(path),
+        path
+    };
+    graphSelectedPath = path;
+    renderState(currentState);
+}
+function resetLocalContextOverrides() {
+    if (contextOverrides.size === 0) {
+        return;
+    }
+    pushContextOverrideHistory();
+    contextOverrides.clear();
+    renderState(currentState);
+}
+function undoLocalContextOverride() {
+    const previous = contextOverrideHistory.pop();
+    if (!previous) {
+        return;
+    }
+    contextOverrides = new Map(previous);
+    renderState(currentState);
+}
+function seedComposerDraft(mode) {
+    if (mode === "handoff") {
+        return currentState.specialists.handoffTargets[0] ?? currentState.specialists.recommendedSpecialist ?? "";
+    }
+    if (mode === "checkpoint") {
+        return getPanelValue(currentState.repoOverview, "Current phase") !== "none recorded"
+            ? getPanelValue(currentState.repoOverview, "Current phase")
+            : `${getRepoLabel(currentTargetRoot)} checkpoint`;
+    }
+    return currentState.kiwiControl?.contextView.task
+        ?? currentState.kiwiControl?.nextActions.actions[0]?.action
+        ?? currentState.repoState.detail;
+}
+function toggleComposer(mode) {
+    if (commandState.loading) {
+        return;
+    }
+    if (commandState.composer === mode) {
+        commandState.composer = null;
+        commandState.draftValue = "";
+    }
+    else {
+        commandState.composer = mode;
+        commandState.draftValue = seedComposerDraft(mode);
+    }
+    renderState(currentState);
+}
+async function refreshCurrentRepoState() {
+    if (!currentTargetRoot) {
+        return;
+    }
+    await loadAndRenderTarget(currentTargetRoot, "manual");
+}
+async function executeKiwiCommand(command, args, options) {
+    if (!currentTargetRoot || commandState.loading || !isTauriBridgeAvailable()) {
+        return null;
+    }
+    commandState.loading = true;
+    commandState.activeCommand = command;
+    commandState.lastError = null;
+    commandState.lastResult = null;
+    renderState(currentState);
+    try {
+        const result = await invoke("run_cli_command", {
+            command,
+            args,
+            targetRoot: currentTargetRoot,
+            expectJson: options.expectJson
+        });
+        commandState.lastResult = result;
+        commandState.lastError = result.ok ? null : result.stderr || result.stdout || `${result.commandLabel} failed`;
+        if (result.ok) {
+            commandState.composer = null;
+            commandState.draftValue = "";
+            await refreshCurrentRepoState();
+        }
+        else {
+            renderState(currentState);
+        }
+        return result;
+    }
+    catch (error) {
+        commandState.lastError = error instanceof Error ? error.message : String(error);
+        renderState(currentState);
+        return null;
+    }
+    finally {
+        commandState.loading = false;
+        commandState.activeCommand = null;
+        renderState(currentState);
+    }
+}
+async function openRepoPath(path) {
+    if (!currentTargetRoot || !isTauriBridgeAvailable()) {
+        return;
+    }
+    try {
+        await invoke("open_path", {
+            targetRoot: currentTargetRoot,
+            path
+        });
+    }
+    catch (error) {
+        commandState.lastError = error instanceof Error ? error.message : String(error);
+        renderState(currentState);
+    }
+}
+function parseKiwiCommand(commandText) {
+    const tokens = tokenizeCommand(commandText);
+    if (tokens.length < 2) {
+        return null;
+    }
+    const executable = tokens[0] ?? "";
+    if (!["kiwi-control", "kc", "shrey-junior", "sj"].includes(executable)) {
+        return null;
+    }
+    const [subcommand = "", ...rest] = tokens.slice(1);
+    if (subcommand === "run" && rest[0] === "--auto") {
+        const task = rest.find((token, index) => index > 0 && token !== "--target" && token !== currentTargetRoot);
+        return task ? { command: "run-auto", args: [task] } : null;
+    }
+    if (subcommand === "handoff") {
+        const toIndex = rest.findIndex((token) => token === "--to");
+        const handoffTarget = toIndex >= 0 ? rest[toIndex + 1] : undefined;
+        if (handoffTarget) {
+            return { command: "handoff", args: [handoffTarget] };
+        }
+    }
+    if (subcommand === "checkpoint") {
+        const label = rest.find((token) => !token.startsWith("--"));
+        return label ? { command: "checkpoint", args: [label] } : null;
+    }
+    if (subcommand === "validate") {
+        const task = rest.find((token) => !token.startsWith("--") && token !== currentTargetRoot);
+        return { command: "validate", args: task ? [task] : [] };
+    }
+    if (["guide", "next", "retry", "resume", "status", "trace"].includes(subcommand)) {
+        return { command: subcommand, args: rest.includes("--json") ? ["--json"] : [] };
+    }
+    return null;
+}
+function tokenizeCommand(value) {
+    const tokens = [...value.matchAll(/"([^"]*)"|'([^']*)'|`([^`]*)`|([^\s]+)/g)];
+    return tokens.map((match) => match[1] ?? match[2] ?? match[3] ?? match[4] ?? "").filter(Boolean);
+}
+async function executePlanStepCommand(step) {
+    const parsed = parseKiwiCommand(step.command);
+    if (parsed) {
+        await executeKiwiCommand(parsed.command, parsed.args, { expectJson: parsed.args.includes("--json") });
+        return;
+    }
+    if (step.retryCommand) {
+        const retryParsed = parseKiwiCommand(step.retryCommand);
+        if (retryParsed) {
+            await executeKiwiCommand(retryParsed.command, retryParsed.args, { expectJson: retryParsed.args.includes("--json") });
+            return;
+        }
+    }
+    if (step.id === "execute") {
+        await executeKiwiCommand("run-auto", [seedComposerDraft("run-auto")], { expectJson: false });
+        return;
+    }
+    if (step.id.includes("validate")) {
+        await executeKiwiCommand("validate", [], { expectJson: true });
+        return;
+    }
+    await executeKiwiCommand("next", ["--json"], { expectJson: true });
+}
+function deriveDisplayExecutionPlanSteps(state) {
+    const plan = (state.kiwiControl ?? EMPTY_KC).executionPlan;
+    const sourceById = new Map(plan.steps.map((step) => [step.id, step]));
+    return localPlanOrder
+        .map((stepId) => sourceById.get(stepId))
+        .filter((step) => Boolean(step))
+        .map((step) => {
+        const edit = localPlanEdits.get(step.id);
+        return {
+            ...step,
+            displayTitle: edit?.label?.trim() || step.description,
+            displayNote: edit?.note?.trim() || step.result.summary || step.expectedOutput || null,
+            skipped: localPlanSkipped.has(step.id)
+        };
+    });
+}
+function movePlanStep(stepId, direction) {
+    const index = localPlanOrder.indexOf(stepId);
+    const nextIndex = index + direction;
+    if (index < 0 || nextIndex < 0 || nextIndex >= localPlanOrder.length) {
+        return;
+    }
+    const reordered = [...localPlanOrder];
+    const currentValue = reordered[index];
+    const nextValue = reordered[nextIndex];
+    if (!currentValue || !nextValue) {
+        return;
+    }
+    reordered[index] = nextValue;
+    reordered[nextIndex] = currentValue;
+    localPlanOrder = reordered;
+    renderState(currentState);
+}
+function toggleSkippedPlanStep(stepId) {
+    if (localPlanSkipped.has(stepId)) {
+        localPlanSkipped.delete(stepId);
+    }
+    else {
+        localPlanSkipped.add(stepId);
+    }
+    renderState(currentState);
+}
+function startEditingPlanStep(stepId, currentLabel) {
+    editingPlanStepId = stepId;
+    editingPlanDraft = currentLabel;
+    renderState(currentState);
+}
+function commitPlanStepEdit(stepId) {
+    const existing = localPlanEdits.get(stepId) ?? { label: "", note: "" };
+    localPlanEdits.set(stepId, {
+        ...existing,
+        label: editingPlanDraft.trim() || existing.label
+    });
+    editingPlanStepId = null;
+    editingPlanDraft = "";
+    renderState(currentState);
+}
+function deriveGraphModel(state) {
+    const tree = deriveInteractiveTree(state);
+    const rootPath = state.targetRoot || "repo";
+    const focusPath = graphSelectedPath ?? (focusedItem?.kind === "path" ? focusedItem.path : null);
+    const highlightedPaths = new Set(deriveHighlightedGraphPaths(state, focusPath));
+    const root = {
+        path: rootPath,
+        label: getRepoLabel(rootPath) || "repo",
+        kind: "root",
+        status: "selected",
+        x: 600 + (graphNodePositions.get(rootPath)?.x ?? 0),
+        y: 360 + (graphNodePositions.get(rootPath)?.y ?? 0),
+        radius: 34,
+        tone: "tone-root",
+        importance: "high",
+        highlighted: highlightedPaths.has(rootPath)
+    };
+    const nodes = [root];
+    const edges = [];
+    const summary = [];
+    const visibleTopLevel = tree.nodes.slice(0, 10);
+    visibleTopLevel.forEach((node, index) => {
+        const angle = (Math.PI * 2 * index) / Math.max(visibleTopLevel.length, 1);
+        const baseX = 600 + Math.cos(angle) * 220;
+        const baseY = 360 + Math.sin(angle) * 220;
+        const offset = graphNodePositions.get(node.path) ?? { x: 0, y: 0 };
+        const importance = deriveNodeImportance(node);
+        const graphNode = {
+            path: node.path,
+            label: node.name,
+            kind: node.kind,
+            status: node.status,
+            x: baseX + offset.x,
+            y: baseY + offset.y,
+            radius: importance === "high" ? 26 : importance === "medium" ? 22 : 18,
+            tone: `tone-${node.status}`,
+            importance,
+            highlighted: highlightedPaths.has(node.path)
+        };
+        nodes.push(graphNode);
+        edges.push({
+            fromPath: root.path,
+            toPath: graphNode.path,
+            from: { x: root.x, y: root.y },
+            to: { x: graphNode.x, y: graphNode.y },
+            highlighted: highlightedPaths.has(root.path) && highlightedPaths.has(graphNode.path)
+        });
+        summary.push({
+            label: node.name,
+            kind: node.kind,
+            meta: `${node.children.length} child nodes`,
+            path: node.path
+        });
+        if (graphDepth < 2) {
+            return;
+        }
+        node.children.slice(0, graphDepth > 2 ? 6 : 4).forEach((child, childIndex) => {
+            const childAngle = angle + ((childIndex - 1.5) * 0.32);
+            const childBaseX = graphNode.x + Math.cos(childAngle) * 160;
+            const childBaseY = graphNode.y + Math.sin(childAngle) * 160;
+            const childOffset = graphNodePositions.get(child.path) ?? { x: 0, y: 0 };
+            const childImportance = deriveNodeImportance(child);
+            const childNode = {
+                path: child.path,
+                label: child.name,
+                kind: child.kind,
+                status: child.status,
+                x: childBaseX + childOffset.x,
+                y: childBaseY + childOffset.y,
+                radius: childImportance === "high" ? 18 : childImportance === "medium" ? 16 : 14,
+                tone: `tone-${child.status}`,
+                importance: childImportance,
+                highlighted: highlightedPaths.has(child.path)
+            };
+            nodes.push(childNode);
+            edges.push({
+                fromPath: graphNode.path,
+                toPath: childNode.path,
+                from: { x: graphNode.x, y: graphNode.y },
+                to: { x: childNode.x, y: childNode.y },
+                highlighted: highlightedPaths.has(graphNode.path) && highlightedPaths.has(childNode.path)
+            });
+            summary.push({
+                label: child.name,
+                kind: child.kind,
+                meta: child.status,
+                path: child.path
+            });
+        });
+    });
+    return { nodes, edges, summary };
+}
+function deriveNodeImportance(node) {
+    const analysisEntry = currentState.kiwiControl?.fileAnalysis.selected.find((entry) => entry.file === node.path);
+    if (node.status === "selected" || (analysisEntry?.score ?? 0) >= 2 || (analysisEntry?.dependencyChain?.length ?? 0) > 1) {
+        return "high";
+    }
+    if (node.status === "candidate" || node.children.some((child) => child.status === "selected")) {
+        return "medium";
+    }
+    return "low";
+}
+function deriveHighlightedGraphPaths(state, focusPath) {
+    if (!focusPath) {
+        return [];
+    }
+    const dependencyChain = state.kiwiControl?.fileAnalysis.selected.find((entry) => entry.file === focusPath)?.dependencyChain;
+    if (dependencyChain && dependencyChain.length > 1) {
+        return dependencyChain;
+    }
+    const parts = focusPath.split(/[\\/]/).filter(Boolean);
+    const segments = [];
+    let accumulator = focusPath.startsWith("/") ? "/" : "";
+    for (const part of parts) {
+        accumulator = accumulator ? `${accumulator.replace(/\/$/, "")}/${part}` : part;
+        segments.push(accumulator);
+    }
+    return segments;
+}
+function basenameForPath(path) {
+    const segments = path.split(/[\\/]/).filter(Boolean);
+    return segments[segments.length - 1] ?? path;
+}
+function renderCommandBanner() {
+    if (!commandState.lastResult && !commandState.lastError) {
+        return "";
+    }
+    const tone = commandState.lastError ? "warn" : commandState.lastResult?.ok ? "success" : "warn";
+    const title = commandState.lastError
+        ? "Last command failed"
+        : commandState.lastResult?.ok
+            ? "Last command completed"
+            : "Last command reported an issue";
+    const detail = commandState.lastError
+        ?? commandState.lastResult?.stderr
+        ?? commandState.lastResult?.stdout
+        ?? "No command detail was recorded.";
+    return `
+    <div class="kc-view-shell">
+      <section class="kc-panel kc-command-banner tone-${tone}">
+        <div class="kc-command-banner-head">
+          <div>
+            <p class="kc-section-micro">Command Result</p>
+            <strong>${escapeHtml(title)}</strong>
+          </div>
+          ${commandState.lastResult ? `<code class="kc-command-chip">${escapeHtml(commandState.lastResult.commandLabel)}</code>` : ""}
+        </div>
+        <p>${escapeHtml(detail)}</p>
+      </section>
+    </div>
+  `;
+}
+function handleInteractiveClick(event, target) {
+    const directCommandButton = target.closest("[data-ui-command]");
+    if (directCommandButton?.dataset.uiCommand) {
+        const command = directCommandButton.dataset.uiCommand;
+        if (command === "run-auto" || command === "checkpoint" || command === "handoff") {
+            toggleComposer(command);
+        }
+        else if (command === "retry") {
+            const retryText = currentState.kiwiControl?.executionPlan.lastError?.retryCommand ?? "";
+            const parsed = retryText ? parseKiwiCommand(retryText) : null;
+            if (parsed) {
+                void executeKiwiCommand(parsed.command, parsed.args, { expectJson: parsed.args.includes("--json") });
+            }
+            else {
+                void executeKiwiCommand("retry", [], { expectJson: false });
+            }
+        }
+        else {
+            void executeKiwiCommand(command, commandRequiresJson(command) ? ["--json"] : [], { expectJson: commandRequiresJson(command) });
+        }
+        return true;
+    }
+    const submitComposer = target.closest("[data-composer-submit]");
+    if (submitComposer?.dataset.composerSubmit) {
+        const mode = submitComposer.dataset.composerSubmit;
+        const value = commandState.draftValue.trim();
+        if (!value) {
+            commandState.lastError = `${mode} requires a value before running.`;
+            renderState(currentState);
+            return true;
+        }
+        const command = mode === "run-auto" ? "run-auto" : mode === "checkpoint" ? "checkpoint" : "handoff";
+        void executeKiwiCommand(command, [value], { expectJson: false });
+        return true;
+    }
+    if (target.closest("[data-composer-cancel]")) {
+        commandState.composer = null;
+        commandState.draftValue = "";
+        renderState(currentState);
+        return true;
+    }
+    const treeAction = target.closest("[data-tree-action]");
+    if (treeAction?.dataset.treeAction && treeAction.dataset.path) {
+        event.preventDefault();
+        event.stopPropagation();
+        const path = treeAction.dataset.path;
+        const action = treeAction.dataset.treeAction;
+        if (action === "open") {
+            void openRepoPath(path);
+        }
+        else if (action === "focus") {
+            focusedItem = { kind: "path", id: path, label: basenameForPath(path), path };
+            graphSelectedPath = path;
+            renderState(currentState);
+        }
+        else {
+            applyLocalContextOverride(path, action);
+        }
+        return true;
+    }
+    const bulkAction = target.closest("[data-tree-bulk]");
+    if (bulkAction?.dataset.treeBulk) {
+        const interactiveTree = deriveInteractiveTree(currentState);
+        const paths = flattenContextNodes(interactiveTree.nodes).map((node) => node.path);
+        if (bulkAction.dataset.treeBulk === "reset") {
+            resetLocalContextOverrides();
+        }
+        else if (bulkAction.dataset.treeBulk === "undo") {
+            undoLocalContextOverride();
+        }
+        else {
+            pushContextOverrideHistory();
+            for (const path of paths) {
+                contextOverrides.set(path, bulkAction.dataset.treeBulk);
+            }
+            renderState(currentState);
+        }
+        return true;
+    }
+    const graphNode = target.closest("[data-graph-node]");
+    if (graphNode?.dataset.path) {
+        const path = graphNode.dataset.path;
+        focusedItem = { kind: "path", id: path, label: basenameForPath(path), path };
+        graphSelectedPath = path;
+        if (event.detail > 1 && graphNode.dataset.kind === "file") {
+            void openRepoPath(path);
+        }
+        renderState(currentState);
+        return true;
+    }
+    const graphAction = target.closest("[data-graph-action]");
+    if (graphAction?.dataset.graphAction) {
+        const path = graphAction.dataset.path;
+        const action = graphAction.dataset.graphAction;
+        if (action === "depth-up") {
+            graphDepth = Math.min(3, graphDepth + 1);
+        }
+        else if (action === "depth-down") {
+            graphDepth = Math.max(1, graphDepth - 1);
+        }
+        else if (action === "reset-view") {
+            graphPan = { x: 0, y: 0 };
+            graphZoom = 1;
+            graphNodePositions.clear();
+        }
+        else if (path) {
+            if (action === "open") {
+                void openRepoPath(path);
+            }
+            else if (action === "focus") {
+                focusedItem = { kind: "path", id: path, label: basenameForPath(path), path };
+                graphSelectedPath = path;
+                renderState(currentState);
+                return true;
+            }
+            else {
+                applyLocalContextOverride(path, action);
+                return true;
+            }
+        }
+        renderState(currentState);
+        return true;
+    }
+    const planAction = target.closest("[data-plan-action]");
+    if (planAction?.dataset.planAction && planAction.dataset.stepId) {
+        const stepId = planAction.dataset.stepId;
+        const step = deriveDisplayExecutionPlanSteps(currentState).find((entry) => entry.id === stepId);
+        if (!step) {
+            return true;
+        }
+        switch (planAction.dataset.planAction) {
+            case "run":
+                void executePlanStepCommand(step);
+                break;
+            case "retry":
+                if (step.retryCommand) {
+                    const parsed = parseKiwiCommand(step.retryCommand);
+                    if (parsed) {
+                        void executeKiwiCommand(parsed.command, parsed.args, { expectJson: parsed.args.includes("--json") });
+                    }
+                    else {
+                        void executeKiwiCommand("retry", [], { expectJson: false });
+                    }
+                }
+                else {
+                    void executeKiwiCommand("retry", [], { expectJson: false });
+                }
+                break;
+            case "skip":
+                toggleSkippedPlanStep(stepId);
+                break;
+            case "edit":
+                startEditingPlanStep(stepId, step.displayTitle);
+                break;
+            case "edit-save":
+                commitPlanStepEdit(stepId);
+                break;
+            case "edit-cancel":
+                editingPlanStepId = null;
+                editingPlanDraft = "";
+                renderState(currentState);
+                break;
+            case "move-up":
+                movePlanStep(stepId, -1);
+                break;
+            case "move-down":
+                movePlanStep(stepId, 1);
+                break;
+            case "focus":
+                focusedItem = { kind: "step", id: step.id, label: step.displayTitle };
+                renderState(currentState);
+                break;
+        }
+        return true;
+    }
+    const inspectorAction = target.closest("[data-inspector-action]");
+    if (inspectorAction?.dataset.inspectorAction) {
+        const action = inspectorAction.dataset.inspectorAction;
+        if (action === "approve" || action === "reject") {
+            const markerKey = focusedItem?.id;
+            if (markerKey) {
+                approvalMarkers.set(markerKey, action === "approve" ? "approved" : "rejected");
+            }
+            renderState(currentState);
+            return true;
+        }
+        if (action === "add-to-context" && focusedItem?.kind === "path") {
+            applyLocalContextOverride(focusedItem.path, "include");
+            return true;
+        }
+        if (action === "validate") {
+            void executeKiwiCommand("validate", [], { expectJson: true });
+            return true;
+        }
+        if (action === "handoff") {
+            toggleComposer("handoff");
+            return true;
+        }
+    }
+    return false;
+}
+function commandRequiresJson(command) {
+    return ["guide", "next", "validate", "status", "trace"].includes(command);
+}
 function renderState(state) {
     currentState = state;
+    syncInteractiveSessionState(state);
     railNavElement.innerHTML = renderRailNav();
     topbarElement.innerHTML = renderTopBar(state);
-    centerMainElement.innerHTML = renderCenterView(state);
+    centerMainElement.innerHTML = `${renderCommandBanner()}${renderCenterView(state)}`;
     inspectorElement.innerHTML = renderInspector(state);
     logDrawerElement.innerHTML = renderLogDrawer(state);
     workspaceSurfaceElement.classList.toggle("is-inspector-open", isInspectorOpen);
@@ -606,43 +1481,75 @@ function renderTopBar(state) {
     const phase = getPanelValue(state.repoOverview, "Current phase");
     const validationState = getPanelValue(state.repoOverview, "Validation state");
     const themeLabel = activeTheme === "dark" ? "Light mode" : "Dark mode";
+    const actionsDisabled = !currentTargetRoot || commandState.loading;
+    const currentTask = state.kiwiControl?.contextView.task ?? state.kiwiControl?.nextActions.actions[0]?.action ?? "";
+    const retryEnabled = Boolean(state.kiwiControl?.executionPlan.lastError?.retryCommand) || Boolean(currentTargetRoot);
     return `
-    <div class="kc-topbar-left">
-      <button class="kc-repo-pill" type="button">
-        <span class="kc-repo-name">${escapeHtml(repoLabel)}</span>
-        <span class="kc-repo-path">${escapeHtml(state.targetRoot || "No repo loaded yet")}</span>
-      </button>
-      ${renderHeaderBadge(state.repoState.title, state.repoState.mode)}
-      ${renderHeaderBadge(state.projectType, "neutral")}
-      ${phase !== "none recorded" ? renderHeaderBadge(phase, "neutral") : ""}
-    </div>
-    <div class="kc-topbar-center">
-      ${renderHeaderMeta("Next", decision.nextAction)}
-      ${renderHeaderMeta("Blocking", decision.blockingIssue)}
-      ${renderHeaderMeta("Health", decision.systemHealth)}
-      ${renderHeaderMeta("Changed", decision.lastChangedAt)}
-      ${renderHeaderMeta("Failures", String(decision.recentFailures))}
-      ${renderHeaderMeta("Warnings", String(decision.newWarnings))}
-    </div>
-    <div class="kc-topbar-right">
-      <div class="kc-inline-badges">
-        <button class="kc-tab-button ${activeMode === "execution" ? "is-active" : ""}" type="button" data-ui-mode="execution">Execution</button>
-        <button class="kc-tab-button ${activeMode === "inspection" ? "is-active" : ""}" type="button" data-ui-mode="inspection">Inspection</button>
+    <div class="kc-topbar-primary">
+      <div class="kc-topbar-left">
+        <button class="kc-repo-pill" type="button">
+          <span class="kc-repo-name">${escapeHtml(repoLabel)}</span>
+          <span class="kc-repo-path">${escapeHtml(state.targetRoot || "No repo loaded yet")}</span>
+        </button>
+        ${renderHeaderBadge(state.repoState.title, state.repoState.mode)}
+        ${renderHeaderBadge(state.projectType, "neutral")}
+        ${phase !== "none recorded" ? renderHeaderBadge(phase, "neutral") : ""}
       </div>
-      <div class="kc-status-chip">
-        <strong>${escapeHtml(activeMode)} mode</strong>
-        <span>${escapeHtml(validationState)}</span>
+      <div class="kc-topbar-center">
+        ${renderHeaderMeta("Next", decision.nextAction)}
+        ${renderHeaderMeta("Blocking", decision.blockingIssue)}
+        ${renderHeaderMeta("Health", decision.systemHealth)}
+        ${renderHeaderMeta("Changed", decision.lastChangedAt)}
+        ${renderHeaderMeta("Failures", String(decision.recentFailures))}
+        ${renderHeaderMeta("Warnings", String(decision.newWarnings))}
       </div>
-      <button class="kc-theme-toggle" type="button" data-theme-toggle>
-        ${iconSvg(activeTheme === "dark" ? "sun" : "moon")}
-        <span>${escapeHtml(themeLabel)}</span>
-      </button>
-      <button class="kc-icon-button" type="button" data-toggle-logs>
-        ${isLogDrawerOpen ? iconSvg("logs-open") : iconSvg("logs-closed")}
-      </button>
-      <button class="kc-icon-button" type="button" data-toggle-inspector>
-        ${isInspectorOpen ? iconSvg("panel-open") : iconSvg("panel-closed")}
-      </button>
+      <div class="kc-topbar-right">
+        <div class="kc-inline-badges">
+          <button class="kc-tab-button ${activeMode === "execution" ? "is-active" : ""}" type="button" data-ui-mode="execution">Execution</button>
+          <button class="kc-tab-button ${activeMode === "inspection" ? "is-active" : ""}" type="button" data-ui-mode="inspection">Inspection</button>
+        </div>
+        <div class="kc-status-chip">
+          <strong>${escapeHtml(activeMode)} mode</strong>
+          <span>${escapeHtml(validationState)}</span>
+        </div>
+        <button class="kc-theme-toggle" type="button" data-theme-toggle>
+          ${iconSvg(activeTheme === "dark" ? "sun" : "moon")}
+          <span>${escapeHtml(themeLabel)}</span>
+        </button>
+        <button class="kc-icon-button" type="button" data-toggle-logs>
+          ${isLogDrawerOpen ? iconSvg("logs-open") : iconSvg("logs-closed")}
+        </button>
+        <button class="kc-icon-button" type="button" data-toggle-inspector>
+          ${isInspectorOpen ? iconSvg("panel-open") : iconSvg("panel-closed")}
+        </button>
+      </div>
+    </div>
+    <div class="kc-topbar-actions">
+      <div class="kc-topbar-action-group">
+        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="guide" ${actionsDisabled ? "disabled" : ""}>Guide</button>
+        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="next" ${actionsDisabled ? "disabled" : ""}>Next</button>
+        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="validate" ${actionsDisabled ? "disabled" : ""}>Validate</button>
+        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="retry" ${!retryEnabled || actionsDisabled ? "disabled" : ""}>Retry</button>
+        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="run-auto" ${actionsDisabled || !currentTask ? "disabled" : ""}>Run Auto</button>
+        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="checkpoint" ${actionsDisabled ? "disabled" : ""}>Checkpoint</button>
+        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="handoff" ${actionsDisabled || state.specialists.handoffTargets.length === 0 ? "disabled" : ""}>Handoff</button>
+      </div>
+      ${commandState.composer
+        ? `
+          <div class="kc-action-composer">
+            <span class="kc-section-micro">${escapeHtml(commandState.composer)}</span>
+            ${commandState.composer === "handoff"
+            ? `<select class="kc-action-input" data-command-draft>
+                  ${[...new Set([commandState.draftValue, ...state.specialists.handoffTargets].filter(Boolean))].map((value) => `
+                    <option value="${escapeAttribute(value)}" ${value === commandState.draftValue ? "selected" : ""}>${escapeHtml(value)}</option>
+                  `).join("")}
+                </select>`
+            : `<input class="kc-action-input" data-command-draft value="${escapeAttribute(commandState.draftValue)}" placeholder="${escapeAttribute(commandState.composer === "checkpoint" ? "checkpoint label" : "run description")}" />`}
+            <button class="kc-secondary-button kc-action-button is-primary" type="button" data-composer-submit="${commandState.composer}" ${commandState.loading ? "disabled" : ""}>Run</button>
+            <button class="kc-secondary-button kc-action-button" type="button" data-composer-cancel ${commandState.loading ? "disabled" : ""}>Cancel</button>
+          </div>
+        `
+        : ""}
     </div>
   `;
 }
@@ -713,6 +1620,7 @@ function renderCenterView(state) {
 }
 function renderOverviewView(state) {
     const kc = state.kiwiControl ?? EMPTY_KC;
+    const interactiveTree = deriveInteractiveTree(state);
     const primaryAction = kc.nextActions.actions[0] ?? null;
     const currentFocus = getPanelValue(state.continuity, "Current focus");
     const activeSpecialist = state.specialists.activeProfile?.name ?? state.specialists.activeSpecialist;
@@ -739,8 +1647,8 @@ function renderOverviewView(state) {
       <div class="kc-stat-grid">
         ${renderStatCard("Repo Health", state.repoState.title, state.validation.ok ? "passing" : `${state.validation.errors + state.validation.warnings} issues`, state.validation.ok ? "success" : "warn")}
         ${renderStatCard("Task", selectedTask, kc.contextView.confidenceDetail ?? "no prepared scope", "neutral")}
-        ${renderStatCard("Selected", String(kc.contextView.tree.selectedCount), "files Kiwi chose", "neutral")}
-        ${renderStatCard("Ignored", String(kc.contextView.tree.excludedCount), "files Kiwi filtered out", "warn")}
+        ${renderStatCard("Selected", String(interactiveTree.selectedCount), "files Kiwi chose", "neutral")}
+        ${renderStatCard("Ignored", String(interactiveTree.excludedCount), "files Kiwi filtered out", "warn")}
         ${renderStatCard("Lifecycle", kc.runtimeLifecycle.currentStage, kc.runtimeLifecycle.nextRecommendedAction ?? "runtime stage not recorded yet", "neutral")}
         ${renderStatCard("Skills", String(kc.skills.activeSkills.length), kc.skills.activeSkills.length > 0 ? kc.skills.activeSkills.map((skill) => skill.name).join(", ") : "none active", "neutral")}
       </div>
@@ -767,33 +1675,15 @@ function renderOverviewView(state) {
         </section>
       </div>
 
-      <section class="kc-panel">
-        ${renderPanelHeader("Execution Plan", kc.executionPlan.summary || "No execution plan is recorded yet.")}
-        <div class="kc-inline-badges">
-          ${renderInlineBadge(`state: ${kc.executionPlan.state}`)}
-          ${renderInlineBadge(`current: ${kc.executionPlan.steps[kc.executionPlan.currentStepIndex]?.id ?? "none"}`)}
-          ${renderInlineBadge(`risk: ${kc.executionPlan.risk}`)}
-          ${kc.executionPlan.confidence ? renderInlineBadge(`confidence: ${kc.executionPlan.confidence}`) : ""}
-        </div>
-        ${kc.executionPlan.lastError
-        ? `<div class="kc-divider"></div><div class="kc-stack-list">
-              ${renderNoteRow("Failure", kc.executionPlan.lastError.errorType, kc.executionPlan.lastError.reason)}
-              ${renderNoteRow("Fix command", kc.executionPlan.lastError.fixCommand, "Run this before continuing.")}
-              ${renderNoteRow("Retry command", kc.executionPlan.lastError.retryCommand, "Use this to retry the failed step.")}
-            </div>`
-        : ""}
-        ${kc.executionPlan.steps.length > 0
-        ? `<div class="kc-stack-list">${kc.executionPlan.steps.map((step) => renderNoteRow(`${step.description}`, step.status, `${step.command} | verify: ${step.validation}${step.fixCommand ? ` | fix: ${step.fixCommand}` : ""}${step.retryCommand ? ` | retry: ${step.retryCommand}` : ""}`)).join("")}</div>`
-        : renderEmptyState("No execution plan is available yet.")}
-      </section>
+      ${renderExecutionPlanPanel(state)}
 
       <section class="kc-panel">
         <div class="kc-panel-head-row">
           ${renderPanelHeader("Context Tree", "What Kiwi selected, considered, and ignored from the live selector state.")}
           ${renderHeaderBadge(kc.contextView.confidence?.toUpperCase() ?? "UNKNOWN", kc.contextView.confidence === "high" ? "success" : kc.contextView.confidence === "low" ? "warn" : "neutral")}
         </div>
-        ${kc.contextView.tree.nodes.length > 0
-        ? renderContextTree(kc.contextView.tree)
+        ${interactiveTree.nodes.length > 0
+        ? renderContextTree(interactiveTree)
         : renderEmptyState('Run kc prepare "your task" to build a repo-local context tree.')}
       </section>
 
@@ -858,6 +1748,8 @@ function renderContextView(state) {
     const kc = state.kiwiControl ?? EMPTY_KC;
     const ctx = kc.contextView;
     const indexing = kc.indexing;
+    const interactiveTree = deriveInteractiveTree(state);
+    const selectedFiles = deriveInteractiveSelectedFiles(state);
     return `
     <div class="kc-view-shell">
       <section class="kc-view-header">
@@ -877,10 +1769,16 @@ function renderContextView(state) {
         <section class="kc-panel">
           <div class="kc-panel-head-row">
             ${renderPanelHeader("Repo Tree", "Selected, candidate, and excluded files grounded in live selector state.")}
-            <button class="kc-secondary-button" type="button" data-reload-state>${iconSvg("refresh")}Refresh</button>
+            <div class="kc-inline-badges">
+              <button class="kc-secondary-button" type="button" data-tree-bulk="include">Include visible</button>
+              <button class="kc-secondary-button" type="button" data-tree-bulk="exclude">Exclude visible</button>
+              <button class="kc-secondary-button" type="button" data-tree-bulk="reset">Reset local edits</button>
+              <button class="kc-secondary-button" type="button" data-tree-bulk="undo">Undo</button>
+              <button class="kc-secondary-button" type="button" data-reload-state>${iconSvg("refresh")}Refresh</button>
+            </div>
           </div>
-          ${ctx.tree.nodes.length > 0
-        ? renderContextTree(ctx.tree)
+          ${interactiveTree.nodes.length > 0
+        ? renderContextTree(interactiveTree)
         : renderEmptyState('Run kc prepare "your task" to build the repo tree from live selection signals.')}
         </section>
 
@@ -889,7 +1787,7 @@ function renderContextView(state) {
           <div class="kc-info-grid">
             ${renderInfoRow("Confidence", ctx.confidence?.toUpperCase() ?? "UNKNOWN")}
             ${renderInfoRow("Scope area", indexing.scopeArea ?? "unknown")}
-            ${renderInfoRow("Selected files", String(ctx.selectedFiles.length))}
+            ${renderInfoRow("Selected files", String(selectedFiles.length))}
             ${renderInfoRow("Observed files", String(indexing.observedFiles))}
             ${renderInfoRow("Indexed files", String(indexing.indexedFiles))}
             ${renderInfoRow("Impact files", String(indexing.impactFiles))}
@@ -910,7 +1808,7 @@ function renderContextView(state) {
           <div class="kc-divider"></div>
           <div class="kc-stack-block">
             <p class="kc-stack-label">Selected files</p>
-            ${ctx.selectedFiles.length > 0 ? renderListBadges(ctx.selectedFiles) : renderEmptyState("No active files are selected yet.")}
+            ${selectedFiles.length > 0 ? renderListBadges(selectedFiles) : renderEmptyState("No active files are selected yet.")}
           </div>
         </section>
       </div>
@@ -992,39 +1890,56 @@ function renderContextView(state) {
   `;
 }
 function renderGraphView(state) {
-    const graph = buildRepoGraph((state.kiwiControl ?? EMPTY_KC).contextView.tree.nodes);
+    const graph = deriveGraphModel(state);
+    const focusedNode = graph.nodes.find((node) => node.path === (graphSelectedPath ?? (focusedItem?.kind === "path" ? focusedItem.path : null))) ?? null;
     return `
     <div class="kc-view-shell">
       <section class="kc-view-header">
         <div>
           <p class="kc-view-kicker">Repo Graph</p>
           <h1>Mind Map</h1>
-          <p>Repo topology visualized from Kiwi’s context tree. This is a lightweight graph surface for orientation, not a full graph database.</p>
+          <p>Repo topology visualized from Kiwi’s context tree with local focus, selection, and impact-path controls.</p>
         </div>
         ${renderHeaderBadge(graph.nodes.length > 0 ? `${graph.nodes.length} nodes` : "empty", graph.nodes.length > 0 ? "success" : "warn")}
       </section>
 
       <section class="kc-panel">
-        ${renderPanelHeader("Graph Overview", "Root-centered map of directories and files Kiwi currently knows about.")}
+        <div class="kc-panel-head-row">
+          ${renderPanelHeader("Graph Overview", "Root-centered map of directories and files Kiwi currently knows about.")}
+          <div class="kc-inline-badges">
+            <button class="kc-secondary-button" type="button" data-graph-action="depth-down">Depth -</button>
+            <span class="kc-inline-badge">depth ${graphDepth}</span>
+            <button class="kc-secondary-button" type="button" data-graph-action="depth-up">Depth +</button>
+            <button class="kc-secondary-button" type="button" data-graph-action="reset-view">Reset view</button>
+          </div>
+        </div>
         ${graph.nodes.length > 0
         ? `
             <div class="kc-graph-shell">
-              <svg class="kc-graph-canvas" viewBox="0 0 1200 720" role="img" aria-label="Repo graph">
+              <svg class="kc-graph-canvas" data-graph-surface viewBox="0 0 1200 720" role="img" aria-label="Repo graph">
+                <g transform="translate(${graphPan.x} ${graphPan.y}) scale(${graphZoom})">
                 ${graph.edges.map((edge) => `
                   <line
                     x1="${edge.from.x}"
                     y1="${edge.from.y}"
                     x2="${edge.to.x}"
                     y2="${edge.to.y}"
-                    class="kc-graph-edge"
+                    class="kc-graph-edge ${edge.highlighted ? "is-highlighted" : ""}"
                   />
                 `).join("")}
                 ${graph.nodes.map((node) => `
-                  <g transform="translate(${node.x}, ${node.y})">
-                    <circle r="${node.radius}" class="kc-graph-node ${node.tone}" />
+                  <g transform="translate(${node.x}, ${node.y})" class="kc-graph-node-wrap ${node.highlighted ? "is-highlighted" : ""}">
+                    <circle
+                      r="${node.radius}"
+                      data-graph-node
+                      data-path="${escapeAttribute(node.path)}"
+                      data-kind="${node.kind}"
+                      class="kc-graph-node ${node.tone} importance-${node.importance}"
+                    />
                     <text class="kc-graph-label" text-anchor="middle" dy=".35em">${escapeHtml(node.label)}</text>
                   </g>
                 `).join("")}
+                </g>
               </svg>
             </div>
           `
@@ -1039,13 +1954,23 @@ function renderGraphView(state) {
         : renderEmptyState("No cluster summary is available yet.")}
         </section>
         <section class="kc-panel">
-          ${renderPanelHeader("How to Read", "A quick guide so this graph feels familiar to Cursor-style users.")}
-          <div class="kc-stack-list">
-            ${renderNoteRow("Center", "repo root", "The root anchors the visible map.")}
-            ${renderNoteRow("Primary ring", "folders", "Top-level context clusters and module areas.")}
-            ${renderNoteRow("Outer ring", "files", "Representative files from the current repo context.")}
-            ${renderNoteRow("Selection tones", "selected / candidate / excluded", "Graph colors follow Kiwi’s existing context selection semantics.")}
-          </div>
+          ${renderPanelHeader("Node Actions", focusedNode ? `${focusedNode.label} · ${focusedNode.kind}` : "Select a node to act on it.")}
+          ${focusedNode
+        ? `
+              <div class="kc-stack-list">
+                ${renderNoteRow("Status", focusedNode.status, `importance: ${focusedNode.importance}`)}
+                ${renderNoteRow("Path", focusedNode.kind, focusedNode.path)}
+              </div>
+              <div class="kc-divider"></div>
+              <div class="kc-inline-badges">
+                <button class="kc-secondary-button" type="button" data-graph-action="focus" data-path="${escapeAttribute(focusedNode.path)}">Focus</button>
+                <button class="kc-secondary-button" type="button" data-graph-action="include" data-path="${escapeAttribute(focusedNode.path)}">Include</button>
+                <button class="kc-secondary-button" type="button" data-graph-action="exclude" data-path="${escapeAttribute(focusedNode.path)}">Exclude</button>
+                <button class="kc-secondary-button" type="button" data-graph-action="ignore" data-path="${escapeAttribute(focusedNode.path)}">Ignore</button>
+                ${focusedNode.kind === "file" ? `<button class="kc-secondary-button" type="button" data-graph-action="open" data-path="${escapeAttribute(focusedNode.path)}">Open</button>` : ""}
+              </div>
+            `
+        : renderEmptyState("No graph node is currently selected.")}
         </section>
       </div>
     </div>
@@ -1936,12 +2861,24 @@ function renderInspector(state) {
     const activeSpecialist = state.specialists.activeProfile;
     const topCapability = state.mcpPacks.compatibleCapabilities[0] ?? null;
     const signalItems = kc.decisionLogic.inputSignals.slice(0, activeMode === "execution" ? 3 : 5);
+    const currentFocus = focusedItem;
+    const focusedStep = currentFocus?.kind === "step"
+        ? deriveDisplayExecutionPlanSteps(state).find((step) => step.id === currentFocus.id) ?? null
+        : null;
+    const focusedNode = currentFocus?.kind === "path" ? findContextNodeByPath(state, currentFocus.path) : null;
+    const focusedLabel = focusedStep?.displayTitle ?? focusedNode?.name ?? primaryAction?.action ?? "No blocking action";
+    const focusedReason = focusedStep?.displayNote
+        ?? focusedNode?.path
+        ?? primaryAction?.reason
+        ?? kc.nextActions.summary
+        ?? state.repoState.detail;
+    const marker = currentFocus ? approvalMarkers.get(currentFocus.id) ?? "unmarked" : "unmarked";
     return `
     <div class="kc-inspector-shell">
       <div class="kc-inspector-header">
         <div>
           <span>Inspector</span>
-          <h2>${escapeHtml(primaryAction?.action ?? "No blocking action")}</h2>
+          <h2>${escapeHtml(focusedLabel)}</h2>
         </div>
         <button class="kc-icon-button" type="button" data-toggle-inspector>
           ${iconSvg("close")}
@@ -1949,8 +2886,22 @@ function renderInspector(state) {
       </div>
 
       <section class="kc-inspector-section">
+        <p class="kc-section-micro">Controls</p>
+        <div class="kc-inline-badges">
+          <button class="kc-secondary-button" type="button" data-inspector-action="approve" ${!focusedItem ? "disabled" : ""}>Approve</button>
+          <button class="kc-secondary-button" type="button" data-inspector-action="reject" ${!focusedItem ? "disabled" : ""}>Reject</button>
+          <button class="kc-secondary-button" type="button" data-inspector-action="add-to-context" ${focusedItem?.kind !== "path" ? "disabled" : ""}>Add to Context</button>
+          <button class="kc-secondary-button" type="button" data-inspector-action="validate" ${commandState.loading ? "disabled" : ""}>Trigger Validation</button>
+          <button class="kc-secondary-button" type="button" data-inspector-action="handoff" ${commandState.loading ? "disabled" : ""}>Quick Handoff</button>
+        </div>
+        <div class="kc-divider"></div>
+        ${renderNoteRow("Selection", currentFocus?.kind ?? "global", focusedReason)}
+        ${renderNoteRow("Decision", marker, currentFocus ? "Local inspector review state for the current focus." : "Select a node or plan step to review it here.")}
+      </section>
+
+      <section class="kc-inspector-section">
         <p class="kc-section-micro">Reasoning</p>
-        <p>${escapeHtml(primaryAction?.reason ?? (kc.nextActions.summary || state.repoState.detail))}</p>
+        <p>${escapeHtml(focusedReason)}</p>
         <div class="kc-inline-badges">
           ${renderInlineBadge(kc.contextView.confidence?.toUpperCase() ?? "UNKNOWN")}
           ${renderInlineBadge(kc.contextView.confidenceDetail ?? "No confidence detail")}
@@ -2032,9 +2983,11 @@ function renderInspector(state) {
 
       <section class="kc-inspector-section">
         <p class="kc-section-micro">Command</p>
-        ${primaryAction?.command
-        ? `<code class="kc-command-block">${escapeHtml(primaryAction.command)}</code>`
-        : `<p>No command recorded for the current state.</p>`}
+        ${commandState.lastResult
+        ? `<code class="kc-command-block">${escapeHtml(commandState.lastResult.commandLabel)}</code>`
+        : primaryAction?.command
+            ? `<code class="kc-command-block">${escapeHtml(primaryAction.command)}</code>`
+            : `<p>No command recorded for the current state.</p>`}
       </section>
 
       <section class="kc-inspector-section">
@@ -2310,6 +3263,70 @@ function renderMeterRow(label, value, total) {
     </div>
   `;
 }
+function renderExecutionPlanPanel(state) {
+    const kc = state.kiwiControl ?? EMPTY_KC;
+    const steps = deriveDisplayExecutionPlanSteps(state);
+    return `
+    <section class="kc-panel">
+      ${renderPanelHeader("Execution Plan", kc.executionPlan.summary || "No execution plan is recorded yet.")}
+      <div class="kc-inline-badges">
+        ${renderInlineBadge(`state: ${kc.executionPlan.state}`)}
+        ${renderInlineBadge(`current: ${steps[kc.executionPlan.currentStepIndex]?.id ?? "none"}`)}
+        ${renderInlineBadge(`risk: ${kc.executionPlan.risk}`)}
+        ${kc.executionPlan.confidence ? renderInlineBadge(`confidence: ${kc.executionPlan.confidence}`) : ""}
+      </div>
+      ${kc.executionPlan.lastError
+        ? `<div class="kc-divider"></div><div class="kc-stack-list">
+            ${renderNoteRow("Failure", kc.executionPlan.lastError.errorType, kc.executionPlan.lastError.reason)}
+            ${renderNoteRow("Fix command", kc.executionPlan.lastError.fixCommand, "Run this before continuing.")}
+            ${renderNoteRow("Retry command", kc.executionPlan.lastError.retryCommand, "Use this to retry the failed step.")}
+          </div>`
+        : ""}
+      ${steps.length > 0
+        ? `<div class="kc-plan-list">${steps.map((step, index) => renderExecutionPlanStepRow(step, index)).join("")}</div>`
+        : renderEmptyState("No execution plan is available yet.")}
+    </section>
+  `;
+}
+function renderExecutionPlanStepRow(step, index) {
+    const isEditing = editingPlanStepId === step.id;
+    return `
+    <article class="kc-plan-step ${step.skipped ? "is-skipped" : ""} ${focusedItem?.kind === "step" && focusedItem.id === step.id ? "is-focused" : ""}" data-step-row="${escapeAttribute(step.id)}">
+      <div class="kc-plan-step-head">
+        <div>
+          <span class="kc-section-micro">step ${index + 1}</span>
+          ${isEditing
+        ? `<input class="kc-action-input kc-plan-edit-input" data-plan-edit-input value="${escapeAttribute(editingPlanDraft)}" />`
+        : `<strong>${escapeHtml(step.displayTitle)}</strong>`}
+          <p>${escapeHtml(step.displayNote ?? step.command)}</p>
+        </div>
+        <div class="kc-inline-badges">
+          ${renderHeaderBadge(step.status, step.status === "failed" ? "warn" : step.status === "success" ? "success" : "neutral")}
+          ${step.skipped ? renderInlineBadge("skipped") : ""}
+        </div>
+      </div>
+      <div class="kc-plan-step-actions">
+        <button class="kc-secondary-button" type="button" data-plan-action="focus" data-step-id="${escapeAttribute(step.id)}">Focus</button>
+        <button class="kc-secondary-button" type="button" data-plan-action="run" data-step-id="${escapeAttribute(step.id)}" ${commandState.loading ? "disabled" : ""}>Run</button>
+        <button class="kc-secondary-button" type="button" data-plan-action="retry" data-step-id="${escapeAttribute(step.id)}" ${commandState.loading ? "disabled" : ""}>Retry</button>
+        <button class="kc-secondary-button" type="button" data-plan-action="skip" data-step-id="${escapeAttribute(step.id)}">${step.skipped ? "Unskip" : "Skip"}</button>
+        ${isEditing
+        ? `
+            <button class="kc-secondary-button" type="button" data-plan-action="edit-save" data-step-id="${escapeAttribute(step.id)}">Save</button>
+            <button class="kc-secondary-button" type="button" data-plan-action="edit-cancel" data-step-id="${escapeAttribute(step.id)}">Cancel</button>
+          `
+        : `<button class="kc-secondary-button" type="button" data-plan-action="edit" data-step-id="${escapeAttribute(step.id)}">Edit</button>`}
+        <button class="kc-secondary-button" type="button" data-plan-action="move-up" data-step-id="${escapeAttribute(step.id)}">↑</button>
+        <button class="kc-secondary-button" type="button" data-plan-action="move-down" data-step-id="${escapeAttribute(step.id)}">↓</button>
+      </div>
+      <div class="kc-plan-step-meta">
+        <code class="kc-command-chip">${escapeHtml(step.command)}</code>
+        <span>${escapeHtml(step.validation)}</span>
+        ${step.retryCommand ? `<span>${escapeHtml(step.retryCommand)}</span>` : ""}
+      </div>
+    </article>
+  `;
+}
 function renderValidationIssueCard(issue) {
     return `
     <article class="kc-issue-card issue-${escapeHtml(issue.level)}">
@@ -2331,6 +3348,7 @@ function renderContextTree(tree) {
         <span><strong>✓</strong> selected</span>
         <span><strong>•</strong> candidate</span>
         <span><strong>×</strong> excluded</span>
+        <span><strong>local</strong> UI-only until a CLI command runs</span>
       </div>
       <div class="kc-tree-root">
         ${tree.nodes.map((node) => renderContextTreeNode(node)).join("")}
@@ -2339,23 +3357,41 @@ function renderContextTree(tree) {
   `;
 }
 function renderContextTreeNode(node) {
+    const override = contextOverrides.get(node.path);
+    const overrideLabel = override ? `override: ${override}` : node.status;
     if (node.kind === "file") {
         return `
-      <div class="kc-tree-node tree-${escapeHtml(node.status)}">
+      <div class="kc-tree-node tree-${escapeHtml(node.status)} ${focusedItem?.kind === "path" && focusedItem.path === node.path ? "is-focused" : ""}">
         <span class="kc-tree-row">
           <span class="kc-tree-status">${contextTreeStatusIcon(node.status)}</span>
           <span class="kc-tree-name">${escapeHtml(node.name)}</span>
+          <span class="kc-tree-actions">
+            <button class="kc-tree-action" type="button" data-tree-action="focus" data-path="${escapeAttribute(node.path)}">Focus</button>
+            <button class="kc-tree-action" type="button" data-tree-action="include" data-path="${escapeAttribute(node.path)}">Include</button>
+            <button class="kc-tree-action" type="button" data-tree-action="exclude" data-path="${escapeAttribute(node.path)}">Exclude</button>
+            <button class="kc-tree-action" type="button" data-tree-action="ignore" data-path="${escapeAttribute(node.path)}">Ignore</button>
+            <button class="kc-tree-action" type="button" data-tree-action="open" data-path="${escapeAttribute(node.path)}">Open</button>
+          </span>
         </span>
+        <span class="kc-tree-meta">${escapeHtml(overrideLabel)}</span>
       </div>
     `;
     }
     return `
-    <details class="kc-tree-node tree-dir tree-${escapeHtml(node.status)}" ${node.expanded ? "open" : ""}>
+    <details class="kc-tree-node tree-dir tree-${escapeHtml(node.status)} ${focusedItem?.kind === "path" && focusedItem.path === node.path ? "is-focused" : ""}" ${node.expanded ? "open" : ""}>
       <summary class="kc-tree-row">
         <span class="kc-tree-caret"></span>
         <span class="kc-tree-status">${contextTreeStatusIcon(node.status)}</span>
         <span class="kc-tree-name">${escapeHtml(node.name)}/</span>
+        <span class="kc-tree-actions">
+          <button class="kc-tree-action" type="button" data-tree-action="focus" data-path="${escapeAttribute(node.path)}">Focus</button>
+          <button class="kc-tree-action" type="button" data-tree-action="include" data-path="${escapeAttribute(node.path)}">Include</button>
+          <button class="kc-tree-action" type="button" data-tree-action="exclude" data-path="${escapeAttribute(node.path)}">Exclude</button>
+          <button class="kc-tree-action" type="button" data-tree-action="ignore" data-path="${escapeAttribute(node.path)}">Ignore</button>
+          <button class="kc-tree-action" type="button" data-tree-action="open" data-path="${escapeAttribute(node.path)}">Open</button>
+        </span>
       </summary>
+      <div class="kc-tree-meta">${escapeHtml(overrideLabel)}</div>
       <div class="kc-tree-children">
         ${node.children.map((child) => renderContextTreeNode(child)).join("")}
       </div>
@@ -2759,6 +3795,9 @@ function escapeHtml(value) {
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#39;");
+}
+function escapeAttribute(value) {
+    return escapeHtml(value);
 }
 function isTauriBridgeAvailable() {
     return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;

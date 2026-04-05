@@ -170,14 +170,58 @@ button {
 
 .kc-topbar {
   display: flex;
-  height: 48px;
+  min-height: 48px;
   flex-shrink: 0;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 16px;
+  padding: 8px 16px 10px;
+  border-bottom: 1px solid var(--sidebar-border);
+  background: color-mix(in srgb, var(--sidebar) 96%, transparent);
+}
+
+.kc-topbar-primary {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--sidebar-border);
-  background: color-mix(in srgb, var(--sidebar) 96%, transparent);
+}
+
+.kc-topbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.kc-topbar-action-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.kc-action-composer {
+  display: flex;
+  flex: 1 1 320px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+}
+
+.kc-action-input {
+  min-width: 0;
+  flex: 1 1 auto;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--popover) 92%, transparent);
+  color: var(--foreground);
 }
 
 .kc-topbar-left,
@@ -503,6 +547,20 @@ button {
   border: 1px solid var(--border);
   border-radius: 10px;
   background: color-mix(in srgb, var(--secondary) 70%, transparent);
+  cursor: pointer;
+}
+
+.kc-theme-toggle:disabled,
+.kc-secondary-button:disabled,
+.kc-action-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kc-action-button.is-primary {
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--foreground);
 }
 
 .kc-repo-pill {
@@ -1070,6 +1128,8 @@ button {
   display: block;
   width: 100%;
   height: 560px;
+  cursor: grab;
+  touch-action: none;
 }
 
 .kc-graph-edge {
@@ -1077,10 +1137,17 @@ button {
   stroke-width: 1.4;
 }
 
+.kc-graph-edge.is-highlighted {
+  stroke: color-mix(in srgb, var(--primary) 86%, white);
+  stroke-width: 2.4;
+}
+
 .kc-graph-node {
   stroke: color-mix(in srgb, var(--border-strong) 80%, transparent);
   stroke-width: 1.5;
   fill: color-mix(in srgb, var(--secondary) 88%, transparent);
+  cursor: pointer;
+  transition: transform 140ms ease, stroke 140ms ease, fill 140ms ease;
 }
 
 .kc-graph-node.tone-root {
@@ -1100,6 +1167,19 @@ button {
 .kc-graph-node.tone-excluded {
   fill: color-mix(in srgb, var(--warning) 16%, transparent);
   stroke: color-mix(in srgb, var(--warning) 34%, var(--border));
+}
+
+.kc-graph-node.importance-high {
+  stroke-width: 2.2;
+}
+
+.kc-graph-node.importance-low {
+  opacity: 0.88;
+}
+
+.kc-graph-node-wrap.is-highlighted .kc-graph-node {
+  stroke: color-mix(in srgb, var(--primary) 86%, white);
+  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--primary) 28%, transparent));
 }
 
 .kc-graph-label {
@@ -1218,6 +1298,12 @@ button {
   display: block;
 }
 
+.kc-tree-node.is-focused > .kc-tree-row,
+.kc-tree-node.is-focused > summary.kc-tree-row {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 26%, var(--border));
+}
+
 .kc-tree-row {
   display: flex;
   align-items: center;
@@ -1232,6 +1318,37 @@ button {
 
 .kc-tree-row:hover {
   background: color-mix(in srgb, var(--secondary) 72%, transparent);
+}
+
+.kc-tree-actions {
+  display: inline-flex;
+  margin-left: auto;
+  gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.kc-tree-row:hover .kc-tree-actions,
+.kc-tree-node.is-focused > .kc-tree-row .kc-tree-actions,
+.tree-dir[open] > .kc-tree-row .kc-tree-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.kc-tree-action {
+  padding: 3px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--secondary) 78%, transparent);
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.kc-tree-action:hover {
+  color: var(--foreground);
 }
 
 .kc-tree-node summary::-webkit-details-marker {
@@ -1285,6 +1402,90 @@ button {
 .kc-tree-name {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.kc-tree-meta {
+  padding: 0 8px 4px 42px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.kc-command-banner {
+  padding: 14px 16px;
+}
+
+.kc-command-banner-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.kc-command-banner strong {
+  color: var(--foreground);
+  font-size: 14px;
+}
+
+.kc-plan-list {
+  display: grid;
+  gap: 12px;
+}
+
+.kc-plan-step {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--secondary) 28%, transparent);
+}
+
+.kc-plan-step.is-focused {
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.kc-plan-step.is-skipped {
+  opacity: 0.72;
+}
+
+.kc-plan-step-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.kc-plan-step-head > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.kc-plan-step-head strong {
+  color: var(--foreground);
+  font-size: 14px;
+}
+
+.kc-plan-step-head p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.kc-plan-step-actions,
+.kc-plan-step-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.kc-plan-edit-input {
+  min-width: 280px;
 }
 
 .kc-tree-children {
