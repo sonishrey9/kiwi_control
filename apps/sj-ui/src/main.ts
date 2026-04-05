@@ -52,6 +52,15 @@ type RepoControlMode =
   | "initialized-with-warnings"
   | "healthy";
 
+type RepoControlLoadState = {
+  source: "fresh" | "warm-snapshot" | "stale-snapshot" | "bridge-fallback";
+  freshness: "fresh" | "warm" | "stale" | "failed";
+  generatedAt: string;
+  snapshotSavedAt: string | null;
+  snapshotAgeMs: number | null;
+  detail: string;
+};
+
 type KiwiControlContextTreeStatus = "selected" | "candidate" | "excluded";
 
 type KiwiControlContextTreeNode = {
@@ -456,6 +465,7 @@ type KiwiControlState = {
 
 type RepoControlState = {
   targetRoot: string;
+  loadState: RepoControlLoadState;
   profileName: string;
   executionMode: string;
   projectType: string;
@@ -643,6 +653,19 @@ const NAV_ITEMS: Array<{ id: NavView; label: string; icon: string }> = [
 ];
 
 const BRIDGE_UNAVAILABLE_NEXT_STEP = "Confirm kiwi-control works in Terminal, then run kc ui again.";
+const AUTO_REFRESH_INTERVAL_MS = 45_000;
+const AUTO_REFRESH_MIN_AGE_MS = 30_000;
+const MACHINE_LIGHTWEIGHT_SECTIONS: MachineSectionName[] = [
+  "inventory",
+  "configHealth",
+  "mcpInventory",
+];
+const MACHINE_HEAVY_SECTIONS: MachineSectionName[] = [
+  "guidance",
+  "optimizationLayers",
+  "setupPhases",
+  "usage"
+];
 
 const EMPTY_KC: KiwiControlState = {
   contextView: {
@@ -845,12 +868,18 @@ let workspaceSurfaceElement!: HTMLElement;
 
 let currentTargetRoot = "";
 let isLoadingRepoState = false;
+let isRefreshingFreshRepoState = false;
 let queuedLaunchRequest: LaunchRequestPayload | null = null;
 let lastHandledLaunchRequestId = "";
 let machineHydrationRound = 0;
+let machineHydrationInFlight = false;
+let machineHydrationActiveSections = new Set<MachineSectionName>();
+let hydratedMachineSections = new Set<MachineSectionName>();
 let currentLoadSource: "cli" | "manual" | "auto" | null = null;
 let lastRepoRefreshAt = 0;
+let lastRepoLoadFailure: string | null = null;
 let renderQueued = false;
+let deferredMachineHydrationTimer: number | null = null;
 let activeInteractiveTargetRoot = "";
 let commandState: CommandState = {
   activeCommand: null,
@@ -878,6 +907,15 @@ let localPlanEdits = new Map<string, { label: string; note: string }>();
 let editingPlanStepId: string | null = null;
 let editingPlanDraft = "";
 let approvalMarkers = new Map<string, "approved" | "rejected">();
+let contextOverrideVersion = 0;
+let derivedTreeCache:
+  | {
+      baseTree: KiwiControlContextTree;
+      overrideVersion: number;
+      tree: KiwiControlContextTree;
+      flatNodes: KiwiControlContextTreeNode[];
+    }
+  | null = null;
 
 try {
   app.innerHTML = buildShellHtml();
@@ -895,9 +933,6 @@ try {
   renderState(currentState);
   bridgeNoteElement.textContent = buildBridgeNote(currentState, "shell");
   finalizeInitialRender();
-  window.setTimeout(() => {
-    void hydrateMachineAdvisory(false);
-  }, 180);
 
   app.addEventListener("click", (event) => {
   const target = event.target as HTMLElement | null;
@@ -909,40 +944,41 @@ try {
   const viewButton = target.closest<HTMLElement>("[data-view]");
   if (viewButton?.dataset.view) {
     activeView = viewButton.dataset.view as NavView;
-    renderState(currentState);
+    scheduleRenderState();
+    scheduleMachineHydrationForView(activeView, false);
     return;
   }
 
   if (target.closest("[data-toggle-logs]")) {
     isLogDrawerOpen = !isLogDrawerOpen;
-    renderState(currentState);
+    scheduleRenderState();
     return;
   }
 
   if (target.closest("[data-toggle-inspector]")) {
     isInspectorOpen = !isInspectorOpen;
-    renderState(currentState);
+    scheduleRenderState();
     return;
   }
 
   const logTabButton = target.closest<HTMLElement>("[data-log-tab]");
   if (logTabButton?.dataset.logTab) {
     activeLogTab = logTabButton.dataset.logTab as LogTab;
-    renderState(currentState);
+    scheduleRenderState();
     return;
   }
 
   const validationTabButton = target.closest<HTMLElement>("[data-validation-tab]");
   if (validationTabButton?.dataset.validationTab) {
     activeValidationTab = validationTabButton.dataset.validationTab as ValidationTab;
-    renderState(currentState);
+    scheduleRenderState();
     return;
   }
 
   if (target.closest("[data-theme-toggle]")) {
     activeTheme = activeTheme === "dark" ? "light" : "dark";
     applyChromePreferences();
-    renderState(currentState);
+    scheduleRenderState();
     return;
   }
 
@@ -953,7 +989,7 @@ try {
       isLogDrawerOpen = false;
       activeLogTab = "history";
     }
-    renderState(currentState);
+    scheduleRenderState();
     return;
   }
 
@@ -1000,7 +1036,7 @@ try {
     event.preventDefault();
     const delta = event.deltaY > 0 ? -0.12 : 0.12;
     graphZoom = Math.max(0.65, Math.min(2.4, Number((graphZoom + delta).toFixed(2))));
-    renderState(currentState);
+    scheduleRenderState();
   }, { passive: false });
 
   app.addEventListener("pointerdown", (event) => {
@@ -1040,7 +1076,7 @@ try {
       };
       graphInteraction.lastClientX = event.clientX;
       graphInteraction.lastClientY = event.clientY;
-      renderState(currentState);
+      scheduleRenderState();
       return;
     }
     const existing = graphNodePositions.get(graphInteraction.path) ?? { x: 0, y: 0 };
@@ -1050,7 +1086,7 @@ try {
     });
     graphInteraction.lastClientX = event.clientX;
     graphInteraction.lastClientY = event.clientY;
-    renderState(currentState);
+    scheduleRenderState();
   });
 
   window.addEventListener("pointerup", () => {
@@ -1202,7 +1238,7 @@ async function boot(): Promise<void> {
 
   window.setInterval(() => {
     void maybeAutoRefreshState();
-  }, 15_000);
+  }, AUTO_REFRESH_INTERVAL_MS);
 
   window.addEventListener("focus", () => {
     void maybeAutoRefreshState();
@@ -1256,8 +1292,13 @@ async function pollPendingLaunchRequest(): Promise<void> {
   await handleLaunchRequest(pendingLaunchRequest);
 }
 
-async function loadAndRenderTarget(targetRoot: string, source: "cli" | "manual" | "auto", requestId?: string): Promise<void> {
-  if (isLoadingRepoState) {
+async function loadAndRenderTarget(
+  targetRoot: string,
+  source: "cli" | "manual" | "auto",
+  requestId?: string,
+  options: { preferSnapshot?: boolean } = {}
+): Promise<void> {
+  if (isLoadingRepoState || isRefreshingFreshRepoState) {
     if (requestId) {
       queuedLaunchRequest = { requestId, targetRoot };
     }
@@ -1267,6 +1308,7 @@ async function loadAndRenderTarget(targetRoot: string, source: "cli" | "manual" 
   isLoadingRepoState = true;
   currentLoadSource = source;
   currentTargetRoot = targetRoot;
+  lastRepoLoadFailure = null;
   bridgeNoteElement.textContent =
     source === "cli"
       ? `Opening ${targetRoot} from ${requestId ? "kc ui" : "the CLI"}...`
@@ -1275,25 +1317,134 @@ async function loadAndRenderTarget(targetRoot: string, source: "cli" | "manual" 
       : `Loading repo-local state for ${targetRoot}...`;
   renderState(currentState);
 
-  const state = await loadRepoControlState(targetRoot);
-  currentTargetRoot = state.targetRoot || targetRoot;
-  currentState = state;
-  lastRepoRefreshAt = Date.now();
-  renderState(state);
-  bridgeNoteElement.textContent = buildBridgeNote(state, source);
-  await logUiEvent("ui-repo-state-rendered", requestId, state.targetRoot || targetRoot, state.repoState.mode);
-  window.setTimeout(() => {
-    void hydrateMachineAdvisory(true);
-  }, 180);
+  try {
+    const state = await loadRepoControlState(targetRoot, options.preferSnapshot ?? (source !== "auto"));
+    currentTargetRoot = state.targetRoot || targetRoot;
+    currentState = state;
+    lastRepoRefreshAt = Date.now();
+    renderState(state);
+    bridgeNoteElement.textContent = buildBridgeNote(state, source);
+    await logUiEvent("ui-repo-state-rendered", requestId, state.targetRoot || targetRoot, `${state.repoState.mode}:${state.loadState.source}`);
 
-  if (requestId) {
-    await acknowledgeLaunchRequest(requestId, state);
+    if ((state.loadState.source === "warm-snapshot" || state.loadState.source === "stale-snapshot") && source !== "auto") {
+      isLoadingRepoState = false;
+      currentLoadSource = null;
+      isRefreshingFreshRepoState = true;
+      renderState(currentState);
+
+      if (requestId) {
+        await acknowledgeLaunchRequest(
+          requestId,
+          currentTargetRoot,
+          "hydrating",
+          state.loadState.source === "stale-snapshot"
+            ? `Loaded an older repo snapshot for ${currentTargetRoot}. Fresh repo-local state is still hydrating.`
+            : `Loaded a warm repo snapshot for ${currentTargetRoot}. Fresh repo-local state is still hydrating.`
+        );
+      }
+
+      window.setTimeout(() => {
+        void refreshFreshRepoState(currentTargetRoot, requestId);
+      }, 32);
+      return;
+    }
+
+    startMachineHydrationCycle(false);
+
+    if (requestId) {
+      await acknowledgeLaunchRequest(
+        requestId,
+        currentTargetRoot,
+        state.repoState.mode === "bridge-unavailable" ? "error" : "ready"
+      );
+    }
+  } catch (error) {
+    lastRepoLoadFailure = error instanceof Error ? error.message : String(error);
+    const canRetainCurrentState =
+      (source === "auto" || source === "manual")
+      && currentState.targetRoot === targetRoot
+      && currentState.repoState.mode !== "bridge-unavailable";
+
+    if (canRetainCurrentState) {
+      bridgeNoteElement.textContent = `Kiwi kept the last known repo-local state for ${targetRoot}. Refresh failed: ${lastRepoLoadFailure}`;
+      renderState(currentState);
+      await logUiEvent("ui-repo-state-retained-after-refresh-failure", requestId, targetRoot, lastRepoLoadFailure);
+      return;
+    }
+
+    const fallbackState = buildBridgeUnavailableState(targetRoot);
+    currentState = fallbackState;
+    currentTargetRoot = fallbackState.targetRoot || targetRoot;
+    bridgeNoteElement.textContent = `Kiwi could not load repo-local state for ${targetRoot}. ${lastRepoLoadFailure}`;
+    renderState(fallbackState);
+    await logUiEvent("ui-repo-state-failed", requestId, targetRoot, lastRepoLoadFailure);
+    if (requestId) {
+      await acknowledgeLaunchRequest(requestId, targetRoot, "error", lastRepoLoadFailure);
+    }
+  } finally {
+    isLoadingRepoState = false;
+    currentLoadSource = null;
+
+    if (!isRefreshingFreshRepoState) {
+      await flushQueuedLaunchRequest(requestId);
+    }
+  }
+}
+
+async function maybeAutoRefreshState(): Promise<void> {
+  const refreshAgeMs = Date.now() - lastRepoRefreshAt;
+  const recentFreshState =
+    currentState.loadState.source === "fresh"
+    && currentState.repoState.mode !== "initialized-invalid"
+    && refreshAgeMs < 5 * 60_000;
+
+  if (
+    !currentTargetRoot
+    || isLoadingRepoState
+    || isRefreshingFreshRepoState
+    || commandState.loading
+    || document.hidden
+    || refreshAgeMs < AUTO_REFRESH_MIN_AGE_MS
+    || recentFreshState
+  ) {
+    return;
   }
 
-  isLoadingRepoState = false;
-  currentLoadSource = null;
+  await loadAndRenderTarget(currentTargetRoot, "auto", undefined, { preferSnapshot: false });
+}
 
-  if (queuedLaunchRequest && queuedLaunchRequest.requestId !== requestId) {
+async function refreshFreshRepoState(targetRoot: string, requestId?: string): Promise<void> {
+  try {
+    const freshState = await loadRepoControlState(targetRoot, false);
+    currentTargetRoot = freshState.targetRoot || targetRoot;
+    currentState = freshState;
+    lastRepoRefreshAt = Date.now();
+    lastRepoLoadFailure = null;
+    renderState(freshState);
+    bridgeNoteElement.textContent = buildBridgeNote(freshState, "manual");
+    await logUiEvent("ui-repo-state-refreshed", requestId, currentTargetRoot, freshState.repoState.mode);
+    startMachineHydrationCycle(false);
+
+    if (requestId) {
+      await acknowledgeLaunchRequest(
+        requestId,
+        currentTargetRoot,
+        freshState.repoState.mode === "bridge-unavailable" ? "error" : "ready"
+      );
+    }
+  } catch (error) {
+    lastRepoLoadFailure = error instanceof Error ? error.message : String(error);
+    bridgeNoteElement.textContent = `Showing a warm repo snapshot for ${targetRoot}. Fresh refresh failed: ${lastRepoLoadFailure}`;
+    await logUiEvent("ui-repo-state-refresh-failed", requestId, targetRoot, lastRepoLoadFailure);
+    renderState(currentState);
+  } finally {
+    isRefreshingFreshRepoState = false;
+    await flushQueuedLaunchRequest(requestId);
+  }
+}
+
+async function flushQueuedLaunchRequest(currentRequestId?: string): Promise<void> {
+  if (queuedLaunchRequest && queuedLaunchRequest.requestId !== currentRequestId) {
     const nextRequest = queuedLaunchRequest;
     queuedLaunchRequest = null;
     await handleLaunchRequest(nextRequest);
@@ -1303,24 +1454,17 @@ async function loadAndRenderTarget(targetRoot: string, source: "cli" | "manual" 
   queuedLaunchRequest = null;
 }
 
-async function maybeAutoRefreshState(): Promise<void> {
-  if (
-    !currentTargetRoot
-    || isLoadingRepoState
-    || commandState.loading
-    || document.hidden
-    || Date.now() - lastRepoRefreshAt < 10_000
-  ) {
-    return;
-  }
-
-  await loadAndRenderTarget(currentTargetRoot, "auto");
-}
-
-async function acknowledgeLaunchRequest(requestId: string, state: RepoControlState): Promise<void> {
-  const targetRoot = state.targetRoot || currentTargetRoot;
-  const status = state.repoState.mode === "bridge-unavailable" ? "error" : "ready";
-  const detail = status === "ready" ? `Loaded repo-local state for ${targetRoot}.` : BRIDGE_UNAVAILABLE_NEXT_STEP;
+async function acknowledgeLaunchRequest(
+  requestId: string,
+  targetRoot: string,
+  status: "ready" | "error" | "hydrating",
+  detail?: string
+): Promise<void> {
+  const resolvedDetail = detail ?? (status === "ready"
+    ? `Loaded repo-local state for ${targetRoot}.`
+    : status === "hydrating"
+      ? `Loaded a warm repo snapshot for ${targetRoot}. Fresh repo-local state is still hydrating.`
+      : BRIDGE_UNAVAILABLE_NEXT_STEP);
 
   if (!isTauriBridgeAvailable()) {
     return;
@@ -1328,7 +1472,7 @@ async function acknowledgeLaunchRequest(requestId: string, state: RepoControlSta
 
   try {
     await logUiEvent("ui-ack-attempt", requestId, targetRoot, status);
-    await invoke("ack_launch_request", { requestId, targetRoot, status, detail });
+    await invoke("ack_launch_request", { requestId, targetRoot, status, detail: resolvedDetail });
     await logUiEvent("ui-ack-succeeded", requestId, targetRoot, status);
   } catch (error) {
     bridgeNoteElement.textContent = "Kiwi Control loaded this repo, but the desktop launch acknowledgement did not complete yet.";
@@ -1348,25 +1492,140 @@ async function logUiEvent(event: string, requestId?: string, targetRoot?: string
   }
 }
 
-async function hydrateMachineAdvisory(refresh: boolean): Promise<void> {
-  if (!isTauriBridgeAvailable()) {
+function isSnapshotLoadSource(source: RepoControlLoadState["source"]): boolean {
+  return source === "warm-snapshot" || source === "stale-snapshot";
+}
+
+function isMachineHeavyView(view: NavView): boolean {
+  return view === "machine" || view === "tokens" || view === "mcps" || view === "system";
+}
+
+function dedupeMachineSections(sections: MachineSectionName[]): MachineSectionName[] {
+  return [...new Set(sections)];
+}
+
+function machinePrioritySectionsForView(view: NavView): MachineSectionName[] {
+  switch (view) {
+    case "tokens":
+      return ["usage", "optimizationLayers"];
+    case "mcps":
+      return ["mcpInventory", "optimizationLayers"];
+    case "system":
+      return ["inventory", "configHealth", "setupPhases"];
+    case "machine":
+      return ["guidance", "inventory", "configHealth"];
+    default:
+      return MACHINE_LIGHTWEIGHT_SECTIONS;
+  }
+}
+
+function machineSecondarySectionsForView(view: NavView): MachineSectionName[] {
+  if (!isMachineHeavyView(view)) {
+    return [];
+  }
+
+  return dedupeMachineSections([
+    ...MACHINE_LIGHTWEIGHT_SECTIONS,
+    ...MACHINE_HEAVY_SECTIONS
+  ]);
+}
+
+function sectionsNeedingHydration(sections: MachineSectionName[], refresh: boolean): MachineSectionName[] {
+  return sections.filter((section) => {
+    if (refresh) {
+      return true;
+    }
+    if (!hydratedMachineSections.has(section)) {
+      return true;
+    }
+    return currentState.machineAdvisory.sections[section]?.status !== "fresh";
+  });
+}
+
+function scheduleMachineHydrationForView(view: NavView, refresh: boolean): void {
+  if (!currentTargetRoot || !isTauriBridgeAvailable()) {
     return;
   }
 
-  const round = ++machineHydrationRound;
-  const sections: MachineSectionName[] = [
-    "inventory",
-    "mcpInventory",
-    "optimizationLayers",
-    "setupPhases",
-    "configHealth",
-    "usage",
-    "guidance"
-  ];
+  const prioritySections = sectionsNeedingHydration(machinePrioritySectionsForView(view), refresh);
+  const secondarySections = sectionsNeedingHydration(
+    machineSecondarySectionsForView(view).filter((section) => !prioritySections.includes(section)),
+    refresh
+  );
 
-  for (const section of sections) {
-    void hydrateMachineSection(section, refresh, round);
+  const round = ++machineHydrationRound;
+  if (deferredMachineHydrationTimer != null) {
+    window.clearTimeout(deferredMachineHydrationTimer);
+    deferredMachineHydrationTimer = null;
   }
+
+  if (prioritySections.length > 0) {
+    void hydrateMachineAdvisory(refresh, prioritySections, round);
+  }
+
+  if (secondarySections.length > 0) {
+    deferredMachineHydrationTimer = window.setTimeout(() => {
+      void hydrateMachineAdvisory(refresh, secondarySections, round);
+      deferredMachineHydrationTimer = null;
+    }, 900);
+  }
+}
+
+function startMachineHydrationCycle(refresh: boolean): void {
+  scheduleMachineHydrationForView(activeView, refresh);
+}
+
+async function hydrateMachineAdvisory(
+  refresh: boolean,
+  sections: MachineSectionName[],
+  round: number
+): Promise<void> {
+  if (!isTauriBridgeAvailable() || sections.length === 0) {
+    return;
+  }
+
+  machineHydrationInFlight = true;
+  for (const section of sections) {
+    machineHydrationActiveSections.add(section);
+  }
+  scheduleRenderState();
+
+  await Promise.all(sections.map((section) => hydrateMachineSection(section, refresh, round)));
+
+  if (round !== machineHydrationRound) {
+    for (const section of sections) {
+      machineHydrationActiveSections.delete(section);
+    }
+    if (machineHydrationActiveSections.size === 0) {
+      machineHydrationInFlight = false;
+    }
+    scheduleRenderState();
+    return;
+  }
+  for (const section of sections) {
+    machineHydrationActiveSections.delete(section);
+  }
+  if (machineHydrationActiveSections.size === 0) {
+    machineHydrationInFlight = false;
+  }
+  scheduleRenderState();
+}
+
+async function hydrateAllMachineAdvisory(refresh: boolean): Promise<void> {
+  const round = ++machineHydrationRound;
+  await hydrateMachineAdvisory(
+    refresh,
+    [
+      "inventory",
+      "mcpInventory",
+      "optimizationLayers",
+      "setupPhases",
+      "configHealth",
+      "usage",
+      "guidance"
+    ],
+    round
+  );
 }
 
 async function hydrateMachineSection(section: MachineSectionName, refresh: boolean, round: number): Promise<void> {
@@ -1379,6 +1638,7 @@ async function hydrateMachineSection(section: MachineSectionName, refresh: boole
       return;
     }
     applyMachineSectionPayload(payload);
+    hydratedMachineSections.add(section);
     scheduleRenderState();
   } catch (error) {
     if (round !== machineHydrationRound) {
@@ -1485,6 +1745,15 @@ function syncInteractiveSessionState(state: RepoControlState): void {
     editingPlanStepId = null;
     editingPlanDraft = "";
     approvalMarkers = new Map<string, "approved" | "rejected">();
+    contextOverrideVersion = 0;
+    derivedTreeCache = null;
+    hydratedMachineSections.clear();
+    machineHydrationActiveSections.clear();
+    machineHydrationInFlight = false;
+    if (deferredMachineHydrationTimer != null) {
+      window.clearTimeout(deferredMachineHydrationTimer);
+      deferredMachineHydrationTimer = null;
+    }
   }
 
   mergePlanUiState(state);
@@ -1556,14 +1825,24 @@ function mergePlanUiState(state: RepoControlState): void {
 
 function deriveInteractiveTree(state: RepoControlState): KiwiControlContextTree {
   const baseTree = (state.kiwiControl ?? EMPTY_KC).contextView.tree;
+  if (derivedTreeCache && derivedTreeCache.baseTree === baseTree && derivedTreeCache.overrideVersion === contextOverrideVersion) {
+    return derivedTreeCache.tree;
+  }
   const nodes = baseTree.nodes.map((node) => applyOverridesToTreeNode(node));
   const counts = countTreeStatuses(nodes);
-  return {
+  const tree = {
     nodes,
     selectedCount: counts.selected,
     candidateCount: counts.candidate,
     excludedCount: counts.excluded
   };
+  derivedTreeCache = {
+    baseTree,
+    overrideVersion: contextOverrideVersion,
+    tree,
+    flatNodes: flattenContextNodes(nodes)
+  };
+  return tree;
 }
 
 function applyOverridesToTreeNode(node: KiwiControlContextTreeNode): KiwiControlContextTreeNode {
@@ -1601,7 +1880,7 @@ function countTreeStatuses(nodes: KiwiControlContextTreeNode[]): { selected: num
 }
 
 function deriveInteractiveSelectedFiles(state: RepoControlState): string[] {
-  return flattenContextNodes(deriveInteractiveTree(state).nodes)
+  return deriveFlatInteractiveNodes(state)
     .filter((node) => node.kind === "file" && node.status === "selected")
     .map((node) => node.path);
 }
@@ -1610,8 +1889,17 @@ function flattenContextNodes(nodes: KiwiControlContextTreeNode[]): KiwiControlCo
   return nodes.flatMap((node) => [node, ...flattenContextNodes(node.children)]);
 }
 
+function deriveFlatInteractiveNodes(state: RepoControlState): KiwiControlContextTreeNode[] {
+  const baseTree = (state.kiwiControl ?? EMPTY_KC).contextView.tree;
+  if (derivedTreeCache && derivedTreeCache.baseTree === baseTree && derivedTreeCache.overrideVersion === contextOverrideVersion) {
+    return derivedTreeCache.flatNodes;
+  }
+  deriveInteractiveTree(state);
+  return derivedTreeCache?.flatNodes ?? [];
+}
+
 function findContextNodeByPath(state: RepoControlState, path: string): KiwiControlContextTreeNode | null {
-  return flattenContextNodes(deriveInteractiveTree(state).nodes).find((node) => node.path === path) ?? null;
+  return deriveFlatInteractiveNodes(state).find((node) => node.path === path) ?? null;
 }
 
 function pushContextOverrideHistory(): void {
@@ -1624,6 +1912,8 @@ function pushContextOverrideHistory(): void {
 function applyLocalContextOverride(path: string, mode: ContextOverrideMode): void {
   pushContextOverrideHistory();
   contextOverrides.set(path, mode);
+  contextOverrideVersion += 1;
+  derivedTreeCache = null;
   focusedItem = {
     kind: "path",
     id: path,
@@ -1631,7 +1921,7 @@ function applyLocalContextOverride(path: string, mode: ContextOverrideMode): voi
     path
   };
   graphSelectedPath = path;
-  renderState(currentState);
+  scheduleRenderState();
 }
 
 function resetLocalContextOverrides(): void {
@@ -1640,7 +1930,9 @@ function resetLocalContextOverrides(): void {
   }
   pushContextOverrideHistory();
   contextOverrides.clear();
-  renderState(currentState);
+  contextOverrideVersion += 1;
+  derivedTreeCache = null;
+  scheduleRenderState();
 }
 
 function undoLocalContextOverride(): void {
@@ -1649,7 +1941,9 @@ function undoLocalContextOverride(): void {
     return;
   }
   contextOverrides = new Map(previous);
-  renderState(currentState);
+  contextOverrideVersion += 1;
+  derivedTreeCache = null;
+  scheduleRenderState();
 }
 
 function seedComposerDraft(mode: Exclude<CommandComposerMode, null>): string {
@@ -1677,14 +1971,14 @@ function toggleComposer(mode: Exclude<CommandComposerMode, null>): void {
     commandState.composer = mode;
     commandState.draftValue = seedComposerDraft(mode);
   }
-  renderState(currentState);
+  scheduleRenderState();
 }
 
 async function refreshCurrentRepoState(): Promise<void> {
   if (!currentTargetRoot) {
     return;
   }
-  await loadAndRenderTarget(currentTargetRoot, "manual");
+  await loadAndRenderTarget(currentTargetRoot, "manual", undefined, { preferSnapshot: false });
 }
 
 async function executeKiwiCommand(
@@ -1843,7 +2137,7 @@ function movePlanStep(stepId: string, direction: -1 | 1): void {
   reordered[index] = nextValue;
   reordered[nextIndex] = currentValue;
   localPlanOrder = reordered;
-  renderState(currentState);
+  scheduleRenderState();
 }
 
 function toggleSkippedPlanStep(stepId: string): void {
@@ -1852,13 +2146,13 @@ function toggleSkippedPlanStep(stepId: string): void {
   } else {
     localPlanSkipped.add(stepId);
   }
-  renderState(currentState);
+  scheduleRenderState();
 }
 
 function startEditingPlanStep(stepId: string, currentLabel: string): void {
   editingPlanStepId = stepId;
   editingPlanDraft = currentLabel;
-  renderState(currentState);
+  scheduleRenderState();
 }
 
 function commitPlanStepEdit(stepId: string): void {
@@ -1869,7 +2163,7 @@ function commitPlanStepEdit(stepId: string): void {
   });
   editingPlanStepId = null;
   editingPlanDraft = "";
-  renderState(currentState);
+  scheduleRenderState();
 }
 
 function deriveGraphModel(state: RepoControlState): InteractiveGraphModel {
@@ -2043,6 +2337,64 @@ function renderCommandBanner(): string {
     `;
   }
 
+  if (
+    isRefreshingFreshRepoState &&
+    (currentState.loadState.source === "warm-snapshot" || currentState.loadState.source === "stale-snapshot")
+  ) {
+    return `
+      <div class="kc-view-shell">
+        <section class="kc-panel kc-command-banner tone-${lastRepoLoadFailure ? "warn" : "neutral"}">
+          <div class="kc-command-banner-head">
+            <div>
+              <p class="kc-section-micro">${lastRepoLoadFailure ? "Degraded" : currentState.loadState.source === "stale-snapshot" ? "Stale Snapshot" : "Warm State"}</p>
+              <strong>${lastRepoLoadFailure ? "Kiwi is showing a recent snapshot" : currentState.loadState.source === "stale-snapshot" ? "Kiwi loaded an older repo snapshot" : "Kiwi loaded a warm repo snapshot"}</strong>
+            </div>
+            <span class="kc-load-badge"><span class="kc-load-dot"></span>${lastRepoLoadFailure ? "degraded" : "refreshing"}</span>
+          </div>
+          <p>${escapeHtml(lastRepoLoadFailure
+            ? `Fresh repo-local state could not be loaded, so Kiwi kept the recent snapshot visible: ${lastRepoLoadFailure}`
+            : currentState.loadState.detail)}</p>
+          <div class="kc-load-progress"><span class="kc-load-progress-fill" style="width:${lastRepoLoadFailure ? 74 : currentState.loadState.source === "stale-snapshot" ? 58 : 64}%"></span></div>
+        </section>
+      </div>
+    `;
+  }
+
+  if (currentState.loadState.source === "bridge-fallback" && currentTargetRoot) {
+    return `
+      <div class="kc-view-shell">
+        <section class="kc-panel kc-command-banner tone-warn">
+          <div class="kc-command-banner-head">
+            <div>
+              <p class="kc-section-micro">Load Failed</p>
+              <strong>Kiwi could not load current repo-local state</strong>
+            </div>
+            <span class="kc-load-badge"><span class="kc-load-dot"></span>degraded</span>
+          </div>
+          <p>${escapeHtml(lastRepoLoadFailure ?? currentState.loadState.detail)}</p>
+        </section>
+      </div>
+    `;
+  }
+
+  if (isRefreshingFreshRepoState && isSnapshotLoadSource(currentState.loadState.source)) {
+    return `
+      <div class="kc-view-shell">
+        <section class="kc-panel kc-command-banner tone-neutral">
+          <div class="kc-command-banner-head">
+            <div>
+              <p class="kc-section-micro">Refreshing</p>
+              <strong>Kiwi loaded a ${escapeHtml(currentState.loadState.source === "stale-snapshot" ? "stale" : "warm")} snapshot first</strong>
+            </div>
+            <span class="kc-load-badge"><span class="kc-load-dot"></span>refreshing</span>
+          </div>
+          <p>${escapeHtml(currentState.loadState.detail)}</p>
+          <div class="kc-load-progress"><span class="kc-load-progress-fill" style="width:66%"></span></div>
+        </section>
+      </div>
+    `;
+  }
+
   if (!commandState.lastResult && !commandState.lastError) {
     return "";
   }
@@ -2100,7 +2452,7 @@ function handleInteractiveClick(event: MouseEvent, target: HTMLElement): boolean
     const value = commandState.draftValue.trim();
     if (!value) {
       commandState.lastError = `${mode} requires a value before running.`;
-      renderState(currentState);
+      scheduleRenderState();
       return true;
     }
     const command = mode === "run-auto" ? "run-auto" : mode === "checkpoint" ? "checkpoint" : "handoff";
@@ -2111,7 +2463,7 @@ function handleInteractiveClick(event: MouseEvent, target: HTMLElement): boolean
   if (target.closest("[data-composer-cancel]")) {
     commandState.composer = null;
     commandState.draftValue = "";
-    renderState(currentState);
+    scheduleRenderState();
     return true;
   }
 
@@ -2126,7 +2478,7 @@ function handleInteractiveClick(event: MouseEvent, target: HTMLElement): boolean
     } else if (action === "focus") {
       focusedItem = { kind: "path", id: path, label: basenameForPath(path), path };
       graphSelectedPath = path;
-      renderState(currentState);
+      scheduleRenderState();
     } else {
       applyLocalContextOverride(path, action as ContextOverrideMode);
     }
@@ -2146,7 +2498,9 @@ function handleInteractiveClick(event: MouseEvent, target: HTMLElement): boolean
       for (const path of paths) {
         contextOverrides.set(path, bulkAction.dataset.treeBulk as ContextOverrideMode);
       }
-      renderState(currentState);
+      contextOverrideVersion += 1;
+      derivedTreeCache = null;
+      scheduleRenderState();
     }
     return true;
   }
@@ -2159,7 +2513,7 @@ function handleInteractiveClick(event: MouseEvent, target: HTMLElement): boolean
     if (event.detail > 1 && graphNode.dataset.kind === "file") {
       void openRepoPath(path);
     }
-    renderState(currentState);
+    scheduleRenderState();
     return true;
   }
 
@@ -2181,14 +2535,14 @@ function handleInteractiveClick(event: MouseEvent, target: HTMLElement): boolean
       } else if (action === "focus") {
         focusedItem = { kind: "path", id: path, label: basenameForPath(path), path };
         graphSelectedPath = path;
-        renderState(currentState);
+        scheduleRenderState();
         return true;
       } else {
         applyLocalContextOverride(path, action as ContextOverrideMode);
         return true;
       }
     }
-    renderState(currentState);
+    scheduleRenderState();
     return true;
   }
 
@@ -2227,7 +2581,7 @@ function handleInteractiveClick(event: MouseEvent, target: HTMLElement): boolean
       case "edit-cancel":
         editingPlanStepId = null;
         editingPlanDraft = "";
-        renderState(currentState);
+        scheduleRenderState();
         break;
       case "move-up":
         movePlanStep(stepId, -1);
@@ -2237,7 +2591,7 @@ function handleInteractiveClick(event: MouseEvent, target: HTMLElement): boolean
         break;
       case "focus":
         focusedItem = { kind: "step", id: step.id, label: step.displayTitle };
-        renderState(currentState);
+        scheduleRenderState();
         break;
     }
     return true;
@@ -2251,7 +2605,7 @@ function handleInteractiveClick(event: MouseEvent, target: HTMLElement): boolean
       if (markerKey) {
         approvalMarkers.set(markerKey, action === "approve" ? "approved" : "rejected");
       }
-      renderState(currentState);
+      scheduleRenderState();
       return true;
     }
     if (action === "add-to-context" && focusedItem?.kind === "path") {
@@ -2340,12 +2694,36 @@ function renderTopBar(state: RepoControlState): string {
   });
 }
 
+function describeMachineHydration(): string {
+  const sectionCount = machineHydrationActiveSections.size;
+  if (sectionCount === 0) {
+    return "Refreshing machine-local diagnostics in the background.";
+  }
+
+  const labels = [...machineHydrationActiveSections].map((section) => {
+    switch (section) {
+      case "mcpInventory":
+        return "MCP inventory";
+      case "optimizationLayers":
+        return "optimization layers";
+      case "setupPhases":
+        return "setup phases";
+      case "configHealth":
+        return "config health";
+      default:
+        return section;
+    }
+  });
+
+  return `Refreshing ${labels.join(", ")}${sectionCount > 1 ? " in the background" : ""}.`;
+}
+
 function buildLoadStatus(state: RepoControlState): {
   visible: boolean;
   label: string;
   detail: string;
   progress: number;
-  tone: "loading" | "running" | "ready";
+  tone: "loading" | "running" | "ready" | "warm" | "degraded";
 } {
   if (commandState.loading) {
     return {
@@ -2357,10 +2735,10 @@ function buildLoadStatus(state: RepoControlState): {
     };
   }
 
-  if (isLoadingRepoState) {
+  if (isLoadingRepoState && state.loadState.source !== "warm-snapshot" && state.loadState.source !== "stale-snapshot") {
     return {
       visible: true,
-      label: currentLoadSource === "auto" ? "Auto refresh" : "Loading repo",
+      label: currentLoadSource === "auto" ? "Refreshing repo" : "Opening repo",
       detail:
         currentLoadSource === "cli"
           ? "Desktop launched. Kiwi is loading repo-local state now."
@@ -2372,14 +2750,68 @@ function buildLoadStatus(state: RepoControlState): {
     };
   }
 
-  const pendingMachineSections = Object.values(state.machineAdvisory.sections).filter((entry) => entry.status !== "fresh").length;
-  if (currentTargetRoot && pendingMachineSections > 0) {
+  if (
+    isRefreshingFreshRepoState &&
+    (state.loadState.source === "warm-snapshot" || state.loadState.source === "stale-snapshot")
+  ) {
     return {
       visible: true,
-      label: "Hydrating system",
-      detail: `Repo is usable. ${pendingMachineSections} advisory section${pendingMachineSections === 1 ? "" : "s"} still updating.`,
+      label: state.loadState.source === "stale-snapshot" ? "Older snapshot loaded" : "Warm state loaded",
+      detail: lastRepoLoadFailure
+        ? "Showing a recent snapshot. Fresh refresh failed, so Kiwi is in a degraded state."
+        : state.loadState.detail,
+      progress: lastRepoLoadFailure ? 74 : state.loadState.source === "stale-snapshot" ? 58 : 64,
+      tone: lastRepoLoadFailure ? "degraded" : "warm"
+    };
+  }
+
+  if (lastRepoLoadFailure && (state.loadState.source === "warm-snapshot" || state.loadState.source === "stale-snapshot")) {
+    return {
+      visible: true,
+      label: "Degraded",
+      detail: `Showing ${state.loadState.source === "stale-snapshot" ? "an older" : "a recent"} snapshot because fresh repo-local state could not be loaded: ${lastRepoLoadFailure}`,
+      progress: 72,
+      tone: "degraded"
+    };
+  }
+
+  if (state.loadState.source === "bridge-fallback" && currentTargetRoot) {
+    return {
+      visible: true,
+      label: "Load failed",
+      detail: lastRepoLoadFailure ?? state.loadState.detail,
+      progress: 100,
+      tone: "degraded"
+    };
+  }
+
+  if (state.loadState.source === "bridge-fallback") {
+    return {
+      visible: true,
+      label: "Failed",
+      detail: state.loadState.detail,
+      progress: 18,
+      tone: "degraded"
+    };
+  }
+
+  if (currentTargetRoot && machineHydrationInFlight) {
+    return {
+      visible: true,
+      label: isMachineHeavyView(activeView) ? "Hydrating system" : "Refreshing system",
+      detail: describeMachineHydration(),
       progress: 82,
       tone: "ready"
+    };
+  }
+
+  if (currentTargetRoot && isMachineHeavyView(activeView) && state.machineAdvisory.stale) {
+    return {
+      visible: true,
+      label: "System data deferred",
+      detail: "Kiwi keeps heavy machine diagnostics off the startup path and hydrates them when this view is active.",
+      progress: 66,
+      tone: "warm"
     };
   }
 
@@ -2419,6 +2851,8 @@ function buildDecisionSummary(state: RepoControlState): {
   const executionSafety =
     isLoadingRepoState
       ? "loading"
+      : isRefreshingFreshRepoState || state.loadState.source === "warm-snapshot" || state.loadState.source === "stale-snapshot"
+        ? "guarded"
       : systemHealth === "blocked"
         ? "blocked"
         : kc.contextView.confidence === "low" || kc.indexing.partialScan
@@ -4481,6 +4915,10 @@ function buildActiveTargetHint(state: RepoControlState): string {
     return "Run kc ui inside a repo to load it automatically.";
   }
 
+  if (state.loadState.source === "warm-snapshot" || state.loadState.source === "stale-snapshot") {
+    return state.loadState.detail;
+  }
+
   switch (state.repoState.mode) {
     case "healthy":
       return "Repo-local state is loaded and ready.";
@@ -4503,6 +4941,12 @@ function buildBridgeNote(state: RepoControlState, source: "cli" | "manual" | "au
   }
   if (state.repoState.mode === "bridge-unavailable") {
     return BRIDGE_UNAVAILABLE_NEXT_STEP;
+  }
+  if (state.loadState.source === "stale-snapshot") {
+    return `Showing ${getRepoLabel(state.targetRoot)} from an older snapshot while Kiwi refreshes current repo-local state. ${activeHint}`;
+  }
+  if (state.loadState.source === "warm-snapshot") {
+    return `Showing ${getRepoLabel(state.targetRoot)} from a recent warm snapshot while fresh repo-local state refreshes. ${activeHint}`;
   }
   if (source === "cli") {
     return `Loaded ${getRepoLabel(state.targetRoot)} from kc ui. ${activeHint}`;
@@ -4528,16 +4972,12 @@ async function consumeInitialLaunchRequest(): Promise<LaunchRequestPayload | nul
   }
 }
 
-async function loadRepoControlState(targetRoot: string): Promise<RepoControlState> {
+async function loadRepoControlState(targetRoot: string, preferSnapshot = false): Promise<RepoControlState> {
   if (!isTauriBridgeAvailable()) {
     return buildBridgeUnavailableState(targetRoot);
   }
 
-  try {
-    return await invoke<RepoControlState>("load_repo_control_state", { targetRoot });
-  } catch {
-    return buildBridgeUnavailableState(targetRoot);
-  }
+  return await invoke<RepoControlState>("load_repo_control_state", { targetRoot, preferSnapshot });
 }
 
 function buildBridgeUnavailableState(targetRoot: string): RepoControlState {
@@ -4546,6 +4986,16 @@ function buildBridgeUnavailableState(targetRoot: string): RepoControlState {
 
   return {
     targetRoot: resolvedTargetRoot,
+    loadState: {
+      source: "bridge-fallback",
+      freshness: "failed",
+      generatedAt: new Date().toISOString(),
+      snapshotSavedAt: null,
+      snapshotAgeMs: null,
+      detail: hasTargetRoot
+        ? "Repo-local state could not be loaded from the Kiwi bridge."
+        : "No repo is loaded yet."
+    },
     profileName: "default",
     executionMode: "local",
     projectType: "unknown",

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import path from "node:path";
-import { buildRepoControlState } from "../core/ui-state.js";
+import { buildRepoControlState, loadWarmRepoControlSnapshot } from "../core/ui-state.js";
 import {
   loadMachineAdvisory,
   loadMachineAdvisorySection,
@@ -27,7 +27,23 @@ async function main(): Promise<void> {
         ? path.resolve(String(parsed.flags["target-root"]))
         : process.cwd();
       const profileName = typeof parsed.flags.profile === "string" ? String(parsed.flags.profile) : undefined;
-      const state = await buildRepoControlState({
+      const preferSnapshot = parsed.flags["prefer-snapshot"] === true;
+      const snapshotMaxAgeMs =
+        typeof parsed.flags["snapshot-max-age-ms"] === "string"
+          ? Number(parsed.flags["snapshot-max-age-ms"])
+          : undefined;
+      const warmSnapshot =
+        preferSnapshot
+          ? await loadWarmRepoControlSnapshot(targetRoot, {
+              ...(Number.isFinite(snapshotMaxAgeMs)
+                ? {
+                    warmMaxAgeMs: Number(snapshotMaxAgeMs),
+                    staleMaxAgeMs: Math.max(Number(snapshotMaxAgeMs) * 5, Number(snapshotMaxAgeMs))
+                  }
+                : {})
+            })
+          : null;
+      const state = warmSnapshot ?? await buildRepoControlState({
         repoRoot,
         targetRoot,
         ...(profileName ? { profileName } : {}),

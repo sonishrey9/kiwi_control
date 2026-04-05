@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/decision-logic",
   "version": 1,
-  "timestamp": "2026-04-05T09:57:33.544Z",
+  "timestamp": "2026-04-05T18:22:26.822Z",
   "summary": "Prepare bounded context: Context selection and prepared scope must be recorded before execution.",
   "decisionPriority": "high",
   "inputSignals": [

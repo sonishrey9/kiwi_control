@@ -1,0 +1,1729 @@
+{
+  "artifactType": "kiwi-control/repo-control-snapshot",
+  "version": 1,
+  "savedAt": "2026-04-05T18:22:26.948Z",
+  "state": {
+    "targetRoot": "/Volumes/shrey ssd/shrey-junior",
+    "loadState": {
+      "source": "fresh",
+      "freshness": "fresh",
+      "generatedAt": "2026-04-05T18:22:26.615Z",
+      "snapshotSavedAt": null,
+      "snapshotAgeMs": null,
+      "detail": "Repo-local state is current."
+    },
+    "profileName": "product-build",
+    "executionMode": "assisted",
+    "projectType": "node",
+    "repoState": {
+      "mode": "repo-not-initialized",
+      "title": "Repo not initialized yet",
+      "detail": "Run kiwi-control init in this folder to seed the repo-local control surfaces before using specialists, checkpoints, or handoffs.",
+      "sourceOfTruthNote": "Repo-local artifacts under .agent/ and promoted repo instruction files remain the source of truth. The desktop app only reads and reports that state."
+    },
+    "repoOverview": [
+      {
+        "label": "Project type",
+        "value": "node (detected)"
+      },
+      {
+        "label": "Active role",
+        "value": "none recorded"
+      },
+      {
+        "label": "Next file",
+        "value": "AGENTS.md"
+      },
+      {
+        "label": "Next command",
+        "value": "kiwi-control init"
+      },
+      {
+        "label": "Validation state",
+        "value": "39 warnings"
+      },
+      {
+        "label": "Current phase",
+        "value": "none recorded"
+      }
+    ],
+    "continuity": [
+      {
+        "label": "Latest checkpoint",
+        "value": "none recorded"
+      },
+      {
+        "label": "Latest handoff",
+        "value": "none recorded"
+      },
+      {
+        "label": "Latest reconcile",
+        "value": "none recorded"
+      },
+      {
+        "label": "Current focus",
+        "value": "none recorded"
+      },
+      {
+        "label": "Open risks",
+        "value": "none recorded"
+      }
+    ],
+    "memoryBank": [
+      {
+        "label": "Repo Facts",
+        "path": ".agent/memory/repo-facts.json",
+        "present": false
+      },
+      {
+        "label": "Current Focus",
+        "path": ".agent/memory/current-focus.json",
+        "present": false
+      },
+      {
+        "label": "Open Risks",
+        "path": ".agent/memory/open-risks.json",
+        "present": false
+      },
+      {
+        "label": "Context Tree",
+        "path": ".agent/context/context-tree.json",
+        "present": false
+      }
+    ],
+    "specialists": {
+      "activeSpecialist": "fullstack-specialist",
+      "recommendedSpecialist": "fullstack-specialist",
+      "available": [
+        {
+          "specialistId": "android-specialist",
+          "name": "Android Specialist",
+          "purpose": "Kotlin, Gradle, and Android app implementation or review with repo-local build and test discipline.",
+          "aliases": [],
+          "allowedProfiles": [
+            "strict-production",
+            "product-build",
+            "prototype"
+          ],
+          "preferredTools": [
+            "codex",
+            "claude"
+          ],
+          "riskPosture": "medium"
+        },
+        {
+          "specialistId": "architecture-specialist",
+          "name": "Architecture Specialist",
+          "purpose": "Planning, decomposition, boundary analysis, and guarded change sequencing.",
+          "aliases": [
+            "dispatcher"
+          ],
+          "allowedProfiles": [
+            "strict-production",
+            "product-build",
+            "prototype",
+            "data-platform",
+            "documentation-heavy"
+          ],
+          "preferredTools": [
+            "claude",
+            "codex"
+          ],
+          "riskPosture": "conservative"
+        },
+        {
+          "specialistId": "backend-specialist",
+          "name": "Backend Specialist",
+          "purpose": "API, service, persistence, and contract-safe backend delivery across Python, Node, and general server-side repos.",
+          "aliases": [],
+          "allowedProfiles": [
+            "strict-production",
+            "product-build",
+            "prototype",
+            "data-platform"
+          ],
+          "preferredTools": [
+            "codex",
+            "claude"
+          ],
+          "riskPosture": "medium"
+        },
+        {
+          "specialistId": "data-platform-specialist",
+          "name": "Data Platform Specialist",
+          "purpose": "Safe work on pipelines, transforms, schemas, warehouse logic, and migration-sensitive data-platform repos.",
+          "aliases": [
+            "sql-specialist"
+          ],
+          "allowedProfiles": [
+            "strict-production",
+            "product-build",
+            "data-platform"
+          ],
+          "preferredTools": [
+            "claude",
+            "codex"
+          ],
+          "riskPosture": "conservative"
+        },
+        {
+          "specialistId": "docs-specialist",
+          "name": "Docs Specialist",
+          "purpose": "Improve docs, onboarding, summaries, and repo knowledge flow without drifting from authority.",
+          "aliases": [
+            "handoff-editor"
+          ],
+          "allowedProfiles": [
+            "strict-production",
+            "product-build",
+            "prototype",
+            "documentation-heavy"
+          ],
+          "preferredTools": [
+            "claude",
+            "copilot"
+          ],
+          "riskPosture": "low"
+        },
+        {
+          "specialistId": "frontend-specialist",
+          "name": "Frontend Specialist",
+          "purpose": "UI and interaction work with emphasis on safe boundaries, browser evidence, and repo-aware frontend guidance.",
+          "aliases": [],
+          "allowedProfiles": [
+            "strict-production",
+            "product-build",
+            "prototype",
+            "documentation-heavy"
+          ],
+          "preferredTools": [
+            "codex",
+            "copilot",
+            "claude"
+          ],
+          "riskPosture": "medium"
+        },
+        {
+          "specialistId": "fullstack-specialist",
+          "name": "Fullstack Specialist",
+          "purpose": "Balanced implementation specialist for app and web repos that cross frontend, backend, routing, and validation boundaries.",
+          "aliases": [
+            "typescript-implementer"
+          ],
+          "allowedProfiles": [
+            "strict-production",
+            "product-build",
+            "prototype",
+            "documentation-heavy"
+          ],
+          "preferredTools": [
+            "codex",
+            "claude",
+            "copilot"
+          ],
+          "riskPosture": "medium"
+        },
+        {
+          "specialistId": "ios-specialist",
+          "name": "iOS Specialist",
+          "purpose": "Swift, SwiftUI, Xcode, and Apple-platform implementation or review with honest tool-availability boundaries.",
+          "aliases": [],
+          "allowedProfiles": [
+            "strict-production",
+            "product-build",
+            "prototype"
+          ],
+          "preferredTools": [
+            "codex",
+            "claude"
+          ],
+          "riskPosture": "medium"
+        },
+        {
+          "specialistId": "mcp-specialist",
+          "name": "MCP Specialist",
+          "purpose": "Safe capability selection for MCP-aware workflows without assuming live secrets or machine-local authority.",
+          "aliases": [],
+          "allowedProfiles": [
+            "strict-production",
+            "product-build",
+            "prototype",
+            "data-platform",
+            "documentation-heavy"
+          ],
+          "preferredTools": [
+            "claude",
+            "codex"
+          ],
+          "riskPosture": "medium"
+        },
+        {
+          "specialistId": "push-specialist",
+          "name": "Push Specialist",
+          "purpose": "Conservative push-readiness and review gating before commit or push decisions.",
+          "aliases": [],
+          "allowedProfiles": [
+            "strict-production",
+            "product-build",
+            "prototype",
+            "data-platform",
+            "documentation-heavy"
+          ],
+          "preferredTools": [
+            "claude",
+            "codex"
+          ],
+          "riskPosture": "conservative"
+        },
+        {
+          "specialistId": "python-specialist",
+          "name": "Python Specialist",
+          "purpose": "Safe Python and backend implementation follow-through with explicit boundaries and validation.",
+          "aliases": [
+            "python-implementer"
+          ],
+          "allowedProfiles": [
+            "strict-production",
+            "product-build",
+            "prototype",
+            "data-platform"
+          ],
+          "preferredTools": [
+            "codex",
+            "claude"
+          ],
+          "riskPosture": "medium"
+        },
+        {
+          "specialistId": "qa-specialist",
+          "name": "QA Specialist",
+          "purpose": "Validation, edge-case coverage, and acceptance confidence for repo-local changes.",
+          "aliases": [],
+          "allowedProfiles": [
+            "strict-production",
+            "product-build",
+            "prototype",
+            "data-platform",
+            "documentation-heavy"
+          ],
+          "preferredTools": [
+            "claude",
+            "codex"
+          ],
+          "riskPosture": "conservative"
+        },
+        {
+          "specialistId": "refactor-specialist",
+          "name": "Refactor Specialist",
+          "purpose": "Keep larger restructures bounded, contract-safe, and reviewable.",
+          "aliases": [
+            "performance-reviewer"
+          ],
+          "allowedProfiles": [
+            "strict-production",
+            "product-build",
+            "prototype",
+            "data-platform"
+          ],
+          "preferredTools": [
+            "codex",
+            "claude"
+          ],
+          "riskPosture": "medium"
+        },
+        {
+          "specialistId": "release-specialist",
+          "name": "Release Specialist",
+          "purpose": "Release readiness, checkpoint health, and phase-close discipline before commit or push decisions.",
+          "aliases": [
+            "release-readiness"
+          ],
+          "allowedProfiles": [
+            "strict-production",
+            "product-build",
+            "data-platform",
+            "documentation-heavy"
+          ],
+          "preferredTools": [
+            "claude",
+            "codex"
+          ],
+          "riskPosture": "conservative"
+        },
+        {
+          "specialistId": "review-specialist",
+          "name": "Review Specialist",
+          "purpose": "General software engineering review for correctness, regression risk, contract safety, and change quality.",
+          "aliases": [
+            "reconciler"
+          ],
+          "allowedProfiles": [
+            "strict-production",
+            "product-build",
+            "prototype",
+            "data-platform",
+            "documentation-heavy"
+          ],
+          "preferredTools": [
+            "claude",
+            "codex"
+          ],
+          "riskPosture": "conservative"
+        },
+        {
+          "specialistId": "security-specialist",
+          "name": "Security Specialist",
+          "purpose": "Review auth, permissions, data exposure, and unsafe assumptions without weakening guardrails.",
+          "aliases": [
+            "security-reviewer"
+          ],
+          "allowedProfiles": [
+            "strict-production",
+            "product-build",
+            "data-platform"
+          ],
+          "preferredTools": [
+            "claude",
+            "codex"
+          ],
+          "riskPosture": "high"
+        }
+      ],
+      "activeProfile": {
+        "specialistId": "fullstack-specialist",
+        "name": "Fullstack Specialist",
+        "purpose": "Balanced implementation specialist for app and web repos that cross frontend, backend, routing, and validation boundaries.",
+        "aliases": [
+          "typescript-implementer"
+        ],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "prototype",
+          "documentation-heavy"
+        ],
+        "preferredTools": [
+          "codex",
+          "claude",
+          "copilot"
+        ],
+        "riskPosture": "medium"
+      },
+      "recommendedProfile": {
+        "specialistId": "fullstack-specialist",
+        "name": "Fullstack Specialist",
+        "purpose": "Balanced implementation specialist for app and web repos that cross frontend, backend, routing, and validation boundaries.",
+        "aliases": [
+          "typescript-implementer"
+        ],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "prototype",
+          "documentation-heavy"
+        ],
+        "preferredTools": [
+          "codex",
+          "claude",
+          "copilot"
+        ],
+        "riskPosture": "medium"
+      },
+      "handoffTargets": [
+        "android-specialist",
+        "architecture-specialist",
+        "backend-specialist",
+        "data-platform-specialist",
+        "docs-specialist",
+        "frontend-specialist",
+        "fullstack-specialist",
+        "ios-specialist"
+      ],
+      "safeParallelHint": "Initialize the repo before handing work to specialists. Generic repos should stay quiet until repo-local surfaces exist."
+    },
+    "mcpPacks": {
+      "suggestedPack": {
+        "id": "web-qa-pack",
+        "name": "Web QA Pack",
+        "description": "Browser and verification guidance for web apps, UI review, and smoke testing.",
+        "guidance": [
+          "Use when Playwright or browser automation helps validate UI, routing, and regressions.",
+          "Keep browser verification additive. Never imply that UI automation is universally available."
+        ],
+        "realismNotes": [
+          "Playwright MCP is strongest where browser automation is explicitly installed and exposed.",
+          "Copilot is suggestion-oriented and should not be described as a strict orchestration runtime."
+        ],
+        "suggestedProjectTypes": [
+          "node",
+          "generic"
+        ]
+      },
+      "available": [
+        {
+          "id": "core-pack",
+          "name": "Core Pack",
+          "description": "Default repo-first pack for filesystem, git-aware reasoning, and contract inspection.",
+          "guidance": [
+            "Use for any repo that only needs baseline repo-state reading, routing, and contract maintenance.",
+            "Prefer this pack when the repo is generic and should stay quiet by default."
+          ],
+          "realismNotes": [
+            "This pack is guidance only. Availability still depends on the active runtime and installed tools.",
+            "Do not assume write-capable MCP parity across Codex, Claude, Copilot, Cursor, or hosted runtimes."
+          ],
+          "suggestedProjectTypes": [
+            "generic",
+            "node",
+            "python",
+            "docs",
+            "data-platform"
+          ]
+        },
+        {
+          "id": "research-pack",
+          "name": "Research Pack",
+          "description": "Planning and documentation pack for discovery, migration research, and architecture work.",
+          "guidance": [
+            "Use for planning, docs, migration prep, and cross-repo research tasks.",
+            "Prefer read-heavy tools and keep repo-local outputs compact and inspectable."
+          ],
+          "realismNotes": [
+            "Search and browser tooling are stronger in some runtimes than others.",
+            "The pack improves guidance, not guaranteed live browsing capability."
+          ],
+          "suggestedProjectTypes": [
+            "docs",
+            "generic",
+            "data-platform"
+          ]
+        },
+        {
+          "id": "web-qa-pack",
+          "name": "Web QA Pack",
+          "description": "Browser and verification guidance for web apps, UI review, and smoke testing.",
+          "guidance": [
+            "Use when Playwright or browser automation helps validate UI, routing, and regressions.",
+            "Keep browser verification additive. Never imply that UI automation is universally available."
+          ],
+          "realismNotes": [
+            "Playwright MCP is strongest where browser automation is explicitly installed and exposed.",
+            "Copilot is suggestion-oriented and should not be described as a strict orchestration runtime."
+          ],
+          "suggestedProjectTypes": [
+            "node",
+            "generic"
+          ]
+        },
+        {
+          "id": "aws-pack",
+          "name": "AWS Pack",
+          "description": "AWS-specific routing and safety guidance for repos that genuinely target AWS.",
+          "guidance": [
+            "Only recommend this pack for AWS repos or tasks that clearly require AWS services.",
+            "Prefer repo-local guidance and existing SSO/account conventions over ad hoc credential handling."
+          ],
+          "realismNotes": [
+            "AWS MCP support is workload-specific and runtime-specific.",
+            "Never imply AWS tooling is symmetric across local and hosted agent runtimes."
+          ],
+          "suggestedProjectTypes": [
+            "infra",
+            "node",
+            "python"
+          ]
+        },
+        {
+          "id": "ios-pack",
+          "name": "iOS Pack",
+          "description": "Apple-platform guidance for Xcode-aware workflows, simulator checks, and UI validation.",
+          "guidance": [
+            "Recommend for iOS and macOS repos when Xcode or simulator tooling is available.",
+            "Keep repo-local runbooks authoritative and treat bridge tooling as optional acceleration."
+          ],
+          "realismNotes": [
+            "Xcode bridge availability is not universal across local shells, CI, and hosted runtimes.",
+            "Always describe simulator and bridge capabilities as contingent on the active environment."
+          ],
+          "suggestedProjectTypes": [
+            "ios",
+            "macos"
+          ]
+        },
+        {
+          "id": "android-pack",
+          "name": "Android Pack",
+          "description": "Android-focused guidance that leans on repo-local docs, Gradle, and emulator workflows.",
+          "guidance": [
+            "Recommend for Android repos, especially when Gradle, Kotlin, and emulator checks are relevant.",
+            "Default to repo-local guidance and normal build/test tooling before claiming special bridge support."
+          ],
+          "realismNotes": [
+            "Android support relies mainly on repo-local guidance plus standard build and test tooling.",
+            "Do not imply parity with iOS bridge workflows or universal MCP support."
+          ],
+          "suggestedProjectTypes": [
+            "android"
+          ]
+        }
+      ],
+      "compatibleCapabilities": [
+        {
+          "id": "context7",
+          "category": "documentation",
+          "purpose": "official documentation lookup",
+          "trustLevel": "high",
+          "readOnly": true,
+          "writeCapable": false,
+          "approvalRequired": false,
+          "usageGuidance": [
+            "Use when packets need vendor or framework documentation that should outrank generic memory.",
+            "Prefer this for specialist packets that need authoritative references."
+          ],
+          "antiPatterns": [
+            "Do not treat it as a substitute for repo-local authority files.",
+            "Do not use it to infer secrets or hidden machine-local state."
+          ]
+        },
+        {
+          "id": "github",
+          "category": "code-hosting",
+          "purpose": "GitHub repository metadata and automation",
+          "trustLevel": "high",
+          "readOnly": true,
+          "writeCapable": true,
+          "approvalRequired": true,
+          "usageGuidance": [
+            "Use for PR, CI, and repository metadata when repo-local context alone is insufficient."
+          ],
+          "antiPatterns": [
+            "Do not assume PR state replaces local diff review.",
+            "Do not trigger write-capable operations without an explicit user request."
+          ]
+        },
+        {
+          "id": "playwright",
+          "category": "testing",
+          "purpose": "browser automation",
+          "trustLevel": "high",
+          "readOnly": false,
+          "writeCapable": true,
+          "approvalRequired": true,
+          "usageGuidance": [
+            "Use when tester or qa-specialist packets need browser evidence or smoke coverage."
+          ],
+          "antiPatterns": [
+            "Do not use it when repo-local unit or integration checks already answer the question.",
+            "Do not treat flaky browser evidence as release proof without context."
+          ]
+        },
+        {
+          "id": "figma",
+          "category": "design",
+          "purpose": "design context, screenshots, and code-connect mapping for design-to-code work",
+          "trustLevel": "high",
+          "readOnly": true,
+          "writeCapable": true,
+          "approvalRequired": true,
+          "usageGuidance": [
+            "Use when a trusted Figma node or file is part of the requested implementation workflow."
+          ],
+          "antiPatterns": [
+            "Do not use it when the repo already contains authoritative UI specs or screenshots."
+          ]
+        },
+        {
+          "id": "filesystem",
+          "category": "local-io",
+          "purpose": "local file access",
+          "trustLevel": "medium",
+          "readOnly": true,
+          "writeCapable": true,
+          "approvalRequired": true,
+          "usageGuidance": [
+            "Use for repo-local file reads and writes that stay inside the selected target repo.",
+            "Pair with the sensitive-path classifier before reading or writing."
+          ],
+          "antiPatterns": [
+            "Do not use it for global config mutation.",
+            "Do not read secret-bearing files into packets or reports."
+          ]
+        },
+        {
+          "id": "docker",
+          "category": "runtime",
+          "purpose": "container-local command execution and environment inspection",
+          "trustLevel": "medium",
+          "readOnly": false,
+          "writeCapable": true,
+          "approvalRequired": true,
+          "usageGuidance": [
+            "Use when the validation surface actually lives inside a container service."
+          ],
+          "antiPatterns": [
+            "Do not assume container access is safer than direct repo-local checks.",
+            "Do not mutate production-like containers without an explicit user request."
+          ]
+        }
+      ],
+      "capabilityStatus": "compatible",
+      "note": "6 specialist-compatible MCP capabilities are currently available for this repo profile."
+    },
+    "validation": {
+      "ok": true,
+      "errors": 0,
+      "warnings": 39,
+      "issues": [
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/project.yaml"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/checks.yaml"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/context/commands.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/context/specialists.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/context/tool-capabilities.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/context/mcp-capabilities.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/context/context-tree.json"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/memory/repo-facts.json"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/memory/current-focus.json"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/memory/open-risks.json"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/roles/README.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/templates/role-result.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/state/current-phase.json"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/state/active-role-hints.json"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/state/context-tree.json"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/state/checkpoints/latest.json"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/state/checkpoints/latest.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/state/handoff/README.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/state/dispatch/README.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/state/reconcile/README.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/scripts/verify-contract.sh"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.github/instructions/backend.instructions.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.github/instructions/frontend.instructions.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.github/agents/shrey-junior.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.github/agents/architecture-specialist.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.github/agents/review-specialist.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.github/agents/qa-specialist.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/roles/architecture-specialist.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/roles/review-specialist.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/roles/qa-specialist.md"
+        },
+        {
+          "level": "warn",
+          "message": "generated repo-local state missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.github/workflows/shrey-junior-contract.yml"
+        },
+        {
+          "level": "warn",
+          "message": "surface exists without managed markers",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/AGENTS.md"
+        },
+        {
+          "level": "warn",
+          "message": "surface exists without managed markers",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/CLAUDE.md"
+        },
+        {
+          "level": "warn",
+          "message": "surface exists without managed markers",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.github/copilot-instructions.md"
+        },
+        {
+          "level": "warn",
+          "message": "repo-local memory file missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/memory/repo-facts.json"
+        },
+        {
+          "level": "warn",
+          "message": "repo-local memory file missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/memory/current-focus.json"
+        },
+        {
+          "level": "warn",
+          "message": "repo-local memory file missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/memory/open-risks.json"
+        },
+        {
+          "level": "warn",
+          "message": "repo-aware context tree missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/context/context-tree.json"
+        },
+        {
+          "level": "warn",
+          "message": "repo-aware context tree missing",
+          "filePath": "/Volumes/shrey ssd/shrey-junior/.agent/state/context-tree.json"
+        }
+      ]
+    },
+    "ecosystem": {
+      "artifactType": "kiwi-control/ecosystem-catalog",
+      "version": 1,
+      "timestamp": "2026-04-05T18:22:26.668Z",
+      "tools": [
+        {
+          "id": "github-mcp",
+          "name": "GitHub MCP",
+          "category": "mcp",
+          "description": "Repository, issue, pull request, and workflow access through a structured MCP surface.",
+          "source": "awesome-claude-code",
+          "readOnly": true
+        },
+        {
+          "id": "notion-mcp",
+          "name": "Notion MCP",
+          "category": "mcp",
+          "description": "Structured access to Notion workspaces and knowledge pages.",
+          "source": "awesome-claude-code",
+          "readOnly": true
+        },
+        {
+          "id": "supabase-mcp",
+          "name": "Supabase MCP",
+          "category": "mcp",
+          "description": "Project-aware MCP access for Supabase resources and operational context.",
+          "source": "awesome-claude-code",
+          "readOnly": true
+        },
+        {
+          "id": "awesome-agent-skills",
+          "name": "Awesome Agent Skills",
+          "category": "skill-library",
+          "description": "Curated catalog of reusable `SKILL.md`-style capability packages across platforms.",
+          "source": "awesome-agent-skills",
+          "readOnly": true
+        },
+        {
+          "id": "awesome-copilot-skills",
+          "name": "Awesome Copilot Skills",
+          "category": "skill-library",
+          "description": "Collection of skills, hooks, plugins, and workflows for Copilot-style agent experiences.",
+          "source": "awesome-copilot",
+          "readOnly": true
+        }
+      ],
+      "workflows": [
+        {
+          "id": "copilot-agentic-workflows",
+          "name": "Agentic Workflows",
+          "description": "Markdown-defined AI workflows and automations from the Awesome Copilot ecosystem.",
+          "source": "awesome-copilot"
+        },
+        {
+          "id": "claude-plugin-marketplace",
+          "name": "Plugin Marketplace Flow",
+          "description": "Marketplace-driven plugin and MCP discovery model from the Claude Code ecosystem.",
+          "source": "awesome-claude-code"
+        },
+        {
+          "id": "skill-progressive-disclosure",
+          "name": "Progressive Disclosure Skills",
+          "description": "Skill discovery model that loads lightweight metadata before full instructions.",
+          "source": "awesome-agent-skills"
+        }
+      ],
+      "capabilities": [
+        {
+          "id": "repos-issues-prs",
+          "name": "Repos / Issues / PRs",
+          "surface": "mcp",
+          "description": "Structured repo and pull request context for decision support.",
+          "source": "awesome-claude-code"
+        },
+        {
+          "id": "jira-confluence",
+          "name": "Jira / Confluence",
+          "surface": "mcp",
+          "description": "Linked planning and documentation surfaces through external MCP integrations.",
+          "source": "awesome-claude-code"
+        },
+        {
+          "id": "skills-triggering",
+          "name": "Task-triggered skills",
+          "surface": "skills",
+          "description": "Intent-based skill discovery with metadata-first loading and optional deeper instructions.",
+          "source": "awesome-agent-skills"
+        },
+        {
+          "id": "copilot-hooks",
+          "name": "Hook-style lifecycle actions",
+          "surface": "workflow",
+          "description": "Event-driven workflow hooks that inform execution and verification without replacing the runtime.",
+          "source": "awesome-copilot"
+        }
+      ],
+      "notes": [
+        "This catalog is advisory only. Kiwi Control does not execute these tools directly.",
+        "The catalog is sourced from permissively licensed, read-only ecosystem lists and is intended to inform decisions, not drive runtime behavior automatically."
+      ]
+    },
+    "machineAdvisory": {
+      "artifactType": "kiwi-control/machine-advisory",
+      "version": 2,
+      "generatedBy": "kiwi-control machine-advisory",
+      "windowDays": 7,
+      "updatedAt": "2026-04-05T17:09:27.200Z",
+      "stale": true,
+      "sections": {
+        "inventory": {
+          "status": "fresh",
+          "updatedAt": "2026-04-05T17:09:27.200Z"
+        },
+        "mcpInventory": {
+          "status": "fresh",
+          "updatedAt": "2026-04-05T17:09:27.200Z"
+        },
+        "optimizationLayers": {
+          "status": "fresh",
+          "updatedAt": "2026-04-05T17:09:27.200Z"
+        },
+        "setupPhases": {
+          "status": "fresh",
+          "updatedAt": "2026-04-05T17:09:27.200Z"
+        },
+        "configHealth": {
+          "status": "fresh",
+          "updatedAt": "2026-04-05T17:09:27.200Z"
+        },
+        "usage": {
+          "status": "fresh",
+          "updatedAt": "2026-04-05T17:09:27.200Z"
+        },
+        "guidance": {
+          "status": "fresh",
+          "updatedAt": "2026-04-05T17:09:27.200Z"
+        }
+      },
+      "inventory": [
+        {
+          "name": "code-review-graph",
+          "description": "Graph-based code search",
+          "phase": "Phase 1",
+          "installed": false,
+          "version": "—"
+        },
+        {
+          "name": "omc",
+          "description": "Claude Code orchestration",
+          "phase": "Phase 1",
+          "installed": false,
+          "version": "—"
+        },
+        {
+          "name": "omx",
+          "description": "Codex orchestration",
+          "phase": "Phase 1",
+          "installed": false,
+          "version": "—"
+        },
+        {
+          "name": "lean-ctx",
+          "description": "Shell output compression",
+          "phase": "Phase 2",
+          "installed": false,
+          "version": "—"
+        },
+        {
+          "name": "repomix",
+          "description": "Codebase summarizer",
+          "phase": "Phase 2",
+          "installed": false,
+          "version": "—"
+        },
+        {
+          "name": "context-mode",
+          "description": "Tool output sandboxing",
+          "phase": "Phase 2",
+          "installed": false,
+          "version": "—"
+        },
+        {
+          "name": "copilot",
+          "description": "GitHub Copilot CLI",
+          "phase": "Phase 2",
+          "installed": false,
+          "version": "—"
+        },
+        {
+          "name": "tmux",
+          "description": "Terminal multiplexer",
+          "phase": "Existing",
+          "installed": false,
+          "version": "—"
+        }
+      ],
+      "mcpInventory": {
+        "claudeTotal": 58,
+        "codexTotal": 57,
+        "copilotTotal": 2,
+        "tokenServers": [
+          {
+            "name": "code-review-graph",
+            "claude": true,
+            "codex": true,
+            "copilot": true
+          },
+          {
+            "name": "lean-ctx",
+            "claude": true,
+            "codex": true,
+            "copilot": true
+          },
+          {
+            "name": "context-mode",
+            "claude": true,
+            "codex": true,
+            "copilot": false
+          },
+          {
+            "name": "ccusage",
+            "claude": true,
+            "codex": false,
+            "copilot": false
+          }
+        ]
+      },
+      "optimizationLayers": [
+        {
+          "name": "code-review-graph",
+          "savings": "8x on structural queries",
+          "claude": true,
+          "codex": true,
+          "copilot": true
+        },
+        {
+          "name": "lean-ctx",
+          "savings": "89-99% shell compression",
+          "claude": true,
+          "codex": true,
+          "copilot": true
+        },
+        {
+          "name": "context-mode",
+          "savings": "98% tool output sandbox",
+          "claude": true,
+          "codex": false,
+          "copilot": false
+        },
+        {
+          "name": "token-efficient rules",
+          "savings": "10-20% output reduction",
+          "claude": true,
+          "codex": true,
+          "copilot": false
+        },
+        {
+          "name": "ccusage",
+          "savings": "visibility (monitoring)",
+          "claude": true,
+          "codex": false,
+          "copilot": false
+        }
+      ],
+      "setupPhases": [
+        {
+          "phase": "Phase 1 — Core",
+          "items": [
+            {
+              "name": "code-review-graph",
+              "description": "Graph-based structural code search (22 MCP tools)",
+              "location": "MCP server + per-project graph",
+              "active": false
+            },
+            {
+              "name": "oh-my-claudecode (OMC)",
+              "description": "19-agent orchestration for Claude Code",
+              "location": "Global CLAUDE.md + skills",
+              "active": false
+            },
+            {
+              "name": "oh-my-codex (OMX)",
+              "description": "Multi-agent orchestration for Codex",
+              "location": "Global config.toml + AGENTS.md",
+              "active": false
+            },
+            {
+              "name": "ai-setup script",
+              "description": "One-command per-project setup",
+              "location": "~/.local/bin/ai-setup",
+              "active": true
+            }
+          ]
+        },
+        {
+          "phase": "Phase 2 — Token Optimization",
+          "items": [
+            {
+              "name": "lean-ctx",
+              "description": "Shell output compression (89-99% savings)",
+              "location": "~/.zshrc aliases + Codex hook + Copilot MCP",
+              "active": true
+            },
+            {
+              "name": "repomix",
+              "description": "Codebase-to-summary (70% reduction)",
+              "location": "Per-project .repomix-output.xml",
+              "active": false
+            },
+            {
+              "name": "context-mode",
+              "description": "Tool output sandboxing (98% savings)",
+              "location": "Claude Code MCP server",
+              "active": true
+            },
+            {
+              "name": "Copilot CLI",
+              "description": "Terminal AI agent with MCP support",
+              "location": "~/.copilot/mcp-config.json",
+              "active": false
+            }
+          ]
+        },
+        {
+          "phase": "Phase 3 — Capability Expansion",
+          "items": [
+            {
+              "name": "ccusage",
+              "description": "Token usage visibility",
+              "location": "Claude Code MCP server",
+              "active": true
+            },
+            {
+              "name": "Token-efficient rules",
+              "description": "5 output verbosity rules",
+              "location": "CLAUDE.md + AGENTS.md",
+              "active": true
+            },
+            {
+              "name": "Agent skills (176 total)",
+              "description": "Skill inventory under ~/.agents/skills/",
+              "location": "~/.agents/skills/",
+              "active": true
+            },
+            {
+              "name": "Copilot plugins (5)",
+              "description": "Installed Copilot plugin registry",
+              "location": "~/.copilot/installed-plugins/",
+              "active": true
+            }
+          ]
+        }
+      ],
+      "configHealth": [
+        {
+          "path": "~/.claude.json",
+          "healthy": true,
+          "description": "Claude Code global config"
+        },
+        {
+          "path": "~/.claude/CLAUDE.md",
+          "healthy": true,
+          "description": "Claude Code instructions"
+        },
+        {
+          "path": "~/.codex/config.toml",
+          "healthy": true,
+          "description": "Codex global config (valid TOML)"
+        },
+        {
+          "path": "~/.codex/AGENTS.md",
+          "healthy": true,
+          "description": "Codex global instructions"
+        },
+        {
+          "path": "~/.codex/hooks/lean-ctx-*",
+          "healthy": true,
+          "description": "Codex lean-ctx compression hook"
+        },
+        {
+          "path": "~/.copilot/mcp-config.json",
+          "healthy": true,
+          "description": "Copilot global MCP config"
+        },
+        {
+          "path": "~/.copilot/config.json",
+          "healthy": true,
+          "description": "Copilot plugin registry"
+        },
+        {
+          "path": "~/AGENTS.md, ~/CLAUDE.md",
+          "healthy": true,
+          "description": "No junk files in home directory"
+        }
+      ],
+      "skillsCount": 176,
+      "copilotPlugins": [
+        "database-data-management",
+        "frontend-web-dev",
+        "openapi-to-application-python-fastapi",
+        "project-planning",
+        "polyglot-test-agent"
+      ],
+      "usage": {
+        "days": 7,
+        "claude": {
+          "available": false,
+          "days": [],
+          "totals": {
+            "inputTokens": 0,
+            "outputTokens": 0,
+            "cacheCreationTokens": 0,
+            "cacheReadTokens": 0,
+            "totalTokens": 0,
+            "totalCost": 0,
+            "cacheHitRatio": null
+          },
+          "note": "No Claude ccusage data was available."
+        },
+        "codex": {
+          "available": true,
+          "days": [
+            {
+              "date": "2026-04-01",
+              "inputTokens": 75123699,
+              "outputTokens": 287994,
+              "cachedInputTokens": 74107648,
+              "reasoningOutputTokens": 125524,
+              "sessions": 1
+            },
+            {
+              "date": "2026-04-02",
+              "inputTokens": 207981230,
+              "outputTokens": 1022093,
+              "cachedInputTokens": 196814208,
+              "reasoningOutputTokens": 442338,
+              "sessions": 1
+            },
+            {
+              "date": "2026-04-03",
+              "inputTokens": 1229590644,
+              "outputTokens": 2053746,
+              "cachedInputTokens": 1190561664,
+              "reasoningOutputTokens": 853605,
+              "sessions": 2
+            },
+            {
+              "date": "2026-04-04",
+              "inputTokens": 4170022,
+              "outputTokens": 20296,
+              "cachedInputTokens": 3897984,
+              "reasoningOutputTokens": 10961,
+              "sessions": 1
+            },
+            {
+              "date": "2026-04-05",
+              "inputTokens": 19590662586,
+              "outputTokens": 33513918,
+              "cachedInputTokens": 18984970880,
+              "reasoningOutputTokens": 13809871,
+              "sessions": 17
+            }
+          ],
+          "totals": {
+            "inputTokens": 21107528181,
+            "outputTokens": 36898047,
+            "cachedInputTokens": 20450352384,
+            "reasoningOutputTokens": 15242299,
+            "sessions": 22,
+            "totalTokens": 21144426228,
+            "cacheHitRatio": 96.89
+          },
+          "note": "Measured Codex usage came from local session logs."
+        },
+        "copilot": {
+          "available": false,
+          "note": "No real local Copilot usage telemetry source was found."
+        }
+      },
+      "systemHealth": {
+        "criticalCount": 0,
+        "warningCount": 1,
+        "okCount": 13
+      },
+      "guidance": [],
+      "note": "Machine-local advisory was built in CI fast mode. Optimization score is intentionally omitted. Refresh in a live shell for actual machine readings."
+    },
+    "kiwiControl": {
+      "contextView": {
+        "task": null,
+        "selectedFiles": [],
+        "excludedPatterns": [],
+        "reason": null,
+        "confidence": null,
+        "confidenceDetail": null,
+        "keywordMatches": [],
+        "tree": {
+          "nodes": [],
+          "selectedCount": 0,
+          "candidateCount": 0,
+          "excludedCount": 0
+        },
+        "timestamp": null
+      },
+      "tokenAnalytics": {
+        "selectedTokens": 0,
+        "fullRepoTokens": 0,
+        "savingsPercent": 0,
+        "fileCountSelected": 0,
+        "fileCountTotal": 0,
+        "estimationMethod": null,
+        "estimateNote": null,
+        "topDirectories": [],
+        "task": null,
+        "timestamp": null
+      },
+      "efficiency": {
+        "instructionsGenerated": false,
+        "instructionsPath": null
+      },
+      "nextActions": {
+        "actions": [
+          {
+            "action": "Prepare bounded context",
+            "file": null,
+            "command": "kiwi-control prepare \"describe your task\"",
+            "reason": "Context selection and prepared scope must be recorded before execution.",
+            "priority": "high"
+          }
+        ],
+        "summary": "Prepare bounded context: Context selection and prepared scope must be recorded before execution."
+      },
+      "feedback": {
+        "totalRuns": 0,
+        "successRate": 0,
+        "adaptationLevel": "limited",
+        "note": "Adaptive feedback is idle. Kiwi Control learns only from successful checkpoints and handoffs.",
+        "basedOnPastRuns": false,
+        "reusedPattern": null,
+        "similarTasks": [],
+        "recentEntries": [],
+        "topBoostedFiles": [],
+        "topPenalizedFiles": []
+      },
+      "execution": {
+        "totalExecutions": 0,
+        "totalTokensUsed": 0,
+        "averageTokensPerRun": 0,
+        "successRate": 0,
+        "recentExecutions": [],
+        "tokenTrend": "insufficient-data"
+      },
+      "wastedFiles": {
+        "files": [],
+        "totalWastedTokens": 0,
+        "removalSavingsPercent": 0
+      },
+      "heavyDirectories": {
+        "directories": []
+      },
+      "indexing": {
+        "totalFiles": 0,
+        "observedFiles": 0,
+        "selectedFiles": 0,
+        "candidateFiles": 0,
+        "excludedFiles": 0,
+        "discoveredFiles": 0,
+        "analyzedFiles": 0,
+        "skippedFiles": 0,
+        "skippedDirectories": 0,
+        "visitedDirectories": 0,
+        "maxDepthExplored": 0,
+        "fileBudgetReached": false,
+        "directoryBudgetReached": false,
+        "partialScan": false,
+        "ignoreRulesApplied": [],
+        "skipped": [],
+        "indexedFiles": 0,
+        "indexUpdatedFiles": 0,
+        "indexReusedFiles": 0,
+        "impactFiles": 0,
+        "changedSignals": 0,
+        "keywordSignals": 0,
+        "importSignals": 0,
+        "repoContextSignals": 0,
+        "scopeArea": null,
+        "coverageNote": "Run kiwi-control prepare to record indexing coverage and selection reasoning.",
+        "selectionReason": null
+      },
+      "fileAnalysis": {
+        "totalFiles": 0,
+        "scannedFiles": 0,
+        "skippedFiles": 0,
+        "selectedFiles": 0,
+        "excludedFiles": 0,
+        "selected": [],
+        "excluded": [],
+        "skipped": []
+      },
+      "contextTrace": {
+        "initialSignals": {
+          "changedFiles": [],
+          "recentFiles": [],
+          "importNeighbors": [],
+          "proximityFiles": [],
+          "keywordMatches": [],
+          "repoContextFiles": []
+        },
+        "expansionSteps": [],
+        "honesty": {
+          "heuristic": true,
+          "lowConfidence": false,
+          "partialScan": false
+        }
+      },
+      "tokenBreakdown": {
+        "partialScan": false,
+        "categories": []
+      },
+      "decisionLogic": {
+        "summary": "Prepare bounded context: Context selection and prepared scope must be recorded before execution.",
+        "decisionPriority": "high",
+        "inputSignals": [
+          "execution state: idle",
+          "current step index: 0",
+          "risk: low",
+          "39 validation issue(s)"
+        ],
+        "reasoningChain": [
+          "ExecutionPlan is the canonical source of truth for next-step decisions.",
+          "The active plan step is prepare."
+        ],
+        "ignoredSignals": []
+      },
+      "runtimeLifecycle": {
+        "currentTask": null,
+        "currentStage": "idle",
+        "validationStatus": null,
+        "nextSuggestedCommand": null,
+        "nextRecommendedAction": null,
+        "recentEvents": []
+      },
+      "measuredUsage": {
+        "available": false,
+        "source": "none",
+        "totalTokens": 0,
+        "totalRuns": 0,
+        "runs": [],
+        "workflows": [],
+        "files": [],
+        "note": "No measured token usage is available yet."
+      },
+      "skills": {
+        "activeSkills": [],
+        "suggestedSkills": [],
+        "totalSkills": 0
+      },
+      "workflow": {
+        "task": null,
+        "status": "pending",
+        "currentStepId": null,
+        "steps": []
+      },
+      "executionTrace": {
+        "steps": [],
+        "whyThisHappened": "Prepare bounded context: Context selection and prepared scope must be recorded before execution."
+      },
+      "executionPlan": {
+        "summary": "idle: Prepare bounded context.",
+        "intent": null,
+        "hierarchy": {
+          "goal": null,
+          "subtasks": [
+            {
+              "id": "scope",
+              "title": "Scope the work",
+              "stepIds": [
+                "prepare"
+              ]
+            },
+            {
+              "id": "change",
+              "title": "Make the change",
+              "stepIds": [
+                "execute"
+              ]
+            },
+            {
+              "id": "verify",
+              "title": "Verify and checkpoint",
+              "stepIds": [
+                "validate",
+                "checkpoint",
+                "handoff"
+              ]
+            }
+          ]
+        },
+        "state": "idle",
+        "currentStepIndex": 0,
+        "confidence": null,
+        "risk": "low",
+        "blocked": false,
+        "steps": [
+          {
+            "id": "prepare",
+            "description": "Prepare bounded context",
+            "command": "kiwi-control prepare \"describe your task\"",
+            "expectedOutput": "Prepared scope, instructions, token state, and context snapshot are ready.",
+            "expectedOutcome": {
+              "expectedFiles": [],
+              "expectedChanges": [
+                "Prepared scope is written",
+                "Instructions are generated",
+                "Token state is recorded"
+              ]
+            },
+            "validation": "Context selection and prepared scope must be recorded before execution.",
+            "status": "pending",
+            "workflowStepId": "prepare-context",
+            "result": {
+              "ok": null,
+              "summary": null,
+              "validation": null,
+              "failureReason": null,
+              "suggestedFix": null,
+              "retryCommand": null
+            },
+            "fixCommand": null,
+            "retryCommand": "kiwi-control prepare \"describe your task\""
+          },
+          {
+            "id": "execute",
+            "description": "Modify the selected files",
+            "command": "kiwi-control run \"describe your task\"",
+            "expectedOutput": "Run packets or equivalent execution artifacts are ready.",
+            "expectedOutcome": {
+              "expectedFiles": [],
+              "expectedChanges": [
+                "Implementation changes land in selected source files or module groups.",
+                "Expected files: selected scope"
+              ]
+            },
+            "validation": "Execution must produce packet/output artifacts inside the prepared scope.",
+            "status": "pending",
+            "workflowStepId": "generate-run-packets",
+            "result": {
+              "ok": null,
+              "summary": null,
+              "validation": null,
+              "failureReason": null,
+              "suggestedFix": null,
+              "retryCommand": null
+            },
+            "fixCommand": null,
+            "retryCommand": "kiwi-control run \"describe your task\""
+          },
+          {
+            "id": "validate",
+            "description": "Validate the task outcome",
+            "command": "kiwi-control validate \"describe your task\"",
+            "expectedOutput": "Final validation confirms scope and outcome correctness.",
+            "expectedOutcome": {
+              "expectedFiles": [],
+              "expectedChanges": [
+                "Selected files remain bounded to: selected scope",
+                "Implementation changes land in selected source files or module groups.",
+                "Expected files: selected scope"
+              ]
+            },
+            "validation": "Validation must confirm expected files changed, scope remained bounded, and the task goal was achieved.",
+            "status": "pending",
+            "workflowStepId": "validate-outcome",
+            "result": {
+              "ok": null,
+              "summary": null,
+              "validation": null,
+              "failureReason": null,
+              "suggestedFix": null,
+              "retryCommand": null
+            },
+            "fixCommand": null,
+            "retryCommand": "kiwi-control validate \"describe your task\""
+          },
+          {
+            "id": "checkpoint",
+            "description": "Checkpoint the validated work",
+            "command": "kiwi-control checkpoint \"validated-progress\"",
+            "expectedOutput": "Checkpoint artifacts record validated progress.",
+            "expectedOutcome": {
+              "expectedFiles": [],
+              "expectedChanges": [
+                "Task outcome remains inside the selected scope."
+              ]
+            },
+            "validation": "Checkpointing is allowed only after validation passes.",
+            "status": "pending",
+            "workflowStepId": "checkpoint-progress",
+            "result": {
+              "ok": null,
+              "summary": null,
+              "validation": null,
+              "failureReason": null,
+              "suggestedFix": null,
+              "retryCommand": null
+            },
+            "fixCommand": null,
+            "retryCommand": "kiwi-control checkpoint \"validated-progress\""
+          },
+          {
+            "id": "handoff",
+            "description": "Handoff the work",
+            "command": "kiwi-control handoff --to qa-specialist",
+            "expectedOutput": "Handoff artifacts are written for the next specialist/tool.",
+            "expectedOutcome": {
+              "expectedFiles": [],
+              "expectedChanges": [
+                "Task outcome remains inside the selected scope."
+              ]
+            },
+            "validation": "Handoff should happen after checkpoint captures validated progress.",
+            "status": "pending",
+            "workflowStepId": "handoff-work",
+            "result": {
+              "ok": null,
+              "summary": null,
+              "validation": null,
+              "failureReason": null,
+              "suggestedFix": null,
+              "retryCommand": null
+            },
+            "fixCommand": null,
+            "retryCommand": "kiwi-control handoff --to qa-specialist"
+          }
+        ],
+        "nextCommands": [
+          "kiwi-control prepare \"describe your task\"",
+          "kiwi-control run \"describe your task\"",
+          "kiwi-control validate \"describe your task\""
+        ],
+        "lastError": null,
+        "impactPreview": {
+          "likelyFiles": [],
+          "moduleGroups": []
+        },
+        "verificationLayers": [
+          {
+            "id": "syntax",
+            "description": "Syntax and shape validation for the selected scope."
+          }
+        ],
+        "partialResults": []
+      }
+    }
+  }
+}

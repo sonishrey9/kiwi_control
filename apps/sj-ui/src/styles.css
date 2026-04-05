@@ -217,6 +217,16 @@ button {
   border-color: color-mix(in srgb, var(--success) 18%, var(--border));
 }
 
+.kc-load-strip.tone-warm {
+  border-color: color-mix(in srgb, var(--primary) 18%, var(--border));
+  background: color-mix(in srgb, var(--primary) 6%, var(--card));
+}
+
+.kc-load-strip.tone-degraded {
+  border-color: color-mix(in srgb, var(--warning) 34%, var(--border));
+  background: color-mix(in srgb, var(--warning) 7%, var(--card));
+}
+
 .kc-load-row {
   display: flex;
   flex-wrap: wrap;

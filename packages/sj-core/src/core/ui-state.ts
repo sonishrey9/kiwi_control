@@ -19,7 +19,7 @@ import {
 import { loadActiveRoleHints, loadContinuitySnapshot, loadLatestTaskPacketSet } from "./state.js";
 import type { ValidationIssue } from "./validator.js";
 import { validateControlPlane, validateTargetRepo } from "./validator.js";
-import { pathExists, readJson, renderDisplayPath } from "../utils/fs.js";
+import { pathExists, readJson, renderDisplayPath, writeText } from "../utils/fs.js";
 import type { ContextSelectionState } from "./context-selector.js";
 import type { ContextTraceState, FileAnalysisEntry, IndexingState, SkippedPathEntry } from "./context-trace.js";
 import type { RuntimeLifecycleState } from "./runtime-lifecycle.js";
@@ -73,6 +73,15 @@ export interface RepoControlStatus {
   title: string;
   detail: string;
   sourceOfTruthNote: string;
+}
+
+export interface RepoControlLoadState {
+  source: "fresh" | "warm-snapshot" | "stale-snapshot";
+  freshness: "fresh" | "warm" | "stale";
+  generatedAt: string;
+  snapshotSavedAt: string | null;
+  snapshotAgeMs: number | null;
+  detail: string;
 }
 
 export interface KiwiControlContextView {
@@ -349,6 +358,7 @@ export interface KiwiControlState {
 
 export interface RepoControlState {
   targetRoot: string;
+  loadState: RepoControlLoadState;
   profileName: string;
   executionMode: string;
   projectType: string;
@@ -378,20 +388,132 @@ export interface RepoControlState {
   kiwiControl: KiwiControlState;
 }
 
+interface RepoControlSnapshotArtifact {
+  artifactType: "kiwi-control/repo-control-snapshot";
+  version: 1;
+  savedAt: string;
+  state: RepoControlState;
+}
+
+const REPO_CONTROL_SNAPSHOT_VERSION = 1;
+const DEFAULT_WARM_SNAPSHOT_MAX_AGE_MS = 120_000;
+const DEFAULT_STALE_SNAPSHOT_MAX_AGE_MS = 10 * 60_000;
+
+function repoControlSnapshotPath(targetRoot: string): string {
+  return path.join(targetRoot, ".agent", "state", "repo-control-snapshot.json");
+}
+
+function buildFreshLoadState(generatedAt = new Date().toISOString()): RepoControlLoadState {
+  return {
+    source: "fresh",
+    freshness: "fresh",
+    generatedAt,
+    snapshotSavedAt: null,
+    snapshotAgeMs: null,
+    detail: "Repo-local state is current."
+  };
+}
+
+function withFreshLoadState(state: RepoControlState, generatedAt = new Date().toISOString()): RepoControlState {
+  return {
+    ...state,
+    loadState: buildFreshLoadState(generatedAt)
+  };
+}
+
+export async function loadWarmRepoControlSnapshot(
+  targetRoot: string,
+  options: { warmMaxAgeMs?: number; staleMaxAgeMs?: number } = {}
+): Promise<RepoControlState | null> {
+  const snapshotFilePath = repoControlSnapshotPath(targetRoot);
+  if (!(await pathExists(snapshotFilePath))) {
+    return null;
+  }
+
+  const warmMaxAgeMs = options.warmMaxAgeMs ?? DEFAULT_WARM_SNAPSHOT_MAX_AGE_MS;
+  const staleMaxAgeMs = Math.max(options.staleMaxAgeMs ?? DEFAULT_STALE_SNAPSHOT_MAX_AGE_MS, warmMaxAgeMs);
+
+  try {
+    const artifact = await readJson<RepoControlSnapshotArtifact>(snapshotFilePath);
+    if (artifact.artifactType !== "kiwi-control/repo-control-snapshot" || artifact.version !== REPO_CONTROL_SNAPSHOT_VERSION) {
+      return null;
+    }
+
+    const ageMs = Date.now() - new Date(artifact.savedAt).getTime();
+    if (!Number.isFinite(ageMs) || ageMs < 0 || ageMs > staleMaxAgeMs) {
+      return null;
+    }
+
+    if (ageMs > warmMaxAgeMs) {
+      return {
+        ...artifact.state,
+        loadState: {
+          source: "stale-snapshot",
+          freshness: "stale",
+          generatedAt: artifact.state.loadState?.generatedAt ?? artifact.savedAt,
+          snapshotSavedAt: artifact.savedAt,
+          snapshotAgeMs: ageMs,
+          detail: `Loaded an older repo snapshot from ${Math.round(ageMs / 1000)}s ago while fresh state refreshes in the background.`
+        }
+      };
+    }
+
+    return {
+      ...artifact.state,
+      loadState: {
+        source: "warm-snapshot",
+        freshness: "warm",
+        generatedAt: artifact.state.loadState?.generatedAt ?? artifact.savedAt,
+        snapshotSavedAt: artifact.savedAt,
+        snapshotAgeMs: ageMs,
+        detail: `Loaded a warm repo snapshot from ${Math.round(ageMs / 1000)}s ago while fresh state refreshes in the background.`
+      }
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function persistRepoControlSnapshot(targetRoot: string, state: RepoControlState): Promise<string> {
+  if (!(await pathExists(path.join(targetRoot, ".agent")))) {
+    return repoControlSnapshotPath(targetRoot);
+  }
+  const snapshotFilePath = repoControlSnapshotPath(targetRoot);
+  const savedAt = new Date().toISOString();
+  const artifact: RepoControlSnapshotArtifact = {
+    artifactType: "kiwi-control/repo-control-snapshot",
+    version: REPO_CONTROL_SNAPSHOT_VERSION,
+    savedAt,
+    state: withFreshLoadState(state, state.loadState?.generatedAt ?? savedAt)
+  };
+  await writeText(snapshotFilePath, `${JSON.stringify(artifact, null, 2)}\n`);
+  return snapshotFilePath;
+}
+
 export async function buildRepoControlState(options: {
   repoRoot: string;
   targetRoot: string;
   profileName?: string;
   machineAdvisoryOptions?: Parameters<typeof loadMachineAdvisory>[0];
+  preferSnapshot?: boolean;
 }): Promise<RepoControlState> {
+  if (options.preferSnapshot) {
+    const snapshot = await loadWarmRepoControlSnapshot(options.targetRoot);
+    if (snapshot) {
+      return snapshot;
+    }
+  }
+
   const config = await loadCanonicalConfig(options.repoRoot);
-  return buildRepoControlStateFromConfig({
+  const state = await buildRepoControlStateFromConfig({
     config,
     repoRoot: options.repoRoot,
     targetRoot: options.targetRoot,
     ...(options.machineAdvisoryOptions ? { machineAdvisoryOptions: options.machineAdvisoryOptions } : {}),
     ...(options.profileName ? { profileName: options.profileName } : {})
   });
+  await persistRepoControlSnapshot(options.targetRoot, state).catch(() => null);
+  return state;
 }
 
 export async function buildRepoControlStateFromConfig(options: {
@@ -401,11 +523,20 @@ export async function buildRepoControlStateFromConfig(options: {
   profileName?: string;
   machineAdvisoryOptions?: Parameters<typeof loadMachineAdvisory>[0];
 }): Promise<RepoControlState> {
-  const inspection = await inspectBootstrapTarget(options.targetRoot, options.config);
-  const overlay = await loadProjectOverlay(options.targetRoot);
-  const selection = await resolveProfileSelection(options.targetRoot, options.config, options.profileName);
-  const continuity = await loadContinuitySnapshot(options.targetRoot);
-  const activeRoleHints = await loadActiveRoleHints(options.targetRoot);
+  const generatedAt = new Date().toISOString();
+  const [
+    inspection,
+    overlay,
+    selection,
+    continuity,
+    activeRoleHints
+  ] = await Promise.all([
+    inspectBootstrapTarget(options.targetRoot, options.config),
+    loadProjectOverlay(options.targetRoot),
+    resolveProfileSelection(options.targetRoot, options.config, options.profileName),
+    loadContinuitySnapshot(options.targetRoot),
+    loadActiveRoleHints(options.targetRoot)
+  ]);
   const executionMode = resolveExecutionMode(options.config, selection, overlay, continuity.latestPhase?.mode);
   const compiledContext = await compileRepoContext({
     targetRoot: options.targetRoot,
@@ -437,16 +568,99 @@ export async function buildRepoControlStateFromConfig(options: {
       projectType: inspection.projectType,
       taskType: compiledContext.taskType,
       fileArea: compiledContext.fileArea,
-      starterMcpHints: compiledContext.eligibleMcpServers,
-      authorityFiles: compiledContext.authorityOrder
+        starterMcpHints: compiledContext.eligibleMcpServers,
+        authorityFiles: compiledContext.authorityOrder
     });
   const suggestedPack = getMcpPackDefinition(suggestedPackId);
+  const [
+    controlPlaneIssues,
+    targetRepoIssues,
+    openRisks,
+    latestTaskPacketSet,
+    latestReconcile,
+    machineAdvisory
+  ] = await Promise.all([
+    validateControlPlane(options.repoRoot, options.config),
+    validateTargetRepo(options.targetRoot, options.config, selection),
+    loadOpenRisks(options.targetRoot),
+    loadLatestTaskPacketSet(options.targetRoot),
+    loadLatestReconcileReport(options.targetRoot),
+    loadMachineAdvisory(options.machineAdvisoryOptions).catch((): MachineAdvisoryState => ({
+      artifactType: "kiwi-control/machine-advisory" as const,
+      version: 2 as const,
+      generatedBy: "kiwi-control machine-advisory",
+      windowDays: 7,
+      updatedAt: new Date().toISOString(),
+      stale: true,
+      sections: {
+        inventory: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
+        mcpInventory: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
+        optimizationLayers: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
+        setupPhases: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
+        configHealth: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
+        usage: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
+        guidance: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." }
+      },
+      inventory: [],
+      mcpInventory: {
+        claudeTotal: 0,
+        codexTotal: 0,
+        copilotTotal: 0,
+        tokenServers: []
+      },
+      optimizationLayers: [],
+      setupPhases: [],
+      configHealth: [],
+      skillsCount: 0,
+      copilotPlugins: [],
+      usage: {
+        days: 7,
+        claude: {
+          available: false,
+          days: [],
+          totals: {
+            inputTokens: 0,
+            outputTokens: 0,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            totalTokens: 0,
+            totalCost: null,
+            cacheHitRatio: null
+          },
+          note: "Machine advisory unavailable."
+        },
+        codex: {
+          available: false,
+          days: [],
+          totals: {
+            inputTokens: 0,
+            outputTokens: 0,
+            cachedInputTokens: 0,
+            reasoningOutputTokens: 0,
+            sessions: 0,
+            totalTokens: 0,
+            cacheHitRatio: null
+          },
+          note: "Machine advisory unavailable."
+        },
+        copilot: {
+          available: false,
+          note: "Machine advisory unavailable."
+        }
+      },
+      systemHealth: {
+        criticalCount: 0,
+        warningCount: 0,
+        okCount: 0
+      },
+      guidance: [],
+      note: "Machine-local advisory is unavailable. Optimization score is intentionally omitted."
+    }))
+  ]);
   const validationIssues = [
-    ...(await validateControlPlane(options.repoRoot, options.config)),
-    ...(await validateTargetRepo(options.targetRoot, options.config, selection))
+    ...controlPlaneIssues,
+    ...targetRepoIssues
   ];
-  const openRisks = await loadOpenRisks(options.targetRoot);
-  const latestTaskPacketSet = await loadLatestTaskPacketSet(options.targetRoot);
   const memoryPaths = getMemoryPaths(options.targetRoot);
   const memoryEntries: Array<[string, string]> = [
     ["Repo Facts", memoryPaths.repoFacts],
@@ -461,7 +675,6 @@ export async function buildRepoControlStateFromConfig(options: {
       present: await pathExists(filePath)
     }))
   );
-  const latestReconcile = await loadLatestReconcileReport(options.targetRoot);
   const continuityItems: RepoControlPanelItem[] = [
     {
       label: "Latest checkpoint",
@@ -525,78 +738,6 @@ export async function buildRepoControlStateFromConfig(options: {
   });
   const repoOverview = summarizeRepoOverview();
   const ecosystem = buildEcosystemCatalog();
-  const machineAdvisory = await loadMachineAdvisory(options.machineAdvisoryOptions).catch((): MachineAdvisoryState => ({
-    artifactType: "kiwi-control/machine-advisory" as const,
-    version: 2 as const,
-    generatedBy: "kiwi-control machine-advisory",
-    windowDays: 7,
-    updatedAt: new Date().toISOString(),
-    stale: true,
-    sections: {
-      inventory: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
-      mcpInventory: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
-      optimizationLayers: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
-      setupPhases: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
-      configHealth: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
-      usage: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
-      guidance: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." }
-    },
-    inventory: [],
-    mcpInventory: {
-      claudeTotal: 0,
-      codexTotal: 0,
-      copilotTotal: 0,
-      tokenServers: []
-    },
-    optimizationLayers: [],
-    setupPhases: [],
-    configHealth: [],
-    skillsCount: 0,
-    copilotPlugins: [],
-    usage: {
-      days: 7,
-      claude: {
-        available: false,
-        days: [],
-        totals: {
-          inputTokens: 0,
-          outputTokens: 0,
-          cacheCreationTokens: 0,
-          cacheReadTokens: 0,
-          totalTokens: 0,
-          totalCost: null,
-          cacheHitRatio: null
-        },
-        note: "Machine advisory unavailable."
-      },
-      codex: {
-        available: false,
-        days: [],
-        totals: {
-          inputTokens: 0,
-          outputTokens: 0,
-          cachedInputTokens: 0,
-          reasoningOutputTokens: 0,
-          sessions: 0,
-          totalTokens: 0,
-          cacheHitRatio: null
-        },
-        note: "Machine advisory unavailable."
-      },
-      copilot: {
-        available: false,
-        note: "Machine advisory unavailable."
-      }
-    },
-    systemHealth: {
-      criticalCount: 0,
-      warningCount: 0,
-      okCount: 0
-    },
-    guidance: [],
-    note: "Machine-local advisory is unavailable. Optimization score is intentionally omitted."
-  }));
-
   const kiwiControl = await loadKiwiControlState(options.targetRoot, validationIssues);
   const machineGuidanceContext = buildMachineGuidanceContext({
     taskType: deriveMachineTaskType(kiwiControl),
@@ -609,6 +750,7 @@ export async function buildRepoControlStateFromConfig(options: {
 
   return {
     targetRoot: options.targetRoot,
+    loadState: buildFreshLoadState(generatedAt),
     profileName: selection.profileName,
     executionMode,
     projectType: inspection.projectType,
@@ -769,6 +911,13 @@ function buildSafeParallelHint(mode: RepoControlMode, taskFileCount: number): st
   return "Keep generic repos quiet. Fan out only when file ownership and reconcile responsibilities are explicit.";
 }
 
+async function readJsonIfPresent<T>(filePath: string): Promise<T | null> {
+  if (!(await pathExists(filePath))) {
+    return null;
+  }
+  return readJson<T>(filePath);
+}
+
 async function loadKiwiControlState(
   targetRoot: string,
   validationIssues: ValidationIssue[]
@@ -783,6 +932,32 @@ async function loadKiwiControlState(
   const measuredUsagePath = path.join(targetRoot, ".agent", "state", "measured-usage.json");
   const workflowPath = path.join(targetRoot, ".agent", "state", "workflow.json");
   const instructionsPath = path.join(targetRoot, ".agent", "context", "generated-instructions.md");
+
+  const [
+    selection,
+    persistedIndexing,
+    trace,
+    tokenUsage,
+    persistedTokenBreakdown,
+    persistedRuntimeLifecycle,
+    persistedMeasuredUsage,
+    persistedSkills,
+    workflowFilePresent,
+    hasInstructions,
+    preparedScope
+  ] = await Promise.all([
+    readJsonIfPresent<ContextSelectionState>(contextSelectionPath),
+    readJsonIfPresent<IndexingState>(indexingPath),
+    readJsonIfPresent<ContextTraceState>(contextTracePath),
+    readJsonIfPresent<TokenUsageState>(tokenUsagePath),
+    readJsonIfPresent<TokenBreakdownState>(tokenBreakdownPath),
+    readJsonIfPresent<RuntimeLifecycleState>(runtimeLifecyclePath),
+    readJsonIfPresent<MeasuredUsageState>(measuredUsagePath),
+    readJsonIfPresent<SkillRegistryState>(skillsRegistryPath),
+    pathExists(workflowPath),
+    pathExists(instructionsPath),
+    loadPreparedScope(targetRoot).catch(() => null)
+  ]);
 
   let contextView: KiwiControlContextView = {
     task: null,
@@ -854,8 +1029,7 @@ async function loadKiwiControlState(
     }
   };
 
-  if (await pathExists(contextSelectionPath)) {
-    const selection = await readJson<ContextSelectionState>(contextSelectionPath);
+  if (selection) {
     const tree = buildContextTree(selection);
     const observedFiles = collectObservedTreeFiles(selection).length;
     const discovery = selection.signals.discovery;
@@ -901,8 +1075,7 @@ async function loadKiwiControlState(
     };
   }
 
-  if (await pathExists(indexingPath)) {
-    const persistedIndexing = await readJson<IndexingState>(indexingPath);
+  if (persistedIndexing) {
     indexing = {
       ...indexing,
       totalFiles: persistedIndexing.totalFiles,
@@ -924,8 +1097,7 @@ async function loadKiwiControlState(
     };
   }
 
-  if (await pathExists(contextTracePath)) {
-    const trace = await readJson<ContextTraceState>(contextTracePath);
+  if (trace) {
     fileAnalysis = {
       totalFiles: trace.fileAnalysis.totalFiles,
       scannedFiles: trace.fileAnalysis.scannedFiles,
@@ -1007,8 +1179,8 @@ async function loadKiwiControlState(
     steps: []
   };
 
-  if (await pathExists(tokenUsagePath)) {
-    const usage = await readJson<TokenUsageState>(tokenUsagePath);
+  if (tokenUsage) {
+    const usage = tokenUsage;
     tokenAnalytics = {
       selectedTokens: usage.selected_tokens,
       fullRepoTokens: usage.full_repo_tokens,
@@ -1041,16 +1213,14 @@ async function loadKiwiControlState(
     };
   }
 
-  if (await pathExists(tokenBreakdownPath)) {
-    const persistedTokenBreakdown = await readJson<TokenBreakdownState>(tokenBreakdownPath);
+  if (persistedTokenBreakdown) {
     tokenBreakdown = {
       partialScan: persistedTokenBreakdown.partial_scan,
       categories: persistedTokenBreakdown.categories
     };
   }
 
-  if (await pathExists(runtimeLifecyclePath)) {
-    const persistedRuntimeLifecycle = await readJson<RuntimeLifecycleState>(runtimeLifecyclePath);
+  if (persistedRuntimeLifecycle) {
     runtimeLifecycle = {
       currentTask: persistedRuntimeLifecycle.currentTask,
       currentStage: persistedRuntimeLifecycle.currentStage,
@@ -1061,8 +1231,7 @@ async function loadKiwiControlState(
     };
   }
 
-  if (await pathExists(measuredUsagePath)) {
-    const persistedMeasuredUsage = await readJson<MeasuredUsageState>(measuredUsagePath);
+  if (persistedMeasuredUsage) {
     measuredUsage = {
       available: persistedMeasuredUsage.available,
       source: persistedMeasuredUsage.source,
@@ -1075,8 +1244,7 @@ async function loadKiwiControlState(
     };
   }
 
-  if (await pathExists(skillsRegistryPath)) {
-    const persistedSkills = await readJson<SkillRegistryState>(skillsRegistryPath);
+  if (persistedSkills) {
     skills = {
       activeSkills: persistedSkills.activeSkills,
       suggestedSkills: persistedSkills.suggestedSkills,
@@ -1084,12 +1252,9 @@ async function loadKiwiControlState(
     };
   }
 
-  if (await pathExists(workflowPath)) {
+  if (workflowFilePresent) {
     workflowState = await loadWorkflowState(targetRoot);
   }
-
-  const hasInstructions = await pathExists(instructionsPath);
-  const preparedScope = await loadPreparedScope(targetRoot).catch(() => null);
 
   const efficiency: KiwiControlEfficiency = {
     instructionsGenerated: hasInstructions,

@@ -23,6 +23,14 @@ export interface KiwiControlContextTree {
 
 export interface RepoControlState {
   targetRoot: string;
+  loadState: {
+    source: "fresh" | "warm-snapshot" | "stale-snapshot" | "bridge-fallback";
+    freshness: "fresh" | "warm" | "stale" | "failed";
+    generatedAt: string;
+    snapshotSavedAt: string | null;
+    snapshotAgeMs: number | null;
+    detail: string;
+  };
   projectType: string;
   repoState: {
     mode: RepoControlMode;
@@ -276,7 +284,7 @@ export interface TopBarRenderContext {
     label: string;
     detail: string;
     progress: number;
-    tone: "loading" | "running" | "ready";
+    tone: "loading" | "running" | "ready" | "warm" | "degraded";
   };
   helpers: RenderHelperSet;
 }

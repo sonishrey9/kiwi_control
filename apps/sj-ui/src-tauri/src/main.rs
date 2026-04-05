@@ -70,7 +70,7 @@ struct LaunchBridgeState {
 }
 
 #[tauri::command]
-fn load_repo_control_state(target_root: String) -> Result<serde_json::Value, String> {
+fn load_repo_control_state(target_root: String, prefer_snapshot: Option<bool>) -> Result<serde_json::Value, String> {
     append_launch_log(&DesktopLaunchLogEntry {
         event: String::from("desktop-repo-state-requested"),
         reported_at: timestamp_now(),
@@ -80,7 +80,7 @@ fn load_repo_control_state(target_root: String) -> Result<serde_json::Value, Str
     })
     .ok();
 
-    let output = run_ui_bridge_repo_state(&target_root).map_err(|error| {
+    let output = run_ui_bridge_repo_state(&target_root, prefer_snapshot.unwrap_or(false)).map_err(|error| {
         let detail = format!("failed to invoke Kiwi Control runtime bridge: {error}");
         append_launch_log(&DesktopLaunchLogEntry {
             event: String::from("desktop-repo-state-failed"),
@@ -230,7 +230,7 @@ fn ack_launch_request(
     detail: Option<String>,
 ) -> Result<(), String> {
     let trimmed_status = status.trim();
-    if trimmed_status != "ready" && trimmed_status != "error" {
+    if trimmed_status != "ready" && trimmed_status != "error" && trimmed_status != "hydrating" {
         return Err(format!("unsupported desktop launch status: {trimmed_status}"));
     }
 
@@ -241,6 +241,8 @@ fn ack_launch_request(
         detail: detail.unwrap_or_else(|| {
             if trimmed_status == "ready" {
                 format!("Loaded repo-local state for {target_root}.")
+            } else if trimmed_status == "hydrating" {
+                format!("Loaded a warm repo snapshot for {target_root}. Fresh repo-local state is still hydrating.")
             } else {
                 BRIDGE_UNAVAILABLE_NEXT_STEP.to_string()
             }
@@ -252,6 +254,8 @@ fn ack_launch_request(
     append_launch_log(&DesktopLaunchLogEntry {
         event: if trimmed_status == "ready" {
             String::from("desktop-ready-acknowledged")
+        } else if trimmed_status == "hydrating" {
+            String::from("desktop-hydrating-acknowledged")
         } else {
             String::from("desktop-error-acknowledged")
         },
@@ -572,13 +576,17 @@ fn activate_app_on_macos() -> Result<(), String> {
     Ok(())
 }
 
-fn run_ui_bridge_repo_state(target_root: &str) -> Result<std::process::Output, std::io::Error> {
-    run_ui_bridge_command(&[
+fn run_ui_bridge_repo_state(target_root: &str, prefer_snapshot: bool) -> Result<std::process::Output, std::io::Error> {
+    let mut args = vec![
         "repo-state",
         "--target-root",
         target_root,
         "--machine-fast",
-    ], true)
+    ];
+    if prefer_snapshot {
+        args.push("--prefer-snapshot");
+    }
+    run_ui_bridge_command(&args, true)
 }
 
 fn run_ui_bridge_machine_section(section: &str, refresh: bool) -> Result<std::process::Output, std::io::Error> {

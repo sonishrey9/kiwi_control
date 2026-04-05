@@ -468,6 +468,31 @@ async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate, laun
   return await new Promise((resolve) => {
     let settled = false;
     let stderrOutput = "";
+    const settleProcessExit = async (code: number | null, signal: NodeJS.Signals | null) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      if (code === 0) {
+        resolve(true);
+        return;
+      }
+
+      const failureDetail = [stderrOutput.trim(), code === null ? null : `exit code ${code}`, signal ? `signal ${signal}` : null]
+        .filter(Boolean)
+        .join(" | ");
+
+      await appendDesktopLaunchLog({
+        event: "launch-attempt-failed",
+        requestId: launchRequest.requestId,
+        targetRoot: launchRequest.targetRoot,
+        command: candidate.command,
+        args: candidate.args,
+        detail: failureDetail || "desktop launch candidate exited before Kiwi Control could open"
+      });
+      resolve(false);
+    };
     const child = spawn(candidate.command, candidate.args, {
       detached: true,
       stdio: ["ignore", "ignore", "pipe"]
@@ -512,29 +537,11 @@ async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate, laun
     });
 
     child.once("close", async (code, signal) => {
-      if (settled) {
-        return;
-      }
+      await settleProcessExit(code, signal);
+    });
 
-      settled = true;
-      if (code === 0) {
-        resolve(true);
-        return;
-      }
-
-      const failureDetail = [stderrOutput.trim(), code === null ? null : `exit code ${code}`, signal ? `signal ${signal}` : null]
-        .filter(Boolean)
-        .join(" | ");
-
-      await appendDesktopLaunchLog({
-        event: "launch-attempt-failed",
-        requestId: launchRequest.requestId,
-        targetRoot: launchRequest.targetRoot,
-        command: candidate.command,
-        args: candidate.args,
-        detail: failureDetail || "desktop launch candidate exited before Kiwi Control could open"
-      });
-      resolve(false);
+    child.once("exit", async (code, signal) => {
+      await settleProcessExit(code, signal);
     });
   });
 }

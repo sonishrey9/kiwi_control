@@ -348,6 +348,13 @@ export async function loadMachineAdvisorySection(
     : options.commandRunner;
   const ccusagePayload = fastMode ? { daily: [] } : options.ccusagePayload;
 
+  if (!options.forceRefresh) {
+    const cachedSection = await loadCachedMachineSection(section, homeRoot, now);
+    if (cachedSection) {
+      return cachedSection;
+    }
+  }
+
   switch (section) {
     case "inventory":
       return buildMachineSection(section, builtAt, async () => buildToolchainInventory(homeRoot, commandRunner), []);
@@ -412,6 +419,50 @@ export async function loadMachineAdvisorySection(
         })
       };
     }
+  }
+}
+
+async function loadCachedMachineSection(
+  section: MachineAdvisorySectionName,
+  homeRoot: string,
+  now: Date
+): Promise<{ section: MachineAdvisorySectionName; meta: MachineAdvisorySectionState; data: unknown } | null> {
+  const cached = await safeReadJson<MachineAdvisoryState>(advisoryCachePath(homeRoot));
+  if (!cached || cached.artifactType !== "kiwi-control/machine-advisory" || cached.version !== 2) {
+    return null;
+  }
+
+  const age = now.getTime() - new Date(cached.updatedAt).getTime();
+  if (!Number.isFinite(age) || age < 0) {
+    return null;
+  }
+
+  const advisory = age < CACHE_TTL_MS && !cached.stale
+    ? { ...cached, stale: false }
+    : markMachineAdvisoryCached(cached, now);
+
+  return sectionFromMachineAdvisory(section, advisory);
+}
+
+function sectionFromMachineAdvisory(
+  section: MachineAdvisorySectionName,
+  advisory: MachineAdvisoryState
+): { section: MachineAdvisorySectionName; meta: MachineAdvisorySectionState; data: unknown } {
+  switch (section) {
+    case "inventory":
+      return { section, meta: advisory.sections.inventory, data: advisory.inventory };
+    case "mcpInventory":
+      return { section, meta: advisory.sections.mcpInventory, data: advisory.mcpInventory };
+    case "optimizationLayers":
+      return { section, meta: advisory.sections.optimizationLayers, data: advisory.optimizationLayers };
+    case "setupPhases":
+      return { section, meta: advisory.sections.setupPhases, data: advisory.setupPhases };
+    case "configHealth":
+      return { section, meta: advisory.sections.configHealth, data: advisory.configHealth };
+    case "usage":
+      return { section, meta: advisory.sections.usage, data: advisory.usage };
+    case "guidance":
+      return { section, meta: advisory.sections.guidance, data: advisory.guidance };
   }
 }
 

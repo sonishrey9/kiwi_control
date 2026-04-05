@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { bootstrapTarget } from "@shrey-junior/sj-core/core/bootstrap.js";
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
+import { buildRepoControlState, loadWarmRepoControlSnapshot } from "@shrey-junior/sj-core/core/ui-state.js";
 import { runSpecialists } from "../commands/specialists.js";
 import {
   buildDesktopLaunchCandidates,
@@ -197,6 +198,81 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(typeof payload.kiwiControl.executionPlan.blocked, "boolean");
   assert.equal(Array.isArray(payload.kiwiControl.executionPlan.steps), true);
   assert.equal(Array.isArray(payload.kiwiControl.executionPlan.nextCommands), true);
+});
+
+test("repo control state persists a warm snapshot and reuses it on warm open", async () => {
+  const repoRootPath = repoRoot();
+  const config = await loadCanonicalConfig(repoRootPath);
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-snapshot-"));
+  const target = path.join(tempDir, "snapshot-repo");
+  await fs.mkdir(target, { recursive: true });
+  await fs.writeFile(path.join(target, "package.json"), '{\n  "name": "snapshot-repo"\n}\n', "utf8");
+
+  await bootstrapTarget(
+    {
+      repoRoot: repoRootPath,
+      targetRoot: target
+    },
+    config
+  );
+
+  const freshState = await buildRepoControlState({
+    repoRoot: repoRootPath,
+    targetRoot: target,
+    machineAdvisoryOptions: { fastMode: true }
+  });
+  assert.equal(freshState.loadState.source, "fresh");
+
+  const warmSnapshot = await loadWarmRepoControlSnapshot(target);
+  assert.ok(warmSnapshot);
+  assert.equal(warmSnapshot?.loadState.source, "warm-snapshot");
+  assert.equal(warmSnapshot?.loadState.freshness, "warm");
+  assert.equal(warmSnapshot?.targetRoot, target);
+  assert.equal(typeof warmSnapshot?.loadState.snapshotAgeMs, "number");
+
+  const warmState = await buildRepoControlState({
+    repoRoot: repoRootPath,
+    targetRoot: target,
+    preferSnapshot: true,
+    machineAdvisoryOptions: { fastMode: true }
+  });
+  assert.equal(warmState.loadState.source, "warm-snapshot");
+});
+
+test("repo control snapshot becomes degraded when only an older warm state is available", async () => {
+  const repoRootPath = repoRoot();
+  const config = await loadCanonicalConfig(repoRootPath);
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-stale-snapshot-"));
+  const target = path.join(tempDir, "stale-snapshot-repo");
+  await fs.mkdir(target, { recursive: true });
+  await fs.writeFile(path.join(target, "package.json"), '{\n  "name": "stale-snapshot-repo"\n}\n', "utf8");
+
+  await bootstrapTarget(
+    {
+      repoRoot: repoRootPath,
+      targetRoot: target
+    },
+    config
+  );
+
+  await buildRepoControlState({
+    repoRoot: repoRootPath,
+    targetRoot: target,
+    machineAdvisoryOptions: { fastMode: true }
+  });
+
+  const snapshotPath = path.join(target, ".agent", "state", "repo-control-snapshot.json");
+  const snapshot = JSON.parse(await fs.readFile(snapshotPath, "utf8")) as {
+    savedAt: string;
+  };
+  snapshot.savedAt = new Date(Date.now() - (5 * 60 * 1000)).toISOString();
+  await fs.writeFile(snapshotPath, `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
+
+  const staleSnapshot = await loadWarmRepoControlSnapshot(target);
+  assert.ok(staleSnapshot);
+  assert.equal(staleSnapshot?.loadState.source, "stale-snapshot");
+  assert.equal(staleSnapshot?.loadState.freshness, "stale");
+  assert.equal((staleSnapshot?.loadState.snapshotAgeMs ?? 0) > 120_000, true);
 });
 
 test("ui command reports repo-not-initialized for an uninitialized generic repo while still returning json", async () => {
