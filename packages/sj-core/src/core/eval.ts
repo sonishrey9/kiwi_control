@@ -15,6 +15,7 @@ export interface EvalEntry {
   tokenSource: "measured" | "estimated" | "mixed" | "none";
   tokenCount: number;
   contextPrecision: number;
+  retried: boolean;
   notes: string[];
 }
 
@@ -24,6 +25,7 @@ export interface EvalState {
   entries: EvalEntry[];
   totalRuns: number;
   successRate: number;
+  retryRate: number;
   averageContextPrecision: number;
   averageTokenCount: number;
 }
@@ -31,6 +33,7 @@ export interface EvalState {
 export interface EvalSummary {
   totalRuns: number;
   successRate: number;
+  retryRate: number;
   averageContextPrecision: number;
   averageTokenCount: number;
   recentEntries: EvalEntry[];
@@ -51,6 +54,7 @@ export async function loadEvalState(targetRoot: string): Promise<EvalState> {
       entries: [],
       totalRuns: 0,
       successRate: 0,
+      retryRate: 0,
       averageContextPrecision: 0,
       averageTokenCount: 0
     };
@@ -64,6 +68,7 @@ export async function loadEvalState(targetRoot: string): Promise<EvalState> {
         entries: [],
         totalRuns: 0,
         successRate: 0,
+        retryRate: 0,
         averageContextPrecision: 0,
         averageTokenCount: 0
       };
@@ -76,6 +81,7 @@ export async function loadEvalState(targetRoot: string): Promise<EvalState> {
       entries: [],
       totalRuns: 0,
       successRate: 0,
+      retryRate: 0,
       averageContextPrecision: 0,
       averageTokenCount: 0
     };
@@ -106,6 +112,7 @@ export async function recordEvalEntry(targetRoot: string, entry: Omit<EvalEntry,
   const entries = [fullEntry, ...state.entries].slice(0, MAX_EVAL_ENTRIES);
   const totalRuns = entries.length;
   const successRate = totalRuns > 0 ? Math.round((entries.filter((item) => item.success).length / totalRuns) * 100) : 0;
+  const retryRate = totalRuns > 0 ? Math.round((entries.filter((item) => item.retried).length / totalRuns) * 100) : 0;
   const averageContextPrecision = totalRuns > 0 ? round3(entries.reduce((sum, item) => sum + item.contextPrecision, 0) / totalRuns) : 0;
   const averageTokenCount = totalRuns > 0 ? Math.round(entries.reduce((sum, item) => sum + item.tokenCount, 0) / totalRuns) : 0;
   const nextState: EvalState = {
@@ -114,6 +121,7 @@ export async function recordEvalEntry(targetRoot: string, entry: Omit<EvalEntry,
     entries,
     totalRuns,
     successRate,
+    retryRate,
     averageContextPrecision,
     averageTokenCount
   };
@@ -133,6 +141,7 @@ export async function summarizeEval(targetRoot: string): Promise<EvalSummary> {
   return {
     totalRuns: state.totalRuns,
     successRate: state.successRate,
+    retryRate: state.retryRate,
     averageContextPrecision: state.averageContextPrecision,
     averageTokenCount: state.averageTokenCount,
     recentEntries: state.entries.slice(0, 10)

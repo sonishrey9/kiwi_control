@@ -25,6 +25,7 @@ import { runPlan } from "./commands/plan.js";
 import { runNext } from "./commands/next.js";
 import { runRetry } from "./commands/retry.js";
 import { runResume } from "./commands/resume.js";
+import { runGuide } from "./commands/guide.js";
 import { runValidate } from "./commands/validate.js";
 import { runExplain } from "./commands/explain.js";
 import { runTrace } from "./commands/trace.js";
@@ -312,6 +313,14 @@ async function main(): Promise<void> {
         logger
       });
       return;
+    case "guide":
+      process.exitCode = await runGuide({
+        repoRoot,
+        targetRoot,
+        json: parsed.flags.json === true,
+        logger
+      });
+      return;
     case "validate": {
       const task = parsed.positionals.join(" ").trim();
       process.exitCode = await runValidate({
@@ -432,6 +441,7 @@ Core commands:
   ${primaryCommand} next [--json] [--target /path/to/repo]
   ${primaryCommand} retry [--target /path/to/repo]
   ${primaryCommand} resume [--target /path/to/repo]
+  ${primaryCommand} guide [--json] [--target /path/to/repo]
   ${primaryCommand} prepare "task" [--expand] [--json] [--target /path/to/repo]
   ${primaryCommand} validate ["task"] [--json] [--target /path/to/repo]
   ${primaryCommand} explain [--json] [--target /path/to/repo]
@@ -517,6 +527,7 @@ main().catch((error: unknown) => {
         "next",
         "retry",
         "resume",
+        "guide",
         "prepare",
         "validate",
         "explain",

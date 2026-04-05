@@ -5,7 +5,7 @@ import { loadPreparedScope, validateTouchedFilesAgainstAllowedFiles } from "./pr
 import { deriveModuleGroup } from "./context-index.js";
 import { loadCurrentPhase, loadLatestCheckpoint, loadLatestHandoff, loadActiveRoleHints } from "./state.js";
 import { PRODUCT_METADATA } from "./product.js";
-import { classifyFileArea, deriveTaskCategory } from "./task-intent.js";
+import { classifyFileArea, deriveTaskCategory, deriveTaskArea, parseTaskIntent, type ParsedTaskIntent } from "./task-intent.js";
 import { summarizeEval, type EvalSummary } from "./eval.js";
 import { pathExists, readJson, writeText } from "../utils/fs.js";
 import type { ValidationIssue } from "./validator.js";
@@ -27,13 +27,20 @@ export type ExecutionEngineState =
 
 export type ExecutionPlanStepId = "prepare" | "expand-context" | "analyze" | "trace" | "locate" | "execute" | "validate" | "checkpoint" | "handoff";
 export type ExecutionPlanStepStatus = "pending" | "running" | "success" | "failed";
-export type ExecutionErrorType = "execution_error" | "validation_error" | "system_error" | "context_error";
+export type ExecutionErrorType = "context_error" | "logic_error" | "environment_error";
+export type RetryStrategy = "expand" | "narrow" | "re-plan";
+
+export interface ExecutionExpectedOutcome {
+  expectedFiles: string[];
+  expectedChanges: string[];
+}
 
 export interface ExecutionPlanStep {
   id: ExecutionPlanStepId;
   description: string;
   command: string;
   expectedOutput: string;
+  expectedOutcome: ExecutionExpectedOutcome;
   validation: string;
   status: ExecutionPlanStepStatus;
   workflowStepId: WorkflowState["steps"][number]["stepId"] | null;
@@ -50,6 +57,7 @@ export interface ExecutionPlanStep {
 
 export interface ExecutionPlanError {
   errorType: ExecutionErrorType;
+  retryStrategy: RetryStrategy;
   reason: string;
   fixCommand: string;
   retryCommand: string;
@@ -65,10 +73,26 @@ export interface ExecutionPlanContextSnapshot {
   reverseDependencies: string[];
 }
 
+export interface ExecutionPlanHierarchy {
+  goal: string | null;
+  subtasks: Array<{
+    id: string;
+    title: string;
+    stepIds: ExecutionPlanStepId[];
+  }>;
+}
+
+export interface ExecutionImpactPreview {
+  likelyFiles: string[];
+  moduleGroups: string[];
+}
+
 export interface ExecutionPlanState {
   artifactType: "kiwi-control/execution-plan";
   version: 2;
   task: string | null;
+  intent: ParsedTaskIntent | null;
+  hierarchy: ExecutionPlanHierarchy;
   state: ExecutionEngineState;
   currentStepIndex: number;
   confidence: string | null;
@@ -79,6 +103,15 @@ export interface ExecutionPlanState {
   nextCommands: string[];
   lastError: ExecutionPlanError | null;
   contextSnapshot: ExecutionPlanContextSnapshot;
+  impactPreview: ExecutionImpactPreview;
+  verificationLayers: Array<{
+    id: "syntax" | "behavioral" | "regression";
+    description: string;
+  }>;
+  partialResults: Array<{
+    stepId: ExecutionPlanStepId;
+    summary: string;
+  }>;
   evalSummary: EvalSummary | null;
   updatedAt: string;
 }
@@ -166,11 +199,14 @@ export async function recordPlanStepResult(
     plan.currentStepIndex = nextPending >= 0 ? nextPending : Math.max(plan.steps.length - 1, 0);
   } else if (options.status === "failed") {
     plan.currentStepIndex = stepIndex;
+    const errorType = classifyExecutionError(updatedStep, null, null);
+    const retryStrategy = deriveRetryStrategy(errorType, plan.confidence);
     plan.lastError = {
-      errorType: "execution_error",
+      errorType,
+      retryStrategy,
       reason: options.failureReason ?? `${options.stepId} failed.`,
-      fixCommand: updatedStep.fixCommand ?? step.command,
-      retryCommand: updatedStep.retryCommand ?? step.command
+      fixCommand: updatedStep.fixCommand ?? buildRetryCommand(retryStrategy, plan.task, step.command),
+      retryCommand: updatedStep.retryCommand ?? buildRetryCommand(retryStrategy, plan.task, step.command)
     };
     plan.state = "failed";
     plan.blocked = true;
@@ -223,6 +259,7 @@ export async function syncExecutionPlan(
     workflow.task ??
     currentPhase?.goal ??
     null;
+  const intent = task ? parseTaskIntent(task, selection?.confidence ?? null) : null;
   const risk = assessGoalRisk(task ?? "").level;
   const prepareStep = workflow.steps.find((step) => step.stepId === "prepare-context") ?? null;
   const shouldEnforcePreparedScope =
@@ -241,9 +278,11 @@ export async function syncExecutionPlan(
   };
   const nextSpecialist = activeRoleHints?.nextRecommendedSpecialist ?? "qa-specialist";
   const evalSummary = await summarizeEval(targetRoot).catch(() => null);
+  const impactPreview = buildImpactPreview(contextSnapshot);
 
   const steps = buildExecutionSteps({
     task,
+    intent,
     workflow,
     latestCheckpointExists: Boolean(latestCheckpoint),
     latestHandoffExists: Boolean(latestHandoff),
@@ -288,6 +327,8 @@ export async function syncExecutionPlan(
     artifactType: "kiwi-control/execution-plan",
     version: 2,
     task,
+    intent,
+    hierarchy: buildPlanHierarchy(task, steps),
     state,
     currentStepIndex,
     confidence: contextSnapshot.confidence,
@@ -298,6 +339,11 @@ export async function syncExecutionPlan(
     nextCommands,
     lastError,
     contextSnapshot,
+    impactPreview,
+    verificationLayers: buildVerificationLayers(intent),
+    partialResults: steps
+      .filter((step) => step.status === "success" && step.result.summary)
+      .map((step) => ({ stepId: step.id, summary: step.result.summary as string })),
     evalSummary,
     updatedAt: new Date().toISOString()
   };
@@ -373,7 +419,7 @@ export async function evaluateFinalValidation(
       ok: false,
       summary: "Validation failed because the working tree drifted outside prepared scope.",
       validation: "Touched files must remain inside the prepared scope.",
-      errorType: "validation_error",
+      errorType: "logic_error",
       reason: `Prepared scope violated by touched files: ${scopeValidation.outOfScopeFiles.slice(0, 5).join(", ")}`,
       fixCommand: `${PRIMARY} prepare "${preparedScope.task}"`,
       retryCommand
@@ -384,8 +430,8 @@ export async function evaluateFinalValidation(
     return {
       ok: false,
       summary: "Validation failed because no expected files changed.",
-      validation: "At least one selected or module-group-related file must change.",
-      errorType: "validation_error",
+      validation: `Expected files: ${(selection.include.slice(0, 6)).join(", ") || "selected scope"}.`,
+      errorType: "logic_error",
       reason: "No repository files changed after execution.",
       fixCommand: `${PRIMARY} run "${preparedScope.task}"`,
       retryCommand
@@ -399,8 +445,8 @@ export async function evaluateFinalValidation(
     return {
       ok: false,
       summary: "Validation failed because changed files do not overlap the selected context.",
-      validation: "Touched files must overlap the selected files or their module groups.",
-      errorType: "validation_error",
+      validation: `Expected files or module groups: ${selection.include.slice(0, 6).join(", ") || "selected scope"}.`,
+      errorType: "logic_error",
       reason: "Execution changed files outside the selected files and selected module groups.",
       fixCommand: `${PRIMARY} explain`,
       retryCommand
@@ -416,8 +462,8 @@ export async function evaluateFinalValidation(
     return {
       ok: false,
       summary: "Validation failed because the touched files do not match the task goal heuristic.",
-      validation: "Task outcome must match the selected scope and task category.",
-      errorType: "validation_error",
+      validation: `Expected changes: ${deriveExpectedChanges(preparedScope.task, selection.include).join("; ")}`,
+      errorType: "logic_error",
       reason: "Touched files do not satisfy the task-category goal heuristic.",
       fixCommand: `${PRIMARY} explain`,
       retryCommand
@@ -437,6 +483,7 @@ export async function evaluateFinalValidation(
 
 function buildExecutionSteps(options: {
   task: string | null;
+  intent: ParsedTaskIntent | null;
   workflow: WorkflowState;
   latestCheckpointExists: boolean;
   latestHandoffExists: boolean;
@@ -454,39 +501,39 @@ function buildExecutionSteps(options: {
   for (const stepSpec of template) {
     const previousPlanStep = previousPlanStepMap.get(stepSpec.id) ?? null;
     if (stepSpec.id === "prepare") {
-      steps.push(buildPlanStep("prepare", stepSpec.description, `${PRIMARY} prepare "${task}"`, stepSpec.expectedOutput, stepSpec.validation, "prepare-context", workflowSteps.get("prepare-context") ?? null, false, previousPlanStep));
+      steps.push(buildPlanStep("prepare", stepSpec.description, `${PRIMARY} prepare "${task}"`, stepSpec.expectedOutput, buildExpectedOutcome(task, options.intent, options.contextSnapshot, "prepare"), stepSpec.validation, "prepare-context", workflowSteps.get("prepare-context") ?? null, false, previousPlanStep));
       continue;
     }
     if (stepSpec.id === "expand-context") {
-      steps.push(buildPlanStep("expand-context", stepSpec.description, `${PRIMARY} prepare "${task}" --expand`, stepSpec.expectedOutput, stepSpec.validation, null, null, false, previousPlanStep));
+      steps.push(buildPlanStep("expand-context", stepSpec.description, `${PRIMARY} prepare "${task}" --expand`, stepSpec.expectedOutput, buildExpectedOutcome(task, options.intent, options.contextSnapshot, "expand-context"), stepSpec.validation, null, null, false, previousPlanStep));
       continue;
     }
     if (stepSpec.id === "analyze") {
-      steps.push(buildPlanStep("analyze", stepSpec.description, `${PRIMARY} explain`, stepSpec.expectedOutput, stepSpec.validation, null, null, false, previousPlanStep));
+      steps.push(buildPlanStep("analyze", stepSpec.description, `${PRIMARY} explain`, stepSpec.expectedOutput, buildExpectedOutcome(task, options.intent, options.contextSnapshot, "analyze"), stepSpec.validation, null, null, false, previousPlanStep));
       continue;
     }
     if (stepSpec.id === "trace") {
-      steps.push(buildPlanStep("trace", stepSpec.description, `${PRIMARY} trace`, stepSpec.expectedOutput, stepSpec.validation, null, null, false, previousPlanStep));
+      steps.push(buildPlanStep("trace", stepSpec.description, `${PRIMARY} trace`, stepSpec.expectedOutput, buildExpectedOutcome(task, options.intent, options.contextSnapshot, "trace"), stepSpec.validation, null, null, false, previousPlanStep));
       continue;
     }
     if (stepSpec.id === "locate") {
-      steps.push(buildPlanStep("locate", stepSpec.description, `${PRIMARY} explain`, stepSpec.expectedOutput, stepSpec.validation, null, null, false, previousPlanStep));
+      steps.push(buildPlanStep("locate", stepSpec.description, `${PRIMARY} explain`, stepSpec.expectedOutput, buildExpectedOutcome(task, options.intent, options.contextSnapshot, "locate"), stepSpec.validation, null, null, false, previousPlanStep));
       continue;
     }
     if (stepSpec.id === "execute") {
-      steps.push(buildPlanStep("execute", stepSpec.description, `${PRIMARY} run "${task}"`, stepSpec.expectedOutput, stepSpec.validation, "generate-run-packets", workflowSteps.get("generate-run-packets") ?? null, false, previousPlanStep));
+      steps.push(buildPlanStep("execute", stepSpec.description, `${PRIMARY} run "${task}"`, stepSpec.expectedOutput, buildExpectedOutcome(task, options.intent, options.contextSnapshot, "execute"), stepSpec.validation, "generate-run-packets", workflowSteps.get("generate-run-packets") ?? null, false, previousPlanStep));
       continue;
     }
     if (stepSpec.id === "validate") {
-      steps.push(buildPlanStep("validate", stepSpec.description, `${PRIMARY} validate "${task}"`, stepSpec.expectedOutput, stepSpec.validation, "validate-outcome", workflowSteps.get("validate-outcome") ?? null, false, previousPlanStep));
+      steps.push(buildPlanStep("validate", stepSpec.description, `${PRIMARY} validate "${task}"`, stepSpec.expectedOutput, buildExpectedOutcome(task, options.intent, options.contextSnapshot, "validate"), stepSpec.validation, "validate-outcome", workflowSteps.get("validate-outcome") ?? null, false, previousPlanStep));
       continue;
     }
     if (stepSpec.id === "checkpoint") {
-      steps.push(buildPlanStep("checkpoint", stepSpec.description, `${PRIMARY} checkpoint "validated-progress"`, stepSpec.expectedOutput, stepSpec.validation, "checkpoint-progress", workflowSteps.get("checkpoint-progress") ?? null, options.latestCheckpointExists, previousPlanStep));
+      steps.push(buildPlanStep("checkpoint", stepSpec.description, `${PRIMARY} checkpoint "validated-progress"`, stepSpec.expectedOutput, buildExpectedOutcome(task, options.intent, options.contextSnapshot, "checkpoint"), stepSpec.validation, "checkpoint-progress", workflowSteps.get("checkpoint-progress") ?? null, options.latestCheckpointExists, previousPlanStep));
       continue;
     }
     if (stepSpec.id === "handoff") {
-      steps.push(buildPlanStep("handoff", stepSpec.description, `${PRIMARY} handoff --to ${options.nextSpecialist}`, stepSpec.expectedOutput, stepSpec.validation, "handoff-work", workflowSteps.get("handoff-work") ?? null, options.latestHandoffExists, previousPlanStep));
+      steps.push(buildPlanStep("handoff", stepSpec.description, `${PRIMARY} handoff --to ${options.nextSpecialist}`, stepSpec.expectedOutput, buildExpectedOutcome(task, options.intent, options.contextSnapshot, "handoff"), stepSpec.validation, "handoff-work", workflowSteps.get("handoff-work") ?? null, options.latestHandoffExists, previousPlanStep));
     }
   }
 
@@ -498,6 +545,7 @@ function buildPlanStep(
   description: string,
   command: string,
   expectedOutput: string,
+  expectedOutcome: ExecutionExpectedOutcome,
   validation: string,
   workflowStepId: WorkflowState["steps"][number]["stepId"] | null,
   workflowStep: WorkflowState["steps"][number] | null,
@@ -513,6 +561,7 @@ function buildPlanStep(
     description,
     command,
     expectedOutput,
+    expectedOutcome,
     validation,
     status,
     workflowStepId,
@@ -543,6 +592,83 @@ function deriveCurrentStepIndex(steps: ExecutionPlanStep[]): number {
   return pending >= 0 ? pending : Math.max(steps.length - 1, 0);
 }
 
+function buildExpectedOutcome(
+  task: string,
+  intent: ParsedTaskIntent | null,
+  contextSnapshot: ExecutionPlanContextSnapshot,
+  stepId: ExecutionPlanStepId
+): ExecutionExpectedOutcome {
+  const expectedFiles = contextSnapshot.selectedFiles.slice(0, stepId === "prepare" ? 8 : 12);
+  const expectedChanges =
+    stepId === "prepare"
+      ? ["Prepared scope is written", "Instructions are generated", "Token state is recorded"]
+      : stepId === "validate"
+        ? [
+            `Selected files remain bounded to: ${expectedFiles.slice(0, 6).join(", ") || "selected scope"}`,
+            ...deriveExpectedChanges(task, expectedFiles)
+          ]
+        : stepId === "execute"
+          ? deriveExpectedChanges(task, expectedFiles)
+          : [`${intent?.expectedOutcome ?? "Task outcome remains inside the selected scope."}`];
+
+  return {
+    expectedFiles,
+    expectedChanges
+  };
+}
+
+function deriveExpectedChanges(task: string, expectedFiles: string[]): string[] {
+  const category = deriveTaskCategory(task);
+  if (category === "docs") {
+    return ["Documentation changes land in selected docs files.", `Expected files: ${expectedFiles.slice(0, 6).join(", ") || "docs scope"}`];
+  }
+  if (category === "testing") {
+    return ["Tests or assertions change in the selected scope.", `Expected files: ${expectedFiles.slice(0, 6).join(", ") || "test scope"}`];
+  }
+  if (category === "config") {
+    return ["Configuration or build files change in the selected scope.", `Expected files: ${expectedFiles.slice(0, 6).join(", ") || "config scope"}`];
+  }
+  return ["Implementation changes land in selected source files or module groups.", `Expected files: ${expectedFiles.slice(0, 6).join(", ") || "selected scope"}`];
+}
+
+function buildPlanHierarchy(task: string | null, steps: ExecutionPlanStep[]): ExecutionPlanHierarchy {
+  const goal = task;
+  const subtasks: ExecutionPlanHierarchy["subtasks"] = [
+    {
+      id: "scope",
+      title: "Scope the work",
+      stepIds: steps.filter((step) => ["prepare", "expand-context", "analyze", "trace", "locate"].includes(step.id)).map((step) => step.id)
+    },
+    {
+      id: "change",
+      title: "Make the change",
+      stepIds: steps.filter((step) => step.id === "execute").map((step) => step.id)
+    },
+    {
+      id: "verify",
+      title: "Verify and checkpoint",
+      stepIds: steps.filter((step) => ["validate", "checkpoint", "handoff"].includes(step.id)).map((step) => step.id)
+    }
+  ].filter((subtask) => subtask.stepIds.length > 0);
+
+  return {
+    goal,
+    subtasks
+  };
+}
+
+function buildImpactPreview(contextSnapshot: ExecutionPlanContextSnapshot): ExecutionImpactPreview {
+  const likelyFiles = [
+    ...contextSnapshot.selectedFiles,
+    ...Object.keys(contextSnapshot.dependencyChains)
+  ].filter((file, index, items) => items.indexOf(file) === index).slice(0, 12);
+
+  return {
+    likelyFiles,
+    moduleGroups: contextSnapshot.selectedModuleGroups.slice(0, 8)
+  };
+}
+
 function deriveExecutionState(options: {
   steps: ExecutionPlanStep[];
   workflow: WorkflowState;
@@ -556,7 +682,7 @@ function deriveExecutionState(options: {
     return "idle";
   }
   if (options.lastError) {
-    return options.lastError.errorType === "context_error" || options.lastError.errorType === "validation_error"
+    return options.lastError.errorType === "context_error" || options.lastError.errorType === "logic_error"
       ? "blocked"
       : "failed";
   }
@@ -601,11 +727,13 @@ function deriveLastError(options: {
   scopeValidation: ReturnType<typeof validateTouchedFilesAgainstAllowedFiles> | null;
 }): ExecutionPlanError | null {
   if (options.scopeValidation && !options.scopeValidation.ok) {
+    const retryStrategy = deriveRetryStrategy("logic_error", options.selection?.confidence ?? null);
     return {
-      errorType: "validation_error",
+      errorType: "logic_error",
+      retryStrategy,
       reason: `Prepared scope violated by touched files: ${options.scopeValidation.outOfScopeFiles.slice(0, 5).join(", ")}`,
-      fixCommand: `${PRIMARY} prepare "${options.preparedScope?.task ?? options.task ?? "describe your task"}"`,
-      retryCommand: `${PRIMARY} validate "${options.preparedScope?.task ?? options.task ?? "describe your task"}"`
+      fixCommand: buildRetryCommand(retryStrategy, options.preparedScope?.task ?? options.task ?? null, `${PRIMARY} explain`),
+      retryCommand: buildRetryCommand(retryStrategy, options.preparedScope?.task ?? options.task ?? null, `${PRIMARY} validate "${options.preparedScope?.task ?? options.task ?? "describe your task"}"`)
     };
   }
 
@@ -613,21 +741,25 @@ function deriveLastError(options: {
   if (failedStep) {
     const reason = failedStep.result.failureReason ?? failedStep.result.validation ?? `${failedStep.description} failed.`;
     const errorType = classifyExecutionError(failedStep, options.selection, options.preparedScope);
+    const retryStrategy = deriveRetryStrategy(errorType, options.selection?.confidence ?? null);
     return {
       errorType,
+      retryStrategy,
       reason,
-      fixCommand: failedStep.fixCommand ?? failedStep.command,
-      retryCommand: failedStep.retryCommand ?? failedStep.command
+      fixCommand: failedStep.fixCommand ?? buildRetryCommand(retryStrategy, options.task, failedStep.command),
+      retryCommand: failedStep.retryCommand ?? buildRetryCommand(retryStrategy, options.task, failedStep.command)
     };
   }
 
   const blockingIssue = options.validationIssues.find((issue) => issue.level === "error");
   if (blockingIssue) {
+    const retryStrategy = deriveRetryStrategy("environment_error", options.selection?.confidence ?? null);
     return {
-      errorType: "system_error",
+      errorType: "environment_error",
+      retryStrategy,
       reason: blockingIssue.message,
       fixCommand: `${PRIMARY} doctor`,
-      retryCommand: `${PRIMARY} next`
+      retryCommand: buildRetryCommand(retryStrategy, options.task, `${PRIMARY} next`)
     };
   }
 
@@ -642,13 +774,40 @@ function classifyExecutionError(
   if (!selection || !preparedScope) {
     return "context_error";
   }
-  if (step.id === "validate" || /scope|validation/i.test(step.result.failureReason ?? "")) {
-    return "validation_error";
+  if (step.id === "validate" || /scope|validation|expected/i.test(step.result.failureReason ?? "")) {
+    return "logic_error";
   }
   if (/threw|missing|invalid/i.test(step.result.failureReason ?? "")) {
-    return "system_error";
+    return "environment_error";
   }
-  return "execution_error";
+  return "logic_error";
+}
+
+function deriveRetryStrategy(errorType: ExecutionErrorType, confidence: string | null): RetryStrategy {
+  if (confidence === "low") {
+    return "expand";
+  }
+  if (errorType === "context_error") {
+    return "expand";
+  }
+  if (errorType === "environment_error") {
+    return "re-plan";
+  }
+  return "narrow";
+}
+
+function buildRetryCommand(strategy: RetryStrategy, task: string | null, fallback: string): string {
+  const resolvedTask = task ?? "describe your task";
+  switch (strategy) {
+    case "expand":
+      return `${PRIMARY} prepare "${resolvedTask}" --expand`;
+    case "narrow":
+      return `${PRIMARY} explain`;
+    case "re-plan":
+      return `${PRIMARY} plan "${resolvedTask}"`;
+    default:
+      return fallback;
+  }
 }
 
 function buildExecutionPlanSummary(
@@ -700,9 +859,15 @@ async function loadContextTree(targetRoot: string): Promise<RepoContextTreeState
 }
 
 function migrateExecutionPlan(plan: ExecutionPlanState): ExecutionPlanState {
+  const normalizedConfidence =
+    plan.confidence === "low" || plan.confidence === "medium" || plan.confidence === "high"
+      ? plan.confidence
+      : null;
   return {
     ...plan,
     version: 2,
+    intent: plan.intent ?? (plan.task ? parseTaskIntent(plan.task, normalizedConfidence) : null),
+    hierarchy: plan.hierarchy ?? buildPlanHierarchy(plan.task ?? null, plan.steps),
     state: plan.state ?? "idle",
     currentStepIndex: plan.currentStepIndex ?? 0,
     confidence: plan.confidence ?? null,
@@ -718,9 +883,40 @@ function migrateExecutionPlan(plan: ExecutionPlanState): ExecutionPlanState {
       forwardDependencies: [],
       reverseDependencies: []
     },
+    impactPreview: plan.impactPreview ?? buildImpactPreview(plan.contextSnapshot ?? {
+      selectedFiles: [],
+      selectedModuleGroups: [],
+      confidence: null,
+      contextTreePath: null,
+      dependencyChains: {},
+      forwardDependencies: [],
+      reverseDependencies: []
+    }),
+    verificationLayers: plan.verificationLayers ?? buildVerificationLayers(plan.intent ?? null),
+    partialResults: plan.partialResults ?? [],
     evalSummary: plan.evalSummary ?? null,
     updatedAt: plan.updatedAt ?? new Date().toISOString()
   };
+}
+
+function buildVerificationLayers(intent: ParsedTaskIntent | null): ExecutionPlanState["verificationLayers"] {
+  const layers: ExecutionPlanState["verificationLayers"] = [
+    {
+      id: "syntax",
+      description: "Syntax and shape validation for the selected scope."
+    }
+  ];
+  if (intent && intent.type !== "docs" && intent.type !== "config") {
+    layers.push({
+      id: "behavioral",
+      description: "Behavioral validation for the intended task outcome."
+    });
+    layers.push({
+      id: "regression",
+      description: "Regression check against adjacent selected scope and module groups."
+    });
+  }
+  return layers;
 }
 
 function normalizeTaskKey(task: string | null | undefined): string {

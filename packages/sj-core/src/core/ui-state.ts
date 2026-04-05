@@ -310,6 +310,8 @@ export interface KiwiControlExecutionTrace {
 
 export interface KiwiControlExecutionPlan {
   summary: string;
+  intent: ExecutionPlanState["intent"];
+  hierarchy: ExecutionPlanState["hierarchy"];
   state: ExecutionPlanState["state"];
   currentStepIndex: number;
   confidence: string | null;
@@ -318,6 +320,9 @@ export interface KiwiControlExecutionPlan {
   steps: ExecutionPlanState["steps"];
   nextCommands: string[];
   lastError: ExecutionPlanState["lastError"];
+  impactPreview: ExecutionPlanState["impactPreview"];
+  verificationLayers: ExecutionPlanState["verificationLayers"];
+  partialResults: ExecutionPlanState["partialResults"];
 }
 
 export interface KiwiControlState {
@@ -1191,6 +1196,11 @@ async function loadKiwiControlState(
     artifactType: "kiwi-control/execution-plan" as const,
     version: 2,
     task: contextView.task ?? workflowState.task,
+    intent: null,
+    hierarchy: {
+      goal: contextView.task ?? workflowState.task,
+      subtasks: []
+    },
     state: "idle" as const,
     currentStepIndex: 0,
     confidence: null,
@@ -1205,8 +1215,17 @@ async function loadKiwiControlState(
       selectedModuleGroups: [],
       confidence: null,
       contextTreePath: null,
-      dependencyChains: {}
+      dependencyChains: {},
+      forwardDependencies: [],
+      reverseDependencies: []
     },
+    impactPreview: {
+      likelyFiles: [],
+      moduleGroups: []
+    },
+    verificationLayers: [],
+    partialResults: [],
+    evalSummary: null,
     updatedAt: new Date().toISOString()
   }));
 
@@ -1224,6 +1243,8 @@ async function loadKiwiControlState(
     executionTrace,
     executionPlan: {
       summary: executionPlan.summary,
+      intent: executionPlan.intent,
+      hierarchy: executionPlan.hierarchy,
       state: executionPlan.state,
       currentStepIndex: executionPlan.currentStepIndex,
       confidence: executionPlan.confidence,
@@ -1231,7 +1252,10 @@ async function loadKiwiControlState(
       blocked: executionPlan.blocked,
       steps: executionPlan.steps,
       nextCommands: executionPlan.nextCommands,
-      lastError: executionPlan.lastError
+      lastError: executionPlan.lastError,
+      impactPreview: executionPlan.impactPreview,
+      verificationLayers: executionPlan.verificationLayers,
+      partialResults: executionPlan.partialResults
     }
   };
 }

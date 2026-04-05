@@ -98,11 +98,22 @@ function renderExecutionPlan(
 ): string {
   const plan = state.kiwiControl.executionPlan;
   const lines = ["NEXT ACTION PLAN:"];
+  if (plan.hierarchy.goal) {
+    lines.push(`Goal: ${plan.hierarchy.goal}`);
+  }
+  if (plan.hierarchy.subtasks.length > 0) {
+    lines.push(`Subtasks: ${plan.hierarchy.subtasks.map((entry) => entry.title).join(" -> ")}`);
+  }
+  if (plan.impactPreview.likelyFiles.length > 0) {
+    lines.push(`Impact preview: ${plan.impactPreview.likelyFiles.slice(0, 8).join(", ")}`);
+  }
 
   for (const [index, step] of plan.steps.entries()) {
     lines.push(`${index + 1}. ${step.description}`);
     lines.push(`   Run: ${step.command}`);
     lines.push(`   Expect: ${step.expectedOutput}`);
+    lines.push(`   Outcome files: ${step.expectedOutcome.expectedFiles.slice(0, 6).join(", ") || "none"}`);
+    lines.push(`   Outcome changes: ${step.expectedOutcome.expectedChanges.join("; ")}`);
     lines.push(`   Verify: ${step.validation}`);
     lines.push(`   Status: ${step.status}`);
     if (step.fixCommand) {
@@ -114,7 +125,7 @@ function renderExecutionPlan(
   }
 
   if (plan.lastError) {
-    lines.push(`Failure: ${plan.lastError.errorType} — ${plan.lastError.reason}`);
+    lines.push(`Failure: ${plan.lastError.errorType} [${plan.lastError.retryStrategy}] — ${plan.lastError.reason}`);
     lines.push(`Fix command: ${plan.lastError.fixCommand}`);
     lines.push(`Retry command: ${plan.lastError.retryCommand}`);
   }

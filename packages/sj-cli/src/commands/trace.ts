@@ -17,10 +17,13 @@ export async function runTrace(options: TraceOptions): Promise<number> {
   const payload = {
     state: plan.state,
     currentStepIndex: plan.currentStepIndex,
+    hierarchy: plan.hierarchy,
+    impactPreview: plan.impactPreview,
     planSteps: plan.steps.map((step) => ({
       id: step.id,
       status: step.status,
       command: step.command,
+      expectedOutcome: step.expectedOutcome,
       fixCommand: step.fixCommand,
       retryCommand: step.retryCommand
     })),
@@ -39,8 +42,13 @@ export async function runTrace(options: TraceOptions): Promise<number> {
     options.logger.info(JSON.stringify(payload, null, 2));
   } else {
     options.logger.info(`state: ${plan.state}`);
+    if (plan.hierarchy.goal) {
+      options.logger.info(`goal: ${plan.hierarchy.goal}`);
+    }
+    options.logger.info(`impact preview: ${plan.impactPreview.likelyFiles.slice(0, 8).join(", ") || "none"}`);
     for (const step of payload.planSteps) {
       options.logger.info(`plan ${step.id}: ${step.status} -> ${step.command}`);
+      options.logger.info(`expected files: ${step.expectedOutcome.expectedFiles.slice(0, 6).join(", ") || "none"}`);
     }
     for (const step of payload.steps) {
       options.logger.info(`${step.stepId}: ${step.status}`);

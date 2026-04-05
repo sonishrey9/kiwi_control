@@ -157,6 +157,21 @@ export interface RepoContextSeedArtifacts {
   openRisks: Record<string, unknown>;
 }
 
+export interface RepoContextAuthorityState {
+  artifactType: "kiwi-control/context-authority";
+  version: 1;
+  updatedAt: string;
+  projectType: ProjectType | string;
+  languages: string[];
+  criticalFiles: string[];
+  moduleRelationships: Array<{
+    module: string;
+    imports: string[];
+    importedBy: string[];
+    entryPoints: string[];
+  }>;
+}
+
 export async function buildRepoContextTree(
   targetRoot: string,
   projectType: ProjectType | string
@@ -243,11 +258,36 @@ export async function persistRepoContextTreeArtifacts(
 ): Promise<WriteResult[]> {
   const statePath = path.join(targetRoot, ".agent", "state", "context-tree.json");
   const contextPath = path.join(targetRoot, ".agent", "context", "context-tree.json");
+  const authorityPath = path.join(targetRoot, ".agent", "context-authority.json");
+  const authority = buildRepoContextAuthority(tree);
 
   return Promise.all([
     writeJsonArtifact(statePath, tree),
-    writeJsonArtifact(contextPath, view)
+    writeJsonArtifact(contextPath, view),
+    writeJsonArtifact(authorityPath, authority)
   ]);
+}
+
+export function buildRepoContextAuthority(tree: RepoContextTreeState): RepoContextAuthorityState {
+  const criticalFiles = [
+    ...tree.entryPoints,
+    ...tree.topReverseDependencyHubs.slice(0, 8).map((entry) => entry.file)
+  ].filter((value, index, items) => Boolean(value) && items.indexOf(value) === index);
+
+  return {
+    artifactType: "kiwi-control/context-authority",
+    version: 1,
+    updatedAt: tree.timestamp,
+    projectType: tree.projectType,
+    languages: tree.languages,
+    criticalFiles,
+    moduleRelationships: tree.dependencyClusters.map((group) => ({
+      module: group.id,
+      imports: group.imports,
+      importedBy: group.importedBy,
+      entryPoints: group.entryPoints
+    }))
+  };
 }
 
 export function buildRepoContextSeedArtifacts(

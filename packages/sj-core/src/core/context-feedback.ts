@@ -2,6 +2,7 @@ import path from "node:path";
 import type { FileArea } from "./config.js";
 import type { TaskCategory } from "./task-intent.js";
 import { loadTaskPatternMemory, recordTaskPattern } from "./task-pattern-memory.js";
+import { summarizeEval } from "./eval.js";
 import {
   buildTaskScopeKey,
   deriveTaskArea,
@@ -47,6 +48,12 @@ export interface AdaptiveWeights {
   penalized: Map<string, number>;
   basedOnPastRuns: boolean;
   reusedPattern: string | null;
+  tunedWeights: {
+    dependency: number;
+    taskSimilarity: number;
+    pastSuccess: number;
+    recency: number;
+  };
   similarRuns: Array<{
     task: string;
     similarity: number;
@@ -198,6 +205,7 @@ export async function computeAdaptiveWeights(
 ): Promise<AdaptiveWeights> {
   const state = await loadContextFeedback(targetRoot);
   const patternMemory = await loadTaskPatternMemory(targetRoot).catch(() => null);
+  const evalSummary = await summarizeEval(targetRoot).catch(() => null);
   const scopedScores = resolveScopedScores(state, task);
   const similarRuns = retrieveSimilarRuns(state.entries, task);
   const boosted = new Map<string, number>();
@@ -246,8 +254,53 @@ export async function computeAdaptiveWeights(
     penalized,
     basedOnPastRuns: shouldApplyRetrieval || memoryMatches.length > 0,
     reusedPattern,
+    tunedWeights: computeTunedWeightSet(evalSummary),
     similarRuns
   };
+}
+
+function computeTunedWeightSet(evalSummary: Awaited<ReturnType<typeof summarizeEval>> | null): AdaptiveWeights["tunedWeights"] {
+  const base = {
+    dependency: 0.4,
+    taskSimilarity: 0.25,
+    pastSuccess: 0.2,
+    recency: 0.15
+  };
+  if (!evalSummary || evalSummary.totalRuns === 0) {
+    return base;
+  }
+
+  let dependency = base.dependency;
+  let taskSimilarity = base.taskSimilarity;
+  let pastSuccess = base.pastSuccess;
+  let recency = base.recency;
+
+  if (evalSummary.averageContextPrecision < 0.35) {
+    dependency += 0.08;
+    taskSimilarity += 0.04;
+    recency -= 0.04;
+  } else if (evalSummary.averageContextPrecision > 0.65) {
+    pastSuccess += 0.05;
+    recency += 0.02;
+  }
+
+  if (evalSummary.retryRate > 40) {
+    dependency += 0.04;
+    taskSimilarity += 0.02;
+    pastSuccess -= 0.03;
+  }
+
+  const total = dependency + taskSimilarity + pastSuccess + recency;
+  return {
+    dependency: roundWeight(dependency / total),
+    taskSimilarity: roundWeight(taskSimilarity / total),
+    pastSuccess: roundWeight(pastSuccess / total),
+    recency: roundWeight(recency / total)
+  };
+}
+
+function roundWeight(value: number): number {
+  return Math.round(Math.max(0.05, Math.min(0.6, value)) * 1000) / 1000;
 }
 
 // ---------------------------------------------------------------------------

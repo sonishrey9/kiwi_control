@@ -20,6 +20,8 @@ export async function runResume(options: ResumeOptions): Promise<number> {
     state: step.status === "failed" ? "retrying" : plan.state,
     updatedAt: new Date().toISOString()
   });
+  options.logger.info(`goal: ${plan.hierarchy.goal ?? plan.task ?? "none"}`);
+  options.logger.info(`subtasks: ${plan.hierarchy.subtasks.map((entry) => entry.title).join(" -> ") || "none"}`);
   options.logger.info(`next command: ${step.command}`);
   return runExecutionPlanStep(step.id, options);
 }

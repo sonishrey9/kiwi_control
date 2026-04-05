@@ -14,9 +14,13 @@ export type {
   ExecutionErrorType,
   ExecutionPlanContextSnapshot,
   ExecutionPlanError,
+  ExecutionExpectedOutcome,
   ExecutionPlanState,
+  ExecutionPlanHierarchy,
   ExecutionPlanStep,
   ExecutionPlanStepId,
   ExecutionPlanStepStatus,
+  ExecutionImpactPreview,
+  RetryStrategy,
   FinalValidationResult
 } from "./execution-engine.js";

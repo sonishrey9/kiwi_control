@@ -26,6 +26,8 @@ export async function runValidate(options: ValidateOptions): Promise<number> {
     loadPreparedScope(options.targetRoot),
     loadContextSelection(options.targetRoot)
   ]);
+  const retried = plan.steps.some((step) => step.retryCommand && step.status === "success" && step.result.ok === true && step.id !== "validate" && step.result.summary != null && step.status === "success" && step.retryCommand !== step.command)
+    || plan.steps.some((step) => step.status === "failed" && step.retryCommand !== step.command);
 
   const execution = await executeWorkflowStep(options.targetRoot, {
     task,
@@ -76,6 +78,7 @@ export async function runValidate(options: ValidateOptions): Promise<number> {
       success: execution.ok,
       tokenSource: "estimated",
       tokenCount,
+      retried,
       notes: [
         execution.validation,
         ...(execution.failureReason ? [execution.failureReason] : [])

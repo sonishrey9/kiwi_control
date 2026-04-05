@@ -38,6 +38,13 @@ const CATEGORY_KEYWORDS: Record<TaskCategory, string[]> = {
   general: []
 };
 
+export interface ParsedTaskIntent {
+  type: TaskCategory;
+  scope: FileArea;
+  expectedOutcome: string;
+  confidenceAction: "expand" | "guarded" | "auto";
+}
+
 export function tokenizeTaskText(task: string): string[] {
   return task
     .toLowerCase()
@@ -67,6 +74,37 @@ export function deriveTaskCategory(task: string): TaskCategory {
   }
 
   return tokens.length > 0 ? "implementation" : "general";
+}
+
+export function parseTaskIntent(task: string, confidence: "low" | "medium" | "high" | null = null): ParsedTaskIntent {
+  const type = deriveTaskCategory(task);
+  const scope = deriveTaskArea(task);
+  const expectedOutcome =
+    type === "docs"
+      ? "Documentation in the selected scope is updated and consistent."
+      : type === "testing"
+        ? "Tests or assertions are added or corrected in the selected scope."
+        : type === "config"
+          ? "Configuration in the selected scope is updated and remains valid."
+          : type === "release"
+            ? "Release or deployment surfaces are updated without breaking existing flow."
+            : type === "ui"
+              ? "UI surfaces in the selected scope are updated and render correctly."
+              : "Source files in the selected scope are modified and the intended behavior is achieved.";
+
+  const confidenceAction =
+    confidence === "low"
+      ? "expand"
+      : confidence === "high"
+        ? "auto"
+        : "guarded";
+
+  return {
+    type,
+    scope,
+    expectedOutcome,
+    confidenceAction
+  };
 }
 
 export function buildTaskScopeKey(category: TaskCategory, fileArea: FileArea): string {

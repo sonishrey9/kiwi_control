@@ -19,6 +19,7 @@ import type {
 import { persistContextTrace, persistIndexingState } from "./context-trace.js";
 import { trimSelectionRedundancy } from "../integrations/token-efficiency.js";
 import { pathExists, readText, writeText } from "../utils/fs.js";
+import type { RepoContextAuthorityState } from "./context-tree.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -392,6 +393,7 @@ async function collectSignals(
   git: GitState,
   skillSignals: SkillSignalState
 ): Promise<ContextSignals> {
+  const authority = await loadContextAuthority(targetRoot);
   const changedFiles = git.changedFiles.filter(
     (f) => isSourceFile(f) && !isExcludedPath(f) && !isExcludedFile(f)
   );
@@ -429,7 +431,11 @@ async function collectSignals(
   } catch {
     // Fall back to direct changed-file import scanning when the incremental index is unavailable.
   }
-  const repoContextFiles = await collectSelectiveAgentFiles(targetRoot);
+  const authorityFiles = (authority?.criticalFiles ?? [])
+    .filter((file) => !isExcludedPath(file) && !isExcludedFile(file));
+  const selectiveAgentFiles = await collectSelectiveAgentFiles(targetRoot);
+  const repoContextFiles = [...authorityFiles, ...selectiveAgentFiles]
+    .filter((file, index, items) => items.indexOf(file) === index);
 
   const proximityFiles = collectProximityFiles(
     changedFiles,
@@ -457,6 +463,18 @@ async function collectSignals(
     ...(dependencyChains ? { dependencyChains } : {}),
     discovery: discoveryMetrics
   };
+}
+
+async function loadContextAuthority(targetRoot: string): Promise<RepoContextAuthorityState | null> {
+  const authorityPath = path.join(targetRoot, ".agent", "context-authority.json");
+  if (!(await pathExists(authorityPath))) {
+    return null;
+  }
+  try {
+    return JSON.parse(await readText(authorityPath)) as RepoContextAuthorityState;
+  } catch {
+    return null;
+  }
 }
 
 async function discoverSourceFiles(targetRoot: string): Promise<DiscoveryResult> {
@@ -764,7 +782,7 @@ async function rankAndSelect(
   for (const file of signals.reverseDependencies ?? []) {
     const dependencyDistance = signals.dependencyDistances?.[file] ?? 1;
     const dependencyValue = Math.min(1, 1 / dependencyDistance);
-    addScore(file, Math.round((dependencyValue * WEIGHT_DEPENDENCY * 100) + 12), "import dependency");
+    addScore(file, Math.round((dependencyValue * adaptive.tunedWeights.dependency * 100) + 12), "import dependency");
     addScore(file, Math.round(dependencyValue * 10), "dependency distance");
   }
 
@@ -773,7 +791,7 @@ async function rankAndSelect(
     const dependencyValue = Math.min(1, 0.6 / dependencyDistance);
     const dependencyChain = signals.dependencyChains?.[file] ?? [];
     const dependencyReason: ExplainabilityReason = dependencyChain.length > 2 ? "call dependency" : "import dependency";
-    addScore(file, Math.round((dependencyValue * WEIGHT_DEPENDENCY * 100) + 6), dependencyReason);
+    addScore(file, Math.round((dependencyValue * adaptive.tunedWeights.dependency * 100) + 6), dependencyReason);
     addScore(file, Math.round(dependencyValue * 8), "dependency distance");
   }
 
@@ -790,7 +808,7 @@ async function rankAndSelect(
     const kwScore = scoreFileAgainstKeywords(file, keywords);
     if (kwScore > 0) {
       const normalizedKeyword = Math.min(1, kwScore / SCORE_KEYWORD);
-      addScore(file, Math.round(normalizedKeyword * WEIGHT_TASK_SIMILARITY * 100), "keyword match");
+      addScore(file, Math.round(normalizedKeyword * adaptive.tunedWeights.taskSimilarity * 100), "keyword match");
     }
   }
 
@@ -799,7 +817,7 @@ async function rankAndSelect(
     if (!scored.has(file)) {
       const kwScore = scoreFileAgainstKeywords(file, keywords);
       const normalizedKeyword = Math.min(1, kwScore / SCORE_KEYWORD);
-      addScore(file, Math.round(normalizedKeyword * WEIGHT_TASK_SIMILARITY * 100), "keyword match");
+      addScore(file, Math.round(normalizedKeyword * adaptive.tunedWeights.taskSimilarity * 100), "keyword match");
     }
   }
 
@@ -807,7 +825,7 @@ async function rankAndSelect(
   for (const [file, boost] of adaptive.boosted) {
     if (scored.has(file)) {
       const normalizedBoost = Math.min(1, boost / SCORE_ADAPTIVE_MAX);
-      addScore(file, Math.round(normalizedBoost * WEIGHT_PAST_SUCCESS * 100), "adaptive boost");
+      addScore(file, Math.round(normalizedBoost * adaptive.tunedWeights.pastSuccess * 100), "adaptive boost");
       if (adaptive.basedOnPastRuns) {
         addScore(file, 0, "based on past runs");
         if (adaptive.reusedPattern) {
@@ -819,7 +837,7 @@ async function rankAndSelect(
   for (const [file, penalty] of adaptive.penalized) {
     if (scored.has(file)) {
       const normalizedPenalty = Math.min(1, penalty / SCORE_ADAPTIVE_MAX);
-      scored.set(file, Math.max(0, (scored.get(file) ?? 0) - Math.round(normalizedPenalty * WEIGHT_PAST_SUCCESS * 100)));
+      scored.set(file, Math.max(0, (scored.get(file) ?? 0) - Math.round(normalizedPenalty * adaptive.tunedWeights.pastSuccess * 100)));
       const entry = explainabilityLedger.get(file) ?? { score: 0, reasons: new Set<ExplainabilityReason>() };
       entry.score = scored.get(file) ?? 0;
       entry.reasons.add("adaptive penalty");
@@ -830,7 +848,7 @@ async function rankAndSelect(
   for (const [file, score] of scored) {
     const taskFit = scoreFileForTask(file, taskCategory, taskArea);
     const normalizedTaskFit = taskFit > 0 ? Math.min(1, taskFit / SCORE_KEYWORD) : 0;
-    scored.set(file, Math.max(0, score + Math.round(normalizedTaskFit * WEIGHT_TASK_SIMILARITY * 100)));
+    scored.set(file, Math.max(0, score + Math.round(normalizedTaskFit * adaptive.tunedWeights.taskSimilarity * 100)));
     if (taskFit !== 0) {
       const entry = explainabilityLedger.get(file) ?? { score: 0, reasons: new Set<ExplainabilityReason>() };
       entry.score = scored.get(file) ?? 0;

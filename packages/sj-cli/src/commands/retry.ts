@@ -20,6 +20,10 @@ export async function runRetry(options: RetryOptions): Promise<number> {
     state: "retrying",
     updatedAt: new Date().toISOString()
   });
+  if (plan.lastError) {
+    options.logger.info(`retry strategy: ${plan.lastError.retryStrategy}`);
+    options.logger.info(`fix command: ${plan.lastError.fixCommand}`);
+  }
   options.logger.info(`retry command: ${failedStep.retryCommand ?? failedStep.command}`);
   return runExecutionPlanStep(failedStep.id, options);
 }

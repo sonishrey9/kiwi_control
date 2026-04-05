@@ -17,6 +17,7 @@ export interface TaskPatternMemoryState {
 }
 
 const MAX_PATTERNS = 50;
+const PATTERN_DECAY_HALF_LIFE_DAYS = 14;
 
 function memoryPath(targetRoot: string): string {
   return path.join(targetRoot, ".agent", "memory", "task-patterns.json");
@@ -42,7 +43,13 @@ export async function loadTaskPatternMemory(targetRoot: string): Promise<TaskPat
         patterns: []
       };
     }
-    return state;
+    return {
+      ...state,
+      patterns: state.patterns.map((pattern) => ({
+        ...pattern,
+        successCount: applyPatternDecay(pattern.successCount, pattern.timestamp)
+      }))
+    };
   } catch {
     return {
       artifactType: "kiwi-control/task-pattern-memory",
@@ -51,6 +58,16 @@ export async function loadTaskPatternMemory(targetRoot: string): Promise<TaskPat
       patterns: []
     };
   }
+}
+
+function applyPatternDecay(successCount: number, timestamp: string): number {
+  const ageMs = Date.now() - new Date(timestamp).getTime();
+  if (!Number.isFinite(ageMs) || ageMs <= 0) {
+    return successCount;
+  }
+  const ageDays = ageMs / (24 * 60 * 60 * 1000);
+  const decay = Math.pow(0.5, ageDays / PATTERN_DECAY_HALF_LIFE_DAYS);
+  return Math.max(1, Math.round(successCount * decay));
 }
 
 export async function recordTaskPattern(

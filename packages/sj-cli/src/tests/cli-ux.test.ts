@@ -68,6 +68,7 @@ test("--help exits cleanly and leads with the installed Kiwi Control command sur
   assert.match(result.stdout, /kiwi-control ui/);
   assert.match(result.stdout, /kiwi-control toolchain/);
   assert.match(result.stdout, /kiwi-control usage/);
+  assert.match(result.stdout, /kiwi-control guide/);
   assert.match(result.stdout, /Inside-folder usage:/);
   assert.match(result.stdout, /kiwi-control handoff --to qa-specialist/);
   assert.match(result.stdout, /Contributor source usage:/);
@@ -92,7 +93,7 @@ test("unknown commands exit with usage status and corrective guidance", () => {
   assert.equal(result.code, 2);
   assert.match(result.stderr, /kiwi-control usage error:/);
   assert.match(result.stderr, /unknown command: does-not-exist/);
-  assert.match(result.stderr, /Core commands: plan, next, retry, resume, prepare, validate, explain, trace, doctor, toolchain, usage, eval, init, status, check, specialists, checkpoint, handoff, ui/);
+  assert.match(result.stderr, /Core commands: plan, next, retry, resume, guide, prepare, validate, explain, trace, doctor, toolchain, usage, eval, init, status, check, specialists, checkpoint, handoff, ui/);
 });
 
 test("inside-folder workflow uses the current working directory by default", async () => {
@@ -123,6 +124,11 @@ test("inside-folder workflow uses the current working directory by default", asy
   const nextResult = runCliInCwd(["next"], repoDir);
   assert.equal(nextResult.code, 0);
   assert.match(nextResult.stdout, /next command:/);
+
+  const guideResult = runCliInCwd(["guide"], repoDir);
+  assert.equal(guideResult.code, 0);
+  assert.match(guideResult.stdout, /goal:/);
+  assert.match(guideResult.stdout, /impact preview:/);
 });
 
 test("status records an out-of-scope completion failure once and points back to prepare", async () => {

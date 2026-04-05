@@ -15,8 +15,9 @@ export async function runNext(options: NextOptions): Promise<number> {
     state: plan.state,
     currentStepIndex: plan.currentStepIndex,
     currentStep: step?.id ?? null,
+    impactPreview: plan.impactPreview,
     nextCommand: plan.nextCommands[0] ?? null,
-    ...(plan.lastError ? { fixCommand: plan.lastError.fixCommand, retryCommand: plan.lastError.retryCommand, errorType: plan.lastError.errorType } : {})
+    ...(plan.lastError ? { fixCommand: plan.lastError.fixCommand, retryCommand: plan.lastError.retryCommand, errorType: plan.lastError.errorType, retryStrategy: plan.lastError.retryStrategy } : {})
   };
 
   if (options.json) {
@@ -24,7 +25,9 @@ export async function runNext(options: NextOptions): Promise<number> {
   } else {
     options.logger.info(`state: ${plan.state}`);
     options.logger.info(`current step: ${step?.id ?? "none"}`);
+    options.logger.info(`impact preview: ${plan.impactPreview.likelyFiles.slice(0, 6).join(", ") || "none"}`);
     if (plan.lastError) {
+      options.logger.info(`retry strategy: ${plan.lastError.retryStrategy}`);
       options.logger.info(`fix command: ${plan.lastError.fixCommand}`);
       options.logger.info(`retry command: ${plan.lastError.retryCommand}`);
     } else {

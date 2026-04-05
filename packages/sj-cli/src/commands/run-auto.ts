@@ -33,6 +33,14 @@ export async function runAuto(options: RunAutoOptions): Promise<number> {
       return 0;
     }
 
+    if (plan.intent?.confidenceAction === "expand" && currentStep.id === "prepare") {
+      options.logger.info('auto strategy: low confidence -> expand context first');
+    } else if (plan.intent?.confidenceAction === "guarded") {
+      options.logger.info("auto strategy: medium confidence -> guarded execution");
+    } else if (plan.intent?.confidenceAction === "auto") {
+      options.logger.info("auto strategy: high confidence -> continue auto-run");
+    }
+
     options.logger.info(`auto step: ${currentStep.id}`);
     options.logger.info(`command: ${currentStep.command}`);
     const code = await runExecutionPlanStep(currentStep.id, {

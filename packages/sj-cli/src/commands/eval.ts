@@ -17,6 +17,7 @@ export async function runEval(options: EvalOptions): Promise<number> {
 
   options.logger.info(`total runs: ${summary.totalRuns}`);
   options.logger.info(`success rate: ${summary.successRate}%`);
+  options.logger.info(`retry rate: ${summary.retryRate}%`);
   options.logger.info(`average context precision: ${summary.averageContextPrecision}`);
   options.logger.info(`average token count: ${summary.averageTokenCount}`);
   for (const entry of summary.recentEntries.slice(0, 5)) {
