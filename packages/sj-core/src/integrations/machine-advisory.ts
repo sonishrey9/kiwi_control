@@ -7,6 +7,7 @@ import { pathExists, readJson, writeText } from "../utils/fs.js";
 
 const execFile = promisify(execFileCallback);
 const MACHINE_HOME_ENV = "KIWI_MACHINE_HOME";
+const MACHINE_FAST_ENV = "KIWI_MACHINE_ADVISORY_FAST";
 const CACHE_TTL_MS = 60_000;
 const DEFAULT_TOOLS: Array<{ name: string; description: string; phase: string; versionArgs?: string[] }> = [
   { name: "code-review-graph", description: "Graph-based code search", phase: "Phase 1" },
@@ -155,19 +156,29 @@ export interface MachineAdvisoryBuildOptions {
   now?: Date;
   commandRunner?: (command: string, args: string[]) => Promise<CommandOutput>;
   ccusagePayload?: { daily?: Array<Record<string, unknown>> } | null;
+  fastMode?: boolean;
 }
 
 type CommandOutput = { code: number; stdout: string; stderr: string };
 
 export async function loadMachineAdvisory(options: MachineAdvisoryBuildOptions = {}): Promise<MachineAdvisoryState> {
   const now = options.now ?? new Date();
-  const cachePath = advisoryCachePath(resolveMachineHome(options.homeRoot));
+  const homeRoot = resolveMachineHome(options.homeRoot);
+  const cachePath = advisoryCachePath(homeRoot);
+  const explicitFastMode = options.fastMode ?? process.env[MACHINE_FAST_ENV] === "1";
 
   if (!options.forceRefresh && await pathExists(cachePath)) {
     try {
       const cached = await readJson<MachineAdvisoryState>(cachePath);
       if (cached.artifactType === "kiwi-control/machine-advisory" && cached.version === 2) {
         const age = now.getTime() - new Date(cached.updatedAt).getTime();
+        if (explicitFastMode) {
+          return {
+            ...cached,
+            stale: true,
+            note: appendFastModeNote(cached.note)
+          };
+        }
         if (age < CACHE_TTL_MS && !cached.stale) {
           return { ...cached, stale: false };
         }
@@ -175,6 +186,10 @@ export async function loadMachineAdvisory(options: MachineAdvisoryBuildOptions =
     } catch {
       // rebuild below
     }
+  }
+
+  if (explicitFastMode) {
+    return buildUnavailableMachineAdvisory(now, "Machine-local advisory fast mode is active for desktop repo loading.");
   }
 
   const built = await buildMachineAdvisory(options);
@@ -187,7 +202,7 @@ export async function buildMachineAdvisory(options: MachineAdvisoryBuildOptions 
   const homeRoot = resolveMachineHome(options.homeRoot);
   const now = options.now ?? new Date();
   const windowDays = 7;
-  const fastMode = process.env.CODEX_CI === "1" && !options.homeRoot && !options.commandRunner && options.ccusagePayload === undefined;
+  const fastMode = options.fastMode ?? (process.env.CODEX_CI === "1" && !options.homeRoot && !options.commandRunner && options.ccusagePayload === undefined);
   const commandRunner = fastMode
     ? async () => ({ code: 1, stdout: "", stderr: "" } satisfies CommandOutput)
     : options.commandRunner;
@@ -444,7 +459,7 @@ async function loadClaudeUsage(
   const since = formatSinceDate(now, days);
   const command = ["npx", "-y", "ccusage", "daily", "--since", since, "--json"];
   try {
-    const payload = ccusagePayload ?? (JSON.parse((await runMachineCommand(command[0]!, command.slice(1), commandRunner)).stdout) as { daily?: Array<Record<string, unknown>> });
+    const payload = ccusagePayload ?? (JSON.parse((await runMachineCommand(command[0]!, command.slice(1), commandRunner, 8_000)).stdout) as { daily?: Array<Record<string, unknown>> });
     const days = (payload.daily ?? []).map((entry) => ({
       date: String(entry.date ?? ""),
       inputTokens: numberOrZero(entry.inputTokens),
@@ -691,6 +706,72 @@ function emptyCodexUsage(note: string): MachineAdvisoryUsage["codex"] {
   };
 }
 
+function buildUnavailableMachineAdvisory(now: Date, note: string): MachineAdvisoryState {
+  return {
+    artifactType: "kiwi-control/machine-advisory",
+    version: 2,
+    generatedBy: "kiwi-control machine-advisory",
+    windowDays: 7,
+    updatedAt: now.toISOString(),
+    stale: true,
+    inventory: [],
+    mcpInventory: {
+      claudeTotal: 0,
+      codexTotal: 0,
+      copilotTotal: 0,
+      tokenServers: []
+    },
+    optimizationLayers: [],
+    setupPhases: [],
+    configHealth: [],
+    skillsCount: 0,
+    copilotPlugins: [],
+    usage: {
+      days: 7,
+      claude: {
+        available: false,
+        days: [],
+        totals: {
+          inputTokens: 0,
+          outputTokens: 0,
+          cacheCreationTokens: 0,
+          cacheReadTokens: 0,
+          totalTokens: 0,
+          totalCost: null,
+          cacheHitRatio: null
+        },
+        note
+      },
+      codex: {
+        available: false,
+        days: [],
+        totals: {
+          inputTokens: 0,
+          outputTokens: 0,
+          cachedInputTokens: 0,
+          reasoningOutputTokens: 0,
+          sessions: 0,
+          totalTokens: 0,
+          cacheHitRatio: null
+        },
+        note
+      },
+      copilot: {
+        available: false,
+        note
+      }
+    },
+    note: `${note} Optimization score is intentionally omitted.`
+  };
+}
+
+function appendFastModeNote(note: string): string {
+  if (note.includes("fast mode")) {
+    return note;
+  }
+  return `${note} Machine-local advisory fast mode is active for desktop repo loading.`;
+}
+
 async function loadClaudeMcpServers(homeRoot: string): Promise<Record<string, unknown>> {
   const config = await safeReadJson<{ mcpServers?: Record<string, unknown> }>(path.join(homeRoot, ".claude.json"));
   return config?.mcpServers ?? {};
@@ -713,7 +794,7 @@ async function loadCopilotMcpServers(homeRoot: string): Promise<Record<string, u
 
 async function isBinaryInstalled(name: string, commandRunner?: (command: string, args: string[]) => Promise<CommandOutput>): Promise<boolean> {
   try {
-    const result = await runMachineCommand("which", [name], commandRunner);
+    const result = await runMachineCommand("which", [name], commandRunner, 2_000);
     return result.stdout.trim().length > 0;
   } catch {
     return false;
@@ -724,7 +805,7 @@ async function getBinaryVersion(name: string, versionArgs?: string[], commandRun
   const candidates = [versionArgs ?? ["--version"], ["-V"], []];
   for (const args of candidates) {
     try {
-      const result = await runMachineCommand(name, args, commandRunner);
+      const result = await runMachineCommand(name, args, commandRunner, 3_000);
       const output = `${result.stdout}\n${result.stderr}`.trim();
       const version = extractVersion(output);
       if (version) {
@@ -756,7 +837,8 @@ function buildMachineEnv(): NodeJS.ProcessEnv {
 async function runMachineCommand(
   command: string,
   args: string[],
-  commandRunner?: (command: string, args: string[]) => Promise<CommandOutput>
+  commandRunner?: (command: string, args: string[]) => Promise<CommandOutput>,
+  timeoutMs = 5_000
 ): Promise<CommandOutput> {
   if (commandRunner) {
     return commandRunner(command, args);
@@ -764,7 +846,9 @@ async function runMachineCommand(
   try {
     const result = await execFile(command, args, {
       encoding: "utf8",
-      env: buildMachineEnv()
+      env: buildMachineEnv(),
+      timeout: timeoutMs,
+      maxBuffer: 8 * 1024 * 1024
     });
     return {
       code: 0,

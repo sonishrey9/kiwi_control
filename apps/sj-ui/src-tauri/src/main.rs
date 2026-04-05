@@ -15,6 +15,7 @@ const DESKTOP_WINDOW_LABEL: &str = "main";
 const DESKTOP_APP_NAME: &str = "Kiwi Control";
 const DESKTOP_APP_BUNDLE_ID: &str = "com.kiwicontrol.desktop";
 const BRIDGE_UNAVAILABLE_NEXT_STEP: &str = "Confirm kiwi-control works in Terminal, then run kc ui again.";
+const MACHINE_ADVISORY_FAST_ENV: &str = "KIWI_MACHINE_ADVISORY_FAST";
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -82,7 +83,15 @@ fn load_repo_control_state(target_root: String) -> Result<serde_json::Value, Str
     })?;
 
     if !output.status.success() {
-        let detail = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let stderr_detail = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let stdout_detail = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let detail = if !stderr_detail.is_empty() {
+            stderr_detail
+        } else if !stdout_detail.is_empty() {
+            stdout_detail
+        } else {
+            String::from("Kiwi Control CLI returned a non-zero exit status without error output.")
+        };
         append_launch_log(&DesktopLaunchLogEntry {
             event: String::from("desktop-repo-state-failed"),
             reported_at: timestamp_now(),
@@ -486,6 +495,7 @@ fn run_cli_command(target_root: &str) -> Result<std::process::Output, std::io::E
                 .arg("--target")
                 .arg(target_root)
                 .arg("--json")
+                .env(MACHINE_ADVISORY_FAST_ENV, "1")
                 .output();
         }
     }
@@ -500,6 +510,7 @@ fn run_cli_command(target_root: &str) -> Result<std::process::Output, std::io::E
             .arg("--target")
             .arg(target_root)
             .arg("--json")
+            .env(MACHINE_ADVISORY_FAST_ENV, "1")
             .output()
         {
             Ok(output) => return Ok(output),
@@ -514,6 +525,7 @@ fn run_cli_command(target_root: &str) -> Result<std::process::Output, std::io::E
             .arg("--target")
             .arg(target_root)
             .arg("--json")
+            .env(MACHINE_ADVISORY_FAST_ENV, "1")
             .output()
         {
             Ok(output) => return Ok(output),
@@ -527,6 +539,7 @@ fn run_cli_command(target_root: &str) -> Result<std::process::Output, std::io::E
         .arg("--target")
         .arg(target_root)
         .arg("--json")
+        .env(MACHINE_ADVISORY_FAST_ENV, "1")
         .output()
 }
 
@@ -544,7 +557,8 @@ fn build_cli_process(cli_value: &str, target_root: &str) -> Command {
             .arg("ui")
             .arg("--target")
             .arg(target_root)
-            .arg("--json");
+            .arg("--json")
+            .env(MACHINE_ADVISORY_FAST_ENV, "1");
         return command;
     }
 
@@ -553,7 +567,8 @@ fn build_cli_process(cli_value: &str, target_root: &str) -> Command {
         .arg("ui")
         .arg("--target")
         .arg(target_root)
-        .arg("--json");
+        .arg("--json")
+        .env(MACHINE_ADVISORY_FAST_ENV, "1");
     command
 }
 
