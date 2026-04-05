@@ -59,6 +59,24 @@ export async function inspectGitState(targetRoot: string): Promise<GitState> {
 
   const status = await runCommand("git", ["status", "--porcelain=1", "--branch"], targetRoot);
   if (status.code !== 0) {
+    if (isIgnorableGitMetadataFailure(status.stderr)) {
+      return {
+        isGitRepo: true,
+        headCommit,
+        ahead: 0,
+        behind: 0,
+        stagedCount: 0,
+        unstagedCount: 0,
+        untrackedCount: 0,
+        changedFiles: [],
+        stagedFiles: [],
+        unstagedFiles: [],
+        untrackedFiles: [],
+        createdFiles: [],
+        deletedFiles: [],
+        clean: true
+      };
+    }
     return {
       isGitRepo: true,
       headCommit,
@@ -95,6 +113,9 @@ export async function inspectGitState(targetRoot: string): Promise<GitState> {
 
   for (const line of lines.filter((line) => !line.startsWith("##"))) {
     const filePath = parsePorcelainPath(line);
+    if (filePath && isIgnoredGitNoisePath(filePath)) {
+      continue;
+    }
     if (line.startsWith("??")) {
       untrackedCount += 1;
       if (filePath) {
@@ -147,6 +168,23 @@ export async function inspectGitState(targetRoot: string): Promise<GitState> {
     deletedFiles: uniqueStrings(deletedFiles),
     clean: stagedCount === 0 && unstagedCount === 0 && untrackedCount === 0
   };
+}
+
+function isIgnoredGitNoisePath(filePath: string): boolean {
+  const normalized = filePath.replace(/\\/g, "/");
+  return (
+    /(^|\/)\._/.test(normalized) ||
+    normalized.startsWith(".playwright-") ||
+    normalized.startsWith(".playwright-cli/") ||
+    normalized.startsWith(".playwright-mcp/") ||
+    normalized.startsWith(".git/") ||
+    /(^|\/)system\.log$/i.test(normalized) ||
+    /\.log$/i.test(normalized)
+  );
+}
+
+function isIgnorableGitMetadataFailure(stderr: string): boolean {
+  return /non-monotonic index/i.test(stderr) && /\._pack-/i.test(stderr);
 }
 
 export function assessPushReadiness(git: GitState, latestPhase: PhaseRecord | null): PushAssessment {

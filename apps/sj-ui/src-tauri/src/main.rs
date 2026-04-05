@@ -69,8 +69,8 @@ fn load_repo_control_state(target_root: String) -> Result<serde_json::Value, Str
     })
     .ok();
 
-    let output = run_cli_command(&target_root).map_err(|error| {
-        let detail = format!("failed to invoke Kiwi Control CLI: {error}");
+    let output = run_ui_bridge_repo_state(&target_root).map_err(|error| {
+        let detail = format!("failed to invoke Kiwi Control runtime bridge: {error}");
         append_launch_log(&DesktopLaunchLogEntry {
             event: String::from("desktop-repo-state-failed"),
             reported_at: timestamp_now(),
@@ -116,6 +116,29 @@ fn load_repo_control_state(target_root: String) -> Result<serde_json::Value, Str
     .ok();
 
     Ok(parsed)
+}
+
+#[tauri::command]
+fn load_machine_advisory_section(section: String, refresh: Option<bool>) -> Result<serde_json::Value, String> {
+    let output = run_ui_bridge_machine_section(&section, refresh.unwrap_or(false)).map_err(|error| {
+        format!("failed to invoke Kiwi Control machine advisory bridge: {error}")
+    })?;
+
+    if !output.status.success() {
+        let stderr_detail = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let stdout_detail = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let detail = if !stderr_detail.is_empty() {
+            stderr_detail
+        } else if !stdout_detail.is_empty() {
+            stdout_detail
+        } else {
+            String::from("Kiwi Control machine advisory bridge returned a non-zero exit status without error output.")
+        };
+        return Err(detail);
+    }
+
+    serde_json::from_slice(&output.stdout)
+        .map_err(|error| format!("invalid machine advisory json payload: {error}"))
 }
 
 #[tauri::command]
@@ -288,6 +311,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             consume_initial_launch_request,
             load_repo_control_state,
+            load_machine_advisory_section,
             ack_launch_request,
             append_ui_launch_log
         ])
@@ -477,99 +501,42 @@ fn activate_app_on_macos() -> Result<(), String> {
     Ok(())
 }
 
-fn run_cli_command(target_root: &str) -> Result<std::process::Output, std::io::Error> {
-    for cli_env in ["KIWI_CONTROL_CLI", "SHREY_JUNIOR_CLI"] {
-        if let Ok(value) = std::env::var(cli_env) {
-            if value.trim().is_empty() {
-                continue;
-            }
-            return build_cli_process(&value, target_root).output();
-        }
-    }
-
-    if let Some(script_path) = resolve_source_cli_script() {
-        if let Some(node_binary) = resolve_node_binary() {
-            return Command::new(node_binary)
-                .arg(script_path)
-                .arg("ui")
-                .arg("--target")
-                .arg(target_root)
-                .arg("--json")
-                .env(MACHINE_ADVISORY_FAST_ENV, "1")
-                .output();
-        }
-    }
-
-    for cli_path in resolve_installed_cli_paths() {
-        if !cli_path.exists() {
-            continue;
-        }
-
-        match Command::new(&cli_path)
-            .arg("ui")
-            .arg("--target")
-            .arg(target_root)
-            .arg("--json")
-            .env(MACHINE_ADVISORY_FAST_ENV, "1")
-            .output()
-        {
-            Ok(output) => return Ok(output),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
-            Err(error) => return Err(error),
-        }
-    }
-
-    for binary_name in ["kiwi-control", "kc", "shrey-junior", "sj"] {
-        match Command::new(binary_name)
-            .arg("ui")
-            .arg("--target")
-            .arg(target_root)
-            .arg("--json")
-            .env(MACHINE_ADVISORY_FAST_ENV, "1")
-            .output()
-        {
-            Ok(output) => return Ok(output),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
-            Err(error) => return Err(error),
-        }
-    }
-
-    Command::new("kiwi-control")
-        .arg("ui")
-        .arg("--target")
-        .arg(target_root)
-        .arg("--json")
-        .env(MACHINE_ADVISORY_FAST_ENV, "1")
-        .output()
+fn run_ui_bridge_repo_state(target_root: &str) -> Result<std::process::Output, std::io::Error> {
+    run_ui_bridge_command(&[
+        "repo-state",
+        "--target-root",
+        target_root,
+        "--machine-fast",
+    ], true)
 }
 
-fn build_cli_process(cli_value: &str, target_root: &str) -> Command {
-    if cli_value.ends_with(".js")
-        || PathBuf::from(cli_value)
-            .extension()
-            .map(|extension| extension == "js")
-            .unwrap_or(false)
-    {
-        let node_binary = resolve_node_binary().unwrap_or_else(|| PathBuf::from("node"));
-        let mut command = Command::new(node_binary);
-        command
-            .arg(cli_value)
-            .arg("ui")
-            .arg("--target")
-            .arg(target_root)
-            .arg("--json")
-            .env(MACHINE_ADVISORY_FAST_ENV, "1");
-        return command;
+fn run_ui_bridge_machine_section(section: &str, refresh: bool) -> Result<std::process::Output, std::io::Error> {
+    let mut args = vec!["machine-advisory-section", "--section", section];
+    if refresh {
+        args.push("--refresh");
+    }
+    run_ui_bridge_command(&args, false)
+}
+
+fn run_ui_bridge_command(args: &[&str], fast_mode: bool) -> Result<std::process::Output, std::io::Error> {
+    if let Some(script_path) = resolve_source_ui_bridge_script() {
+        if let Some(node_binary) = resolve_node_binary() {
+            let mut command = Command::new(node_binary);
+            command.arg(script_path);
+            for arg in args {
+                command.arg(arg);
+            }
+            if fast_mode {
+                command.env(MACHINE_ADVISORY_FAST_ENV, "1");
+            }
+            return command.output();
+        }
     }
 
-    let mut command = Command::new(cli_value);
-    command
-        .arg("ui")
-        .arg("--target")
-        .arg(target_root)
-        .arg("--json")
-        .env(MACHINE_ADVISORY_FAST_ENV, "1");
-    command
+    Err(std::io::Error::new(
+        std::io::ErrorKind::NotFound,
+        "Kiwi Control runtime bridge script was not found",
+    ))
 }
 
 fn resolve_installed_cli_paths() -> Vec<PathBuf> {
@@ -697,16 +664,17 @@ fn resolve_node_binary() -> Option<PathBuf> {
     None
 }
 
-fn resolve_source_cli_script() -> Option<PathBuf> {
+fn resolve_source_ui_bridge_script() -> Option<PathBuf> {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let candidate = manifest_dir
         .join("..")
         .join("..")
         .join("..")
         .join("packages")
-        .join("sj-cli")
+        .join("sj-core")
         .join("dist")
-        .join("cli.js");
+        .join("runtime")
+        .join("ui-bridge.js");
 
     candidate.exists().then_some(candidate)
 }

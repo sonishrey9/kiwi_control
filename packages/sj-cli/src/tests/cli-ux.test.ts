@@ -82,7 +82,7 @@ test("compatibility aliases still work but point new usage toward kiwi-control a
   const result = runCli(["--help"], aliasPath);
 
   assert.equal(result.code, 0);
-  assert.match(result.stdout, /Compatibility alias invoked: sj/);
+  assert.match(result.stdout, /Compatibility alias invoked\./);
   assert.match(result.stdout, /Prefer kiwi-control or kc/);
 });
 

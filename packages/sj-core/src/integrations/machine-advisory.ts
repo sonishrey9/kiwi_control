@@ -69,6 +69,21 @@ export interface MachineAdvisoryConfigHealth {
   description: string;
 }
 
+export type MachineAdvisorySectionName =
+  | "inventory"
+  | "mcpInventory"
+  | "optimizationLayers"
+  | "setupPhases"
+  | "configHealth"
+  | "usage"
+  | "guidance";
+
+export interface MachineAdvisorySectionState {
+  status: "fresh" | "cached" | "partial";
+  updatedAt: string;
+  reason?: string;
+}
+
 export interface MachineAdvisoryClaudeUsageDay {
   date: string;
   inputTokens: number;
@@ -125,6 +140,33 @@ export interface MachineAdvisoryUsage {
   };
 }
 
+export interface MachineAdvisoryGuidance {
+  id: string;
+  section: MachineAdvisorySectionName;
+  priority: "critical" | "recommended" | "optional";
+  group: "critical-issues" | "improvements" | "optional-optimizations";
+  severity: "info" | "warn";
+  message: string;
+  impact: string;
+  reason?: string;
+  fixCommand?: string;
+  hintCommand?: string;
+}
+
+export interface MachineAdvisorySystemHealth {
+  criticalCount: number;
+  warningCount: number;
+  okCount: number;
+}
+
+export interface MachineGuidanceContext {
+  taskType?: string | null;
+  workflowStep?: string | null;
+  validationFailed?: boolean;
+  evalPrecisionLow?: boolean;
+  executionRetriesTriggered?: boolean;
+}
+
 export interface MachineAdvisoryState {
   artifactType: "kiwi-control/machine-advisory";
   version: 2;
@@ -132,6 +174,7 @@ export interface MachineAdvisoryState {
   windowDays: number;
   updatedAt: string;
   stale: boolean;
+  sections: Record<MachineAdvisorySectionName, MachineAdvisorySectionState>;
   inventory: MachineAdvisoryTool[];
   mcpInventory: MachineAdvisoryMcpInventory;
   optimizationLayers: MachineAdvisoryOptimizationLayer[];
@@ -140,6 +183,8 @@ export interface MachineAdvisoryState {
   skillsCount: number;
   copilotPlugins: string[];
   usage: MachineAdvisoryUsage;
+  systemHealth: MachineAdvisorySystemHealth;
+  guidance: MachineAdvisoryGuidance[];
   note: string;
 }
 
@@ -157,6 +202,7 @@ export interface MachineAdvisoryBuildOptions {
   commandRunner?: (command: string, args: string[]) => Promise<CommandOutput>;
   ccusagePayload?: { daily?: Array<Record<string, unknown>> } | null;
   fastMode?: boolean;
+  section?: MachineAdvisorySectionName;
 }
 
 type CommandOutput = { code: number; stdout: string; stderr: string };
@@ -207,23 +253,50 @@ export async function buildMachineAdvisory(options: MachineAdvisoryBuildOptions 
     ? async () => ({ code: 1, stdout: "", stderr: "" } satisfies CommandOutput)
     : options.commandRunner;
   const ccusagePayload = fastMode ? { daily: [] } : options.ccusagePayload;
-  const [inventory, mcpInventory, optimizationLayers, configHealth, skillsCount, copilotPlugins, usage] = await Promise.all([
-    buildToolchainInventory(homeRoot, commandRunner),
-    buildMcpInventory(homeRoot),
-    buildOptimizationLayers(homeRoot),
-    buildConfigHealth(homeRoot),
-    countSkills(homeRoot),
-    getCopilotPlugins(homeRoot),
-    buildUsage(homeRoot, windowDays, now, commandRunner, ccusagePayload)
-  ]);
-  const setupPhases = await buildSetupPhases({
-    homeRoot,
-    inventory,
-    mcpInventory,
-    optimizationLayers,
-    configHealth,
-    skillsCount,
-    copilotPlugins
+  const builtAt = now.toISOString();
+  const inventory = await buildMachineSection("inventory", builtAt, async () => buildToolchainInventory(homeRoot, commandRunner), []);
+  const mcpInventory = await buildMachineSection("mcpInventory", builtAt, async () => buildMcpInventory(homeRoot), {
+    claudeTotal: 0,
+    codexTotal: 0,
+    copilotTotal: 0,
+    tokenServers: []
+  });
+  const optimizationLayers = await buildMachineSection("optimizationLayers", builtAt, async () => buildOptimizationLayers(homeRoot), []);
+  const configHealth = await buildMachineSection("configHealth", builtAt, async () => buildConfigHealth(homeRoot), []);
+  const skillsCount = await countSkills(homeRoot).catch(() => 0);
+  const copilotPlugins = await getCopilotPlugins(homeRoot).catch(() => []);
+  const usage = await buildMachineSection(
+    "usage",
+    builtAt,
+    async () => buildUsage(homeRoot, windowDays, now, commandRunner, ccusagePayload),
+    buildUnavailableMachineAdvisory(now, "Machine-local usage is unavailable.").usage
+  );
+  const setupPhases = await buildMachineSection(
+    "setupPhases",
+    builtAt,
+    async () => buildSetupPhases({
+      homeRoot,
+      inventory: inventory.data,
+      mcpInventory: mcpInventory.data,
+      optimizationLayers: optimizationLayers.data,
+      configHealth: configHealth.data,
+      skillsCount,
+      copilotPlugins
+    }),
+    []
+  );
+  const guidance = buildMachineGuidance({
+    inventory: inventory.data,
+    mcpInventory: mcpInventory.data,
+    optimizationLayers: optimizationLayers.data,
+    configHealth: configHealth.data,
+    usage: usage.data
+  });
+  const systemHealth = buildMachineSystemHealth({
+    inventory: inventory.data,
+    optimizationLayers: optimizationLayers.data,
+    configHealth: configHealth.data,
+    guidance
   });
 
   return {
@@ -231,19 +304,130 @@ export async function buildMachineAdvisory(options: MachineAdvisoryBuildOptions 
     version: 2,
     generatedBy: "kiwi-control machine-advisory",
     windowDays,
-    updatedAt: now.toISOString(),
+    updatedAt: builtAt,
     stale: fastMode,
-    inventory,
-    mcpInventory,
-    optimizationLayers,
-    setupPhases,
-    configHealth,
+    sections: {
+      inventory: inventory.meta,
+      mcpInventory: mcpInventory.meta,
+      optimizationLayers: optimizationLayers.meta,
+      setupPhases: setupPhases.meta,
+      configHealth: configHealth.meta,
+      usage: usage.meta,
+      guidance: {
+        status: "fresh",
+        updatedAt: builtAt
+      }
+    },
+    inventory: inventory.data,
+    mcpInventory: mcpInventory.data,
+    optimizationLayers: optimizationLayers.data,
+    setupPhases: setupPhases.data,
+    configHealth: configHealth.data,
     skillsCount,
     copilotPlugins,
-    usage,
+    usage: usage.data,
+    systemHealth,
+    guidance,
     note: fastMode
       ? "Machine-local advisory was built in CI fast mode. Optimization score is intentionally omitted. Refresh in a live shell for actual machine readings."
       : "Machine-local advisory only. Optimization score is intentionally omitted and this data never overrides repo-local Kiwi state."
+  };
+}
+
+export async function loadMachineAdvisorySection(
+  section: MachineAdvisorySectionName,
+  options: MachineAdvisoryBuildOptions = {}
+): Promise<{ section: MachineAdvisorySectionName; meta: MachineAdvisorySectionState; data: unknown }> {
+  const homeRoot = resolveMachineHome(options.homeRoot);
+  const now = options.now ?? new Date();
+  const builtAt = now.toISOString();
+  const windowDays = 7;
+  const fastMode = options.fastMode ?? (process.env.CODEX_CI === "1" && !options.homeRoot && !options.commandRunner && options.ccusagePayload === undefined);
+  const commandRunner = fastMode
+    ? async () => ({ code: 1, stdout: "", stderr: "" } satisfies CommandOutput)
+    : options.commandRunner;
+  const ccusagePayload = fastMode ? { daily: [] } : options.ccusagePayload;
+
+  switch (section) {
+    case "inventory":
+      return buildMachineSection(section, builtAt, async () => buildToolchainInventory(homeRoot, commandRunner), []);
+    case "mcpInventory":
+      return buildMachineSection(section, builtAt, async () => buildMcpInventory(homeRoot), {
+        claudeTotal: 0,
+        codexTotal: 0,
+        copilotTotal: 0,
+        tokenServers: []
+      });
+    case "optimizationLayers":
+      return buildMachineSection(section, builtAt, async () => buildOptimizationLayers(homeRoot), []);
+    case "configHealth":
+      return buildMachineSection(section, builtAt, async () => buildConfigHealth(homeRoot), []);
+    case "usage":
+      return buildMachineSection(
+        section,
+        builtAt,
+        async () => buildUsage(homeRoot, windowDays, now, commandRunner, ccusagePayload),
+        buildUnavailableMachineAdvisory(now, "Machine-local usage is unavailable.").usage
+      );
+    case "setupPhases": {
+      const inventory = await loadMachineAdvisorySection("inventory", options);
+      const mcpInventory = await loadMachineAdvisorySection("mcpInventory", options);
+      const optimizationLayers = await loadMachineAdvisorySection("optimizationLayers", options);
+      const configHealth = await loadMachineAdvisorySection("configHealth", options);
+      const skillsCount = await countSkills(homeRoot).catch(() => 0);
+      const copilotPlugins = await getCopilotPlugins(homeRoot).catch(() => []);
+      return buildMachineSection(
+        section,
+        builtAt,
+        async () => buildSetupPhases({
+          homeRoot,
+          inventory: inventory.data as MachineAdvisoryTool[],
+          mcpInventory: mcpInventory.data as MachineAdvisoryMcpInventory,
+          optimizationLayers: optimizationLayers.data as MachineAdvisoryOptimizationLayer[],
+          configHealth: configHealth.data as MachineAdvisoryConfigHealth[],
+          skillsCount,
+          copilotPlugins
+        }),
+        []
+      );
+    }
+    case "guidance": {
+      const inventory = await loadMachineAdvisorySection("inventory", options);
+      const mcpInventory = await loadMachineAdvisorySection("mcpInventory", options);
+      const optimizationLayers = await loadMachineAdvisorySection("optimizationLayers", options);
+      const configHealth = await loadMachineAdvisorySection("configHealth", options);
+      const usage = await loadMachineAdvisorySection("usage", options);
+      return {
+        section,
+        meta: {
+          status: "fresh",
+          updatedAt: builtAt
+        },
+        data: buildMachineGuidance({
+          inventory: inventory.data as MachineAdvisoryTool[],
+          mcpInventory: mcpInventory.data as MachineAdvisoryMcpInventory,
+          optimizationLayers: optimizationLayers.data as MachineAdvisoryOptimizationLayer[],
+          configHealth: configHealth.data as MachineAdvisoryConfigHealth[],
+          usage: usage.data as MachineAdvisoryUsage
+        })
+      };
+    }
+  }
+}
+
+export function buildMachineGuidanceContext(options: {
+  taskType?: string | null;
+  workflowStep?: string | null;
+  validationFailed?: boolean;
+  evalPrecisionLow?: boolean;
+  executionRetriesTriggered?: boolean;
+}): MachineGuidanceContext {
+  return {
+    taskType: options.taskType ?? null,
+    workflowStep: options.workflowStep ?? null,
+    validationFailed: options.validationFailed ?? false,
+    evalPrecisionLow: options.evalPrecisionLow ?? false,
+    executionRetriesTriggered: options.executionRetriesTriggered ?? false
   };
 }
 
@@ -293,6 +477,143 @@ export function buildMachineDoctorFindings(state: MachineAdvisoryState, homeRoot
   }
 
   return findings;
+}
+
+async function buildMachineSection<T>(
+  section: MachineAdvisorySectionName,
+  updatedAt: string,
+  builder: () => Promise<T>,
+  fallback: T
+): Promise<{ section: MachineAdvisorySectionName; meta: MachineAdvisorySectionState; data: T }> {
+  try {
+    return {
+      section,
+      meta: {
+        status: "fresh",
+        updatedAt
+      },
+      data: await builder()
+    };
+  } catch (error) {
+    return {
+      section,
+      meta: {
+        status: "partial",
+        updatedAt,
+        reason: error instanceof Error ? error.message : String(error)
+      },
+      data: fallback
+    };
+  }
+}
+
+function markMachineAdvisoryCached(
+  advisory: MachineAdvisoryState,
+  now: Date,
+  note = advisory.note
+): MachineAdvisoryState {
+  const updatedAt = advisory.updatedAt || now.toISOString();
+  return {
+    ...advisory,
+    stale: true,
+    note,
+    sections: Object.fromEntries(
+      Object.entries(advisory.sections ?? buildDefaultSectionState(updatedAt)).map(([key, value]) => [
+        key,
+        value.status === "partial"
+          ? value
+          : {
+              ...value,
+              status: "cached"
+            }
+      ])
+    ) as Record<MachineAdvisorySectionName, MachineAdvisorySectionState>
+  };
+}
+
+function buildDefaultSectionState(updatedAt: string): Record<MachineAdvisorySectionName, MachineAdvisorySectionState> {
+  return {
+    inventory: { status: "cached", updatedAt },
+    mcpInventory: { status: "cached", updatedAt },
+    optimizationLayers: { status: "cached", updatedAt },
+    setupPhases: { status: "cached", updatedAt },
+    configHealth: { status: "cached", updatedAt },
+    usage: { status: "cached", updatedAt },
+    guidance: { status: "cached", updatedAt }
+  };
+}
+
+function buildMachineGuidance(context: {
+  inventory: MachineAdvisoryTool[];
+  mcpInventory: MachineAdvisoryMcpInventory;
+  optimizationLayers: MachineAdvisoryOptimizationLayer[];
+  configHealth: MachineAdvisoryConfigHealth[];
+  usage: MachineAdvisoryUsage;
+}): MachineAdvisoryGuidance[] {
+  const guidance: MachineAdvisoryGuidance[] = [];
+  const toolInstalled = (name: string): boolean => context.inventory.some((tool) => tool.name === name && tool.installed);
+  const tokenServer = (name: string): MachineAdvisoryMcpTokenServer | undefined =>
+    context.mcpInventory.tokenServers.find((entry) => entry.name === name);
+
+  if (!toolInstalled("ccusage") || !tokenServer("ccusage")?.claude) {
+    guidance.push({
+      id: "missing-ccusage",
+      section: "usage",
+      priority: "recommended",
+      group: "improvements",
+      severity: "warn",
+      message: "Token tracking limited",
+      impact: "Improves token tracking accuracy for Claude usage.",
+      reason: "Claude usage cannot be measured locally without ccusage.",
+      fixCommand: "npm install -g ccusage"
+    });
+  }
+
+  if (!tokenServer("code-review-graph")?.codex) {
+    guidance.push({
+      id: "missing-code-review-graph",
+      section: "mcpInventory",
+      priority: "critical",
+      group: "critical-issues",
+      severity: "warn",
+      message: "Structural code graph unavailable for Codex",
+      impact: "Improves structural code search and impact analysis quality.",
+      reason: "Graph-guided exploration and change analysis are limited until the MCP server is installed.",
+      fixCommand: "ai-setup"
+    });
+  }
+
+  const codexTotal = context.usage.codex.totals.totalTokens;
+  const claudeTotal = context.usage.claude.totals.totalTokens;
+  if (codexTotal >= 100_000_000 || claudeTotal >= 50_000_000) {
+    guidance.push({
+      id: "high-token-usage",
+      section: "usage",
+      priority: "optional",
+      group: "optional-optimizations",
+      severity: "info",
+      message: "High token usage detected",
+      impact: "Can reduce token spend and broaden context planning quality on larger tasks.",
+      reason: "Large machine-level usage suggests broad tasks where wider context planning may help.",
+      hintCommand: 'kiwi-control plan "<task>" --expand'
+    });
+  }
+
+  if (!toolInstalled("context-mode")) {
+    guidance.push({
+      id: "missing-context-mode",
+      section: "optimizationLayers",
+      priority: "optional",
+      group: "optional-optimizations",
+      severity: "info",
+      message: "Context sandboxing not installed",
+      impact: "Improves tool-output containment and reduces noisy machine context.",
+      reason: "Machine-level tool output compression and sandboxing remain limited.",
+      fixCommand: "ai-setup"
+    });
+  }
+
+  return sortMachineGuidance(guidance);
 }
 
 async function buildToolchainInventory(homeRoot: string, commandRunner?: (command: string, args: string[]) => Promise<CommandOutput>): Promise<MachineAdvisoryTool[]> {
@@ -707,13 +1028,23 @@ function emptyCodexUsage(note: string): MachineAdvisoryUsage["codex"] {
 }
 
 function buildUnavailableMachineAdvisory(now: Date, note: string): MachineAdvisoryState {
+  const updatedAt = now.toISOString();
   return {
     artifactType: "kiwi-control/machine-advisory",
     version: 2,
     generatedBy: "kiwi-control machine-advisory",
     windowDays: 7,
-    updatedAt: now.toISOString(),
+    updatedAt,
     stale: true,
+    sections: {
+      inventory: { status: "partial", updatedAt, reason: note },
+      mcpInventory: { status: "partial", updatedAt, reason: note },
+      optimizationLayers: { status: "partial", updatedAt, reason: note },
+      setupPhases: { status: "partial", updatedAt, reason: note },
+      configHealth: { status: "partial", updatedAt, reason: note },
+      usage: { status: "partial", updatedAt, reason: note },
+      guidance: { status: "partial", updatedAt, reason: note }
+    },
     inventory: [],
     mcpInventory: {
       claudeTotal: 0,
@@ -761,6 +1092,12 @@ function buildUnavailableMachineAdvisory(now: Date, note: string): MachineAdviso
         note
       }
     },
+    systemHealth: {
+      criticalCount: 0,
+      warningCount: 0,
+      okCount: 0
+    },
+    guidance: [],
     note: `${note} Optimization score is intentionally omitted.`
   };
 }
@@ -770,6 +1107,64 @@ function appendFastModeNote(note: string): string {
     return note;
   }
   return `${note} Machine-local advisory fast mode is active for desktop repo loading.`;
+}
+
+function sortMachineGuidance(entries: MachineAdvisoryGuidance[]): MachineAdvisoryGuidance[] {
+  const priorityRank: Record<MachineAdvisoryGuidance["priority"], number> = {
+    critical: 0,
+    recommended: 1,
+    optional: 2
+  };
+  return [...entries].sort((left, right) => {
+    const byPriority = priorityRank[left.priority] - priorityRank[right.priority];
+    if (byPriority !== 0) {
+      return byPriority;
+    }
+    return left.message.localeCompare(right.message);
+  });
+}
+
+function buildMachineSystemHealth(context: {
+  inventory: MachineAdvisoryTool[];
+  optimizationLayers: MachineAdvisoryOptimizationLayer[];
+  configHealth: MachineAdvisoryConfigHealth[];
+  guidance: MachineAdvisoryGuidance[];
+}): MachineAdvisorySystemHealth {
+  const criticalCount = context.guidance.filter((entry) => entry.priority === "critical").length;
+  const warningCount = context.guidance.filter((entry) => entry.priority === "recommended").length;
+  const okCount =
+    context.inventory.filter((tool) => tool.installed).length +
+    context.configHealth.filter((entry) => entry.healthy).length +
+    context.optimizationLayers.filter((layer) => layer.claude || layer.codex || layer.copilot).length;
+  return {
+    criticalCount,
+    warningCount,
+    okCount
+  };
+}
+
+export function filterMachineGuidance(
+  guidance: MachineAdvisoryGuidance[],
+  context: MachineGuidanceContext
+): MachineAdvisoryGuidance[] {
+  const taskType = context.taskType ?? null;
+  const workflowStep = context.workflowStep ?? null;
+  const triggered =
+    Boolean(context.validationFailed) ||
+    Boolean(context.evalPrecisionLow) ||
+    Boolean(context.executionRetriesTriggered);
+
+  const filtered = guidance.filter((entry) => {
+    if (!triggered && entry.priority !== "critical") {
+      return false;
+    }
+    if ((taskType === "read" || taskType === "docs") && workflowStep === "prepare" && entry.id === "missing-ccusage") {
+      return false;
+    }
+    return true;
+  });
+
+  return sortMachineGuidance(filtered);
 }
 
 async function loadClaudeMcpServers(homeRoot: string): Promise<Record<string, unknown>> {

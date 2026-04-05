@@ -357,3 +357,10 @@ else
   log "Next step: source $PROFILE_PATH"
 fi
 log "No Codex, Claude, Copilot, or VS Code global settings were modified."
+
+if [[ "$DRY_RUN" -eq 0 && "$(uname -s)" == "Darwin" ]]; then
+  if [[ -d "/Applications/Kiwi Control.app" ]]; then
+    open -g -a "Kiwi Control" >/dev/null 2>&1 || true
+    log "macOS warmup: opened Kiwi Control once for app registration"
+  fi
+fi

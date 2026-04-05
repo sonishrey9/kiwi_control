@@ -103,6 +103,10 @@ test("machine advisory builds fixture-driven machine state from local configs an
   assert.equal(advisory.setupPhases.some((phase) => phase.items.some((item) => item.name === "context-mode" && item.active)), true);
   assert.equal(advisory.skillsCount, 1);
   assert.deepEqual(advisory.copilotPlugins, ["project-planning", "frontend-web-dev"]);
+  assert.equal(typeof advisory.systemHealth.criticalCount, "number");
+  assert.equal(typeof advisory.systemHealth.warningCount, "number");
+  assert.equal(typeof advisory.systemHealth.okCount, "number");
+  assert.equal(advisory.guidance.every((entry) => typeof entry.priority === "string" && typeof entry.group === "string" && typeof entry.impact === "string"), true);
   assert.equal(advisory.usage.claude.available, true);
   assert.equal(advisory.usage.claude.totals.totalCost, 9.2257);
   assert.equal(advisory.usage.codex.available, true);
@@ -172,6 +176,8 @@ test("machine advisory command surfaces expose near-dashboard sections and riche
     assert.match(toolchainLines.join("\n"), /WHAT AI-SETUP ADDED/);
     assert.match(toolchainLines.join("\n"), /CONFIG HEALTH/);
     assert.match(toolchainLines.join("\n"), /TOKEN USAGE/);
+    assert.match(toolchainLines.join("\n"), /HEALTH SUMMARY/);
+    assert.match(toolchainLines.join("\n"), /GUIDANCE/);
     assert.match(toolchainLines.join("\n"), /Optimization score intentionally omitted/);
 
     const toolchainJsonLines: string[] = [];

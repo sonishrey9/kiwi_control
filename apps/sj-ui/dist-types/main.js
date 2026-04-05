@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 const NAV_ITEMS = [
     { id: "overview", label: "Overview", icon: iconSvg("overview") },
     { id: "context", label: "Context", icon: iconSvg("context") },
+    { id: "graph", label: "Graph", icon: iconSvg("graph") },
     { id: "tokens", label: "Tokens", icon: iconSvg("tokens") },
     { id: "feedback", label: "Feedback", icon: iconSvg("feedback") },
     { id: "mcps", label: "MCPs", icon: iconSvg("mcps") },
@@ -197,6 +198,7 @@ let isLogDrawerOpen = true;
 let isInspectorOpen = true;
 let currentState = buildBridgeUnavailableState("");
 let activeTheme = loadStoredTheme();
+let activeMode = "execution";
 const platformMode = detectPlatform();
 let shellElement;
 let railNavElement;
@@ -210,6 +212,7 @@ let currentTargetRoot = "";
 let isLoadingRepoState = false;
 let queuedLaunchRequest = null;
 let lastHandledLaunchRequestId = "";
+let machineHydrationRound = 0;
 try {
     app.innerHTML = buildShellHtml();
     shellElement = requireElement(".kc-shell");
@@ -224,6 +227,7 @@ try {
     renderState(currentState);
     bridgeNoteElement.textContent = buildBridgeNote(currentState, "shell");
     finalizeInitialRender();
+    void hydrateMachineAdvisory(false);
     app.addEventListener("click", (event) => {
         const target = event.target;
         if (!target) {
@@ -260,6 +264,16 @@ try {
         if (target.closest("[data-theme-toggle]")) {
             activeTheme = activeTheme === "dark" ? "light" : "dark";
             applyChromePreferences();
+            renderState(currentState);
+            return;
+        }
+        const modeButton = target.closest("[data-ui-mode]");
+        if (modeButton?.dataset.uiMode) {
+            activeMode = modeButton.dataset.uiMode;
+            if (activeMode === "execution") {
+                isLogDrawerOpen = false;
+                activeLogTab = "history";
+            }
             renderState(currentState);
             return;
         }
@@ -425,6 +439,7 @@ async function loadAndRenderTarget(targetRoot, source, requestId) {
     renderState(state);
     bridgeNoteElement.textContent = buildBridgeNote(state, source);
     await logUiEvent("ui-repo-state-rendered", requestId, state.targetRoot || targetRoot, state.repoState.mode);
+    void hydrateMachineAdvisory(true);
     if (requestId) {
         await acknowledgeLaunchRequest(requestId, state);
     }
@@ -465,6 +480,106 @@ async function logUiEvent(event, requestId, targetRoot, detail) {
         // Logging must never interrupt the product flow.
     }
 }
+async function hydrateMachineAdvisory(refresh) {
+    if (!isTauriBridgeAvailable()) {
+        return;
+    }
+    const round = ++machineHydrationRound;
+    const sections = [
+        "inventory",
+        "mcpInventory",
+        "optimizationLayers",
+        "setupPhases",
+        "configHealth",
+        "usage",
+        "guidance"
+    ];
+    for (const section of sections) {
+        void hydrateMachineSection(section, refresh, round);
+    }
+}
+async function hydrateMachineSection(section, refresh, round) {
+    try {
+        const payload = await invoke("load_machine_advisory_section", {
+            section,
+            refresh
+        });
+        if (round !== machineHydrationRound) {
+            return;
+        }
+        applyMachineSectionPayload(payload);
+        renderState(currentState);
+    }
+    catch (error) {
+        if (round !== machineHydrationRound) {
+            return;
+        }
+        currentState.machineAdvisory.sections[section] = {
+            status: "partial",
+            updatedAt: new Date().toISOString(),
+            reason: error instanceof Error ? error.message : String(error)
+        };
+        renderState(currentState);
+    }
+}
+function applyMachineSectionPayload(payload) {
+    currentState.machineAdvisory.sections[payload.section] = payload.meta;
+    switch (payload.section) {
+        case "inventory":
+            currentState.machineAdvisory.inventory = payload.data;
+            break;
+        case "mcpInventory":
+            currentState.machineAdvisory.mcpInventory = payload.data;
+            break;
+        case "optimizationLayers":
+            currentState.machineAdvisory.optimizationLayers = payload.data;
+            break;
+        case "setupPhases":
+            currentState.machineAdvisory.setupPhases = payload.data;
+            break;
+        case "configHealth":
+            currentState.machineAdvisory.configHealth = payload.data;
+            break;
+        case "usage":
+            currentState.machineAdvisory.usage = payload.data;
+            break;
+        case "guidance":
+            currentState.machineAdvisory.guidance = filterGuidanceForCurrentState(payload.data);
+            break;
+    }
+    currentState.machineAdvisory.updatedAt = payload.meta.updatedAt;
+    currentState.machineAdvisory.stale = Object.values(currentState.machineAdvisory.sections).some((entry) => entry.status !== "fresh");
+    currentState.machineAdvisory.systemHealth = recomputeMachineSystemHealth(currentState.machineAdvisory);
+}
+function filterGuidanceForCurrentState(entries) {
+    const task = currentState.kiwiControl?.contextView.task?.toLowerCase() ?? "";
+    const workflowStep = currentState.kiwiControl?.workflow.currentStepId ?? null;
+    const validationFailed = currentState.validation.errors > 0;
+    const evalPrecisionLow = (currentState.kiwiControl?.feedback.totalRuns ?? 0) > 0 && (currentState.kiwiControl?.feedback.successRate ?? 100) < 50;
+    const executionRetriesTriggered = currentState.kiwiControl?.workflow.steps.some((step) => step.retryCount > 0) ?? false;
+    const triggered = validationFailed || evalPrecisionLow || executionRetriesTriggered;
+    return entries.filter((entry) => {
+        if (!triggered && entry.priority !== "critical") {
+            return false;
+        }
+        if ((/\b(read|inspect|review|summarize)\b/.test(task) || /\bdocs?|document|readme\b/.test(task)) && workflowStep === "prepare" && entry.id === "missing-ccusage") {
+            return false;
+        }
+        return true;
+    });
+}
+function recomputeMachineSystemHealth(machine) {
+    const criticalCount = machine.guidance.filter((entry) => entry.priority === "critical").length;
+    const warningCount = machine.guidance.filter((entry) => entry.priority === "recommended").length;
+    const okCount = machine.inventory.filter((tool) => tool.installed).length +
+        machine.configHealth.filter((entry) => entry.healthy).length +
+        machine.optimizationLayers.filter((layer) => layer.claude || layer.codex || layer.copilot).length;
+    return {
+        criticalCount,
+        warningCount,
+        okCount
+    };
+}
 function renderState(state) {
     currentState = state;
     railNavElement.innerHTML = renderRailNav();
@@ -486,12 +601,10 @@ function renderRailNav() {
   `).join("");
 }
 function renderTopBar(state) {
+    const decision = buildDecisionSummary(state);
     const repoLabel = getRepoLabel(state.targetRoot);
     const phase = getPanelValue(state.repoOverview, "Current phase");
-    const activeRole = getPanelValue(state.repoOverview, "Active role");
     const validationState = getPanelValue(state.repoOverview, "Validation state");
-    const packLabel = state.mcpPacks.suggestedPack.name ?? state.mcpPacks.suggestedPack.id;
-    const capabilityCount = state.mcpPacks.compatibleCapabilities.length;
     const themeLabel = activeTheme === "dark" ? "Light mode" : "Dark mode";
     return `
     <div class="kc-topbar-left">
@@ -504,13 +617,20 @@ function renderTopBar(state) {
       ${phase !== "none recorded" ? renderHeaderBadge(phase, "neutral") : ""}
     </div>
     <div class="kc-topbar-center">
-      ${renderHeaderMeta("Role", activeRole)}
-      ${renderHeaderMeta("Pack", packLabel)}
-      ${renderHeaderMeta("MCPs", `${capabilityCount} compatible`)}
+      ${renderHeaderMeta("Next", decision.nextAction)}
+      ${renderHeaderMeta("Blocking", decision.blockingIssue)}
+      ${renderHeaderMeta("Health", decision.systemHealth)}
+      ${renderHeaderMeta("Changed", decision.lastChangedAt)}
+      ${renderHeaderMeta("Failures", String(decision.recentFailures))}
+      ${renderHeaderMeta("Warnings", String(decision.newWarnings))}
     </div>
     <div class="kc-topbar-right">
+      <div class="kc-inline-badges">
+        <button class="kc-tab-button ${activeMode === "execution" ? "is-active" : ""}" type="button" data-ui-mode="execution">Execution</button>
+        <button class="kc-tab-button ${activeMode === "inspection" ? "is-active" : ""}" type="button" data-ui-mode="inspection">Inspection</button>
+      </div>
       <div class="kc-status-chip">
-        <strong>repo-local state only</strong>
+        <strong>${escapeHtml(activeMode)} mode</strong>
         <span>${escapeHtml(validationState)}</span>
       </div>
       <button class="kc-theme-toggle" type="button" data-theme-toggle>
@@ -526,6 +646,38 @@ function renderTopBar(state) {
     </div>
   `;
 }
+function buildDecisionSummary(state) {
+    const kc = state.kiwiControl ?? EMPTY_KC;
+    const nextAction = kc.nextActions.actions[0]?.action ?? state.repoState.title;
+    const blockingIssue = kc.executionPlan.lastError?.reason ??
+        (state.validation.errors > 0 ? `${state.validation.errors} validation error${state.validation.errors === 1 ? "" : "s"}` : "none");
+    const recentFailures = kc.execution.recentExecutions.filter((entry) => !entry.success).length +
+        kc.workflow.steps.filter((step) => step.status === "failed").length;
+    const newWarnings = state.validation.warnings + state.machineAdvisory.systemHealth.warningCount;
+    const systemHealth = state.validation.errors > 0 || state.machineAdvisory.systemHealth.criticalCount > 0
+        ? "blocked"
+        : newWarnings > 0
+            ? "attention"
+            : "healthy";
+    const timestamps = [
+        kc.execution.recentExecutions[0]?.timestamp,
+        kc.runtimeLifecycle.recentEvents[0]?.timestamp,
+        kc.feedback.recentEntries[0]?.timestamp
+    ].filter((value) => Boolean(value));
+    const lastChangedAt = timestamps.length > 0
+        ? formatTimestamp(timestamps
+            .map((value) => new Date(value))
+            .sort((left, right) => right.getTime() - left.getTime())[0]?.toISOString() ?? "")
+        : "unknown";
+    return {
+        nextAction,
+        blockingIssue,
+        systemHealth,
+        lastChangedAt,
+        recentFailures,
+        newWarnings
+    };
+}
 function renderHeaderMeta(label, value) {
     return `
     <div class="kc-inline-meta">
@@ -538,6 +690,8 @@ function renderCenterView(state) {
     switch (activeView) {
         case "context":
             return renderContextView(state);
+        case "graph":
+            return renderGraphView(state);
         case "tokens":
             return renderTokensView(state);
         case "feedback":
@@ -834,6 +988,66 @@ function renderContextView(state) {
           ${indexing.ignoreRulesApplied.slice(0, 4).map((rule) => renderBulletRow(rule)).join("")}
         </div>
       </section>
+    </div>
+  `;
+}
+function renderGraphView(state) {
+    const graph = buildRepoGraph((state.kiwiControl ?? EMPTY_KC).contextView.tree.nodes);
+    return `
+    <div class="kc-view-shell">
+      <section class="kc-view-header">
+        <div>
+          <p class="kc-view-kicker">Repo Graph</p>
+          <h1>Mind Map</h1>
+          <p>Repo topology visualized from Kiwi’s context tree. This is a lightweight graph surface for orientation, not a full graph database.</p>
+        </div>
+        ${renderHeaderBadge(graph.nodes.length > 0 ? `${graph.nodes.length} nodes` : "empty", graph.nodes.length > 0 ? "success" : "warn")}
+      </section>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("Graph Overview", "Root-centered map of directories and files Kiwi currently knows about.")}
+        ${graph.nodes.length > 0
+        ? `
+            <div class="kc-graph-shell">
+              <svg class="kc-graph-canvas" viewBox="0 0 1200 720" role="img" aria-label="Repo graph">
+                ${graph.edges.map((edge) => `
+                  <line
+                    x1="${edge.from.x}"
+                    y1="${edge.from.y}"
+                    x2="${edge.to.x}"
+                    y2="${edge.to.y}"
+                    class="kc-graph-edge"
+                  />
+                `).join("")}
+                ${graph.nodes.map((node) => `
+                  <g transform="translate(${node.x}, ${node.y})">
+                    <circle r="${node.radius}" class="kc-graph-node ${node.tone}" />
+                    <text class="kc-graph-label" text-anchor="middle" dy=".35em">${escapeHtml(node.label)}</text>
+                  </g>
+                `).join("")}
+              </svg>
+            </div>
+          `
+        : renderEmptyState("No graph data is available yet. Run kiwi-control prepare to build a richer context tree.")}
+      </section>
+
+      <div class="kc-two-column">
+        <section class="kc-panel">
+          ${renderPanelHeader("Cluster Summary", "Top visible nodes from the current context selection tree.")}
+          ${graph.summary.length > 0
+        ? `<div class="kc-stack-list">${graph.summary.map((entry) => renderNoteRow(entry.label, entry.kind, entry.meta)).join("")}</div>`
+        : renderEmptyState("No cluster summary is available yet.")}
+        </section>
+        <section class="kc-panel">
+          ${renderPanelHeader("How to Read", "A quick guide so this graph feels familiar to Cursor-style users.")}
+          <div class="kc-stack-list">
+            ${renderNoteRow("Center", "repo root", "The root anchors the visible map.")}
+            ${renderNoteRow("Primary ring", "folders", "Top-level context clusters and module areas.")}
+            ${renderNoteRow("Outer ring", "files", "Representative files from the current repo context.")}
+            ${renderNoteRow("Selection tones", "selected / candidate / excluded", "Graph colors follow Kiwi’s existing context selection semantics.")}
+          </div>
+        </section>
+      </div>
     </div>
   `;
 }
@@ -1314,81 +1528,45 @@ function renderSystemView(state) {
 }
 function renderMachineView(state) {
     const machine = state.machineAdvisory;
+    const groupedGuidance = {
+        critical: machine.guidance.filter((entry) => entry.group === "critical-issues"),
+        recommended: machine.guidance.filter((entry) => entry.group === "improvements"),
+        optional: machine.guidance.filter((entry) => entry.group === "optional-optimizations")
+    };
     return `
     <div class="kc-view-shell">
       <section class="kc-view-header">
         <div>
           <p class="kc-view-kicker">Machine Advisory</p>
-          <h1>Machine-local AI toolchain</h1>
-          <p>Read-only machine inventory, optimization layers, config health, and usage. This does not override repo-local Kiwi state. Generated by ${escapeHtml(machine.generatedBy)}.</p>
+          <h1>System Limitations</h1>
+          <p>Read-only machine limitations and repair guidance. This never overrides repo-local Kiwi state. Generated by ${escapeHtml(machine.generatedBy)}.</p>
         </div>
         ${renderHeaderBadge(machine.stale ? "stale" : "fresh", machine.stale ? "warn" : "success")}
       </section>
 
       <div class="kc-stat-grid">
+        ${renderStatCard("Critical", String(machine.systemHealth.criticalCount), "fix first", machine.systemHealth.criticalCount > 0 ? "critical" : "neutral")}
+        ${renderStatCard("Warnings", String(machine.systemHealth.warningCount), "recommended actions", machine.systemHealth.warningCount > 0 ? "warn" : "neutral")}
+        ${renderStatCard("Healthy", String(machine.systemHealth.okCount), "healthy checks", "success")}
         ${renderStatCard("Claude MCPs", String(machine.mcpInventory.claudeTotal), "configured servers", "neutral")}
         ${renderStatCard("Codex MCPs", String(machine.mcpInventory.codexTotal), "configured servers", "neutral")}
         ${renderStatCard("Copilot MCPs", String(machine.mcpInventory.copilotTotal), "configured servers", "neutral")}
         ${renderStatCard("Skills", String(machine.skillsCount), "agent skills in ~/.agents/skills", "neutral")}
-        ${renderStatCard("Copilot Plugins", String(machine.copilotPlugins.length), "installed plugins", "neutral")}
         ${renderStatCard("Window", `${machine.windowDays} days`, machine.note, machine.stale ? "warn" : "success")}
       </div>
 
       <section class="kc-panel">
-        ${renderPanelHeader("Toolchain Inventory", "Detected binaries and versions on this machine.")}
-        ${machine.inventory.length > 0
-        ? renderMachineTable(["Tool", "Version", "Phase", "Status"], machine.inventory.map((tool) => [
-            escapeHtml(tool.name),
-            escapeHtml(tool.version),
-            escapeHtml(tool.phase),
-            renderMachineStateChip(tool.installed, "installed", "missing")
-        ]))
-        : renderEmptyState("No machine-local tool inventory is available.")}
-      </section>
-
-      <section class="kc-panel">
-        ${renderPanelHeader("MCP Servers", "Configured MCP counts by harness plus token-focused server coverage.")}
-        <div class="kc-info-grid">
-          ${renderInfoRow("Claude Code", formatInteger(machine.mcpInventory.claudeTotal))}
-          ${renderInfoRow("Codex", formatInteger(machine.mcpInventory.codexTotal))}
-          ${renderInfoRow("Copilot CLI", formatInteger(machine.mcpInventory.copilotTotal))}
-        </div>
-        <div class="kc-divider"></div>
-        ${machine.mcpInventory.tokenServers.length > 0
-        ? renderMachineTable(["Server", "Claude Code", "Codex", "Copilot"], machine.mcpInventory.tokenServers.map((server) => [
-            escapeHtml(server.name),
-            renderMachineStateChip(server.claude, "active", "—"),
-            renderMachineStateChip(server.codex, "active", "—"),
-            renderMachineStateChip(server.copilot, "active", "—")
-        ]))
-        : renderEmptyState("No token-focused MCP inventory is available.")}
-      </section>
-
-      <section class="kc-panel">
-        ${renderPanelHeader("Token Optimization Layers", "Machine-local optimization layers and whether they are active per harness.")}
-        ${machine.optimizationLayers.length > 0
-        ? renderMachineTable(["Layer", "Savings", "Claude Code", "Codex", "Copilot"], machine.optimizationLayers.map((layer) => [
-            escapeHtml(layer.name),
-            escapeHtml(layer.savings),
-            renderMachineStateChip(layer.claude, "yes", "no"),
-            renderMachineStateChip(layer.codex, "yes", "no"),
-            renderMachineStateChip(layer.copilot, "yes", "no")
-        ]))
-        : renderEmptyState("No optimization layer data is available.")}
-        <p class="kc-table-note">Optimization score is intentionally omitted. Kiwi surfaces factual-only machine advisory.</p>
-      </section>
-
-      <section class="kc-panel">
-        ${renderPanelHeader("Skills & Plugins", "Machine-local capability expansion surfaces.")}
+        ${renderPanelHeader("Top Signals", "Machine-level limits that matter first for the current repo and workflow state.")}
         <div class="kc-stack-list">
-          ${renderNoteRow("Claude Code", `${formatInteger(machine.skillsCount)} agent skills`, "~/.agents/skills/")}
-          ${renderNoteRow("Codex", `${formatInteger(machine.mcpInventory.codexTotal)} MCP servers`, machine.inventory.some((tool) => tool.name === "omx" && tool.installed) ? "OMX orchestration detected" : "No OMX orchestration detected")}
-          ${renderNoteRow("Copilot CLI", `${formatInteger(machine.copilotPlugins.length)} plugins`, machine.copilotPlugins.join(", ") || "none")}
+          ${renderNoteRow("Critical issues", String(machine.systemHealth.criticalCount), machine.systemHealth.criticalCount > 0 ? "Fix these before relying on machine hints." : "No critical machine blockers are currently active.")}
+          ${renderNoteRow("Warnings", String(machine.systemHealth.warningCount), machine.systemHealth.warningCount > 0 ? "Recommended improvements are available." : "No active advisory warnings right now.")}
+          ${renderNoteRow("Usage window", `${machine.windowDays} days`, machine.usage.codex.available || machine.usage.claude.available ? "Recent machine telemetry is available." : "Token tracking is currently limited.")}
         </div>
       </section>
 
       <section class="kc-panel">
         ${renderPanelHeader("What AI-setup Added", "Structured provenance of the machine-local AI setup, grouped by phase.")}
+        ${renderFreshnessRow(machine.sections.setupPhases)}
         ${machine.setupPhases.length > 0
         ? machine.setupPhases.map((phase) => `
               <div class="kc-stack-block">
@@ -1403,6 +1581,7 @@ function renderMachineView(state) {
 
       <section class="kc-panel">
         ${renderPanelHeader("Config Health", "Machine-level config and hook surfaces.")}
+        ${renderFreshnessRow(machine.sections.configHealth)}
         ${machine.configHealth.length > 0
         ? renderMachineTable(["Config", "Status", "Description"], machine.configHealth.map((entry) => [
             escapeHtml(entry.path),
@@ -1414,6 +1593,7 @@ function renderMachineView(state) {
 
       <section class="kc-panel">
         ${renderPanelHeader(`Token Usage (Last ${machine.windowDays} Days)`, "Measured usage from Claude and Codex local sources.")}
+        ${renderFreshnessRow(machine.sections.usage)}
         <div class="kc-two-column">
           <section class="kc-subpanel">
             ${renderPanelHeader("Claude Code (via ccusage)", machine.usage.claude.note)}
@@ -1454,6 +1634,84 @@ function renderMachineView(state) {
           ${renderNoteRow("Copilot CLI", machine.usage.copilot.available ? "available" : "unavailable", machine.usage.copilot.note)}
         </div>
       </section>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("Guidance", "Assistive machine-local suggestions and repo hints. These are advisory only and never auto-applied.")}
+        ${renderFreshnessRow(machine.sections.guidance)}
+        ${machine.guidance.length > 0
+        ? `
+            ${groupedGuidance.critical.length > 0 ? renderGuidanceGroup("Critical Issues", groupedGuidance.critical) : ""}
+            ${groupedGuidance.recommended.length > 0 ? renderGuidanceGroup("Improvements", groupedGuidance.recommended) : ""}
+            ${groupedGuidance.optional.length > 0 ? renderGuidanceGroup("Optional Optimizations", groupedGuidance.optional) : ""}
+          `
+        : renderEmptyState("No machine-local suggestions are currently recorded.")}
+      </section>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("System Details", "Expanded machine diagnostics for inspection mode.")}
+        ${activeMode === "inspection"
+        ? `
+            <details class="kc-fold-card" open>
+              <summary><strong>Toolchain inventory</strong><span>${escapeHtml(formatSectionSummary(machine.sections.inventory))}</span></summary>
+              <div class="kc-fold-body">
+                ${machine.inventory.length > 0
+            ? renderMachineTable(["Tool", "Version", "Phase", "Status"], machine.inventory.map((tool) => [
+                escapeHtml(tool.name),
+                escapeHtml(tool.version),
+                escapeHtml(tool.phase),
+                renderMachineStateChip(tool.installed, "installed", "missing")
+            ]))
+            : renderEmptyState("No machine-local tool inventory is available.")}
+              </div>
+            </details>
+            <details class="kc-fold-card">
+              <summary><strong>MCP servers</strong><span>${escapeHtml(formatSectionSummary(machine.sections.mcpInventory))}</span></summary>
+              <div class="kc-fold-body">
+                <div class="kc-info-grid">
+                  ${renderInfoRow("Claude Code", formatInteger(machine.mcpInventory.claudeTotal))}
+                  ${renderInfoRow("Codex", formatInteger(machine.mcpInventory.codexTotal))}
+                  ${renderInfoRow("Copilot CLI", formatInteger(machine.mcpInventory.copilotTotal))}
+                </div>
+                <div class="kc-divider"></div>
+                ${machine.mcpInventory.tokenServers.length > 0
+            ? renderMachineTable(["Server", "Claude Code", "Codex", "Copilot"], machine.mcpInventory.tokenServers.map((server) => [
+                escapeHtml(server.name),
+                renderMachineStateChip(server.claude, "active", "—"),
+                renderMachineStateChip(server.codex, "active", "—"),
+                renderMachineStateChip(server.copilot, "active", "—")
+            ]))
+            : renderEmptyState("No token-focused MCP inventory is available.")}
+              </div>
+            </details>
+            <details class="kc-fold-card">
+              <summary><strong>Optimization layers</strong><span>${escapeHtml(formatSectionSummary(machine.sections.optimizationLayers))}</span></summary>
+              <div class="kc-fold-body">
+                ${machine.optimizationLayers.length > 0
+            ? renderMachineTable(["Layer", "Savings", "Claude Code", "Codex", "Copilot"], machine.optimizationLayers.map((layer) => [
+                escapeHtml(layer.name),
+                escapeHtml(layer.savings),
+                renderMachineStateChip(layer.claude, "yes", "no"),
+                renderMachineStateChip(layer.codex, "yes", "no"),
+                renderMachineStateChip(layer.copilot, "yes", "no")
+            ]))
+            : renderEmptyState("No optimization layer data is available.")}
+              </div>
+            </details>
+            <details class="kc-fold-card">
+              <summary><strong>Config health</strong><span>${escapeHtml(formatSectionSummary(machine.sections.configHealth))}</span></summary>
+              <div class="kc-fold-body">
+                ${machine.configHealth.length > 0
+            ? renderMachineTable(["Config", "Status", "Description"], machine.configHealth.map((entry) => [
+                escapeHtml(entry.path),
+                renderMachineStateChip(entry.healthy, "healthy", "issue"),
+                escapeHtml(entry.description)
+            ]))
+            : renderEmptyState("No config health data is available.")}
+              </div>
+            </details>
+          `
+        : renderEmptyState("Switch to inspection mode to expand raw machine internals.")}
+      </section>
     </div>
   `;
 }
@@ -1473,6 +1731,82 @@ function renderMachineTable(headers, rows) {
 }
 function renderMachineStateChip(active, activeLabel, inactiveLabel) {
     return `<span class="kc-machine-state ${active ? "is-active" : "is-inactive"}">${escapeHtml(active ? activeLabel : inactiveLabel)}</span>`;
+}
+function renderFreshnessRow(meta) {
+    return `
+    <div class="kc-inline-badges kc-machine-freshness">
+      ${renderHeaderBadge(meta.status, meta.status === "fresh" ? "success" : meta.status === "cached" ? "neutral" : "warn")}
+      ${renderInlineBadge(meta.updatedAt ? formatTimestamp(meta.updatedAt) : "unknown time")}
+      ${meta.reason ? renderInlineBadge(meta.reason) : ""}
+    </div>
+  `;
+}
+function formatSectionSummary(meta) {
+    return `${meta.status}${meta.updatedAt ? ` · ${formatTimestamp(meta.updatedAt)}` : ""}${meta.reason ? ` · ${meta.reason}` : ""}`;
+}
+function renderGuidanceRow(entry) {
+    const actions = [entry.fixCommand, entry.hintCommand].filter(Boolean).join(" | ");
+    return `
+    <div class="kc-note-row">
+      <div>
+        <strong>${escapeHtml(entry.message)}</strong>
+        <span>${escapeHtml(entry.reason ?? `section: ${entry.section}`)}</span>
+        <span>${escapeHtml(entry.impact)}</span>
+      </div>
+      <em class="${entry.priority === "critical" ? "tone-warn" : ""}">${escapeHtml(actions || entry.priority)}</em>
+    </div>
+  `;
+}
+function renderGuidanceGroup(title, entries) {
+    return `
+    <div class="kc-stack-block">
+      <p class="kc-stack-label">${escapeHtml(title)}</p>
+      <div class="kc-stack-list">
+        ${entries.map((entry) => renderGuidanceRow(entry)).join("")}
+      </div>
+    </div>
+  `;
+}
+function buildRepoGraph(nodes) {
+    const root = { label: "repo", x: 600, y: 360, radius: 34, tone: "tone-root" };
+    const topLevel = nodes.slice(0, 8);
+    const graphNodes = [root];
+    const edges = [];
+    const summary = [];
+    topLevel.forEach((node, index) => {
+        const angle = (Math.PI * 2 * index) / Math.max(topLevel.length, 1);
+        const folderNode = {
+            label: node.name,
+            x: 600 + Math.cos(angle) * 220,
+            y: 360 + Math.sin(angle) * 220,
+            radius: 24,
+            tone: `tone-${node.status}`
+        };
+        graphNodes.push(folderNode);
+        edges.push({ from: root, to: folderNode });
+        summary.push({
+            label: node.name,
+            kind: node.kind,
+            meta: node.children.length > 0 ? `${node.children.length} child nodes` : "leaf"
+        });
+        node.children.slice(0, 4).forEach((child, childIndex) => {
+            const childAngle = angle + ((childIndex - 1.5) * 0.35);
+            const fileNode = {
+                label: child.name,
+                x: folderNode.x + Math.cos(childAngle) * 160,
+                y: folderNode.y + Math.sin(childAngle) * 160,
+                radius: 16,
+                tone: `tone-${child.status}`
+            };
+            graphNodes.push(fileNode);
+            edges.push({ from: folderNode, to: fileNode });
+        });
+    });
+    return {
+        nodes: graphNodes,
+        edges,
+        summary
+    };
 }
 function renderHandoffsView(state) {
     const latestCheckpoint = getPanelValue(state.continuity, "Latest checkpoint");
@@ -1601,6 +1935,7 @@ function renderInspector(state) {
     const primaryAction = kc.nextActions.actions[0] ?? null;
     const activeSpecialist = state.specialists.activeProfile;
     const topCapability = state.mcpPacks.compatibleCapabilities[0] ?? null;
+    const signalItems = kc.decisionLogic.inputSignals.slice(0, activeMode === "execution" ? 3 : 5);
     return `
     <div class="kc-inspector-shell">
       <div class="kc-inspector-header">
@@ -1627,8 +1962,8 @@ function renderInspector(state) {
 
       <section class="kc-inspector-section">
         <p class="kc-section-micro">Decision inputs</p>
-        ${kc.decisionLogic.inputSignals.length > 0
-        ? `<div class="kc-stack-list">${kc.decisionLogic.inputSignals.slice(0, 5).map((item) => renderBulletRow(item)).join("")}</div>`
+        ${signalItems.length > 0
+        ? `<div class="kc-stack-list">${signalItems.map((item) => renderNoteRow(item, "impact", deriveSignalImpact(item))).join("")}</div>`
         : "<p>No decision inputs are currently surfaced.</p>"}
       </section>
 
@@ -1662,34 +1997,38 @@ function renderInspector(state) {
         <p>${escapeHtml(kc.feedback.note)}</p>
       </section>
 
-      <section class="kc-inspector-section">
-        <p class="kc-section-micro">MCP usage</p>
-        <div class="kc-gate-list">
-          ${renderGateRow("Pack", state.mcpPacks.suggestedPack.name ?? state.mcpPacks.suggestedPack.id, "default")}
-          ${renderGateRow("Compatible", String(state.mcpPacks.compatibleCapabilities.length), state.mcpPacks.compatibleCapabilities.length > 0 ? "success" : "warn")}
-          ${renderGateRow("Top capability", topCapability?.id ?? "none", topCapability ? "success" : "warn")}
-        </div>
-        <p>${escapeHtml(state.mcpPacks.note)}</p>
-      </section>
+      ${activeMode === "inspection"
+        ? `
+          <section class="kc-inspector-section">
+            <p class="kc-section-micro">MCP usage</p>
+            <div class="kc-gate-list">
+              ${renderGateRow("Pack", state.mcpPacks.suggestedPack.name ?? state.mcpPacks.suggestedPack.id, "default")}
+              ${renderGateRow("Compatible", String(state.mcpPacks.compatibleCapabilities.length), state.mcpPacks.compatibleCapabilities.length > 0 ? "success" : "warn")}
+              ${renderGateRow("Top capability", topCapability?.id ?? "none", topCapability ? "success" : "warn")}
+            </div>
+            <p>${escapeHtml(state.mcpPacks.note)}</p>
+          </section>
 
-      <section class="kc-inspector-section">
-        <p class="kc-section-micro">Specialist usage</p>
-        <div class="kc-gate-list">
-          ${renderGateRow("Active", activeSpecialist?.name ?? state.specialists.activeSpecialist, "default")}
-          ${renderGateRow("Risk", activeSpecialist?.riskPosture ?? "unknown", activeSpecialist?.riskPosture === "conservative" ? "success" : "default")}
-          ${renderGateRow("Tool fit", (activeSpecialist?.preferredTools ?? []).join(", ") || "none", "default")}
-        </div>
-        <p>${escapeHtml(activeSpecialist?.purpose ?? state.specialists.safeParallelHint)}</p>
-      </section>
+          <section class="kc-inspector-section">
+            <p class="kc-section-micro">Specialist usage</p>
+            <div class="kc-gate-list">
+              ${renderGateRow("Active", activeSpecialist?.name ?? state.specialists.activeSpecialist, "default")}
+              ${renderGateRow("Risk", activeSpecialist?.riskPosture ?? "unknown", activeSpecialist?.riskPosture === "conservative" ? "success" : "default")}
+              ${renderGateRow("Tool fit", (activeSpecialist?.preferredTools ?? []).join(", ") || "none", "default")}
+            </div>
+            <p>${escapeHtml(activeSpecialist?.purpose ?? state.specialists.safeParallelHint)}</p>
+          </section>
 
-      <section class="kc-inspector-section">
-        <p class="kc-section-micro">Skills & trace</p>
-        ${kc.skills.activeSkills.length > 0
-        ? `<div class="kc-stack-list">${kc.skills.activeSkills.slice(0, 3).map((skill) => renderBulletRow(`${skill.name} — ${skill.executionTemplate[0] ?? skill.description}`)).join("")}</div>`
-        : `<p>No active skills are currently matched.</p>`}
-        <div class="kc-divider"></div>
-        <p>${escapeHtml(kc.executionTrace.whyThisHappened || "No execution trace explanation is recorded yet.")}</p>
-      </section>
+          <section class="kc-inspector-section">
+            <p class="kc-section-micro">Skills & trace</p>
+            ${kc.skills.activeSkills.length > 0
+            ? `<div class="kc-stack-list">${kc.skills.activeSkills.slice(0, 3).map((skill) => renderBulletRow(`${skill.name} — ${skill.executionTemplate[0] ?? skill.description}`)).join("")}</div>`
+            : `<p>No active skills are currently matched.</p>`}
+            <div class="kc-divider"></div>
+            <p>${escapeHtml(kc.executionTrace.whyThisHappened || "No execution trace explanation is recorded yet.")}</p>
+          </section>
+        `
+        : ""}
 
       <section class="kc-inspector-section">
         <p class="kc-section-micro">Command</p>
@@ -1713,35 +2052,46 @@ function renderLogDrawer(state) {
     return `
     <div class="kc-log-shell">
       <div class="kc-log-header">
-        <div class="kc-tab-row">
-          ${renderTabButton("history", activeLogTab, "Execution History", "data-log-tab")}
-          ${renderTabButton("validation", activeLogTab, "Validation Output", "data-log-tab")}
-          ${renderTabButton("logs", activeLogTab, "System Logs", "data-log-tab")}
-        </div>
+        ${activeMode === "inspection"
+        ? `<div class="kc-tab-row">
+              ${renderTabButton("history", activeLogTab, "Execution History", "data-log-tab")}
+              ${renderTabButton("validation", activeLogTab, "Validation Output", "data-log-tab")}
+              ${renderTabButton("logs", activeLogTab, "System Logs", "data-log-tab")}
+            </div>`
+        : `<div class="kc-tab-row">${renderTabButton("history", "history", "Execution History")}</div>`}
         <button class="kc-icon-button" type="button" data-toggle-logs>
           ${iconSvg("close")}
         </button>
       </div>
       <div class="kc-log-body">
-        ${activeLogTab === "validation"
-        ? renderValidationLogBody(state.validation)
-        : activeLogTab === "history"
-            ? executions.length > 0
-                ? executions.map((execution) => `
+        ${activeMode === "execution"
+        ? executions.length > 0
+            ? executions.slice(0, 6).map((execution) => `
+                <div class="kc-log-line ${execution.success ? "" : "is-warn"}">
+                  <span>${escapeHtml(execution.success ? "run" : "failed")}</span>
+                  <strong>${escapeHtml(`${execution.task} · ${execution.filesTouched} files · ~${formatTokensShort(execution.tokensUsed)} tokens · ${formatTimestamp(execution.timestamp)}`)}</strong>
+                </div>
+              `).join("")
+            : renderEmptyState("No execution history is recorded yet.")
+        : activeLogTab === "validation"
+            ? renderValidationLogBody(state.validation)
+            : activeLogTab === "history"
+                ? executions.length > 0
+                    ? executions.map((execution) => `
                   <div class="kc-log-line ${execution.success ? "" : "is-warn"}">
                     <span>${escapeHtml(execution.success ? "run" : "failed")}</span>
                     <strong>${escapeHtml(`${execution.task} · ${execution.filesTouched} files · ~${formatTokensShort(execution.tokensUsed)} tokens · ${formatTimestamp(execution.timestamp)}`)}</strong>
                   </div>
                 `).join("")
-                : renderEmptyState("No execution history is recorded yet.")
-            : lines.length > 0
-                ? lines.map((line) => `
+                    : renderEmptyState("No execution history is recorded yet.")
+                : lines.length > 0
+                    ? lines.map((line) => `
                 <div class="kc-log-line">
                   <span>${escapeHtml(line.label)}</span>
                   <strong>${escapeHtml(line.value)}</strong>
                 </div>
               `).join("")
-                : renderEmptyState("No repo activity is recorded yet.")}
+                    : renderEmptyState("No repo activity is recorded yet.")}
       </div>
     </div>
   `;
@@ -1793,6 +2143,28 @@ function renderInfoRow(label, value, tone = "default") {
       <strong class="${tone === "warn" ? "is-warn" : ""}">${escapeHtml(value)}</strong>
     </div>
   `;
+}
+function deriveSignalImpact(signal) {
+    const lowered = signal.toLowerCase();
+    if (lowered.includes("low confidence")) {
+        return "May miss relevant files or choose the wrong working set.";
+    }
+    if (lowered.includes("partial scan")) {
+        return "Repo understanding may be incomplete until context expands.";
+    }
+    if (lowered.includes("changed files")) {
+        return "Recent edits can dominate the plan and change the safest next step.";
+    }
+    if (lowered.includes("reverse depend")) {
+        return "Downstream breakage can be missed if structural dependents are ignored.";
+    }
+    if (lowered.includes("keyword")) {
+        return "Task matching may drift away from the user’s actual request.";
+    }
+    if (lowered.includes("repo context")) {
+        return "Repo-local authority and critical files may be skipped.";
+    }
+    return "Ignoring this signal can reduce decision quality or hide relevant files.";
 }
 function renderHeaderBadge(label, tone) {
     const normalizedTone = tone === "bridge-unavailable"
@@ -2101,6 +2473,8 @@ function iconSvg(name) {
             return `<svg ${common}><rect x="3" y="4" width="7" height="7"/><rect x="14" y="4" width="7" height="7"/><rect x="3" y="13" width="7" height="7"/><rect x="14" y="13" width="7" height="7"/></svg>`;
         case "context":
             return `<svg ${common}><path d="M4 19V5h16v14Z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>`;
+        case "graph":
+            return `<svg ${common}><circle cx="12" cy="12" r="2"/><circle cx="6" cy="7" r="2"/><circle cx="18" cy="7" r="2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M10.5 10.5 7.5 8.5"/><path d="m13.5 10.5 3-2"/><path d="m10.8 13.4-2.5 3"/><path d="m13.2 13.4 2.5 3"/></svg>`;
         case "validation":
             return `<svg ${common}><path d="M12 3 4 7v6c0 4.5 3.2 6.9 8 8 4.8-1.1 8-3.5 8-8V7Z"/><path d="m9 12 2 2 4-4"/></svg>`;
         case "activity":
@@ -2311,6 +2685,15 @@ function buildBridgeUnavailableState(targetRoot) {
             windowDays: 7,
             updatedAt: "",
             stale: true,
+            sections: {
+                inventory: { status: "partial", updatedAt: "", reason: "Machine-local advisory is unavailable." },
+                mcpInventory: { status: "partial", updatedAt: "", reason: "Machine-local advisory is unavailable." },
+                optimizationLayers: { status: "partial", updatedAt: "", reason: "Machine-local advisory is unavailable." },
+                setupPhases: { status: "partial", updatedAt: "", reason: "Machine-local advisory is unavailable." },
+                configHealth: { status: "partial", updatedAt: "", reason: "Machine-local advisory is unavailable." },
+                usage: { status: "partial", updatedAt: "", reason: "Machine-local advisory is unavailable." },
+                guidance: { status: "partial", updatedAt: "", reason: "Machine-local advisory is unavailable." }
+            },
             inventory: [],
             mcpInventory: {
                 claudeTotal: 0,
@@ -2358,6 +2741,12 @@ function buildBridgeUnavailableState(targetRoot) {
                     note: "Machine-local advisory is unavailable."
                 }
             },
+            systemHealth: {
+                criticalCount: 0,
+                warningCount: 0,
+                okCount: 0
+            },
+            guidance: [],
             note: "Machine-local advisory is unavailable. Optimization score is intentionally omitted."
         },
         kiwiControl: EMPTY_KC

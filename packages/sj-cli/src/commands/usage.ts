@@ -24,7 +24,11 @@ export async function runUsage(options: UsageOptions): Promise<number> {
     return 0;
   }
 
-  renderSection(options.logger, `TOKEN USAGE (LAST ${advisory.windowDays} DAYS)`);
+  renderSection(options.logger, `TOKEN USAGE (LAST ${advisory.windowDays} DAYS) [${formatSection(advisory.sections.usage)}]`);
+  renderSection(options.logger, "HEALTH SUMMARY");
+  options.logger.info(
+    `critical=${formatInteger(advisory.systemHealth.criticalCount)} warning=${formatInteger(advisory.systemHealth.warningCount)} ok=${formatInteger(advisory.systemHealth.okCount)}`
+  );
 
   renderSection(options.logger, "Claude Code (via ccusage)");
   if (payload.claude.available) {
@@ -58,6 +62,19 @@ export async function runUsage(options: UsageOptions): Promise<number> {
 
   renderSection(options.logger, "Copilot CLI");
   options.logger.info(payload.copilot.note);
+  if (advisory.guidance.length > 0) {
+    renderSection(options.logger, `GUIDANCE [${formatSection(advisory.sections.guidance)}]`);
+    for (const entry of advisory.guidance.filter((item) => item.section === "usage" || item.section === "guidance")) {
+      options.logger.info(`- [${entry.priority}] ${entry.message}: ${entry.impact}`);
+      options.logger.info(`  reason: ${entry.reason ?? entry.section}`);
+      if (entry.fixCommand) {
+        options.logger.info(`  fix: ${entry.fixCommand}`);
+      }
+      if (entry.hintCommand) {
+        options.logger.info(`  hint: ${entry.hintCommand}`);
+      }
+    }
+  }
   options.logger.info("next command: kiwi-control toolchain");
   return 0;
 }
@@ -127,4 +144,8 @@ function formatPercent(value: number | null): string {
 
 function formatCurrency(value: number | null): string {
   return value == null ? "—" : `$${value.toFixed(2)}`;
+}
+
+function formatSection(section: { status: "fresh" | "cached" | "partial"; updatedAt: string; reason?: string }): string {
+  return `${section.status}${section.updatedAt ? ` · ${section.updatedAt}` : ""}${section.reason ? ` · ${section.reason}` : ""}`;
 }

@@ -25,7 +25,7 @@ import type { ContextTraceState, FileAnalysisEntry, IndexingState, SkippedPathEn
 import type { RuntimeLifecycleState } from "./runtime-lifecycle.js";
 import { buildEcosystemCatalog } from "../integrations/ecosystem-catalog.js";
 import type { EcosystemCatalog } from "../integrations/ecosystem-catalog.js";
-import { loadMachineAdvisory } from "../integrations/machine-advisory.js";
+import { buildMachineGuidanceContext, filterMachineGuidance, loadMachineAdvisory } from "../integrations/machine-advisory.js";
 import type { MachineAdvisoryState } from "../integrations/machine-advisory.js";
 import type { SkillMatch, SkillRegistryState } from "./skills-registry.js";
 import type { TokenBreakdownState, TokenUsageState } from "./token-estimator.js";
@@ -377,12 +377,14 @@ export async function buildRepoControlState(options: {
   repoRoot: string;
   targetRoot: string;
   profileName?: string;
+  machineAdvisoryOptions?: Parameters<typeof loadMachineAdvisory>[0];
 }): Promise<RepoControlState> {
   const config = await loadCanonicalConfig(options.repoRoot);
   return buildRepoControlStateFromConfig({
     config,
     repoRoot: options.repoRoot,
     targetRoot: options.targetRoot,
+    ...(options.machineAdvisoryOptions ? { machineAdvisoryOptions: options.machineAdvisoryOptions } : {}),
     ...(options.profileName ? { profileName: options.profileName } : {})
   });
 }
@@ -392,6 +394,7 @@ export async function buildRepoControlStateFromConfig(options: {
   repoRoot: string;
   targetRoot: string;
   profileName?: string;
+  machineAdvisoryOptions?: Parameters<typeof loadMachineAdvisory>[0];
 }): Promise<RepoControlState> {
   const inspection = await inspectBootstrapTarget(options.targetRoot, options.config);
   const overlay = await loadProjectOverlay(options.targetRoot);
@@ -517,13 +520,22 @@ export async function buildRepoControlStateFromConfig(options: {
   });
   const repoOverview = summarizeRepoOverview();
   const ecosystem = buildEcosystemCatalog();
-  const machineAdvisory = await loadMachineAdvisory().catch(() => ({
+  const machineAdvisory = await loadMachineAdvisory(options.machineAdvisoryOptions).catch((): MachineAdvisoryState => ({
     artifactType: "kiwi-control/machine-advisory" as const,
     version: 2 as const,
     generatedBy: "kiwi-control machine-advisory",
     windowDays: 7,
     updatedAt: new Date().toISOString(),
     stale: true,
+    sections: {
+      inventory: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
+      mcpInventory: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
+      optimizationLayers: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
+      setupPhases: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
+      configHealth: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
+      usage: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." },
+      guidance: { status: "partial" as const, updatedAt: new Date().toISOString(), reason: "Machine advisory unavailable." }
+    },
     inventory: [],
     mcpInventory: {
       claudeTotal: 0,
@@ -571,10 +583,24 @@ export async function buildRepoControlStateFromConfig(options: {
         note: "Machine advisory unavailable."
       }
     },
+    systemHealth: {
+      criticalCount: 0,
+      warningCount: 0,
+      okCount: 0
+    },
+    guidance: [],
     note: "Machine-local advisory is unavailable. Optimization score is intentionally omitted."
   }));
 
   const kiwiControl = await loadKiwiControlState(options.targetRoot, validationIssues);
+  const machineGuidanceContext = buildMachineGuidanceContext({
+    taskType: deriveMachineTaskType(kiwiControl),
+    workflowStep: kiwiControl.workflow.currentStepId,
+    validationFailed: validation.errors > 0,
+    evalPrecisionLow: kiwiControl.feedback.totalRuns > 0 && kiwiControl.feedback.successRate < 50,
+    executionRetriesTriggered: kiwiControl.workflow.steps.some((step) => step.retryCount > 0)
+  });
+  machineAdvisory.guidance = filterMachineGuidance(machineAdvisory.guidance, machineGuidanceContext);
 
   return {
     targetRoot: options.targetRoot,
@@ -634,6 +660,20 @@ export async function buildRepoControlStateFromConfig(options: {
       }
     ];
   }
+}
+
+function deriveMachineTaskType(state: KiwiControlState): string | null {
+  const task = state.contextView.task?.toLowerCase() ?? "";
+  if (!task) {
+    return null;
+  }
+  if (/\b(read|inspect|review|summarize)\b/.test(task)) {
+    return "read";
+  }
+  if (/\bdocs?|document|readme\b/.test(task)) {
+    return "docs";
+  }
+  return "implementation";
 }
 
 function summarizeValidation(issues: ValidationIssue[]): string {

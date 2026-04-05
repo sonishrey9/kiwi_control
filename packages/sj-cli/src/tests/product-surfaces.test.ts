@@ -126,12 +126,14 @@ test("ui command returns structured repo-control state in json mode", async () =
     machineAdvisory: {
       generatedBy: string;
       windowDays: number;
+      systemHealth: { criticalCount: number; warningCount: number; okCount: number };
       inventory: Array<{ name: string }>;
       mcpInventory: { claudeTotal: number; codexTotal: number; copilotTotal: number };
       optimizationLayers: Array<{ name: string }>;
       setupPhases: Array<{ phase: string }>;
       configHealth: Array<{ path: string }>;
       usage: { claude: { available: boolean }; codex: { available: boolean }; copilot: { available: boolean } };
+      guidance: Array<{ priority: string; group: string; impact: string }>;
     };
     kiwiControl: {
       indexing: { coverageNote: string; discoveredFiles: number };
@@ -162,11 +164,13 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(Array.isArray(payload.machineAdvisory.inventory), true);
   assert.equal(typeof payload.machineAdvisory.generatedBy, "string");
   assert.equal(typeof payload.machineAdvisory.windowDays, "number");
+  assert.equal(typeof payload.machineAdvisory.systemHealth.criticalCount, "number");
   assert.equal(typeof payload.machineAdvisory.mcpInventory.claudeTotal, "number");
   assert.equal(Array.isArray(payload.machineAdvisory.optimizationLayers), true);
   assert.equal(Array.isArray(payload.machineAdvisory.setupPhases), true);
   assert.equal(Array.isArray(payload.machineAdvisory.configHealth), true);
   assert.equal(typeof payload.machineAdvisory.usage.claude.available, "boolean");
+  assert.equal(Array.isArray(payload.machineAdvisory.guidance), true);
   assert.equal(typeof payload.kiwiControl.indexing.discoveredFiles, "number");
   assert.equal(typeof payload.kiwiControl.indexing.coverageNote, "string");
   assert.equal(typeof payload.kiwiControl.fileAnalysis.totalFiles, "number");

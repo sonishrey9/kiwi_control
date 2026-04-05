@@ -416,7 +416,7 @@ function printHelp(invokedCommand = PRODUCT_METADATA.cli.primaryCommand): void {
   const primaryCommand = PRODUCT_METADATA.cli.primaryCommand;
   const compatibilityAliasInvoked = PRODUCT_METADATA.cli.compatibilityCommands.includes(invokedCommand);
   const aliasBanner = compatibilityAliasInvoked
-    ? `\nCompatibility alias invoked: ${invokedCommand}. Prefer ${primaryCommand} or ${PRODUCT_METADATA.cli.shortCommand} in new scripts and docs.\n`
+    ? `\nCompatibility alias invoked. Prefer ${primaryCommand} or ${PRODUCT_METADATA.cli.shortCommand} in new scripts and docs.\n`
     : "";
 
   console.log(`${PRODUCT_METADATA.displayName}${aliasBanner}
@@ -482,9 +482,8 @@ Contributor source usage:
   ${PRODUCT_METADATA.cli.sourceDesktopLauncher}
 
 Compatibility:
-  internal packages remain sj-core, sj-cli, and sj-ui
   repo-local schema and artifact IDs remain ${PRODUCT_METADATA.compatibility.schemaPrefix}/*
-  temporary beta aliases: ${PRODUCT_METADATA.cli.compatibilityCommands.join(" | ")}
+  legacy compatibility aliases remain available during migration
   primary public commands: ${primaryCommand} | ${PRODUCT_METADATA.cli.shortCommand}
 `);
 }

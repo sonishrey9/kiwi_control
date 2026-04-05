@@ -71,6 +71,8 @@ export async function runUi(options: UiOptions): Promise<number> {
     return 0;
   }
 
+  await warmDesktopRegistration();
+
   const launchRequest: DesktopLaunchRequest = {
     requestId: randomUUID(),
     targetRoot: options.targetRoot,
@@ -128,6 +130,30 @@ export async function runUi(options: UiOptions): Promise<number> {
   });
   options.logger.error(buildDesktopLaunchTimeoutMessage(options.repoRoot));
   return 1;
+}
+
+async function warmDesktopRegistration(): Promise<void> {
+  if (process.platform !== "darwin") {
+    return;
+  }
+
+  const installedBundle = buildDesktopLaunchCandidates()
+    .find((candidate) => candidate.command === "open" && candidate.args[0]?.endsWith(".app"));
+  if (!installedBundle) {
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    const child = spawn("open", ["-g", ...installedBundle.args], {
+      detached: true,
+      stdio: "ignore"
+    });
+    child.once("error", () => resolve());
+    child.once("spawn", () => {
+      child.unref();
+      setTimeout(resolve, 700);
+    });
+  });
 }
 
 export function buildDesktopUnavailableMessage(repoRoot: string): string {
