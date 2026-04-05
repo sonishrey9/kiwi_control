@@ -1977,9 +1977,63 @@ function seedComposerDraft(mode: Exclude<CommandComposerMode, null>): string {
       ? getPanelValue(currentState.repoOverview, "Current phase")
       : `${getRepoLabel(currentTargetRoot)} checkpoint`;
   }
-  return currentState.kiwiControl?.contextView.task
-    ?? currentState.kiwiControl?.nextActions.actions[0]?.action
-    ?? currentState.repoState.detail;
+  const task = currentState.kiwiControl?.contextView.task?.trim() ?? "";
+  if (task && task.toLowerCase() !== "task") {
+    return task;
+  }
+  return currentState.kiwiControl?.nextActions.actions[0]?.action
+    ?? "";
+}
+
+function isPlaceholderTask(value: string | null | undefined): boolean {
+  const normalized = value?.trim().toLowerCase() ?? "";
+  return normalized.length === 0 || normalized === "task";
+}
+
+function deriveComposerConstraint(
+  state: RepoControlState,
+  mode: Exclude<CommandComposerMode, null>,
+  draftValue: string
+): { blocked: boolean; reason: string; nextCommand: string | null } {
+  const plan = state.kiwiControl?.executionPlan;
+  const validateStep = plan?.steps.find((step) => step.id === "validate");
+  const validateFixCommand =
+    validateStep?.fixCommand
+    ?? validateStep?.retryCommand
+    ?? plan?.lastError?.fixCommand
+    ?? plan?.lastError?.retryCommand
+    ?? plan?.nextCommands[0]
+    ?? "kiwi-control validate \"task\"";
+
+  if (mode === "run-auto" && isPlaceholderTask(draftValue)) {
+    return {
+      blocked: true,
+      reason: "Enter a real goal instead of the placeholder task.",
+      nextCommand: "kiwi-control prepare \"real goal\""
+    };
+  }
+
+  if (mode === "checkpoint" && (plan?.state === "blocked" || validateStep?.status === "failed" || state.validation.errors > 0)) {
+    return {
+      blocked: true,
+      reason: "Checkpoint is blocked until validation passes.",
+      nextCommand: validateFixCommand
+    };
+  }
+
+  if (mode === "handoff" && (plan?.state === "blocked" || validateStep?.status === "failed" || state.validation.errors > 0)) {
+    return {
+      blocked: true,
+      reason: "Handoff is blocked until validation passes.",
+      nextCommand: validateFixCommand
+    };
+  }
+
+  return {
+    blocked: false,
+    reason: mode === "run-auto" ? "Run a concrete goal in the loaded repo." : "Ready to run.",
+    nextCommand: null
+  };
 }
 
 function toggleComposer(mode: Exclude<CommandComposerMode, null>): void {
@@ -2529,6 +2583,14 @@ function handleInteractiveClick(event: MouseEvent, target: HTMLElement): boolean
   if (submitComposer?.dataset.composerSubmit) {
     const mode = submitComposer.dataset.composerSubmit as Exclude<CommandComposerMode, null>;
     const value = commandState.draftValue.trim();
+    const constraint = deriveComposerConstraint(currentState, mode, value);
+    if (constraint.blocked) {
+      commandState.lastError = constraint.nextCommand
+        ? `${constraint.reason} Next: ${constraint.nextCommand}`
+        : constraint.reason;
+      scheduleRenderState();
+      return true;
+    }
     if (!value) {
       commandState.lastError = `${mode} requires a value before running.`;
       scheduleRenderState();
@@ -2768,6 +2830,10 @@ function renderTopBar(state: RepoControlState): string {
   const themeLabel = activeTheme === "dark" ? "Light mode" : "Dark mode";
   const currentTask = state.kiwiControl?.contextView.task ?? state.kiwiControl?.nextActions.actions[0]?.action ?? "";
   const retryEnabled = Boolean(state.kiwiControl?.executionPlan.lastError?.retryCommand) || Boolean(currentTargetRoot);
+  const composerConstraint =
+    commandState.composer
+      ? deriveComposerConstraint(state, commandState.composer, commandState.draftValue)
+      : null;
 
   return renderTopBarView({
     state,
@@ -2784,6 +2850,7 @@ function renderTopBar(state: RepoControlState): string {
     commandState,
     currentTask,
     retryEnabled,
+    composerConstraint,
     loadStatus: buildLoadStatus(state),
     helpers: buildUiRenderHelpers()
   });
@@ -3205,6 +3272,7 @@ function renderContextView(state: RepoControlState): string {
   const interactiveTree = deriveInteractiveTree(state);
   const selectedFiles = deriveInteractiveSelectedFiles(state);
   const topLevelMap = interactiveTree.nodes.slice(0, 8);
+  const indexingMechanics = buildIndexingMechanicsItems(state);
 
   return `
     <div class="kc-view-shell">
@@ -3273,6 +3341,13 @@ function renderContextView(state: RepoControlState): string {
           </div>
         </section>
       </div>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("How Kiwi Indexed This Repo", "These are the actual scan and signal mechanics behind the current tree, not generic advice.")}
+        <div class="kc-stack-list">
+          ${indexingMechanics.map((item) => renderNoteRow(item.title, item.metric, item.note)).join("")}
+        </div>
+      </section>
 
       <div class="kc-two-column">
         <section class="kc-panel">
@@ -3361,6 +3436,8 @@ function renderGraphView(state: RepoControlState): string {
     graphDepth,
     graphPan,
     graphZoom,
+    graphMechanics: buildGraphMechanicsItems(state, graph),
+    treeMechanics: buildTreeMechanicsItems(state),
     helpers: buildUiRenderHelpers()
   });
 }
@@ -3539,6 +3616,13 @@ function renderTokensView(state: RepoControlState): string {
       </section>
 
       <section class="kc-panel">
+        ${renderPanelHeader("Why These Token Numbers Look This Way", "Token analytics here are driven by the indexed tree, selected working set, and measured local execution data when available.")}
+        <div class="kc-stack-list">
+          ${buildTokenMechanicsItems(state).map((entry) => renderNoteRow(entry.title, entry.metric, entry.note)).join("")}
+        </div>
+      </section>
+
+      <section class="kc-panel">
         ${renderPanelHeader("Heavy Directories", "Directories that dominate repo token volume.")}
         ${kc.heavyDirectories.directories.length > 0
           ? `<div class="kc-stack-list">${kc.heavyDirectories.directories.slice(0, 4).map((directory) => renderNoteRow(directory.directory, `${directory.percentOfRepo}% of repo`, directory.suggestion)).join("")}</div>`
@@ -3643,19 +3727,37 @@ function buildTokenGuidanceItems(state: RepoControlState): Array<{ title: string
   const tokens = kc.tokenAnalytics;
   const items: Array<{ title: string; metric: string; note: string }> = [];
 
-  if (!tokens.estimationMethod) {
+  if (isPlaceholderTask(kc.contextView.task)) {
+    items.push({
+      title: "Replace the placeholder task",
+      metric: "task is too broad",
+      note: "The current task label is generic, so Kiwi leans on repo-context and recent-file signals. Preparing with a real goal narrows the selected tree and usually lowers token estimates."
+    });
+  } else if (!tokens.estimationMethod) {
     items.push({
       title: "Generate a bounded estimate",
       metric: "prepare first",
-      note: 'Run kc prepare "your task" so Kiwi can record a selected working set before showing reduction guidance.'
+      note: 'Run kc prepare with the actual task goal so Kiwi can record a selected working set before showing reduction guidance.'
     });
   } else {
     items.push({
       title: "Narrow the working set",
       metric: `${tokens.fileCountSelected}/${tokens.fileCountTotal} files`,
-      note: "Use Include, Exclude, and Ignore in Context or Graph to shrink the selected scope before execution."
+      note: "Use Include, Exclude, and Ignore in Context or Graph to shrink the selected tree before execution. Those tree changes are what alter the next token estimate."
     });
   }
+
+  items.push({
+    title: "Tree drives token estimates",
+    metric: `${kc.contextView.tree.selectedCount} selected · ${kc.contextView.tree.excludedCount} excluded`,
+    note: "The graph is a projection of the tree. If a file stays selected in the tree, it still counts toward the working-set estimate."
+  });
+
+  items.push({
+    title: "Index reuse reduces rescanning",
+    metric: `${kc.indexing.indexReusedFiles} reused · ${kc.indexing.indexUpdatedFiles} refreshed`,
+    note: "Kiwi reuses index entries when it can and only refreshes changed or newly discovered files. The token estimate is still based on the current selected tree, not random guesses."
+  });
 
   if (kc.wastedFiles.files.length > 0) {
     items.push({
@@ -3686,11 +3788,122 @@ function buildTokenGuidanceItems(state: RepoControlState): Array<{ title: string
     items.push({
       title: "Collect real usage",
       metric: "estimated only",
-      note: "Run guide, validate, or execution flows to collect measured token usage. Until then, the token view is heuristic."
+      note: "Measured token usage appears only after local guide, validate, or execution flows record real runs. Until then, the token view is an indexed working-set estimate."
     });
   }
 
   return items;
+}
+
+function buildIndexingMechanicsItems(state: RepoControlState): Array<{ title: string; metric: string; note: string }> {
+  const kc = state.kiwiControl ?? EMPTY_KC;
+  const indexing = kc.indexing;
+  const trace = kc.contextTrace.initialSignals;
+
+  return [
+    {
+      title: "Index coverage",
+      metric: `${indexing.indexedFiles} indexed · ${indexing.indexUpdatedFiles} refreshed · ${indexing.indexReusedFiles} reused`,
+      note: indexing.coverageNote
+    },
+    {
+      title: "Selection signals",
+      metric: `${indexing.changedSignals} changed · ${indexing.importSignals} import · ${indexing.keywordSignals} keyword · ${indexing.repoContextSignals} repo`,
+      note: "These are the signal buckets Kiwi used to pull files into the working set."
+    },
+    {
+      title: "Observed tree",
+      metric: `${kc.contextView.tree.selectedCount} selected · ${kc.contextView.tree.candidateCount} candidate · ${kc.contextView.tree.excludedCount} excluded`,
+      note: "The repo tree is built from the current context-selection artifact. Selected files are in-scope, candidate files were considered, and excluded files were filtered out."
+    },
+    {
+      title: "Initial evidence",
+      metric: `${trace.changedFiles.length} changed · ${trace.importNeighbors.length} import neighbors · ${trace.keywordMatches.length} keyword matches`,
+      note: "Before Kiwi expands scope, it starts from changed files, import neighbors, keyword matches, recent files, and repo-context files."
+    }
+  ];
+}
+
+function buildGraphMechanicsItems(
+  state: RepoControlState,
+  graph: InteractiveGraphModel
+): Array<{ title: string; metric: string; note: string }> {
+  const indexing = state.kiwiControl?.indexing ?? EMPTY_KC.indexing;
+
+  return [
+    {
+      title: "Source of truth",
+      metric: "context tree",
+      note: "This graph is drawn from the current selected/candidate/excluded tree. It is not a full semantic code graph or call graph."
+    },
+    {
+      title: "Visible projection",
+      metric: `${graph.nodes.length} nodes · ${graph.edges.length} links`,
+      note: `Depth ${graphDepth} controls how much of the current tree projection is visible from the repo root.`
+    },
+    {
+      title: "Highlight behavior",
+      metric: "dependency chain when available",
+      note: "When Kiwi has a structural dependency chain for a file, it highlights that path. Otherwise it falls back to the ancestor path in the tree."
+    },
+    {
+      title: "Indexed evidence behind the map",
+      metric: `${indexing.changedSignals} changed · ${indexing.importSignals} import · ${indexing.keywordSignals} keyword`,
+      note: "Those index signals decide which files appear in the working set before the graph turns them into a visual map."
+    }
+  ];
+}
+
+function buildTreeMechanicsItems(state: RepoControlState): Array<{ title: string; metric: string; note: string }> {
+  const tree = state.kiwiControl?.contextView.tree ?? EMPTY_KC.contextView.tree;
+
+  return [
+    {
+      title: "Selected",
+      metric: String(tree.selectedCount),
+      note: "Selected files are the current bounded working set. They drive validation expectations and token estimates."
+    },
+    {
+      title: "Candidate",
+      metric: String(tree.candidateCount),
+      note: "Candidate files were considered relevant enough to surface, but are not currently in the selected working set."
+    },
+    {
+      title: "Excluded",
+      metric: String(tree.excludedCount),
+      note: "Excluded files were filtered by the selector. Local Include/Exclude/Ignore UI edits are session-local until a real CLI command rewrites repo state."
+    }
+  ];
+}
+
+function buildTokenMechanicsItems(state: RepoControlState): Array<{ title: string; metric: string; note: string }> {
+  const kc = state.kiwiControl ?? EMPTY_KC;
+  const tokens = kc.tokenAnalytics;
+
+  return [
+    {
+      title: "Estimate basis",
+      metric: tokens.estimationMethod ?? "heuristic only",
+      note: tokens.estimateNote ?? "Kiwi is using the indexed working set to estimate token volume."
+    },
+    {
+      title: "Tree to token path",
+      metric: `${kc.contextView.tree.selectedCount} selected files`,
+      note: "The selected tree is the direct input to the working-set token estimate. Excluding a file from the tree is what reduces the next estimate."
+    },
+    {
+      title: "Measured vs estimated",
+      metric: kc.measuredUsage.available ? `${formatTokensShort(kc.measuredUsage.totalTokens)} measured` : "estimate only",
+      note: kc.measuredUsage.available
+        ? kc.measuredUsage.note
+        : "No local execution runs have recorded measured usage yet, so the token numbers are derived from the current indexed tree."
+    },
+    {
+      title: "Index churn",
+      metric: `${kc.indexing.indexReusedFiles} reused · ${kc.indexing.indexUpdatedFiles} refreshed`,
+      note: "Kiwi does not blindly rescan everything every time. It reuses indexed entries when possible, then recomputes token estimates from the current selected tree."
+    }
+  ];
 }
 
 function renderSpecialistsView(state: RepoControlState): string {
@@ -3977,14 +4190,18 @@ function renderMachineView(state: RepoControlState): string {
       </section>
 
       <section class="kc-panel">
-        ${renderPanelHeader("What AI-setup Added", "Structured provenance of the machine-local AI setup, grouped by phase.")}
+        ${renderPanelHeader("Machine Setup Provenance", "Structured provenance of the machine-local setup, grouped by phase.")}
         ${renderFreshnessRow(machine.sections.setupPhases)}
         ${machine.setupPhases.length > 0
           ? machine.setupPhases.map((phase) => `
               <div class="kc-stack-block">
                 <p class="kc-stack-label">${escapeHtml(phase.phase)}</p>
                 <div class="kc-stack-list">
-                  ${phase.items.map((item) => renderNoteRow(item.name, item.active ? "active" : "inactive", `${item.description} · ${item.location}`)).join("")}
+                  ${phase.items.map((item) => renderNoteRow(
+                    describeMachineUiName(item.name),
+                    item.active ? "active" : "inactive",
+                    `${describeMachineUiDescription(item.name, item.description)} · ${describeMachineUiLocation(item.location)}`
+                  )).join("")}
                 </div>
               </div>
             `).join('<div class="kc-divider"></div>')
@@ -4079,7 +4296,7 @@ function renderMachineView(state: RepoControlState): string {
                   ? renderMachineTable(
                       ["Tool", "Version", "Phase", "Status"],
                       machine.inventory.map((tool) => [
-                        escapeHtml(tool.name),
+                        escapeHtml(describeMachineUiName(tool.name)),
                         escapeHtml(tool.version),
                         escapeHtml(tool.phase),
                         renderMachineStateChip(tool.installed, "installed", "missing")
@@ -4092,16 +4309,16 @@ function renderMachineView(state: RepoControlState): string {
               <summary><strong>MCP servers</strong><span>${escapeHtml(formatSectionSummary(machine.sections.mcpInventory))}</span></summary>
               <div class="kc-fold-body">
                 <div class="kc-info-grid">
-                  ${renderInfoRow("Claude Code", formatInteger(machine.mcpInventory.claudeTotal))}
-                  ${renderInfoRow("Codex", formatInteger(machine.mcpInventory.codexTotal))}
-                  ${renderInfoRow("Copilot CLI", formatInteger(machine.mcpInventory.copilotTotal))}
+                  ${renderInfoRow("Planning runtime", formatInteger(machine.mcpInventory.claudeTotal))}
+                  ${renderInfoRow("Execution runtime", formatInteger(machine.mcpInventory.codexTotal))}
+                  ${renderInfoRow("Assistant runtime", formatInteger(machine.mcpInventory.copilotTotal))}
                 </div>
                 <div class="kc-divider"></div>
                 ${machine.mcpInventory.tokenServers.length > 0
                   ? renderMachineTable(
-                      ["Server", "Claude Code", "Codex", "Copilot"],
+                      ["Server", "Planning", "Execution", "Assistant"],
                       machine.mcpInventory.tokenServers.map((server) => [
-                        escapeHtml(server.name),
+                        escapeHtml(describeMachineUiName(server.name)),
                         renderMachineStateChip(server.claude, "active", "—"),
                         renderMachineStateChip(server.codex, "active", "—"),
                         renderMachineStateChip(server.copilot, "active", "—")
@@ -4115,9 +4332,9 @@ function renderMachineView(state: RepoControlState): string {
               <div class="kc-fold-body">
                 ${machine.optimizationLayers.length > 0
                   ? renderMachineTable(
-                      ["Layer", "Savings", "Claude Code", "Codex", "Copilot"],
+                      ["Layer", "Savings", "Planning", "Execution", "Assistant"],
                       machine.optimizationLayers.map((layer) => [
-                        escapeHtml(layer.name),
+                        escapeHtml(describeMachineUiName(layer.name)),
                         escapeHtml(layer.savings),
                         renderMachineStateChip(layer.claude, "yes", "no"),
                         renderMachineStateChip(layer.codex, "yes", "no"),
@@ -4147,6 +4364,77 @@ function renderMachineView(state: RepoControlState): string {
       </section>
     </div>
   `;
+}
+
+function describeMachineUiName(name: string): string {
+  const normalized = name.trim().toLowerCase();
+  if (normalized === "code-review-graph") {
+    return "Structural repo graph";
+  }
+  if (normalized === "omc") {
+    return "Planning orchestration layer";
+  }
+  if (normalized === "omx") {
+    return "Execution orchestration layer";
+  }
+  if (normalized === "lean-ctx") {
+    return "Shell compression layer";
+  }
+  if (normalized === "context-mode") {
+    return "Sandboxed context layer";
+  }
+  if (normalized === "ccusage") {
+    return "Usage telemetry collector";
+  }
+  if (normalized === "copilot") {
+    return "Assistant CLI";
+  }
+  if (normalized === "ai-setup script") {
+    return "Machine bootstrap helper";
+  }
+  if (normalized.startsWith("copilot plugins")) {
+    return name.replace(/copilot plugins/i, "Assistant plugins");
+  }
+  return name.replace(/[-_]/g, " ");
+}
+
+function describeMachineUiDescription(name: string, description: string): string {
+  const normalized = name.trim().toLowerCase();
+  if (normalized === "code-review-graph") {
+    return "Structural repo search and graph-backed code lookup";
+  }
+  if (normalized === "omc") {
+    return "Multi-agent planning and review orchestration";
+  }
+  if (normalized === "omx") {
+    return "Multi-agent execution orchestration";
+  }
+  if (normalized === "lean-ctx") {
+    return "Shell output compression for lower-noise local runs";
+  }
+  if (normalized === "context-mode") {
+    return "Sandboxed tool output and context shaping";
+  }
+  if (normalized === "ccusage") {
+    return "Machine-local usage telemetry source";
+  }
+  if (normalized === "copilot") {
+    return "Editor assistant command-line surface";
+  }
+  if (normalized === "ai-setup script") {
+    return "Machine bootstrap entrypoint";
+  }
+  return description;
+}
+
+function describeMachineUiLocation(location: string): string {
+  return location
+    .replace(/Claude Code/gi, "planning runtime")
+    .replace(/Codex/gi, "execution runtime")
+    .replace(/Copilot CLI/gi, "assistant runtime")
+    .replace(/~\/\.copilot/gi, "~/.assistant")
+    .replace(/~\/\.claude/gi, "~/.planner")
+    .replace(/~\/\.codex/gi, "~/.execution");
 }
 
 function renderMachineTable(headers: string[], rows: string[][]): string {

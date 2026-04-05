@@ -19,6 +19,20 @@ const NAV_ITEMS = [
     { id: "machine", label: "Machine", icon: iconSvg("system") }
 ];
 const BRIDGE_UNAVAILABLE_NEXT_STEP = "Confirm kiwi-control works in Terminal, then run kc ui again.";
+const AUTO_REFRESH_INTERVAL_MS = 45_000;
+const AUTO_REFRESH_MIN_AGE_MS = 30_000;
+const READY_STATE_PULSE_MS = 4_500;
+const MACHINE_LIGHTWEIGHT_SECTIONS = [
+    "inventory",
+    "configHealth",
+    "mcpInventory",
+];
+const MACHINE_HEAVY_SECTIONS = [
+    "guidance",
+    "optimizationLayers",
+    "setupPhases",
+    "usage"
+];
 const EMPTY_KC = {
     contextView: {
         task: null,
@@ -215,13 +229,22 @@ let logDrawerElement;
 let workspaceSurfaceElement;
 let currentTargetRoot = "";
 let isLoadingRepoState = false;
+let isRefreshingFreshRepoState = false;
 let queuedLaunchRequest = null;
 let lastHandledLaunchRequestId = "";
 let machineHydrationRound = 0;
+let machineHydrationInFlight = false;
+let machineHydrationActiveSections = new Set();
+let hydratedMachineSections = new Set();
 let currentLoadSource = null;
 let lastRepoRefreshAt = 0;
+let lastRepoLoadFailure = null;
 let renderQueued = false;
+let centerRenderQueued = false;
+let deferredMachineHydrationTimer = null;
 let activeInteractiveTargetRoot = "";
+let lastReadyStateSignal = null;
+let readyStateTimer = null;
 let commandState = {
     activeCommand: null,
     loading: false,
@@ -245,6 +268,9 @@ let localPlanEdits = new Map();
 let editingPlanStepId = null;
 let editingPlanDraft = "";
 let approvalMarkers = new Map();
+let contextOverrideVersion = 0;
+let derivedTreeCache = null;
+let graphViewportElement = null;
 try {
     app.innerHTML = buildShellHtml();
     shellElement = requireElement(".kc-shell");
@@ -259,9 +285,6 @@ try {
     renderState(currentState);
     bridgeNoteElement.textContent = buildBridgeNote(currentState, "shell");
     finalizeInitialRender();
-    window.setTimeout(() => {
-        void hydrateMachineAdvisory(false);
-    }, 180);
     app.addEventListener("click", (event) => {
         const target = event.target;
         if (!target) {
@@ -271,35 +294,36 @@ try {
         const viewButton = target.closest("[data-view]");
         if (viewButton?.dataset.view) {
             activeView = viewButton.dataset.view;
-            renderState(currentState);
+            scheduleRenderState();
+            scheduleMachineHydrationForView(activeView, false);
             return;
         }
         if (target.closest("[data-toggle-logs]")) {
             isLogDrawerOpen = !isLogDrawerOpen;
-            renderState(currentState);
+            scheduleRenderState();
             return;
         }
         if (target.closest("[data-toggle-inspector]")) {
             isInspectorOpen = !isInspectorOpen;
-            renderState(currentState);
+            scheduleRenderState();
             return;
         }
         const logTabButton = target.closest("[data-log-tab]");
         if (logTabButton?.dataset.logTab) {
             activeLogTab = logTabButton.dataset.logTab;
-            renderState(currentState);
+            scheduleRenderState();
             return;
         }
         const validationTabButton = target.closest("[data-validation-tab]");
         if (validationTabButton?.dataset.validationTab) {
             activeValidationTab = validationTabButton.dataset.validationTab;
-            renderState(currentState);
+            scheduleRenderState();
             return;
         }
         if (target.closest("[data-theme-toggle]")) {
             activeTheme = activeTheme === "dark" ? "light" : "dark";
             applyChromePreferences();
-            renderState(currentState);
+            scheduleRenderState();
             return;
         }
         const modeButton = target.closest("[data-ui-mode]");
@@ -309,7 +333,7 @@ try {
                 isLogDrawerOpen = false;
                 activeLogTab = "history";
             }
-            renderState(currentState);
+            scheduleRenderState();
             return;
         }
         if (handleInteractiveClick(mouseEvent, target)) {
@@ -351,7 +375,9 @@ try {
         event.preventDefault();
         const delta = event.deltaY > 0 ? -0.12 : 0.12;
         graphZoom = Math.max(0.65, Math.min(2.4, Number((graphZoom + delta).toFixed(2))));
-        renderState(currentState);
+        if (!updateGraphViewportTransform()) {
+            scheduleCenterRender();
+        }
     }, { passive: false });
     app.addEventListener("pointerdown", (event) => {
         const target = event.target;
@@ -389,7 +415,9 @@ try {
             };
             graphInteraction.lastClientX = event.clientX;
             graphInteraction.lastClientY = event.clientY;
-            renderState(currentState);
+            if (!updateGraphViewportTransform()) {
+                scheduleCenterRender();
+            }
             return;
         }
         const existing = graphNodePositions.get(graphInteraction.path) ?? { x: 0, y: 0 };
@@ -399,9 +427,12 @@ try {
         });
         graphInteraction.lastClientX = event.clientX;
         graphInteraction.lastClientY = event.clientY;
-        renderState(currentState);
+        scheduleCenterRender();
     });
     window.addEventListener("pointerup", () => {
+        if (graphInteraction) {
+            scheduleCenterRender();
+        }
         graphInteraction = null;
     });
     window.addEventListener("keydown", (event) => {
@@ -535,7 +566,7 @@ async function boot() {
     }, 250);
     window.setInterval(() => {
         void maybeAutoRefreshState();
-    }, 15_000);
+    }, AUTO_REFRESH_INTERVAL_MS);
     window.addEventListener("focus", () => {
         void maybeAutoRefreshState();
     });
@@ -579,8 +610,8 @@ async function pollPendingLaunchRequest() {
     await logUiEvent("ui-fallback-launch-request-consumed", pendingLaunchRequest.requestId, pendingLaunchRequest.targetRoot);
     await handleLaunchRequest(pendingLaunchRequest);
 }
-async function loadAndRenderTarget(targetRoot, source, requestId) {
-    if (isLoadingRepoState) {
+async function loadAndRenderTarget(targetRoot, source, requestId, options = {}) {
+    if (isLoadingRepoState || isRefreshingFreshRepoState) {
         if (requestId) {
             queuedLaunchRequest = { requestId, targetRoot };
         }
@@ -589,6 +620,8 @@ async function loadAndRenderTarget(targetRoot, source, requestId) {
     isLoadingRepoState = true;
     currentLoadSource = source;
     currentTargetRoot = targetRoot;
+    lastRepoLoadFailure = null;
+    lastReadyStateSignal = null;
     bridgeNoteElement.textContent =
         source === "cli"
             ? `Opening ${targetRoot} from ${requestId ? "kc ui" : "the CLI"}...`
@@ -596,22 +629,111 @@ async function loadAndRenderTarget(targetRoot, source, requestId) {
                 ? `Refreshing repo-local state for ${targetRoot}...`
                 : `Loading repo-local state for ${targetRoot}...`;
     renderState(currentState);
-    const state = await loadRepoControlState(targetRoot);
-    currentTargetRoot = state.targetRoot || targetRoot;
-    currentState = state;
-    lastRepoRefreshAt = Date.now();
-    renderState(state);
-    bridgeNoteElement.textContent = buildBridgeNote(state, source);
-    await logUiEvent("ui-repo-state-rendered", requestId, state.targetRoot || targetRoot, state.repoState.mode);
-    window.setTimeout(() => {
-        void hydrateMachineAdvisory(true);
-    }, 180);
-    if (requestId) {
-        await acknowledgeLaunchRequest(requestId, state);
+    try {
+        const state = await loadRepoControlState(targetRoot, options.preferSnapshot ?? (source !== "auto"));
+        currentTargetRoot = state.targetRoot || targetRoot;
+        currentState = state;
+        lastRepoRefreshAt = Date.now();
+        renderState(state);
+        bridgeNoteElement.textContent = buildBridgeNote(state, source);
+        await logUiEvent("ui-repo-state-rendered", requestId, state.targetRoot || targetRoot, `${state.repoState.mode}:${state.loadState.source}`);
+        if ((state.loadState.source === "warm-snapshot" || state.loadState.source === "stale-snapshot") && source !== "auto") {
+            isLoadingRepoState = false;
+            currentLoadSource = null;
+            isRefreshingFreshRepoState = true;
+            renderState(currentState);
+            if (requestId) {
+                await acknowledgeLaunchRequest(requestId, currentTargetRoot, "hydrating", state.loadState.source === "stale-snapshot"
+                    ? `Loaded an older repo snapshot for ${currentTargetRoot}. Fresh repo-local state is still hydrating.`
+                    : `Loaded a warm repo snapshot for ${currentTargetRoot}. Fresh repo-local state is still hydrating.`);
+            }
+            window.setTimeout(() => {
+                void refreshFreshRepoState(currentTargetRoot, requestId);
+            }, 32);
+            return;
+        }
+        startMachineHydrationCycle(false);
+        noteReadyState(`Fresh repo-local state is ready for ${getRepoLabel(currentTargetRoot)}.`);
+        scheduleRenderState();
+        if (requestId) {
+            await acknowledgeLaunchRequest(requestId, currentTargetRoot, state.repoState.mode === "bridge-unavailable" ? "error" : "ready");
+        }
     }
-    isLoadingRepoState = false;
-    currentLoadSource = null;
-    if (queuedLaunchRequest && queuedLaunchRequest.requestId !== requestId) {
+    catch (error) {
+        lastRepoLoadFailure = error instanceof Error ? error.message : String(error);
+        const canRetainCurrentState = (source === "auto" || source === "manual")
+            && currentState.targetRoot === targetRoot
+            && currentState.repoState.mode !== "bridge-unavailable";
+        if (canRetainCurrentState) {
+            bridgeNoteElement.textContent = `Kiwi kept the last known repo-local state for ${targetRoot}. Refresh failed: ${lastRepoLoadFailure}`;
+            renderState(currentState);
+            await logUiEvent("ui-repo-state-retained-after-refresh-failure", requestId, targetRoot, lastRepoLoadFailure);
+            return;
+        }
+        const fallbackState = buildBridgeUnavailableState(targetRoot);
+        currentState = fallbackState;
+        currentTargetRoot = fallbackState.targetRoot || targetRoot;
+        bridgeNoteElement.textContent = `Kiwi could not load repo-local state for ${targetRoot}. ${lastRepoLoadFailure}`;
+        renderState(fallbackState);
+        await logUiEvent("ui-repo-state-failed", requestId, targetRoot, lastRepoLoadFailure);
+        if (requestId) {
+            await acknowledgeLaunchRequest(requestId, targetRoot, "error", lastRepoLoadFailure);
+        }
+    }
+    finally {
+        isLoadingRepoState = false;
+        currentLoadSource = null;
+        if (!isRefreshingFreshRepoState) {
+            await flushQueuedLaunchRequest(requestId);
+        }
+    }
+}
+async function maybeAutoRefreshState() {
+    const refreshAgeMs = Date.now() - lastRepoRefreshAt;
+    const recentFreshState = currentState.loadState.source === "fresh"
+        && currentState.repoState.mode !== "initialized-invalid"
+        && refreshAgeMs < 5 * 60_000;
+    if (!currentTargetRoot
+        || isLoadingRepoState
+        || isRefreshingFreshRepoState
+        || commandState.loading
+        || document.hidden
+        || refreshAgeMs < AUTO_REFRESH_MIN_AGE_MS
+        || recentFreshState) {
+        return;
+    }
+    await loadAndRenderTarget(currentTargetRoot, "auto", undefined, { preferSnapshot: false });
+}
+async function refreshFreshRepoState(targetRoot, requestId) {
+    try {
+        const freshState = await loadRepoControlState(targetRoot, false);
+        currentTargetRoot = freshState.targetRoot || targetRoot;
+        currentState = freshState;
+        lastRepoRefreshAt = Date.now();
+        lastRepoLoadFailure = null;
+        renderState(freshState);
+        bridgeNoteElement.textContent = buildBridgeNote(freshState, "manual");
+        await logUiEvent("ui-repo-state-refreshed", requestId, currentTargetRoot, freshState.repoState.mode);
+        startMachineHydrationCycle(false);
+        noteReadyState(`Fresh repo-local state is ready for ${getRepoLabel(currentTargetRoot)}.`);
+        scheduleRenderState();
+        if (requestId) {
+            await acknowledgeLaunchRequest(requestId, currentTargetRoot, freshState.repoState.mode === "bridge-unavailable" ? "error" : "ready");
+        }
+    }
+    catch (error) {
+        lastRepoLoadFailure = error instanceof Error ? error.message : String(error);
+        bridgeNoteElement.textContent = `Showing a warm repo snapshot for ${targetRoot}. Fresh refresh failed: ${lastRepoLoadFailure}`;
+        await logUiEvent("ui-repo-state-refresh-failed", requestId, targetRoot, lastRepoLoadFailure);
+        renderState(currentState);
+    }
+    finally {
+        isRefreshingFreshRepoState = false;
+        await flushQueuedLaunchRequest(requestId);
+    }
+}
+async function flushQueuedLaunchRequest(currentRequestId) {
+    if (queuedLaunchRequest && queuedLaunchRequest.requestId !== currentRequestId) {
         const nextRequest = queuedLaunchRequest;
         queuedLaunchRequest = null;
         await handleLaunchRequest(nextRequest);
@@ -619,26 +741,18 @@ async function loadAndRenderTarget(targetRoot, source, requestId) {
     }
     queuedLaunchRequest = null;
 }
-async function maybeAutoRefreshState() {
-    if (!currentTargetRoot
-        || isLoadingRepoState
-        || commandState.loading
-        || document.hidden
-        || Date.now() - lastRepoRefreshAt < 10_000) {
-        return;
-    }
-    await loadAndRenderTarget(currentTargetRoot, "auto");
-}
-async function acknowledgeLaunchRequest(requestId, state) {
-    const targetRoot = state.targetRoot || currentTargetRoot;
-    const status = state.repoState.mode === "bridge-unavailable" ? "error" : "ready";
-    const detail = status === "ready" ? `Loaded repo-local state for ${targetRoot}.` : BRIDGE_UNAVAILABLE_NEXT_STEP;
+async function acknowledgeLaunchRequest(requestId, targetRoot, status, detail) {
+    const resolvedDetail = detail ?? (status === "ready"
+        ? `Loaded repo-local state for ${targetRoot}.`
+        : status === "hydrating"
+            ? `Loaded a warm repo snapshot for ${targetRoot}. Fresh repo-local state is still hydrating.`
+            : BRIDGE_UNAVAILABLE_NEXT_STEP);
     if (!isTauriBridgeAvailable()) {
         return;
     }
     try {
         await logUiEvent("ui-ack-attempt", requestId, targetRoot, status);
-        await invoke("ack_launch_request", { requestId, targetRoot, status, detail });
+        await invoke("ack_launch_request", { requestId, targetRoot, status, detail: resolvedDetail });
         await logUiEvent("ui-ack-succeeded", requestId, targetRoot, status);
     }
     catch (error) {
@@ -657,12 +771,104 @@ async function logUiEvent(event, requestId, targetRoot, detail) {
         // Logging must never interrupt the product flow.
     }
 }
-async function hydrateMachineAdvisory(refresh) {
-    if (!isTauriBridgeAvailable()) {
+function isSnapshotLoadSource(source) {
+    return source === "warm-snapshot" || source === "stale-snapshot";
+}
+function isMachineHeavyView(view) {
+    return view === "machine" || view === "tokens" || view === "mcps" || view === "system";
+}
+function dedupeMachineSections(sections) {
+    return [...new Set(sections)];
+}
+function machinePrioritySectionsForView(view) {
+    switch (view) {
+        case "tokens":
+            return ["usage", "optimizationLayers"];
+        case "mcps":
+            return ["mcpInventory", "optimizationLayers"];
+        case "system":
+            return ["inventory", "configHealth", "setupPhases"];
+        case "machine":
+            return ["guidance", "inventory", "configHealth"];
+        default:
+            return MACHINE_LIGHTWEIGHT_SECTIONS;
+    }
+}
+function machineSecondarySectionsForView(view) {
+    if (!isMachineHeavyView(view)) {
+        return [];
+    }
+    return dedupeMachineSections([
+        ...MACHINE_LIGHTWEIGHT_SECTIONS,
+        ...MACHINE_HEAVY_SECTIONS
+    ]);
+}
+function sectionsNeedingHydration(sections, refresh) {
+    return sections.filter((section) => {
+        if (refresh) {
+            return true;
+        }
+        if (!hydratedMachineSections.has(section)) {
+            return true;
+        }
+        return currentState.machineAdvisory.sections[section]?.status !== "fresh";
+    });
+}
+function scheduleMachineHydrationForView(view, refresh) {
+    if (!currentTargetRoot || !isTauriBridgeAvailable()) {
         return;
     }
+    const prioritySections = sectionsNeedingHydration(machinePrioritySectionsForView(view), refresh);
+    const secondarySections = sectionsNeedingHydration(machineSecondarySectionsForView(view).filter((section) => !prioritySections.includes(section)), refresh);
     const round = ++machineHydrationRound;
-    const sections = [
+    if (deferredMachineHydrationTimer != null) {
+        window.clearTimeout(deferredMachineHydrationTimer);
+        deferredMachineHydrationTimer = null;
+    }
+    if (prioritySections.length > 0) {
+        void hydrateMachineAdvisory(refresh, prioritySections, round);
+    }
+    if (secondarySections.length > 0) {
+        deferredMachineHydrationTimer = window.setTimeout(() => {
+            void hydrateMachineAdvisory(refresh, secondarySections, round);
+            deferredMachineHydrationTimer = null;
+        }, 900);
+    }
+}
+function startMachineHydrationCycle(refresh) {
+    scheduleMachineHydrationForView(activeView, refresh);
+}
+async function hydrateMachineAdvisory(refresh, sections, round) {
+    if (!isTauriBridgeAvailable() || sections.length === 0) {
+        return;
+    }
+    machineHydrationInFlight = true;
+    for (const section of sections) {
+        machineHydrationActiveSections.add(section);
+    }
+    scheduleRenderState();
+    await Promise.all(sections.map((section) => hydrateMachineSection(section, refresh, round)));
+    if (round !== machineHydrationRound) {
+        for (const section of sections) {
+            machineHydrationActiveSections.delete(section);
+        }
+        if (machineHydrationActiveSections.size === 0) {
+            machineHydrationInFlight = false;
+        }
+        scheduleRenderState();
+        return;
+    }
+    for (const section of sections) {
+        machineHydrationActiveSections.delete(section);
+    }
+    if (machineHydrationActiveSections.size === 0) {
+        machineHydrationInFlight = false;
+    }
+    scheduleRenderState();
+}
+async function hydrateAllMachineAdvisory(refresh) {
+    const round = ++machineHydrationRound;
+    await hydrateMachineAdvisory(refresh, [
         "inventory",
         "mcpInventory",
         "optimizationLayers",
@@ -670,10 +876,7 @@ async function hydrateMachineAdvisory(refresh) {
         "configHealth",
         "usage",
         "guidance"
-    ];
-    for (const section of sections) {
-        void hydrateMachineSection(section, refresh, round);
-    }
+    ], round);
 }
 async function hydrateMachineSection(section, refresh, round) {
     try {
@@ -685,6 +888,7 @@ async function hydrateMachineSection(section, refresh, round) {
             return;
         }
         applyMachineSectionPayload(payload);
+        hydratedMachineSections.add(section);
         scheduleRenderState();
     }
     catch (error) {
@@ -783,6 +987,15 @@ function syncInteractiveSessionState(state) {
         editingPlanStepId = null;
         editingPlanDraft = "";
         approvalMarkers = new Map();
+        contextOverrideVersion = 0;
+        derivedTreeCache = null;
+        hydratedMachineSections.clear();
+        machineHydrationActiveSections.clear();
+        machineHydrationInFlight = false;
+        if (deferredMachineHydrationTimer != null) {
+            window.clearTimeout(deferredMachineHydrationTimer);
+            deferredMachineHydrationTimer = null;
+        }
     }
     mergePlanUiState(state);
     ensureFocusedItem(state);
@@ -847,14 +1060,24 @@ function mergePlanUiState(state) {
 }
 function deriveInteractiveTree(state) {
     const baseTree = (state.kiwiControl ?? EMPTY_KC).contextView.tree;
+    if (derivedTreeCache && derivedTreeCache.baseTree === baseTree && derivedTreeCache.overrideVersion === contextOverrideVersion) {
+        return derivedTreeCache.tree;
+    }
     const nodes = baseTree.nodes.map((node) => applyOverridesToTreeNode(node));
     const counts = countTreeStatuses(nodes);
-    return {
+    const tree = {
         nodes,
         selectedCount: counts.selected,
         candidateCount: counts.candidate,
         excludedCount: counts.excluded
     };
+    derivedTreeCache = {
+        baseTree,
+        overrideVersion: contextOverrideVersion,
+        tree,
+        flatNodes: flattenContextNodes(nodes)
+    };
+    return tree;
 }
 function applyOverridesToTreeNode(node) {
     const override = contextOverrides.get(node.path);
@@ -888,15 +1111,23 @@ function countTreeStatuses(nodes) {
     }, { selected: 0, candidate: 0, excluded: 0 });
 }
 function deriveInteractiveSelectedFiles(state) {
-    return flattenContextNodes(deriveInteractiveTree(state).nodes)
+    return deriveFlatInteractiveNodes(state)
         .filter((node) => node.kind === "file" && node.status === "selected")
         .map((node) => node.path);
 }
 function flattenContextNodes(nodes) {
     return nodes.flatMap((node) => [node, ...flattenContextNodes(node.children)]);
 }
+function deriveFlatInteractiveNodes(state) {
+    const baseTree = (state.kiwiControl ?? EMPTY_KC).contextView.tree;
+    if (derivedTreeCache && derivedTreeCache.baseTree === baseTree && derivedTreeCache.overrideVersion === contextOverrideVersion) {
+        return derivedTreeCache.flatNodes;
+    }
+    deriveInteractiveTree(state);
+    return derivedTreeCache?.flatNodes ?? [];
+}
 function findContextNodeByPath(state, path) {
-    return flattenContextNodes(deriveInteractiveTree(state).nodes).find((node) => node.path === path) ?? null;
+    return deriveFlatInteractiveNodes(state).find((node) => node.path === path) ?? null;
 }
 function pushContextOverrideHistory() {
     contextOverrideHistory.push(new Map(contextOverrides));
@@ -907,6 +1138,8 @@ function pushContextOverrideHistory() {
 function applyLocalContextOverride(path, mode) {
     pushContextOverrideHistory();
     contextOverrides.set(path, mode);
+    contextOverrideVersion += 1;
+    derivedTreeCache = null;
     focusedItem = {
         kind: "path",
         id: path,
@@ -914,7 +1147,7 @@ function applyLocalContextOverride(path, mode) {
         path
     };
     graphSelectedPath = path;
-    renderState(currentState);
+    scheduleRenderState();
 }
 function resetLocalContextOverrides() {
     if (contextOverrides.size === 0) {
@@ -922,7 +1155,9 @@ function resetLocalContextOverrides() {
     }
     pushContextOverrideHistory();
     contextOverrides.clear();
-    renderState(currentState);
+    contextOverrideVersion += 1;
+    derivedTreeCache = null;
+    scheduleRenderState();
 }
 function undoLocalContextOverride() {
     const previous = contextOverrideHistory.pop();
@@ -930,7 +1165,9 @@ function undoLocalContextOverride() {
         return;
     }
     contextOverrides = new Map(previous);
-    renderState(currentState);
+    contextOverrideVersion += 1;
+    derivedTreeCache = null;
+    scheduleRenderState();
 }
 function seedComposerDraft(mode) {
     if (mode === "handoff") {
@@ -941,9 +1178,52 @@ function seedComposerDraft(mode) {
             ? getPanelValue(currentState.repoOverview, "Current phase")
             : `${getRepoLabel(currentTargetRoot)} checkpoint`;
     }
-    return currentState.kiwiControl?.contextView.task
-        ?? currentState.kiwiControl?.nextActions.actions[0]?.action
-        ?? currentState.repoState.detail;
+    const task = currentState.kiwiControl?.contextView.task?.trim() ?? "";
+    if (task && task.toLowerCase() !== "task") {
+        return task;
+    }
+    return currentState.kiwiControl?.nextActions.actions[0]?.action
+        ?? "";
+}
+function isPlaceholderTask(value) {
+    const normalized = value?.trim().toLowerCase() ?? "";
+    return normalized.length === 0 || normalized === "task";
+}
+function deriveComposerConstraint(state, mode, draftValue) {
+    const plan = state.kiwiControl?.executionPlan;
+    const validateStep = plan?.steps.find((step) => step.id === "validate");
+    const validateFixCommand = validateStep?.fixCommand
+        ?? validateStep?.retryCommand
+        ?? plan?.lastError?.fixCommand
+        ?? plan?.lastError?.retryCommand
+        ?? plan?.nextCommands[0]
+        ?? "kiwi-control validate \"task\"";
+    if (mode === "run-auto" && isPlaceholderTask(draftValue)) {
+        return {
+            blocked: true,
+            reason: "Enter a real goal instead of the placeholder task.",
+            nextCommand: "kiwi-control prepare \"real goal\""
+        };
+    }
+    if (mode === "checkpoint" && (plan?.state === "blocked" || validateStep?.status === "failed" || state.validation.errors > 0)) {
+        return {
+            blocked: true,
+            reason: "Checkpoint is blocked until validation passes.",
+            nextCommand: validateFixCommand
+        };
+    }
+    if (mode === "handoff" && (plan?.state === "blocked" || validateStep?.status === "failed" || state.validation.errors > 0)) {
+        return {
+            blocked: true,
+            reason: "Handoff is blocked until validation passes.",
+            nextCommand: validateFixCommand
+        };
+    }
+    return {
+        blocked: false,
+        reason: mode === "run-auto" ? "Run a concrete goal in the loaded repo." : "Ready to run.",
+        nextCommand: null
+    };
 }
 function toggleComposer(mode) {
     if (commandState.loading) {
@@ -957,13 +1237,13 @@ function toggleComposer(mode) {
         commandState.composer = mode;
         commandState.draftValue = seedComposerDraft(mode);
     }
-    renderState(currentState);
+    scheduleRenderState();
 }
 async function refreshCurrentRepoState() {
     if (!currentTargetRoot) {
         return;
     }
-    await loadAndRenderTarget(currentTargetRoot, "manual");
+    await loadAndRenderTarget(currentTargetRoot, "manual", undefined, { preferSnapshot: false });
 }
 async function executeKiwiCommand(command, args, options) {
     if (!currentTargetRoot || commandState.loading || !isTauriBridgeAvailable()) {
@@ -982,7 +1262,7 @@ async function executeKiwiCommand(command, args, options) {
             expectJson: options.expectJson
         });
         commandState.lastResult = result;
-        commandState.lastError = result.ok ? null : result.stderr || result.stdout || `${result.commandLabel} failed`;
+        commandState.lastError = result.ok ? null : summarizeCliCommandFailure(result);
         if (result.ok) {
             commandState.composer = null;
             commandState.draftValue = "";
@@ -1018,6 +1298,56 @@ async function openRepoPath(path) {
         commandState.lastError = error instanceof Error ? error.message : String(error);
         renderState(currentState);
     }
+}
+function summarizeCliCommandFailure(result) {
+    const payload = result.jsonPayload;
+    if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+        const record = payload;
+        const failureReason = typeof record.failureReason === "string" ? record.failureReason.trim() : "";
+        const validation = typeof record.validation === "string" ? record.validation.trim() : "";
+        const detail = typeof record.detail === "string" ? record.detail.trim() : "";
+        const nextCommand = typeof record.nextCommand === "string"
+            ? record.nextCommand.trim()
+            : typeof record.nextSuggestedCommand === "string"
+                ? record.nextSuggestedCommand.trim()
+                : "";
+        const summary = failureReason || validation || detail;
+        if (summary) {
+            return nextCommand ? `${summary} Next: ${nextCommand}` : summary;
+        }
+    }
+    return result.stderr || result.stdout || `${result.commandLabel} failed`;
+}
+function noteReadyState(detail) {
+    lastReadyStateSignal = {
+        at: Date.now(),
+        detail
+    };
+    if (readyStateTimer != null) {
+        window.clearTimeout(readyStateTimer);
+    }
+    readyStateTimer = window.setTimeout(() => {
+        readyStateTimer = null;
+        scheduleRenderState();
+    }, READY_STATE_PULSE_MS + 32);
+}
+function resolveGraphViewportElement() {
+    if (graphViewportElement?.isConnected) {
+        return graphViewportElement;
+    }
+    graphViewportElement = centerMainElement.querySelector("[data-graph-viewport]");
+    return graphViewportElement;
+}
+function updateGraphViewportTransform() {
+    if (activeView !== "graph") {
+        return false;
+    }
+    const viewport = resolveGraphViewportElement();
+    if (!viewport) {
+        return false;
+    }
+    viewport.setAttribute("transform", `translate(${graphPan.x} ${graphPan.y}) scale(${graphZoom})`);
+    return true;
 }
 function parseKiwiCommand(commandText) {
     const tokens = tokenizeCommand(commandText);
@@ -1111,7 +1441,7 @@ function movePlanStep(stepId, direction) {
     reordered[index] = nextValue;
     reordered[nextIndex] = currentValue;
     localPlanOrder = reordered;
-    renderState(currentState);
+    scheduleRenderState();
 }
 function toggleSkippedPlanStep(stepId) {
     if (localPlanSkipped.has(stepId)) {
@@ -1120,12 +1450,12 @@ function toggleSkippedPlanStep(stepId) {
     else {
         localPlanSkipped.add(stepId);
     }
-    renderState(currentState);
+    scheduleRenderState();
 }
 function startEditingPlanStep(stepId, currentLabel) {
     editingPlanStepId = stepId;
     editingPlanDraft = currentLabel;
-    renderState(currentState);
+    scheduleRenderState();
 }
 function commitPlanStepEdit(stepId) {
     const existing = localPlanEdits.get(stepId) ?? { label: "", note: "" };
@@ -1135,7 +1465,7 @@ function commitPlanStepEdit(stepId) {
     });
     editingPlanStepId = null;
     editingPlanDraft = "";
-    renderState(currentState);
+    scheduleRenderState();
 }
 function deriveGraphModel(state) {
     const tree = deriveInteractiveTree(state);
@@ -1295,6 +1625,59 @@ function renderCommandBanner() {
       </div>
     `;
     }
+    if (isRefreshingFreshRepoState &&
+        (currentState.loadState.source === "warm-snapshot" || currentState.loadState.source === "stale-snapshot")) {
+        return `
+      <div class="kc-view-shell">
+        <section class="kc-panel kc-command-banner tone-${lastRepoLoadFailure ? "warn" : "neutral"}">
+          <div class="kc-command-banner-head">
+            <div>
+              <p class="kc-section-micro">${lastRepoLoadFailure ? "Degraded" : currentState.loadState.source === "stale-snapshot" ? "Stale Snapshot" : "Warm State"}</p>
+              <strong>${lastRepoLoadFailure ? "Kiwi is showing a recent snapshot" : currentState.loadState.source === "stale-snapshot" ? "Kiwi loaded an older repo snapshot" : "Kiwi loaded a warm repo snapshot"}</strong>
+            </div>
+            <span class="kc-load-badge"><span class="kc-load-dot"></span>${lastRepoLoadFailure ? "degraded" : "refreshing"}</span>
+          </div>
+          <p>${escapeHtml(lastRepoLoadFailure
+            ? `Fresh repo-local state could not be loaded, so Kiwi kept the recent snapshot visible: ${lastRepoLoadFailure}`
+            : currentState.loadState.detail)}</p>
+          <div class="kc-load-progress"><span class="kc-load-progress-fill" style="width:${lastRepoLoadFailure ? 74 : currentState.loadState.source === "stale-snapshot" ? 58 : 64}%"></span></div>
+        </section>
+      </div>
+    `;
+    }
+    if (currentState.loadState.source === "bridge-fallback" && currentTargetRoot) {
+        return `
+      <div class="kc-view-shell">
+        <section class="kc-panel kc-command-banner tone-warn">
+          <div class="kc-command-banner-head">
+            <div>
+              <p class="kc-section-micro">Load Failed</p>
+              <strong>Kiwi could not load current repo-local state</strong>
+            </div>
+            <span class="kc-load-badge"><span class="kc-load-dot"></span>degraded</span>
+          </div>
+          <p>${escapeHtml(lastRepoLoadFailure ?? currentState.loadState.detail)}</p>
+        </section>
+      </div>
+    `;
+    }
+    if (isRefreshingFreshRepoState && isSnapshotLoadSource(currentState.loadState.source)) {
+        return `
+      <div class="kc-view-shell">
+        <section class="kc-panel kc-command-banner tone-neutral">
+          <div class="kc-command-banner-head">
+            <div>
+              <p class="kc-section-micro">Refreshing</p>
+              <strong>Kiwi loaded a ${escapeHtml(currentState.loadState.source === "stale-snapshot" ? "stale" : "warm")} snapshot first</strong>
+            </div>
+            <span class="kc-load-badge"><span class="kc-load-dot"></span>refreshing</span>
+          </div>
+          <p>${escapeHtml(currentState.loadState.detail)}</p>
+          <div class="kc-load-progress"><span class="kc-load-progress-fill" style="width:66%"></span></div>
+        </section>
+      </div>
+    `;
+    }
     if (!commandState.lastResult && !commandState.lastError) {
         return "";
     }
@@ -1349,9 +1732,17 @@ function handleInteractiveClick(event, target) {
     if (submitComposer?.dataset.composerSubmit) {
         const mode = submitComposer.dataset.composerSubmit;
         const value = commandState.draftValue.trim();
+        const constraint = deriveComposerConstraint(currentState, mode, value);
+        if (constraint.blocked) {
+            commandState.lastError = constraint.nextCommand
+                ? `${constraint.reason} Next: ${constraint.nextCommand}`
+                : constraint.reason;
+            scheduleRenderState();
+            return true;
+        }
         if (!value) {
             commandState.lastError = `${mode} requires a value before running.`;
-            renderState(currentState);
+            scheduleRenderState();
             return true;
         }
         const command = mode === "run-auto" ? "run-auto" : mode === "checkpoint" ? "checkpoint" : "handoff";
@@ -1361,7 +1752,7 @@ function handleInteractiveClick(event, target) {
     if (target.closest("[data-composer-cancel]")) {
         commandState.composer = null;
         commandState.draftValue = "";
-        renderState(currentState);
+        scheduleRenderState();
         return true;
     }
     const treeAction = target.closest("[data-tree-action]");
@@ -1376,7 +1767,7 @@ function handleInteractiveClick(event, target) {
         else if (action === "focus") {
             focusedItem = { kind: "path", id: path, label: basenameForPath(path), path };
             graphSelectedPath = path;
-            renderState(currentState);
+            scheduleRenderState();
         }
         else {
             applyLocalContextOverride(path, action);
@@ -1398,7 +1789,9 @@ function handleInteractiveClick(event, target) {
             for (const path of paths) {
                 contextOverrides.set(path, bulkAction.dataset.treeBulk);
             }
-            renderState(currentState);
+            contextOverrideVersion += 1;
+            derivedTreeCache = null;
+            scheduleRenderState();
         }
         return true;
     }
@@ -1410,7 +1803,7 @@ function handleInteractiveClick(event, target) {
         if (event.detail > 1 && graphNode.dataset.kind === "file") {
             void openRepoPath(path);
         }
-        renderState(currentState);
+        scheduleRenderState();
         return true;
     }
     const graphAction = target.closest("[data-graph-action]");
@@ -1435,7 +1828,7 @@ function handleInteractiveClick(event, target) {
             else if (action === "focus") {
                 focusedItem = { kind: "path", id: path, label: basenameForPath(path), path };
                 graphSelectedPath = path;
-                renderState(currentState);
+                scheduleRenderState();
                 return true;
             }
             else {
@@ -1443,7 +1836,7 @@ function handleInteractiveClick(event, target) {
                 return true;
             }
         }
-        renderState(currentState);
+        scheduleRenderState();
         return true;
     }
     const planAction = target.closest("[data-plan-action]");
@@ -1483,7 +1876,7 @@ function handleInteractiveClick(event, target) {
             case "edit-cancel":
                 editingPlanStepId = null;
                 editingPlanDraft = "";
-                renderState(currentState);
+                scheduleRenderState();
                 break;
             case "move-up":
                 movePlanStep(stepId, -1);
@@ -1493,7 +1886,7 @@ function handleInteractiveClick(event, target) {
                 break;
             case "focus":
                 focusedItem = { kind: "step", id: step.id, label: step.displayTitle };
-                renderState(currentState);
+                scheduleRenderState();
                 break;
         }
         return true;
@@ -1506,7 +1899,7 @@ function handleInteractiveClick(event, target) {
             if (markerKey) {
                 approvalMarkers.set(markerKey, action === "approve" ? "approved" : "rejected");
             }
-            renderState(currentState);
+            scheduleRenderState();
             return true;
         }
         if (action === "add-to-context" && focusedItem?.kind === "path") {
@@ -1532,13 +1925,17 @@ function renderState(state) {
     syncInteractiveSessionState(state);
     railNavElement.innerHTML = renderRailNav();
     topbarElement.innerHTML = renderTopBar(state);
-    centerMainElement.innerHTML = `${renderCommandBanner()}${renderCenterView(state)}`;
+    renderCenterSurface(state);
     inspectorElement.innerHTML = renderInspector(state);
     logDrawerElement.innerHTML = renderLogDrawer(state);
     workspaceSurfaceElement.classList.toggle("is-inspector-open", isInspectorOpen);
     workspaceSurfaceElement.classList.toggle("is-log-open", isLogDrawerOpen);
     inspectorElement.classList.toggle("is-hidden", !isInspectorOpen);
     logDrawerElement.classList.toggle("is-hidden", !isLogDrawerOpen);
+}
+function renderCenterSurface(state) {
+    centerMainElement.innerHTML = `${renderCommandBanner()}${renderCenterView(state)}`;
+    graphViewportElement = null;
 }
 function scheduleRenderState() {
     if (renderQueued) {
@@ -1548,6 +1945,16 @@ function scheduleRenderState() {
     window.requestAnimationFrame(() => {
         renderQueued = false;
         renderState(currentState);
+    });
+}
+function scheduleCenterRender() {
+    if (centerRenderQueued || renderQueued) {
+        return;
+    }
+    centerRenderQueued = true;
+    window.requestAnimationFrame(() => {
+        centerRenderQueued = false;
+        renderCenterSurface(currentState);
     });
 }
 function renderRailNav() {
@@ -1566,6 +1973,9 @@ function renderTopBar(state) {
     const themeLabel = activeTheme === "dark" ? "Light mode" : "Dark mode";
     const currentTask = state.kiwiControl?.contextView.task ?? state.kiwiControl?.nextActions.actions[0]?.action ?? "";
     const retryEnabled = Boolean(state.kiwiControl?.executionPlan.lastError?.retryCommand) || Boolean(currentTargetRoot);
+    const composerConstraint = commandState.composer
+        ? deriveComposerConstraint(state, commandState.composer, commandState.draftValue)
+        : null;
     return renderTopBarView({
         state,
         decision,
@@ -1581,9 +1991,31 @@ function renderTopBar(state) {
         commandState,
         currentTask,
         retryEnabled,
+        composerConstraint,
         loadStatus: buildLoadStatus(state),
         helpers: buildUiRenderHelpers()
     });
+}
+function describeMachineHydration() {
+    const sectionCount = machineHydrationActiveSections.size;
+    if (sectionCount === 0) {
+        return "Refreshing machine-local diagnostics in the background.";
+    }
+    const labels = [...machineHydrationActiveSections].map((section) => {
+        switch (section) {
+            case "mcpInventory":
+                return "MCP inventory";
+            case "optimizationLayers":
+                return "optimization layers";
+            case "setupPhases":
+                return "setup phases";
+            case "configHealth":
+                return "config health";
+            default:
+                return section;
+        }
+    });
+    return `Refreshing ${labels.join(", ")}${sectionCount > 1 ? " in the background" : ""}.`;
 }
 function buildLoadStatus(state) {
     if (commandState.loading) {
@@ -1595,10 +2027,10 @@ function buildLoadStatus(state) {
             tone: "running"
         };
     }
-    if (isLoadingRepoState) {
+    if (isLoadingRepoState && state.loadState.source !== "warm-snapshot" && state.loadState.source !== "stale-snapshot") {
         return {
             visible: true,
-            label: currentLoadSource === "auto" ? "Auto refresh" : "Loading repo",
+            label: currentLoadSource === "auto" ? "Refreshing repo" : "Opening repo",
             detail: currentLoadSource === "cli"
                 ? "Desktop launched. Kiwi is loading repo-local state now."
                 : currentLoadSource === "auto"
@@ -1608,14 +2040,72 @@ function buildLoadStatus(state) {
             tone: "loading"
         };
     }
-    const pendingMachineSections = Object.values(state.machineAdvisory.sections).filter((entry) => entry.status !== "fresh").length;
-    if (currentTargetRoot && pendingMachineSections > 0) {
+    if (isRefreshingFreshRepoState &&
+        (state.loadState.source === "warm-snapshot" || state.loadState.source === "stale-snapshot")) {
         return {
             visible: true,
-            label: "Hydrating system",
-            detail: `Repo is usable. ${pendingMachineSections} advisory section${pendingMachineSections === 1 ? "" : "s"} still updating.`,
+            label: state.loadState.source === "stale-snapshot" ? "Older snapshot loaded" : "Warm state loaded",
+            detail: lastRepoLoadFailure
+                ? "Showing a recent snapshot. Fresh refresh failed, so Kiwi is in a degraded state."
+                : state.loadState.detail,
+            progress: lastRepoLoadFailure ? 74 : state.loadState.source === "stale-snapshot" ? 58 : 64,
+            tone: lastRepoLoadFailure ? "degraded" : "warm"
+        };
+    }
+    if (lastRepoLoadFailure && (state.loadState.source === "warm-snapshot" || state.loadState.source === "stale-snapshot")) {
+        return {
+            visible: true,
+            label: "Degraded",
+            detail: `Showing ${state.loadState.source === "stale-snapshot" ? "an older" : "a recent"} snapshot because fresh repo-local state could not be loaded: ${lastRepoLoadFailure}`,
+            progress: 72,
+            tone: "degraded"
+        };
+    }
+    if (state.loadState.source === "bridge-fallback" && currentTargetRoot) {
+        return {
+            visible: true,
+            label: "Load failed",
+            detail: lastRepoLoadFailure ?? state.loadState.detail,
+            progress: 100,
+            tone: "degraded"
+        };
+    }
+    if (state.loadState.source === "bridge-fallback") {
+        return {
+            visible: true,
+            label: "Failed",
+            detail: state.loadState.detail,
+            progress: 18,
+            tone: "degraded"
+        };
+    }
+    if (lastReadyStateSignal && Date.now() - lastReadyStateSignal.at < READY_STATE_PULSE_MS) {
+        return {
+            visible: true,
+            label: "Ready",
+            detail: machineHydrationInFlight
+                ? `${lastReadyStateSignal.detail} ${describeMachineHydration()}`
+                : lastReadyStateSignal.detail,
+            progress: 100,
+            tone: "ready"
+        };
+    }
+    if (currentTargetRoot && machineHydrationInFlight) {
+        return {
+            visible: true,
+            label: isMachineHeavyView(activeView) ? "Hydrating system" : "Refreshing system",
+            detail: describeMachineHydration(),
             progress: 82,
             tone: "ready"
+        };
+    }
+    if (currentTargetRoot && isMachineHeavyView(activeView) && state.machineAdvisory.stale) {
+        return {
+            visible: true,
+            label: "System data deferred",
+            detail: "Kiwi keeps heavy machine diagnostics off the startup path and hydrates them when this view is active.",
+            progress: 66,
+            tone: "warm"
         };
     }
     return {
@@ -1641,11 +2131,13 @@ function buildDecisionSummary(state) {
             : "healthy";
     const executionSafety = isLoadingRepoState
         ? "loading"
-        : systemHealth === "blocked"
-            ? "blocked"
-            : kc.contextView.confidence === "low" || kc.indexing.partialScan
-                ? "guarded"
-                : "ready";
+        : isRefreshingFreshRepoState || state.loadState.source === "warm-snapshot" || state.loadState.source === "stale-snapshot"
+            ? "guarded"
+            : systemHealth === "blocked"
+                ? "blocked"
+                : kc.contextView.confidence === "low" || kc.indexing.partialScan
+                    ? "guarded"
+                    : "ready";
     const timestamps = [
         kc.execution.recentExecutions[0]?.timestamp,
         kc.runtimeLifecycle.recentEvents[0]?.timestamp,
@@ -1877,6 +2369,7 @@ function renderContextView(state) {
     const interactiveTree = deriveInteractiveTree(state);
     const selectedFiles = deriveInteractiveSelectedFiles(state);
     const topLevelMap = interactiveTree.nodes.slice(0, 8);
+    const indexingMechanics = buildIndexingMechanicsItems(state);
     return `
     <div class="kc-view-shell">
       <section class="kc-view-header">
@@ -1944,6 +2437,13 @@ function renderContextView(state) {
           </div>
         </section>
       </div>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("How Kiwi Indexed This Repo", "These are the actual scan and signal mechanics behind the current tree, not generic advice.")}
+        <div class="kc-stack-list">
+          ${indexingMechanics.map((item) => renderNoteRow(item.title, item.metric, item.note)).join("")}
+        </div>
+      </section>
 
       <div class="kc-two-column">
         <section class="kc-panel">
@@ -2031,6 +2531,8 @@ function renderGraphView(state) {
         graphDepth,
         graphPan,
         graphZoom,
+        graphMechanics: buildGraphMechanicsItems(state, graph),
+        treeMechanics: buildTreeMechanicsItems(state),
         helpers: buildUiRenderHelpers()
     });
 }
@@ -2199,6 +2701,13 @@ function renderTokensView(state) {
       </section>
 
       <section class="kc-panel">
+        ${renderPanelHeader("Why These Token Numbers Look This Way", "Token analytics here are driven by the indexed tree, selected working set, and measured local execution data when available.")}
+        <div class="kc-stack-list">
+          ${buildTokenMechanicsItems(state).map((entry) => renderNoteRow(entry.title, entry.metric, entry.note)).join("")}
+        </div>
+      </section>
+
+      <section class="kc-panel">
         ${renderPanelHeader("Heavy Directories", "Directories that dominate repo token volume.")}
         ${kc.heavyDirectories.directories.length > 0
         ? `<div class="kc-stack-list">${kc.heavyDirectories.directories.slice(0, 4).map((directory) => renderNoteRow(directory.directory, `${directory.percentOfRepo}% of repo`, directory.suggestion)).join("")}</div>`
@@ -2291,20 +2800,37 @@ function buildTokenGuidanceItems(state) {
     const kc = state.kiwiControl ?? EMPTY_KC;
     const tokens = kc.tokenAnalytics;
     const items = [];
-    if (!tokens.estimationMethod) {
+    if (isPlaceholderTask(kc.contextView.task)) {
+        items.push({
+            title: "Replace the placeholder task",
+            metric: "task is too broad",
+            note: "The current task label is generic, so Kiwi leans on repo-context and recent-file signals. Preparing with a real goal narrows the selected tree and usually lowers token estimates."
+        });
+    }
+    else if (!tokens.estimationMethod) {
         items.push({
             title: "Generate a bounded estimate",
             metric: "prepare first",
-            note: 'Run kc prepare "your task" so Kiwi can record a selected working set before showing reduction guidance.'
+            note: 'Run kc prepare with the actual task goal so Kiwi can record a selected working set before showing reduction guidance.'
         });
     }
     else {
         items.push({
             title: "Narrow the working set",
             metric: `${tokens.fileCountSelected}/${tokens.fileCountTotal} files`,
-            note: "Use Include, Exclude, and Ignore in Context or Graph to shrink the selected scope before execution."
+            note: "Use Include, Exclude, and Ignore in Context or Graph to shrink the selected tree before execution. Those tree changes are what alter the next token estimate."
         });
     }
+    items.push({
+        title: "Tree drives token estimates",
+        metric: `${kc.contextView.tree.selectedCount} selected · ${kc.contextView.tree.excludedCount} excluded`,
+        note: "The graph is a projection of the tree. If a file stays selected in the tree, it still counts toward the working-set estimate."
+    });
+    items.push({
+        title: "Index reuse reduces rescanning",
+        metric: `${kc.indexing.indexReusedFiles} reused · ${kc.indexing.indexUpdatedFiles} refreshed`,
+        note: "Kiwi reuses index entries when it can and only refreshes changed or newly discovered files. The token estimate is still based on the current selected tree, not random guesses."
+    });
     if (kc.wastedFiles.files.length > 0) {
         items.push({
             title: "Remove wasted files",
@@ -2331,10 +2857,110 @@ function buildTokenGuidanceItems(state) {
         items.push({
             title: "Collect real usage",
             metric: "estimated only",
-            note: "Run guide, validate, or execution flows to collect measured token usage. Until then, the token view is heuristic."
+            note: "Measured token usage appears only after local guide, validate, or execution flows record real runs. Until then, the token view is an indexed working-set estimate."
         });
     }
     return items;
+}
+function buildIndexingMechanicsItems(state) {
+    const kc = state.kiwiControl ?? EMPTY_KC;
+    const indexing = kc.indexing;
+    const trace = kc.contextTrace.initialSignals;
+    return [
+        {
+            title: "Index coverage",
+            metric: `${indexing.indexedFiles} indexed · ${indexing.indexUpdatedFiles} refreshed · ${indexing.indexReusedFiles} reused`,
+            note: indexing.coverageNote
+        },
+        {
+            title: "Selection signals",
+            metric: `${indexing.changedSignals} changed · ${indexing.importSignals} import · ${indexing.keywordSignals} keyword · ${indexing.repoContextSignals} repo`,
+            note: "These are the signal buckets Kiwi used to pull files into the working set."
+        },
+        {
+            title: "Observed tree",
+            metric: `${kc.contextView.tree.selectedCount} selected · ${kc.contextView.tree.candidateCount} candidate · ${kc.contextView.tree.excludedCount} excluded`,
+            note: "The repo tree is built from the current context-selection artifact. Selected files are in-scope, candidate files were considered, and excluded files were filtered out."
+        },
+        {
+            title: "Initial evidence",
+            metric: `${trace.changedFiles.length} changed · ${trace.importNeighbors.length} import neighbors · ${trace.keywordMatches.length} keyword matches`,
+            note: "Before Kiwi expands scope, it starts from changed files, import neighbors, keyword matches, recent files, and repo-context files."
+        }
+    ];
+}
+function buildGraphMechanicsItems(state, graph) {
+    const indexing = state.kiwiControl?.indexing ?? EMPTY_KC.indexing;
+    return [
+        {
+            title: "Source of truth",
+            metric: "context tree",
+            note: "This graph is drawn from the current selected/candidate/excluded tree. It is not a full semantic code graph or call graph."
+        },
+        {
+            title: "Visible projection",
+            metric: `${graph.nodes.length} nodes · ${graph.edges.length} links`,
+            note: `Depth ${graphDepth} controls how much of the current tree projection is visible from the repo root.`
+        },
+        {
+            title: "Highlight behavior",
+            metric: "dependency chain when available",
+            note: "When Kiwi has a structural dependency chain for a file, it highlights that path. Otherwise it falls back to the ancestor path in the tree."
+        },
+        {
+            title: "Indexed evidence behind the map",
+            metric: `${indexing.changedSignals} changed · ${indexing.importSignals} import · ${indexing.keywordSignals} keyword`,
+            note: "Those index signals decide which files appear in the working set before the graph turns them into a visual map."
+        }
+    ];
+}
+function buildTreeMechanicsItems(state) {
+    const tree = state.kiwiControl?.contextView.tree ?? EMPTY_KC.contextView.tree;
+    return [
+        {
+            title: "Selected",
+            metric: String(tree.selectedCount),
+            note: "Selected files are the current bounded working set. They drive validation expectations and token estimates."
+        },
+        {
+            title: "Candidate",
+            metric: String(tree.candidateCount),
+            note: "Candidate files were considered relevant enough to surface, but are not currently in the selected working set."
+        },
+        {
+            title: "Excluded",
+            metric: String(tree.excludedCount),
+            note: "Excluded files were filtered by the selector. Local Include/Exclude/Ignore UI edits are session-local until a real CLI command rewrites repo state."
+        }
+    ];
+}
+function buildTokenMechanicsItems(state) {
+    const kc = state.kiwiControl ?? EMPTY_KC;
+    const tokens = kc.tokenAnalytics;
+    return [
+        {
+            title: "Estimate basis",
+            metric: tokens.estimationMethod ?? "heuristic only",
+            note: tokens.estimateNote ?? "Kiwi is using the indexed working set to estimate token volume."
+        },
+        {
+            title: "Tree to token path",
+            metric: `${kc.contextView.tree.selectedCount} selected files`,
+            note: "The selected tree is the direct input to the working-set token estimate. Excluding a file from the tree is what reduces the next estimate."
+        },
+        {
+            title: "Measured vs estimated",
+            metric: kc.measuredUsage.available ? `${formatTokensShort(kc.measuredUsage.totalTokens)} measured` : "estimate only",
+            note: kc.measuredUsage.available
+                ? kc.measuredUsage.note
+                : "No local execution runs have recorded measured usage yet, so the token numbers are derived from the current indexed tree."
+        },
+        {
+            title: "Index churn",
+            metric: `${kc.indexing.indexReusedFiles} reused · ${kc.indexing.indexUpdatedFiles} refreshed`,
+            note: "Kiwi does not blindly rescan everything every time. It reuses indexed entries when possible, then recomputes token estimates from the current selected tree."
+        }
+    ];
 }
 function renderSpecialistsView(state) {
     const activeProfile = state.specialists.activeProfile;
@@ -2604,14 +3230,14 @@ function renderMachineView(state) {
       </section>
 
       <section class="kc-panel">
-        ${renderPanelHeader("What AI-setup Added", "Structured provenance of the machine-local AI setup, grouped by phase.")}
+        ${renderPanelHeader("Machine Setup Provenance", "Structured provenance of the machine-local setup, grouped by phase.")}
         ${renderFreshnessRow(machine.sections.setupPhases)}
         ${machine.setupPhases.length > 0
         ? machine.setupPhases.map((phase) => `
               <div class="kc-stack-block">
                 <p class="kc-stack-label">${escapeHtml(phase.phase)}</p>
                 <div class="kc-stack-list">
-                  ${phase.items.map((item) => renderNoteRow(item.name, item.active ? "active" : "inactive", `${item.description} · ${item.location}`)).join("")}
+                  ${phase.items.map((item) => renderNoteRow(describeMachineUiName(item.name), item.active ? "active" : "inactive", `${describeMachineUiDescription(item.name, item.description)} · ${describeMachineUiLocation(item.location)}`)).join("")}
                 </div>
               </div>
             `).join('<div class="kc-divider"></div>')
@@ -2695,7 +3321,7 @@ function renderMachineView(state) {
               <div class="kc-fold-body">
                 ${machine.inventory.length > 0
             ? renderMachineTable(["Tool", "Version", "Phase", "Status"], machine.inventory.map((tool) => [
-                escapeHtml(tool.name),
+                escapeHtml(describeMachineUiName(tool.name)),
                 escapeHtml(tool.version),
                 escapeHtml(tool.phase),
                 renderMachineStateChip(tool.installed, "installed", "missing")
@@ -2707,14 +3333,14 @@ function renderMachineView(state) {
               <summary><strong>MCP servers</strong><span>${escapeHtml(formatSectionSummary(machine.sections.mcpInventory))}</span></summary>
               <div class="kc-fold-body">
                 <div class="kc-info-grid">
-                  ${renderInfoRow("Claude Code", formatInteger(machine.mcpInventory.claudeTotal))}
-                  ${renderInfoRow("Codex", formatInteger(machine.mcpInventory.codexTotal))}
-                  ${renderInfoRow("Copilot CLI", formatInteger(machine.mcpInventory.copilotTotal))}
+                  ${renderInfoRow("Planning runtime", formatInteger(machine.mcpInventory.claudeTotal))}
+                  ${renderInfoRow("Execution runtime", formatInteger(machine.mcpInventory.codexTotal))}
+                  ${renderInfoRow("Assistant runtime", formatInteger(machine.mcpInventory.copilotTotal))}
                 </div>
                 <div class="kc-divider"></div>
                 ${machine.mcpInventory.tokenServers.length > 0
-            ? renderMachineTable(["Server", "Claude Code", "Codex", "Copilot"], machine.mcpInventory.tokenServers.map((server) => [
-                escapeHtml(server.name),
+            ? renderMachineTable(["Server", "Planning", "Execution", "Assistant"], machine.mcpInventory.tokenServers.map((server) => [
+                escapeHtml(describeMachineUiName(server.name)),
                 renderMachineStateChip(server.claude, "active", "—"),
                 renderMachineStateChip(server.codex, "active", "—"),
                 renderMachineStateChip(server.copilot, "active", "—")
@@ -2726,8 +3352,8 @@ function renderMachineView(state) {
               <summary><strong>Optimization layers</strong><span>${escapeHtml(formatSectionSummary(machine.sections.optimizationLayers))}</span></summary>
               <div class="kc-fold-body">
                 ${machine.optimizationLayers.length > 0
-            ? renderMachineTable(["Layer", "Savings", "Claude Code", "Codex", "Copilot"], machine.optimizationLayers.map((layer) => [
-                escapeHtml(layer.name),
+            ? renderMachineTable(["Layer", "Savings", "Planning", "Execution", "Assistant"], machine.optimizationLayers.map((layer) => [
+                escapeHtml(describeMachineUiName(layer.name)),
                 escapeHtml(layer.savings),
                 renderMachineStateChip(layer.claude, "yes", "no"),
                 renderMachineStateChip(layer.codex, "yes", "no"),
@@ -2753,6 +3379,74 @@ function renderMachineView(state) {
       </section>
     </div>
   `;
+}
+function describeMachineUiName(name) {
+    const normalized = name.trim().toLowerCase();
+    if (normalized === "code-review-graph") {
+        return "Structural repo graph";
+    }
+    if (normalized === "omc") {
+        return "Planning orchestration layer";
+    }
+    if (normalized === "omx") {
+        return "Execution orchestration layer";
+    }
+    if (normalized === "lean-ctx") {
+        return "Shell compression layer";
+    }
+    if (normalized === "context-mode") {
+        return "Sandboxed context layer";
+    }
+    if (normalized === "ccusage") {
+        return "Usage telemetry collector";
+    }
+    if (normalized === "copilot") {
+        return "Assistant CLI";
+    }
+    if (normalized === "ai-setup script") {
+        return "Machine bootstrap helper";
+    }
+    if (normalized.startsWith("copilot plugins")) {
+        return name.replace(/copilot plugins/i, "Assistant plugins");
+    }
+    return name.replace(/[-_]/g, " ");
+}
+function describeMachineUiDescription(name, description) {
+    const normalized = name.trim().toLowerCase();
+    if (normalized === "code-review-graph") {
+        return "Structural repo search and graph-backed code lookup";
+    }
+    if (normalized === "omc") {
+        return "Multi-agent planning and review orchestration";
+    }
+    if (normalized === "omx") {
+        return "Multi-agent execution orchestration";
+    }
+    if (normalized === "lean-ctx") {
+        return "Shell output compression for lower-noise local runs";
+    }
+    if (normalized === "context-mode") {
+        return "Sandboxed tool output and context shaping";
+    }
+    if (normalized === "ccusage") {
+        return "Machine-local usage telemetry source";
+    }
+    if (normalized === "copilot") {
+        return "Editor assistant command-line surface";
+    }
+    if (normalized === "ai-setup script") {
+        return "Machine bootstrap entrypoint";
+    }
+    return description;
+}
+function describeMachineUiLocation(location) {
+    return location
+        .replace(/Claude Code/gi, "planning runtime")
+        .replace(/Codex/gi, "execution runtime")
+        .replace(/Copilot CLI/gi, "assistant runtime")
+        .replace(/~\/\.copilot/gi, "~/.assistant")
+        .replace(/~\/\.claude/gi, "~/.planner")
+        .replace(/~\/\.codex/gi, "~/.execution");
 }
 function renderMachineTable(headers, rows) {
     return `
@@ -3510,6 +4204,9 @@ function buildActiveTargetHint(state) {
     if (!state.targetRoot) {
         return "Run kc ui inside a repo to load it automatically.";
     }
+    if (state.loadState.source === "warm-snapshot" || state.loadState.source === "stale-snapshot") {
+        return state.loadState.detail;
+    }
     switch (state.repoState.mode) {
         case "healthy":
             return "Repo-local state is loaded and ready.";
@@ -3531,6 +4228,12 @@ function buildBridgeNote(state, source) {
     }
     if (state.repoState.mode === "bridge-unavailable") {
         return BRIDGE_UNAVAILABLE_NEXT_STEP;
+    }
+    if (state.loadState.source === "stale-snapshot") {
+        return `Showing ${getRepoLabel(state.targetRoot)} from an older snapshot while Kiwi refreshes current repo-local state. ${activeHint}`;
+    }
+    if (state.loadState.source === "warm-snapshot") {
+        return `Showing ${getRepoLabel(state.targetRoot)} from a recent warm snapshot while fresh repo-local state refreshes. ${activeHint}`;
     }
     if (source === "cli") {
         return `Loaded ${getRepoLabel(state.targetRoot)} from kc ui. ${activeHint}`;
@@ -3554,22 +4257,27 @@ async function consumeInitialLaunchRequest() {
         return null;
     }
 }
-async function loadRepoControlState(targetRoot) {
+async function loadRepoControlState(targetRoot, preferSnapshot = false) {
     if (!isTauriBridgeAvailable()) {
         return buildBridgeUnavailableState(targetRoot);
     }
-    try {
-        return await invoke("load_repo_control_state", { targetRoot });
-    }
-    catch {
-        return buildBridgeUnavailableState(targetRoot);
-    }
+    return await invoke("load_repo_control_state", { targetRoot, preferSnapshot });
 }
 function buildBridgeUnavailableState(targetRoot) {
     const hasTargetRoot = targetRoot.trim().length > 0;
     const resolvedTargetRoot = hasTargetRoot ? targetRoot : "";
     return {
         targetRoot: resolvedTargetRoot,
+        loadState: {
+            source: "bridge-fallback",
+            freshness: "failed",
+            generatedAt: new Date().toISOString(),
+            snapshotSavedAt: null,
+            snapshotAgeMs: null,
+            detail: hasTargetRoot
+                ? "Repo-local state could not be loaded from the Kiwi bridge."
+                : "No repo is loaded yet."
+        },
         profileName: "default",
         executionMode: "local",
         projectType: "unknown",

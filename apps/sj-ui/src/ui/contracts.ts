@@ -301,6 +301,8 @@ export interface GraphPanelRenderContext {
   graphDepth: number;
   graphPan: { x: number; y: number };
   graphZoom: number;
+  graphMechanics: Array<{ title: string; metric: string; note: string }>;
+  treeMechanics: Array<{ title: string; metric: string; note: string }>;
   helpers: RenderHelperSet;
 }
 

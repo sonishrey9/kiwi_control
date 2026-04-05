@@ -1,7 +1,7 @@
 import type { GraphPanelRenderContext } from "./contracts.js";
 
 export function renderGraphViewPanel(context: GraphPanelRenderContext): string {
-  const { state, graph, focusedNode, graphDepth, graphPan, graphZoom, helpers } = context;
+  const { state, graph, focusedNode, graphDepth, graphPan, graphZoom, graphMechanics, treeMechanics, helpers } = context;
   const { escapeHtml, escapeAttribute, renderHeaderBadge, renderPanelHeader, renderNoteRow, renderEmptyState } = helpers;
 
   return `
@@ -89,6 +89,21 @@ export function renderGraphViewPanel(context: GraphPanelRenderContext): string {
               </div>
             `
             : renderEmptyState("No graph node is currently selected.")}
+        </section>
+      </div>
+
+      <div class="kc-two-column">
+        <section class="kc-panel">
+          ${renderPanelHeader("How This Map Is Built", "This graph is projected from Kiwi’s current context tree and index signals, not from a full semantic dependency graph.")}
+          ${graphMechanics.length > 0
+            ? `<div class="kc-stack-list">${graphMechanics.map((item) => renderNoteRow(item.title, item.metric, item.note)).join("")}</div>`
+            : renderEmptyState("No graph mechanics are available yet.")}
+        </section>
+        <section class="kc-panel">
+          ${renderPanelHeader("How Tree Status Works", "Selected, candidate, and excluded statuses come from the current tree plus any local UI overrides.")}
+          ${treeMechanics.length > 0
+            ? `<div class="kc-stack-list">${treeMechanics.map((item) => renderNoteRow(item.title, item.metric, item.note)).join("")}</div>`
+            : renderEmptyState("No tree mechanics are available yet.")}
         </section>
       </div>
     </div>
