@@ -41,6 +41,8 @@ const EXCLUDED_DIRECTORIES = new Set([
   "tmp",
   "temp",
   ".temp",
+  ".playwright-cli",
+  ".playwright-mcp",
   "__pycache__",
   ".venv",
   "venv",
@@ -384,6 +386,9 @@ function shouldIncludeRepoFile(relativePath: string): boolean {
   const ext = path.extname(relativePath).toLowerCase();
   if (SOURCE_EXTENSIONS.has(ext)) {
     return true;
+  }
+  if (/^\._/.test(base) || /\.log$/i.test(base)) {
+    return false;
   }
   return [
     "package.json",

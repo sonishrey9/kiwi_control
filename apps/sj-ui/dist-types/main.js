@@ -9,7 +9,8 @@ const NAV_ITEMS = [
     { id: "mcps", label: "MCPs", icon: iconSvg("mcps") },
     { id: "specialists", label: "Specialists", icon: iconSvg("specialists") },
     { id: "system", label: "System", icon: iconSvg("system") },
-    { id: "validation", label: "Validation", icon: iconSvg("validation") }
+    { id: "validation", label: "Validation", icon: iconSvg("validation") },
+    { id: "machine", label: "Machine", icon: iconSvg("system") }
 ];
 const BRIDGE_UNAVAILABLE_NEXT_STEP = "Confirm kiwi-control works in Terminal, then run kc ui again.";
 const EMPTY_KC = {
@@ -516,6 +517,8 @@ function renderCenterView(state) {
             return renderSystemView(state);
         case "validation":
             return renderValidationView(state);
+        case "machine":
+            return renderMachineView(state);
         case "overview":
         default:
             return renderOverviewView(state);
@@ -1273,6 +1276,84 @@ function renderSystemView(state) {
           </section>
         </div>
       </section>
+    </div>
+  `;
+}
+function renderMachineView(state) {
+    const machine = state.machineAdvisory;
+    return `
+    <div class="kc-view-shell">
+      <section class="kc-view-header">
+        <div>
+          <p class="kc-view-kicker">Machine Advisory</p>
+          <h1>Machine-local AI toolchain</h1>
+          <p>Read-only machine inventory, optimization layers, config health, and usage. This does not override repo-local Kiwi state.</p>
+        </div>
+        ${renderHeaderBadge(machine.stale ? "stale" : "fresh", machine.stale ? "warn" : "success")}
+      </section>
+
+      <div class="kc-stat-grid">
+        ${renderStatCard("Claude MCPs", String(machine.mcpInventory.claudeTotal), "configured servers", "neutral")}
+        ${renderStatCard("Codex MCPs", String(machine.mcpInventory.codexTotal), "configured servers", "neutral")}
+        ${renderStatCard("Copilot MCPs", String(machine.mcpInventory.copilotTotal), "configured servers", "neutral")}
+        ${renderStatCard("Skills", String(machine.skillsCount), "agent skills in ~/.agents/skills", "neutral")}
+        ${renderStatCard("Copilot Plugins", String(machine.copilotPlugins.length), "installed plugins", "neutral")}
+        ${renderStatCard("Updated", machine.updatedAt ? formatTimestamp(machine.updatedAt) : "unknown", machine.note, machine.stale ? "warn" : "success")}
+      </div>
+
+      <div class="kc-two-column">
+        <section class="kc-panel">
+          ${renderPanelHeader("Toolchain Inventory", "Detected binaries and versions on this machine.")}
+          ${machine.inventory.length > 0
+        ? `<div class="kc-stack-list">${machine.inventory.map((tool) => renderNoteRow(tool.name, tool.version, `${tool.phase} · ${tool.installed ? "installed" : "missing"} · ${tool.description}`)).join("")}</div>`
+        : renderEmptyState("No machine-local tool inventory is available.")}
+        </section>
+        <section class="kc-panel">
+          ${renderPanelHeader("MCP Servers", "Configured MCP counts by harness plus token-focused servers.")}
+          <div class="kc-info-grid">
+            ${renderInfoRow("Claude", String(machine.mcpInventory.claudeTotal))}
+            ${renderInfoRow("Codex", String(machine.mcpInventory.codexTotal))}
+            ${renderInfoRow("Copilot", String(machine.mcpInventory.copilotTotal))}
+          </div>
+          <div class="kc-divider"></div>
+          ${machine.mcpInventory.tokenServers.length > 0
+        ? `<div class="kc-stack-list">${machine.mcpInventory.tokenServers.map((server) => renderNoteRow(server.name, `claude ${server.claude ? "active" : "—"} · codex ${server.codex ? "active" : "—"} · copilot ${server.copilot ? "active" : "—"}`, "Token optimization coverage")).join("")}</div>`
+        : renderEmptyState("No token-focused MCP inventory is available.")}
+        </section>
+      </div>
+
+      <div class="kc-two-column">
+        <section class="kc-panel">
+          ${renderPanelHeader("Optimization Layers", "Machine-local optimization layers and whether they are active per harness.")}
+          ${machine.optimizationLayers.length > 0
+        ? `<div class="kc-stack-list">${machine.optimizationLayers.map((layer) => renderNoteRow(layer.name, `${layer.savings}`, `claude ${layer.claude ? "✓" : "✗"} · codex ${layer.codex ? "✓" : "✗"} · copilot ${layer.copilot ? "✓" : "✗"}`)).join("")}</div>`
+        : renderEmptyState("No optimization layer data is available.")}
+        </section>
+        <section class="kc-panel">
+          ${renderPanelHeader("Config Health", "Machine-level config and hook surfaces.")}
+          ${machine.configHealth.length > 0
+        ? `<div class="kc-stack-list">${machine.configHealth.map((entry) => renderNoteRow(entry.path, entry.healthy ? "healthy" : "unhealthy", entry.description)).join("")}</div>`
+        : renderEmptyState("No config health data is available.")}
+        </section>
+      </div>
+
+      <div class="kc-two-column">
+        <section class="kc-panel">
+          ${renderPanelHeader("Usage", "Measured usage from Claude and Codex local sources.")}
+          <div class="kc-stack-list">
+            ${renderNoteRow("Claude", machine.usage.claude.available ? `${formatTokensShort(machine.usage.claude.totals.totalTokens)} tokens` : "unavailable", machine.usage.claude.totals.totalCost != null ? `cache ${machine.usage.claude.totals.cacheHitRatio ?? "n/a"}% · cost $${machine.usage.claude.totals.totalCost.toFixed(2)}` : machine.usage.claude.note)}
+            ${renderNoteRow("Codex", machine.usage.codex.available ? `${formatTokensShort(machine.usage.codex.totals.totalTokens)} tokens` : "unavailable", machine.usage.codex.available ? `cache ${machine.usage.codex.totals.cacheHitRatio ?? "n/a"}% · sessions ${machine.usage.codex.totals.sessions}` : machine.usage.codex.note)}
+            ${renderNoteRow("Copilot", machine.usage.copilot.available ? "available" : "unavailable", machine.usage.copilot.note)}
+          </div>
+        </section>
+        <section class="kc-panel">
+          ${renderPanelHeader("Plugins & Skills", "Machine-local capability expansion surfaces.")}
+          <div class="kc-stack-list">
+            ${renderNoteRow("Agent skills", String(machine.skillsCount), "~/.agents/skills")}
+            ${renderNoteRow("Copilot plugins", String(machine.copilotPlugins.length), machine.copilotPlugins.join(", ") || "none")}
+          </div>
+        </section>
+      </div>
     </div>
   `;
 }
@@ -2096,6 +2177,59 @@ function buildBridgeUnavailableState(targetRoot) {
             workflows: [],
             capabilities: [],
             notes: ["Ecosystem metadata becomes available once repo-local state loads."]
+        },
+        machineAdvisory: {
+            artifactType: "kiwi-control/machine-advisory",
+            version: 1,
+            updatedAt: "",
+            stale: true,
+            inventory: [],
+            mcpInventory: {
+                claudeTotal: 0,
+                codexTotal: 0,
+                copilotTotal: 0,
+                tokenServers: []
+            },
+            optimizationLayers: [],
+            configHealth: [],
+            skillsCount: 0,
+            copilotPlugins: [],
+            usage: {
+                days: 7,
+                claude: {
+                    available: false,
+                    days: [],
+                    totals: {
+                        inputTokens: 0,
+                        outputTokens: 0,
+                        cacheCreationTokens: 0,
+                        cacheReadTokens: 0,
+                        totalTokens: 0,
+                        totalCost: null,
+                        cacheHitRatio: null
+                    },
+                    note: "Machine-local advisory is unavailable."
+                },
+                codex: {
+                    available: false,
+                    days: [],
+                    totals: {
+                        inputTokens: 0,
+                        outputTokens: 0,
+                        cachedInputTokens: 0,
+                        reasoningOutputTokens: 0,
+                        sessions: 0,
+                        totalTokens: 0,
+                        cacheHitRatio: null
+                    },
+                    note: "Machine-local advisory is unavailable."
+                },
+                copilot: {
+                    available: false,
+                    note: "Machine-local advisory is unavailable."
+                }
+            },
+            note: "Machine-local advisory is unavailable."
         },
         kiwiControl: EMPTY_KC
     };

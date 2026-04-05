@@ -9,12 +9,15 @@ export interface PlanOptions {
   repoRoot: string;
   targetRoot: string;
   task: string;
+  expand?: boolean;
   json?: boolean;
   logger: Logger;
 }
 
 export async function runPlan(options: PlanOptions): Promise<number> {
-  await contextSelector(options.task, options.targetRoot);
+  await contextSelector(options.task, options.targetRoot, {
+    ...(options.expand !== undefined ? { expand: options.expand } : {})
+  });
   const config = await loadCanonicalConfig(options.repoRoot);
   const inspection = await inspectBootstrapTarget(options.targetRoot, config);
   const { state, view } = await buildRepoContextTree(options.targetRoot, inspection.projectType);
@@ -27,7 +30,7 @@ export async function runPlan(options: PlanOptions): Promise<number> {
   if (options.json) {
     options.logger.info(JSON.stringify(plan, null, 2));
   } else {
-    options.logger.info(`plan created: ${options.task}`);
+    options.logger.info(`plan created: ${options.task}${options.expand ? " [expanded]" : ""}`);
     options.logger.info(`state: ${plan.state}`);
     options.logger.info(`current step: ${plan.steps[plan.currentStepIndex]?.id ?? "none"}`);
     options.logger.info(`next command: ${plan.nextCommands[0] ?? "kiwi-control prepare \"describe your task\""}`);

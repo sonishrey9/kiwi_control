@@ -6,6 +6,7 @@ import { deriveModuleGroup } from "./context-index.js";
 import { loadCurrentPhase, loadLatestCheckpoint, loadLatestHandoff, loadActiveRoleHints } from "./state.js";
 import { PRODUCT_METADATA } from "./product.js";
 import { classifyFileArea, deriveTaskCategory } from "./task-intent.js";
+import { summarizeEval, type EvalSummary } from "./eval.js";
 import { pathExists, readJson, writeText } from "../utils/fs.js";
 import type { ValidationIssue } from "./validator.js";
 import type { ContextSelectionState } from "./context-selector.js";
@@ -24,7 +25,7 @@ export type ExecutionEngineState =
   | "blocked"
   | "completed";
 
-export type ExecutionPlanStepId = "prepare" | "execute" | "validate" | "checkpoint" | "handoff";
+export type ExecutionPlanStepId = "prepare" | "expand-context" | "analyze" | "trace" | "locate" | "execute" | "validate" | "checkpoint" | "handoff";
 export type ExecutionPlanStepStatus = "pending" | "running" | "success" | "failed";
 export type ExecutionErrorType = "execution_error" | "validation_error" | "system_error" | "context_error";
 
@@ -60,6 +61,8 @@ export interface ExecutionPlanContextSnapshot {
   confidence: string | null;
   contextTreePath: string | null;
   dependencyChains: Record<string, string[]>;
+  forwardDependencies: string[];
+  reverseDependencies: string[];
 }
 
 export interface ExecutionPlanState {
@@ -76,6 +79,7 @@ export interface ExecutionPlanState {
   nextCommands: string[];
   lastError: ExecutionPlanError | null;
   contextSnapshot: ExecutionPlanContextSnapshot;
+  evalSummary: EvalSummary | null;
   updatedAt: string;
 }
 
@@ -116,6 +120,81 @@ export async function persistExecutionPlan(
   return outputPath;
 }
 
+export async function recordPlanStepResult(
+  targetRoot: string,
+  options: {
+    stepId: ExecutionPlanStepId;
+    status: ExecutionPlanStepStatus;
+    summary: string | null;
+    validation: string | null;
+    failureReason?: string | null;
+    suggestedFix?: string | null;
+  }
+): Promise<ExecutionPlanState | null> {
+  const plan = await loadExecutionPlan(targetRoot);
+  if (!plan) {
+    return null;
+  }
+  const stepIndex = plan.steps.findIndex((step) => step.id === options.stepId);
+  if (stepIndex < 0) {
+    return plan;
+  }
+  const step = plan.steps[stepIndex];
+  if (!step) {
+    return plan;
+  }
+  plan.steps[stepIndex] = {
+    ...step,
+    status: options.status,
+    result: {
+      ok: options.status === "success" ? true : options.status === "failed" ? false : null,
+      summary: options.summary,
+      validation: options.validation,
+      failureReason: options.failureReason ?? null,
+      suggestedFix: options.suggestedFix ?? null
+    },
+    fixCommand: options.status === "failed" ? (options.suggestedFix ? commandFromSuggestedFix(options.suggestedFix, step.command) : step.command) : step.fixCommand,
+    retryCommand: step.retryCommand ?? step.command
+  };
+  const updatedStep = plan.steps[stepIndex];
+  if (!updatedStep) {
+    return plan;
+  }
+
+  if (options.status === "success") {
+    const nextPending = plan.steps.findIndex((candidate) => candidate.status !== "success");
+    plan.currentStepIndex = nextPending >= 0 ? nextPending : Math.max(plan.steps.length - 1, 0);
+  } else if (options.status === "failed") {
+    plan.currentStepIndex = stepIndex;
+    plan.lastError = {
+      errorType: "execution_error",
+      reason: options.failureReason ?? `${options.stepId} failed.`,
+      fixCommand: updatedStep.fixCommand ?? step.command,
+      retryCommand: updatedStep.retryCommand ?? step.command
+    };
+    plan.state = "failed";
+    plan.blocked = true;
+  }
+
+  if (options.status === "success" && plan.steps.every((candidate) => candidate.status === "success")) {
+    plan.state = "completed";
+    plan.blocked = false;
+    plan.lastError = null;
+  } else if (options.status === "success") {
+    const current = plan.steps[plan.currentStepIndex] ?? null;
+    plan.state = current?.id === "validate" ? "validating" : current?.id === "execute" ? "executing" : "ready";
+    plan.blocked = false;
+    if (plan.lastError?.retryCommand === updatedStep.retryCommand) {
+      plan.lastError = null;
+    }
+  }
+
+  plan.updatedAt = new Date().toISOString();
+  plan.summary = buildExecutionPlanSummary(plan.state, plan.steps[plan.currentStepIndex] ?? null, plan.lastError, plan.task);
+  await persistExecutionPlan(targetRoot, plan);
+  return plan;
+}
+
 export async function syncExecutionPlan(
   targetRoot: string,
   options?: {
@@ -145,14 +224,23 @@ export async function syncExecutionPlan(
     currentPhase?.goal ??
     null;
   const risk = assessGoalRisk(task ?? "").level;
+  const prepareStep = workflow.steps.find((step) => step.stepId === "prepare-context") ?? null;
+  const shouldEnforcePreparedScope =
+    Boolean(preparedScope) &&
+    Boolean(task) &&
+    normalizeTaskKey(preparedScope?.task) === normalizeTaskKey(task) &&
+    prepareStep?.status === "success";
   const contextSnapshot: ExecutionPlanContextSnapshot = {
     selectedFiles: selection?.include ?? preparedScope?.allowedFiles ?? [],
     selectedModuleGroups: [...new Set((selection?.include ?? preparedScope?.allowedFiles ?? []).map((file) => deriveModuleGroup(file)))].sort((left, right) => left.localeCompare(right)),
     confidence: selection?.confidence ?? null,
     contextTreePath: contextTree ? ".agent/context/context-tree.json" : null,
-    dependencyChains: selection?.signals.dependencyChains ?? {}
+    dependencyChains: selection?.signals.dependencyChains ?? {},
+    forwardDependencies: selection?.signals.forwardDependencies ?? [],
+    reverseDependencies: selection?.signals.reverseDependencies ?? []
   };
   const nextSpecialist = activeRoleHints?.nextRecommendedSpecialist ?? "qa-specialist";
+  const evalSummary = await summarizeEval(targetRoot).catch(() => null);
 
   const steps = buildExecutionSteps({
     task,
@@ -160,7 +248,9 @@ export async function syncExecutionPlan(
     latestCheckpointExists: Boolean(latestCheckpoint),
     latestHandoffExists: Boolean(latestHandoff),
     contextSnapshot,
-    nextSpecialist
+    nextSpecialist,
+    existingPlan,
+    evalSummary
   });
 
   const validationIssues = options?.validationIssues ?? [];
@@ -174,7 +264,7 @@ export async function syncExecutionPlan(
     selection,
     preparedScope,
     validationIssues,
-    scopeValidation
+    scopeValidation: shouldEnforcePreparedScope ? scopeValidation : null
   });
   const currentStepIndex = deriveCurrentStepIndex(steps);
   const state =
@@ -208,6 +298,7 @@ export async function syncExecutionPlan(
     nextCommands,
     lastError,
     contextSnapshot,
+    evalSummary,
     updatedAt: new Date().toISOString()
   };
   await persistExecutionPlan(targetRoot, plan);
@@ -351,16 +442,55 @@ function buildExecutionSteps(options: {
   latestHandoffExists: boolean;
   contextSnapshot: ExecutionPlanContextSnapshot;
   nextSpecialist: string;
+  existingPlan: ExecutionPlanState | null;
+  evalSummary: EvalSummary | null;
 }): ExecutionPlanStep[] {
   const task = options.task ?? "describe your task";
   const workflowSteps = new Map(options.workflow.steps.map((step) => [step.stepId, step] as const));
-  return [
-    buildPlanStep("prepare", "Prepare bounded context", `${PRIMARY} prepare "${task}"`, "Prepared scope, instructions, token state, and context snapshot are ready.", "Context selection and prepared scope must be recorded before execution.", "prepare-context", workflowSteps.get("prepare-context") ?? null),
-    buildPlanStep("execute", "Execute the bounded task", `${PRIMARY} run "${task}"`, "Run packets or equivalent execution artifacts are ready.", "Execution must produce packet/output artifacts inside the prepared scope.", "generate-run-packets", workflowSteps.get("generate-run-packets") ?? null),
-    buildPlanStep("validate", "Validate the task outcome", `${PRIMARY} validate "${task}"`, "Final validation confirms scope and outcome correctness.", "Validation must confirm expected files changed, scope remained bounded, and the task goal was achieved.", "validate-outcome", workflowSteps.get("validate-outcome") ?? null),
-    buildPlanStep("checkpoint", "Checkpoint the validated work", `${PRIMARY} checkpoint "validated-progress"`, "Checkpoint artifacts record validated progress.", "Checkpointing is allowed only after validation passes.", "checkpoint-progress", workflowSteps.get("checkpoint-progress") ?? null, options.latestCheckpointExists),
-    buildPlanStep("handoff", "Handoff the work", `${PRIMARY} handoff --to ${options.nextSpecialist}`, "Handoff artifacts are written for the next specialist/tool.", "Handoff should happen after checkpoint captures validated progress.", "handoff-work", workflowSteps.get("handoff-work") ?? null, options.latestHandoffExists)
-  ];
+  const template = selectPlanTemplate(task, options.contextSnapshot.confidence);
+  const previousPlanStepMap = new Map((options.existingPlan?.steps ?? []).map((step) => [step.id, step] as const));
+  const steps: ExecutionPlanStep[] = [];
+
+  for (const stepSpec of template) {
+    const previousPlanStep = previousPlanStepMap.get(stepSpec.id) ?? null;
+    if (stepSpec.id === "prepare") {
+      steps.push(buildPlanStep("prepare", stepSpec.description, `${PRIMARY} prepare "${task}"`, stepSpec.expectedOutput, stepSpec.validation, "prepare-context", workflowSteps.get("prepare-context") ?? null, false, previousPlanStep));
+      continue;
+    }
+    if (stepSpec.id === "expand-context") {
+      steps.push(buildPlanStep("expand-context", stepSpec.description, `${PRIMARY} prepare "${task}" --expand`, stepSpec.expectedOutput, stepSpec.validation, null, null, false, previousPlanStep));
+      continue;
+    }
+    if (stepSpec.id === "analyze") {
+      steps.push(buildPlanStep("analyze", stepSpec.description, `${PRIMARY} explain`, stepSpec.expectedOutput, stepSpec.validation, null, null, false, previousPlanStep));
+      continue;
+    }
+    if (stepSpec.id === "trace") {
+      steps.push(buildPlanStep("trace", stepSpec.description, `${PRIMARY} trace`, stepSpec.expectedOutput, stepSpec.validation, null, null, false, previousPlanStep));
+      continue;
+    }
+    if (stepSpec.id === "locate") {
+      steps.push(buildPlanStep("locate", stepSpec.description, `${PRIMARY} explain`, stepSpec.expectedOutput, stepSpec.validation, null, null, false, previousPlanStep));
+      continue;
+    }
+    if (stepSpec.id === "execute") {
+      steps.push(buildPlanStep("execute", stepSpec.description, `${PRIMARY} run "${task}"`, stepSpec.expectedOutput, stepSpec.validation, "generate-run-packets", workflowSteps.get("generate-run-packets") ?? null, false, previousPlanStep));
+      continue;
+    }
+    if (stepSpec.id === "validate") {
+      steps.push(buildPlanStep("validate", stepSpec.description, `${PRIMARY} validate "${task}"`, stepSpec.expectedOutput, stepSpec.validation, "validate-outcome", workflowSteps.get("validate-outcome") ?? null, false, previousPlanStep));
+      continue;
+    }
+    if (stepSpec.id === "checkpoint") {
+      steps.push(buildPlanStep("checkpoint", stepSpec.description, `${PRIMARY} checkpoint "validated-progress"`, stepSpec.expectedOutput, stepSpec.validation, "checkpoint-progress", workflowSteps.get("checkpoint-progress") ?? null, options.latestCheckpointExists, previousPlanStep));
+      continue;
+    }
+    if (stepSpec.id === "handoff") {
+      steps.push(buildPlanStep("handoff", stepSpec.description, `${PRIMARY} handoff --to ${options.nextSpecialist}`, stepSpec.expectedOutput, stepSpec.validation, "handoff-work", workflowSteps.get("handoff-work") ?? null, options.latestHandoffExists, previousPlanStep));
+    }
+  }
+
+  return steps;
 }
 
 function buildPlanStep(
@@ -369,15 +499,15 @@ function buildPlanStep(
   command: string,
   expectedOutput: string,
   validation: string,
-  workflowStepId: WorkflowState["steps"][number]["stepId"],
+  workflowStepId: WorkflowState["steps"][number]["stepId"] | null,
   workflowStep: WorkflowState["steps"][number] | null,
-  artifactExists = false
+  artifactExists = false,
+  previousPlanStep: ExecutionPlanStep | null = null
 ): ExecutionPlanStep {
-  const status = workflowStep
-    ? workflowStep.status
-    : artifactExists
-      ? "success"
-      : "pending";
+  const status =
+    workflowStep
+      ? workflowStep.status
+      : previousPlanStep?.status ?? (artifactExists ? "success" : "pending");
   return {
     id,
     description,
@@ -386,15 +516,17 @@ function buildPlanStep(
     validation,
     status,
     workflowStepId,
-    result: workflowStep?.result ?? {
+    result: workflowStep?.result ?? previousPlanStep?.result ?? {
       ok: artifactExists ? true : null,
       summary: workflowStep?.output ?? null,
       validation: workflowStep?.validation ?? null,
       failureReason: workflowStep?.failureReason ?? null,
       suggestedFix: workflowStep?.result?.suggestedFix ?? null
     },
-    fixCommand: workflowStep?.result?.suggestedFix ? commandFromSuggestedFix(workflowStep.result.suggestedFix, command) : (status === "failed" ? command : null),
-    retryCommand: workflowStep?.result?.retryCommand ?? command
+    fixCommand: workflowStep?.result?.suggestedFix
+      ? commandFromSuggestedFix(workflowStep.result.suggestedFix, command)
+      : previousPlanStep?.fixCommand ?? (status === "failed" ? command : null),
+    retryCommand: workflowStep?.result?.retryCommand ?? previousPlanStep?.retryCommand ?? command
   };
 }
 
@@ -443,6 +575,12 @@ function deriveExecutionState(options: {
   }
   if (currentStep.id === "prepare") {
     return options.preparedScope ? "ready" : "planning";
+  }
+  if (currentStep.id === "expand-context") {
+    return "planning";
+  }
+  if (currentStep.id === "analyze" || currentStep.id === "trace" || currentStep.id === "locate") {
+    return "planning";
   }
   if (currentStep.id === "execute") {
     return "ready";
@@ -576,8 +714,98 @@ function migrateExecutionPlan(plan: ExecutionPlanState): ExecutionPlanState {
       selectedModuleGroups: [],
       confidence: null,
       contextTreePath: null,
-      dependencyChains: {}
+      dependencyChains: {},
+      forwardDependencies: [],
+      reverseDependencies: []
     },
+    evalSummary: plan.evalSummary ?? null,
     updatedAt: plan.updatedAt ?? new Date().toISOString()
   };
+}
+
+function normalizeTaskKey(task: string | null | undefined): string {
+  return (task ?? "").trim().toLowerCase();
+}
+
+function selectPlanTemplate(
+  task: string,
+  confidence: string | null
+): Array<{
+  id: ExecutionPlanStepId;
+  description: string;
+  expectedOutput: string;
+  validation: string;
+}> {
+  const normalized = task.toLowerCase();
+  const category = deriveTaskCategory(task);
+  const steps: Array<{
+    id: ExecutionPlanStepId;
+    description: string;
+    expectedOutput: string;
+    validation: string;
+  }> = [];
+
+  steps.push({
+    id: "prepare",
+    description: "Prepare bounded context",
+    expectedOutput: "Prepared scope, instructions, token state, and context snapshot are ready.",
+    validation: "Context selection and prepared scope must be recorded before execution."
+  });
+
+  if (confidence === "low") {
+    steps.push({
+      id: "expand-context",
+      description: "Expand weak context coverage",
+      expectedOutput: "Prepared context is widened because the initial confidence was weak.",
+      validation: "Expanded context should increase confidence or widen graph-connected file coverage."
+    });
+  }
+
+  if (/\bdebug|bug|trace|error|failure|issue|broken|stack\b/.test(normalized)) {
+    steps.push({
+      id: "trace",
+      description: "Trace execution signals",
+      expectedOutput: "Execution traces and prior failures are visible.",
+      validation: "Trace output should reveal relevant failing steps or affected files."
+    });
+    steps.push({
+      id: "locate",
+      description: "Locate the likely issue surface",
+      expectedOutput: "Selected files and dependency chains narrow the likely bug area.",
+      validation: "Explain output should surface the likely issue files before modification."
+    });
+  } else if (/\brefactor|rename|cleanup|restructure|simplify|extract\b/.test(normalized) || category === "implementation" && /\bdependency|dependencies\b/.test(normalized)) {
+    steps.push({
+      id: "analyze",
+      description: "Analyze dependencies before modification",
+      expectedOutput: "Dependency chains and related files are reviewed before changes.",
+      validation: "Explain output should show structural neighbors or dependency chains."
+    });
+  }
+
+  steps.push({
+    id: "execute",
+    description: /\bdebug|bug|trace|error|failure|issue|broken\b/.test(normalized) ? "Apply the fix" : "Modify the selected files",
+    expectedOutput: "Run packets or equivalent execution artifacts are ready.",
+    validation: "Execution must produce packet/output artifacts inside the prepared scope."
+  });
+  steps.push({
+    id: "validate",
+    description: "Validate the task outcome",
+    expectedOutput: "Final validation confirms scope and outcome correctness.",
+    validation: "Validation must confirm expected files changed, scope remained bounded, and the task goal was achieved."
+  });
+  steps.push({
+    id: "checkpoint",
+    description: "Checkpoint the validated work",
+    expectedOutput: "Checkpoint artifacts record validated progress.",
+    validation: "Checkpointing is allowed only after validation passes."
+  });
+  steps.push({
+    id: "handoff",
+    description: "Handoff the work",
+    expectedOutput: "Handoff artifacts are written for the next specialist/tool.",
+    validation: "Handoff should happen after checkpoint captures validated progress."
+  });
+  return steps;
 }

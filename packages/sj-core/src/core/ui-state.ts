@@ -25,6 +25,8 @@ import type { ContextTraceState, FileAnalysisEntry, IndexingState, SkippedPathEn
 import type { RuntimeLifecycleState } from "./runtime-lifecycle.js";
 import { buildEcosystemCatalog } from "../integrations/ecosystem-catalog.js";
 import type { EcosystemCatalog } from "../integrations/ecosystem-catalog.js";
+import { loadMachineAdvisory } from "../integrations/machine-advisory.js";
+import type { MachineAdvisoryState } from "../integrations/machine-advisory.js";
 import type { SkillMatch, SkillRegistryState } from "./skills-registry.js";
 import type { TokenBreakdownState, TokenUsageState } from "./token-estimator.js";
 import type { MeasuredUsageState } from "./token-intelligence.js";
@@ -367,6 +369,7 @@ export interface RepoControlState {
   };
   validation: RepoValidationSummary;
   ecosystem: EcosystemCatalog;
+  machineAdvisory: MachineAdvisoryState;
   kiwiControl: KiwiControlState;
 }
 
@@ -514,6 +517,59 @@ export async function buildRepoControlStateFromConfig(options: {
   });
   const repoOverview = summarizeRepoOverview();
   const ecosystem = buildEcosystemCatalog();
+  const machineAdvisory = await loadMachineAdvisory().catch(() => ({
+    artifactType: "kiwi-control/machine-advisory" as const,
+    version: 1 as const,
+    updatedAt: new Date().toISOString(),
+    stale: true,
+    inventory: [],
+    mcpInventory: {
+      claudeTotal: 0,
+      codexTotal: 0,
+      copilotTotal: 0,
+      tokenServers: []
+    },
+    optimizationLayers: [],
+    configHealth: [],
+    skillsCount: 0,
+    copilotPlugins: [],
+    usage: {
+      days: 7,
+      claude: {
+        available: false,
+        days: [],
+        totals: {
+          inputTokens: 0,
+          outputTokens: 0,
+          cacheCreationTokens: 0,
+          cacheReadTokens: 0,
+          totalTokens: 0,
+          totalCost: null,
+          cacheHitRatio: null
+        },
+        note: "Machine advisory unavailable."
+      },
+      codex: {
+        available: false,
+        days: [],
+        totals: {
+          inputTokens: 0,
+          outputTokens: 0,
+          cachedInputTokens: 0,
+          reasoningOutputTokens: 0,
+          sessions: 0,
+          totalTokens: 0,
+          cacheHitRatio: null
+        },
+        note: "Machine advisory unavailable."
+      },
+      copilot: {
+        available: false,
+        note: "Machine advisory unavailable."
+      }
+    },
+    note: "Machine-local advisory is unavailable."
+  }));
 
   const kiwiControl = await loadKiwiControlState(options.targetRoot, validationIssues);
 
@@ -547,6 +603,7 @@ export async function buildRepoControlStateFromConfig(options: {
     },
     validation,
     ecosystem,
+    machineAdvisory,
     kiwiControl
   };
 

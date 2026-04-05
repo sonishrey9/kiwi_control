@@ -20,6 +20,8 @@ export async function runExplain(options: ExplainOptions): Promise<number> {
     selectedFiles: trace?.fileAnalysis.selected ?? [],
     excludedFiles: trace?.fileAnalysis.excluded ?? [],
     dependencyChains: plan.contextSnapshot.dependencyChains,
+    forwardDependencies: plan.contextSnapshot.forwardDependencies,
+    reverseDependencies: plan.contextSnapshot.reverseDependencies,
     reasoning: trace?.expansionSteps ?? [],
     nextCommand: plan.nextCommands[0] ?? null
   };
@@ -34,6 +36,12 @@ export async function runExplain(options: ExplainOptions): Promise<number> {
       if (entry.dependencyChain?.length) {
         options.logger.info(`dependency chain: ${entry.dependencyChain.join(" -> ")}`);
       }
+    }
+    if (payload.reverseDependencies.length > 0) {
+      options.logger.info(`reverse dependencies: ${payload.reverseDependencies.slice(0, 10).join(", ")}`);
+    }
+    if (payload.forwardDependencies.length > 0) {
+      options.logger.info(`forward dependencies: ${payload.forwardDependencies.slice(0, 10).join(", ")}`);
     }
     options.logger.info(`next command: ${payload.nextCommand ?? "kiwi-control next"}`);
   }

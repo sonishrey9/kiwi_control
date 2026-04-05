@@ -2,6 +2,7 @@ export {
   loadExecutionPlan,
   persistExecutionPlan,
   syncExecutionPlan,
+  recordPlanStepResult,
   deriveCompatibilityNextActions,
   getCurrentExecutionStep,
   getFailedExecutionStep,

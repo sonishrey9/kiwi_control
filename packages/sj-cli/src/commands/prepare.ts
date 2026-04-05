@@ -19,6 +19,7 @@ export interface PrepareOptions {
   repoRoot: string;
   targetRoot: string;
   task: string;
+  expand?: boolean;
   json?: boolean;
   logger: Logger;
 }
@@ -68,7 +69,9 @@ export async function runPrepare(options: PrepareOptions): Promise<number> {
     input: task,
     expectedOutput: "Prepared scope and generated instructions are ready.",
     run: async () => {
-      selection = await contextSelector(task, targetRoot);
+      selection = await contextSelector(task, targetRoot, {
+        ...(options.expand !== undefined ? { expand: options.expand } : {})
+      });
       skillRegistry = await matchSkillsForTask(targetRoot, task).catch(() => ({
         activeSkills: [],
         suggestedSkills: []
@@ -109,7 +112,7 @@ export async function runPrepare(options: PrepareOptions): Promise<number> {
       };
     },
     summarize: (result) => ({
-      summary: `Prepared ${result.selection.include.length} selected files for "${task}".`,
+      summary: `Prepared ${result.selection.include.length} selected files for "${task}".${options.expand ? " Expanded scope mode was active." : ""}`,
       files: result.selection.include,
       skillsApplied: result.skillRegistry.activeSkills.map((skill) => skill.skillId),
       estimatedTokens: result.tokenEstimate.selectedTokens
@@ -142,7 +145,7 @@ export async function runPrepare(options: PrepareOptions): Promise<number> {
   const finalInstructionPath: string = instructionPath;
   const finalTokenEstimate: TokenEstimate = tokenEstimate;
 
-  logger.info(`Context selected: ${finalSelection.include.length} files [confidence=${finalSelection.confidence}]`);
+  logger.info(`Context selected: ${finalSelection.include.length} files [confidence=${finalSelection.confidence}]${options.expand ? " [expanded]" : ""}`);
   logger.info(`Instructions written to: ${finalInstructionPath}`);
 
   await recordRuntimeProgress(targetRoot, {

@@ -25,6 +25,10 @@
       "types": "./dist/adapters/*.d.ts",
       "default": "./dist/adapters/*.js"
     },
+    "./integrations/*.js": {
+      "types": "./dist/integrations/*.d.ts",
+      "default": "./dist/integrations/*.js"
+    },
     "./runtime/*": "./dist/runtime/*"
   },
   "scripts": {

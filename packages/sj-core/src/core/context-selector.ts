@@ -173,6 +173,7 @@ const EXCLUDED_DIRECTORIES = new Set([
   "coverage", ".nyc_output", "htmlcov", "lcov-report",
   // Caches & temp
   ".cache", ".tmp", "tmp", "temp", ".temp",
+  ".playwright-cli", ".playwright-mcp",
   // IDE & OS
   ".vscode", ".idea", ".vs",
   // Environment / secrets
@@ -232,7 +233,9 @@ const EXCLUDED_FILE_PATTERNS: ReadonlyArray<RegExp> = [
   /^LICENSE(\.md|\.txt)?$/i,
   // OS junk
   /^\.DS_Store$/,
-  /^Thumbs\.db$/
+  /^Thumbs\.db$/,
+  /^\._/,
+  /\.log$/i
 ];
 
 // ---------------------------------------------------------------------------
@@ -299,7 +302,10 @@ const DISCOVERY_PRIORITY_DIRECTORIES = [
 
 export async function contextSelector(
   task: string,
-  targetRoot: string
+  targetRoot: string,
+  options: {
+    expand?: boolean;
+  } = {}
 ): Promise<ContextSelection> {
   const gitState = await inspectGitState(targetRoot);
   const worktree = await buildWorktreeState(targetRoot, gitState);
@@ -311,7 +317,7 @@ export async function contextSelector(
   };
   const signals = await collectSignals(task, targetRoot, gitState, skillSignals);
   const adaptive = await computeAdaptiveWeights(targetRoot, task);
-  const selection = await rankAndSelect(task, targetRoot, signals, adaptive, skillSignals);
+  const selection = await rankAndSelect(task, targetRoot, signals, adaptive, skillSignals, options);
 
   await persistWorktreeState(targetRoot, worktree);
   await persistContextSelection(targetRoot, task, selection, signals);
@@ -727,7 +733,10 @@ async function rankAndSelect(
   targetRoot: string,
   signals: ContextSignals,
   adaptive: AdaptiveWeights,
-  skillSignals: SkillSignalState
+  skillSignals: SkillSignalState,
+  options: {
+    expand?: boolean;
+  } = {}
 ): Promise<RankedContextSelection> {
   const scored = new Map<string, number>();
   const explainabilityLedger = new Map<string, ExplainabilityLedgerEntry>();
@@ -830,16 +839,18 @@ async function rankAndSelect(
     }
   }
 
+  const minimumSelectionScore = options.expand ? Math.max(4, Math.floor(MIN_SELECTION_SCORE * 0.6)) : MIN_SELECTION_SCORE;
+  const tokenBudget = options.expand ? Math.round(CONTEXT_TOKEN_BUDGET * 1.5) : CONTEXT_TOKEN_BUDGET;
   const sorted = [...scored.entries()]
-    .filter(([file, score]) => hardIncluded.has(file) || score >= MIN_SELECTION_SCORE)
+    .filter(([file, score]) => hardIncluded.has(file) || score >= minimumSelectionScore)
     .sort((a, b) => b[1] - a[1]);
 
   const includeBeforeTrim = await selectFilesWithinBudget(
     targetRoot,
     sorted,
     new Set([...signals.changedFiles, ...signals.repoContextFiles]),
-    CONTEXT_TOKEN_BUDGET,
-    maxSelectionCountForTask(task)
+    tokenBudget,
+    maxSelectionCountForTask(task, options.expand)
   );
   const precisionRefinement = refineSelectionForTask(task, includeBeforeTrim, signals);
   const directSignals = new Set([
@@ -873,6 +884,7 @@ async function rankAndSelect(
       `${skillSignals.activeSkillIds.length} active skills. ` +
       `${adaptive.basedOnPastRuns ? `Based on past runs from "${adaptive.reusedPattern ?? "similar work"}". ` : ""}` +
       `${precisionRefinement.reason ? `${precisionRefinement.reason} ` : ""}` +
+      `${options.expand ? "Expanded scope mode is active. " : ""}` +
       `${redundancyTrim.note ? `${redundancyTrim.note} ` : ""}` +
       `Coverage: ${Math.round(confidenceAssessment.signalCoverage * 100)}% of candidate signal files. ` +
       `Diversity: ${confidenceAssessment.signalDiversity} signal types. ` +
@@ -974,16 +986,16 @@ async function selectFilesWithinBudget(
   return include;
 }
 
-function maxSelectionCountForTask(task: string): number {
+function maxSelectionCountForTask(task: string, expand = false): number {
   const normalized = task.toLowerCase();
   const category = deriveTaskCategory(task);
   if (category === "docs") {
-    return 8;
+    return expand ? 12 : 8;
   }
   if (/\brefactor|migration|broad|cross-cutting|rewrite\b/i.test(normalized)) {
-    return 30;
+    return expand ? 45 : 30;
   }
-  return 20;
+  return expand ? 30 : 20;
 }
 
 async function estimateSelectionTokens(targetRoot: string, files: string[]): Promise<number> {

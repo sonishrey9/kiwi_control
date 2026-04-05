@@ -1,8 +1,12 @@
 import { inspectGitState } from "@shrey-junior/sj-core/core/git.js";
 import { evaluateFinalValidation, syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
+import { recordEvalEntry } from "@shrey-junior/sj-core/core/eval.js";
 import { executeWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { loadPreparedScope } from "@shrey-junior/sj-core/core/prepared-scope.js";
+import { pathExists, readJson } from "@shrey-junior/sj-core/utils/fs.js";
+import type { ContextSelectionState } from "@shrey-junior/sj-core/core/context-selector.js";
 
 export interface ValidateOptions {
   repoRoot: string;
@@ -17,7 +21,11 @@ export async function runValidate(options: ValidateOptions): Promise<number> {
     ...(options.task ? { task: options.task } : {})
   });
   const task = options.task ?? plan.task ?? "describe your task";
-  const gitState = await inspectGitState(options.targetRoot);
+  const [gitState, preparedScope, selection] = await Promise.all([
+    inspectGitState(options.targetRoot),
+    loadPreparedScope(options.targetRoot),
+    loadContextSelection(options.targetRoot)
+  ]);
 
   const execution = await executeWorkflowStep(options.targetRoot, {
     task,
@@ -59,6 +67,22 @@ export async function runValidate(options: ValidateOptions): Promise<number> {
       : (execution.suggestedFix ?? execution.validation)
   }).catch(() => null);
 
+  if (preparedScope && selection) {
+    const tokenCount = selection.include.length;
+    await recordEvalEntry(options.targetRoot, {
+      task,
+      selectedFiles: selection.include,
+      modifiedFiles: gitState.changedFiles,
+      success: execution.ok,
+      tokenSource: "estimated",
+      tokenCount,
+      notes: [
+        execution.validation,
+        ...(execution.failureReason ? [execution.failureReason] : [])
+      ]
+    }).catch(() => null);
+  }
+
   const payload = {
     ok: execution.ok,
     task,
@@ -80,4 +104,16 @@ export async function runValidate(options: ValidateOptions): Promise<number> {
   }
 
   return execution.ok ? 0 : 1;
+}
+
+async function loadContextSelection(targetRoot: string): Promise<ContextSelectionState | null> {
+  const selectionPath = `${targetRoot}/.agent/state/context-selection.json`;
+  if (!(await pathExists(selectionPath))) {
+    return null;
+  }
+  try {
+    return await readJson<ContextSelectionState>(selectionPath);
+  } catch {
+    return null;
+  }
 }

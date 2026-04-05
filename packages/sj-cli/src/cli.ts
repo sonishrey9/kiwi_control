@@ -29,6 +29,10 @@ import { runValidate } from "./commands/validate.js";
 import { runExplain } from "./commands/explain.js";
 import { runTrace } from "./commands/trace.js";
 import { runDoctor } from "./commands/doctor.js";
+import { runToolchain } from "./commands/toolchain.js";
+import { runUsage } from "./commands/usage.js";
+import { runEval } from "./commands/eval.js";
+import { runAuto } from "./commands/run-auto.js";
 
 interface ParsedArgs {
   command: string | undefined;
@@ -114,6 +118,15 @@ async function main(): Promise<void> {
       return;
     case "run": {
       const goal = parsed.positionals.join(" ").trim();
+      if (parsed.flags.auto === true) {
+        process.exitCode = await runAuto({
+          repoRoot,
+          targetRoot,
+          ...(goal ? { task: goal } : {}),
+          logger
+        });
+        return;
+      }
       if (!goal) {
         throw new CliUsageError('run requires a goal string. Example: kiwi-control run "stabilize repo-local docs"');
       }
@@ -256,6 +269,7 @@ async function main(): Promise<void> {
         repoRoot,
         targetRoot,
         task: goal,
+        expand: parsed.flags.expand === true,
         json: parsed.flags.json === true,
         logger
       });
@@ -270,6 +284,7 @@ async function main(): Promise<void> {
         repoRoot,
         targetRoot,
         task,
+        expand: parsed.flags.expand === true,
         json: parsed.flags.json === true,
         logger
       });
@@ -326,6 +341,33 @@ async function main(): Promise<void> {
       return;
     case "doctor":
       process.exitCode = await runDoctor({
+        repoRoot,
+        targetRoot,
+        machine: parsed.flags.machine === true,
+        json: parsed.flags.json === true,
+        logger
+      });
+      return;
+    case "toolchain":
+      process.exitCode = await runToolchain({
+        repoRoot,
+        targetRoot,
+        json: parsed.flags.json === true,
+        refresh: parsed.flags.refresh === true,
+        logger
+      });
+      return;
+    case "usage":
+      process.exitCode = await runUsage({
+        repoRoot,
+        targetRoot,
+        json: parsed.flags.json === true,
+        refresh: parsed.flags.refresh === true,
+        logger
+      });
+      return;
+    case "eval":
+      process.exitCode = await runEval({
         repoRoot,
         targetRoot,
         json: parsed.flags.json === true,
@@ -386,15 +428,18 @@ Primary commands:
 Commands default to the current working directory. Use --target only when you need to operate on a different repo or folder.
 
 Core commands:
-  ${primaryCommand} plan "task" [--json] [--target /path/to/repo]
+  ${primaryCommand} plan "task" [--expand] [--json] [--target /path/to/repo]
   ${primaryCommand} next [--json] [--target /path/to/repo]
   ${primaryCommand} retry [--target /path/to/repo]
   ${primaryCommand} resume [--target /path/to/repo]
-  ${primaryCommand} prepare "task" [--json] [--target /path/to/repo]
+  ${primaryCommand} prepare "task" [--expand] [--json] [--target /path/to/repo]
   ${primaryCommand} validate ["task"] [--json] [--target /path/to/repo]
   ${primaryCommand} explain [--json] [--target /path/to/repo]
   ${primaryCommand} trace [--json] [--target /path/to/repo]
-  ${primaryCommand} doctor [--json] [--target /path/to/repo]
+  ${primaryCommand} doctor [--machine] [--json] [--target /path/to/repo]
+  ${primaryCommand} toolchain [--refresh] [--json]
+  ${primaryCommand} usage [--refresh] [--json]
+  ${primaryCommand} eval [--json] [--target /path/to/repo]
   ${primaryCommand} init [--profile profile-name] [--target /path/to/repo]
   ${primaryCommand} status [--profile profile-name] [--json] [--target /path/to/repo]
   ${primaryCommand} check [--profile profile-name] [--json] [--target /path/to/repo]
@@ -409,6 +454,7 @@ Advanced commands:
   ${primaryCommand} audit --target /path/to/repo [--report /path/to/report.md]
   ${primaryCommand} sync --target /path/to/repo [--dry-run] [--diff-summary] [--backup]
   ${primaryCommand} run "goal" --target /path/to/repo [--profile profile-name] [--mode assisted|guarded|inline] [--tool codex|claude|copilot]
+  ${primaryCommand} run --auto ["goal"] [--target /path/to/repo]
   ${primaryCommand} fanout "goal" --target /path/to/repo [--profile profile-name] [--mode assisted|guarded|inline]
   ${primaryCommand} dispatch "goal" --target /path/to/repo [--profile profile-name] [--mode assisted|guarded|inline]
   ${primaryCommand} collect [--target /path/to/repo]
@@ -477,6 +523,9 @@ main().catch((error: unknown) => {
         "explain",
         "trace",
         "doctor",
+        "toolchain",
+        "usage",
+        "eval",
         "init",
         "status",
         "check",

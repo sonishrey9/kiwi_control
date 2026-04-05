@@ -66,6 +66,8 @@ test("--help exits cleanly and leads with the installed Kiwi Control command sur
   assert.match(result.stdout, /Commands default to the current working directory/);
   assert.match(result.stdout, /kiwi-control init/);
   assert.match(result.stdout, /kiwi-control ui/);
+  assert.match(result.stdout, /kiwi-control toolchain/);
+  assert.match(result.stdout, /kiwi-control usage/);
   assert.match(result.stdout, /Inside-folder usage:/);
   assert.match(result.stdout, /kiwi-control handoff --to qa-specialist/);
   assert.match(result.stdout, /Contributor source usage:/);
@@ -90,7 +92,7 @@ test("unknown commands exit with usage status and corrective guidance", () => {
   assert.equal(result.code, 2);
   assert.match(result.stderr, /kiwi-control usage error:/);
   assert.match(result.stderr, /unknown command: does-not-exist/);
-  assert.match(result.stderr, /Core commands: plan, next, retry, resume, prepare, validate, explain, trace, doctor, init, status, check, specialists, checkpoint, handoff, ui/);
+  assert.match(result.stderr, /Core commands: plan, next, retry, resume, prepare, validate, explain, trace, doctor, toolchain, usage, eval, init, status, check, specialists, checkpoint, handoff, ui/);
 });
 
 test("inside-folder workflow uses the current working directory by default", async () => {
@@ -183,7 +185,7 @@ test("status records an out-of-scope completion failure once and points back to 
   });
 
   assert.equal(exitCode, 0);
-  assert.match(logs.join("\n"), /Fix the blocking execution issue/);
+  assert.match(logs.join("\n"), /Prepare bounded context/);
   assert.match(logs.join("\n"), /kiwi-control prepare "update README docs"/);
   assert.match(logs.join("\n"), /NEXT ACTION PLAN:/);
   assert.doesNotMatch(logs.join("\n"), /Continue the active repo task/);
@@ -209,7 +211,7 @@ test("status records an out-of-scope completion failure once and points back to 
   });
 
   assert.equal(secondExitCode, 0);
-  assert.match(secondLogs.join("\n"), /Fix the blocking execution issue/);
+  assert.match(secondLogs.join("\n"), /Prepare bounded context/);
 
   const executionLogAfterRepeat = await loadExecutionLog(repoDir);
   assert.equal(executionLogAfterRepeat.entries.length, 1);

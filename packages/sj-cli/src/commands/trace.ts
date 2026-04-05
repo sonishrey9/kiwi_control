@@ -17,6 +17,13 @@ export async function runTrace(options: TraceOptions): Promise<number> {
   const payload = {
     state: plan.state,
     currentStepIndex: plan.currentStepIndex,
+    planSteps: plan.steps.map((step) => ({
+      id: step.id,
+      status: step.status,
+      command: step.command,
+      fixCommand: step.fixCommand,
+      retryCommand: step.retryCommand
+    })),
     steps: workflow.steps.map((step) => ({
       stepId: step.stepId,
       status: step.status,
@@ -32,6 +39,9 @@ export async function runTrace(options: TraceOptions): Promise<number> {
     options.logger.info(JSON.stringify(payload, null, 2));
   } else {
     options.logger.info(`state: ${plan.state}`);
+    for (const step of payload.planSteps) {
+      options.logger.info(`plan ${step.id}: ${step.status} -> ${step.command}`);
+    }
     for (const step of payload.steps) {
       options.logger.info(`${step.stepId}: ${step.status}`);
       if (step.result.summary) {

@@ -1,6 +1,7 @@
 import path from "node:path";
 import type { FileArea } from "./config.js";
 import type { TaskCategory } from "./task-intent.js";
+import { loadTaskPatternMemory, recordTaskPattern } from "./task-pattern-memory.js";
 import {
   buildTaskScopeKey,
   deriveTaskArea,
@@ -178,6 +179,12 @@ export async function recordContextFeedback(
   };
 
   await persistContextFeedback(targetRoot, updated);
+  await recordTaskPattern(targetRoot, {
+    task: fullEntry.task,
+    taskTokens: fullEntry.taskTokens ?? [],
+    usedFiles: fullEntry.usedFiles,
+    timestamp: fullEntry.timestamp
+  }).catch(() => null);
   return updated;
 }
 
@@ -190,6 +197,7 @@ export async function computeAdaptiveWeights(
   task: string
 ): Promise<AdaptiveWeights> {
   const state = await loadContextFeedback(targetRoot);
+  const patternMemory = await loadTaskPatternMemory(targetRoot).catch(() => null);
   const scopedScores = resolveScopedScores(state, task);
   const similarRuns = retrieveSimilarRuns(state.entries, task);
   const boosted = new Map<string, number>();
@@ -225,10 +233,18 @@ export async function computeAdaptiveWeights(
     }
   }
 
+  const memoryMatches = matchTaskPatterns(patternMemory?.patterns ?? [], task);
+  for (const pattern of memoryMatches.slice(0, 3)) {
+    reusedPattern ??= pattern.task;
+    for (const file of pattern.usedFiles) {
+      boosted.set(file, Math.max(boosted.get(file) ?? 0, Math.min(RETRIEVAL_BOOST_CAP, pattern.score)));
+    }
+  }
+
   return {
     boosted,
     penalized,
-    basedOnPastRuns: shouldApplyRetrieval,
+    basedOnPastRuns: shouldApplyRetrieval || memoryMatches.length > 0,
     reusedPattern,
     similarRuns
   };
@@ -498,4 +514,19 @@ function computeTaskSimilarity(
     similarity += 0.15;
   }
   return Math.min(1, Math.round(similarity * 100) / 100);
+}
+
+function matchTaskPatterns(
+  patterns: Array<{ task: string; taskTokens: string[]; usedFiles: string[]; successCount: number }>,
+  task: string
+): Array<{ task: string; score: number; usedFiles: string[] }> {
+  const targetTokens = new Set(tokenizeTaskPattern(task));
+  return patterns
+    .map((pattern) => ({
+      task: pattern.task,
+      score: computeTaskSimilarity(targetTokens, new Set(pattern.taskTokens), true, true) * Math.min(pattern.successCount, 3),
+      usedFiles: pattern.usedFiles
+    }))
+    .filter((pattern) => pattern.score >= 0.5)
+    .sort((left, right) => right.score - left.score);
 }

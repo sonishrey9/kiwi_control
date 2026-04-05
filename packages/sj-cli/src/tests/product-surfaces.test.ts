@@ -123,6 +123,13 @@ test("ui command returns structured repo-control state in json mode", async () =
     specialists: { recommendedSpecialist: string; activeSpecialist: string };
     mcpPacks: { suggestedPack: { id: string }; compatibleCapabilities: Array<{ id: string }>; note: string };
     validation: { ok: boolean };
+    machineAdvisory: {
+      inventory: Array<{ name: string }>;
+      mcpInventory: { claudeTotal: number; codexTotal: number; copilotTotal: number };
+      optimizationLayers: Array<{ name: string }>;
+      configHealth: Array<{ path: string }>;
+      usage: { claude: { available: boolean }; codex: { available: boolean }; copilot: { available: boolean } };
+    };
     kiwiControl: {
       indexing: { coverageNote: string; discoveredFiles: number };
       fileAnalysis: { totalFiles: number; selected: Array<{ file: string; selectionWhy?: string; dependencyChain?: string[] }> };
@@ -149,6 +156,11 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(Array.isArray(payload.mcpPacks.compatibleCapabilities), true);
   assert.match(payload.mcpPacks.note, /MCP/i);
   assert.equal(payload.validation.ok, true);
+  assert.equal(Array.isArray(payload.machineAdvisory.inventory), true);
+  assert.equal(typeof payload.machineAdvisory.mcpInventory.claudeTotal, "number");
+  assert.equal(Array.isArray(payload.machineAdvisory.optimizationLayers), true);
+  assert.equal(Array.isArray(payload.machineAdvisory.configHealth), true);
+  assert.equal(typeof payload.machineAdvisory.usage.claude.available, "boolean");
   assert.equal(typeof payload.kiwiControl.indexing.discoveredFiles, "number");
   assert.equal(typeof payload.kiwiControl.indexing.coverageNote, "string");
   assert.equal(typeof payload.kiwiControl.fileAnalysis.totalFiles, "number");
