@@ -166,20 +166,15 @@ export function selectPortableContract(config: LoadedConfig, context: TemplateCo
     ".agent/context/specialists.md",
     ".agent/context/tool-capabilities.md",
     ".agent/context/mcp-capabilities.md",
-    ".agent/context/architecture.md",
-    ".agent/context/conventions.md",
-    ".agent/context/runbooks.md",
+    ".agent/context/context-tree.json",
     ".agent/memory/repo-facts.json",
-    ".agent/memory/architecture-decisions.md",
-    ".agent/memory/domain-glossary.md",
     ".agent/memory/current-focus.json",
     ".agent/memory/open-risks.json",
-    ".agent/memory/known-gotchas.md",
-    ".agent/memory/last-successful-patterns.md",
     ".agent/roles/README.md",
     ".agent/templates/role-result.md",
     ".agent/state/current-phase.json",
     ".agent/state/active-role-hints.json",
+    ".agent/state/context-tree.json",
     ".agent/state/checkpoints/latest.json",
     ".agent/state/checkpoints/latest.md",
     ".agent/state/handoff/README.md",
@@ -211,6 +206,7 @@ export function selectPortableContract(config: LoadedConfig, context: TemplateCo
     ".agent/context/specialists.md",
     ".agent/context/tool-capabilities.md",
     ".agent/context/mcp-capabilities.md",
+    ".agent/context/context-tree.json",
     ".agent/memory/current-focus.json",
     ".agent/memory/repo-facts.json",
     ".agent/state/current-phase.json",
@@ -370,37 +366,12 @@ export function getPortableStateSpecs(config: LoadedConfig, context: TemplateCon
       outputPath: ".agent/context/mcp-capabilities.md"
     },
     {
-      logicalName: ".agent/context/architecture.md",
-      templatePath: config.routing.portable_state.context.architecture,
-      outputPath: ".agent/context/architecture.md"
-    },
-    {
-      logicalName: ".agent/context/conventions.md",
-      templatePath: config.routing.portable_state.context.conventions,
-      outputPath: ".agent/context/conventions.md"
-    },
-    {
-      logicalName: ".agent/context/runbooks.md",
-      templatePath: config.routing.portable_state.context.runbooks,
-      outputPath: ".agent/context/runbooks.md"
-    },
-    {
       logicalName: ".agent/memory/repo-facts.json",
       templatePath: config.routing.portable_state.memory.repo_facts,
       outputPath: ".agent/memory/repo-facts.json",
       writeMode: "seed-only",
       contentFormat: "raw",
       templateValues: sharedTemplateValues
-    },
-    {
-      logicalName: ".agent/memory/architecture-decisions.md",
-      templatePath: config.routing.portable_state.memory.architecture_decisions,
-      outputPath: ".agent/memory/architecture-decisions.md"
-    },
-    {
-      logicalName: ".agent/memory/domain-glossary.md",
-      templatePath: config.routing.portable_state.memory.domain_glossary,
-      outputPath: ".agent/memory/domain-glossary.md"
     },
     {
       logicalName: ".agent/memory/current-focus.json",
@@ -417,16 +388,6 @@ export function getPortableStateSpecs(config: LoadedConfig, context: TemplateCon
       writeMode: "seed-only",
       contentFormat: "raw",
       templateValues: sharedTemplateValues
-    },
-    {
-      logicalName: ".agent/memory/known-gotchas.md",
-      templatePath: config.routing.portable_state.memory.known_gotchas,
-      outputPath: ".agent/memory/known-gotchas.md"
-    },
-    {
-      logicalName: ".agent/memory/last-successful-patterns.md",
-      templatePath: config.routing.portable_state.memory.last_successful_patterns,
-      outputPath: ".agent/memory/last-successful-patterns.md"
     },
     {
       logicalName: ".agent/roles/README.md",

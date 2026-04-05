@@ -6,6 +6,7 @@ export type RuntimeLifecycleStage =
   | "idle"
   | "prepared"
   | "packetized"
+  | "validating"
   | "checkpointed"
   | "handed-off"
   | "blocked";
@@ -13,6 +14,7 @@ export type RuntimeLifecycleStage =
 export type RuntimeEventType =
   | "prepare_completed"
   | "packets_generated"
+  | "validation_completed"
   | "validation_checkpoint"
   | "checkpoint_recorded"
   | "handoff_recorded";

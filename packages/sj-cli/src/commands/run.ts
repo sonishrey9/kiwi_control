@@ -14,6 +14,7 @@ import { PRODUCT_METADATA } from "@shrey-junior/sj-core/core/product.js";
 import { loadContinuitySnapshot, updateActiveRoleHints } from "@shrey-junior/sj-core/core/state.js";
 import { resolveSpecialist } from "@shrey-junior/sj-core/core/specialists.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
+import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import { executeWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 
@@ -142,6 +143,10 @@ export async function runRun(options: RunOptions): Promise<number> {
       nextSuggestedCommand: workflowExecution.retryCommand,
       nextRecommendedAction: workflowExecution.suggestedFix ?? workflowExecution.validation
     }).catch(() => null);
+    await syncExecutionPlan(options.targetRoot, {
+      task: options.goal,
+      forceState: "failed"
+    }).catch(() => null);
     options.logger.error(workflowExecution.failureReason ?? "Run packet generation failed.");
     return 1;
   }
@@ -162,14 +167,14 @@ export async function runRun(options: RunOptions): Promise<number> {
     nextFileToRead: chooseNextFileToRead({
       latestTaskPacket: packets[0]?.relativePath ?? null
     }),
-    nextSuggestedCommand: `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "<milestone>"`,
+    nextSuggestedCommand: `${PRODUCT_METADATA.cli.primaryCommand} validate "${options.goal}"`,
     writeTargets: buildWriteTargets(contract, packets.map((packet) => packet.relativePath)),
     checksToRun: buildChecksToRun(compiledContext.validationSteps),
     stopConditions: buildStopConditions({
       riskLevel: decision.riskLevel,
       taskType: decision.taskType
     }),
-    nextAction: `Open .agent/state/latest-task-packets.json and execute the ${decision.primaryTool} run packet before expanding scope.`,
+    nextAction: `Open .agent/state/latest-task-packets.json and execute the ${decision.primaryTool} run packet before validating the outcome.`,
     searchGuidance: buildSearchGuidance({
       taskType: decision.taskType,
       fileArea: decision.fileArea
@@ -181,13 +186,17 @@ export async function runRun(options: RunOptions): Promise<number> {
     status: "ok",
     summary: `Generated ${results.length} task packet${results.length === 1 ? "" : "s"} for "${options.goal}".`,
     task: options.goal,
-    command: `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "<milestone>"`,
+    command: `${PRODUCT_METADATA.cli.primaryCommand} validate "${options.goal}"`,
     files: packets.map((packet) => packet.relativePath).slice(0, 12),
     estimatedTokens: null,
     validation: "Run packet generation completed and packet artifacts were written.",
     validationStatus: risk.level === "high" ? "warn" : "ok",
-    nextSuggestedCommand: `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "<milestone>"`,
-    nextRecommendedAction: `Execute the generated ${decision.primaryTool} packet and checkpoint progress before widening scope.`
+    nextSuggestedCommand: `${PRODUCT_METADATA.cli.primaryCommand} validate "${options.goal}"`,
+    nextRecommendedAction: `Execute the generated ${decision.primaryTool} packet and validate the outcome before checkpointing.`
+  }).catch(() => null);
+  await syncExecutionPlan(options.targetRoot, {
+    task: options.goal,
+    forceState: "ready"
   }).catch(() => null);
   options.logger.info(summarizeWrites(results, options.targetRoot));
   return 0;

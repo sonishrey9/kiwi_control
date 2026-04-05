@@ -15,8 +15,9 @@ import { recommendNextSpecialist } from "@shrey-junior/sj-core/core/specialists.
 import { buildPhaseId, loadActiveRoleHints, loadLatestCheckpoint, parseCsvFlag, type CheckpointRecord, type PhaseStatus, type PhaseRecord, updateActiveRoleHints, writeCheckpointArtifacts, writePhaseRecord } from "@shrey-junior/sj-core/core/state.js";
 import { loadCurrentPhase } from "@shrey-junior/sj-core/core/state.js";
 import { recordPreparedScopeCompletion } from "@shrey-junior/sj-core/core/execution-log.js";
+import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
-import { executeWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
+import { executeWorkflowStep, loadWorkflowState } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 import { pathExists, relativeFrom } from "@shrey-junior/sj-core/utils/fs.js";
 
@@ -74,6 +75,11 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
   const scopeFailure = scopeValidation && !scopeValidation.ok
     ? `Prepared scope violated by touched files: ${scopeValidation.outOfScopeFiles.slice(0, 5).join(", ")}`
     : null;
+  const workflowState = await loadWorkflowState(options.targetRoot).catch(() => null);
+  const validationStep = workflowState?.steps.find((step) => step.stepId === "validate-outcome") ?? null;
+  const validationFailure = validationStep && validationStep.status !== "success"
+    ? `Final validation must pass before checkpointing.`
+    : null;
   const latestReconcile = await loadLatestReconcileReport(options.targetRoot);
   const memoryPaths = getMemoryPaths(options.targetRoot);
   const generatedAt = buildTemplateContext(options.targetRoot, config, {
@@ -117,16 +123,20 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
   ]);
   const warnings = dedupeList([
     ...parseCsvFlag(options.warnings),
-    ...(scopeFailure ? [scopeFailure] : [])
+    ...(scopeFailure ? [scopeFailure] : []),
+    ...(validationFailure ? [validationFailure] : [])
   ]);
   const openIssues = dedupeList([
     ...parseCsvFlag(options.openIssues),
-    ...(scopeFailure ? [scopeFailure] : [])
+    ...(scopeFailure ? [scopeFailure] : []),
+    ...(validationFailure ? [validationFailure] : [])
   ]);
-  const phaseStatus = scopeFailure ? "blocked" : options.status ?? inferPhaseStatus(options.label);
+  const phaseStatus = scopeFailure || validationFailure ? "blocked" : options.status ?? inferPhaseStatus(options.label);
   const nextRecommendedStep = scopeFailure
     ? "Refresh the prepared scope before recording another checkpoint."
-    : options.nextStep ??
+    : validationFailure
+      ? "Run final validation before recording a checkpoint."
+      : options.nextStep ??
       (decision.requiredRoles.length > 0
         ? `Continue with ${decision.requiredRoles.join(", ")} coverage before closing the work.`
         : `Continue with ${decision.primaryTool} using the latest repo-local packets.`);
@@ -172,6 +182,8 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
   const nextSuggestedCommand =
     scopeFailure
       ? `${PRODUCT_METADATA.cli.primaryCommand} prepare "${preparedScope?.task ?? goal}"`
+      : validationFailure
+        ? `${PRODUCT_METADATA.cli.primaryCommand} validate "${goal}"`
       : record.status === "blocked"
         ? `${PRODUCT_METADATA.cli.primaryCommand} status`
         : record.status === "complete"
@@ -285,20 +297,24 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
         await pathExists(result.paths.currentPhasePath) &&
         await pathExists(result.paths.historyPath) &&
         await pathExists(result.checkpointArtifacts.latestJsonPath);
-      const ok = !result.scopeFailure && artifactsWritten;
+      const ok = !result.scopeFailure && !validationFailure && artifactsWritten;
       return {
         ok,
         validation: ok
           ? "Checkpoint artifacts were written and continuity hints were updated."
           : result.scopeFailure
             ? "Prepared scope validation failed during checkpoint."
+            : validationFailure
+              ? "Final validation must pass before checkpointing."
             : "Checkpoint artifacts were not fully written.",
         ...(ok
           ? {}
           : {
-              failureReason: result.scopeFailure ?? "Checkpoint artifacts were not fully written.",
+              failureReason: result.scopeFailure ?? validationFailure ?? "Checkpoint artifacts were not fully written.",
               suggestedFix: result.scopeFailure
                 ? `Refresh the prepared scope with ${nextSuggestedCommand} before retrying this checkpoint.`
+                : validationFailure
+                  ? `Run ${nextSuggestedCommand} before retrying this checkpoint.`
                 : `Retry kiwi-control checkpoint "${options.label}" after fixing the artifact write failure.`
             })
       };
@@ -326,6 +342,10 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
     validationStatus: workflowExecution.ok ? "ok" : "error",
     nextSuggestedCommand: workflowExecution.ok ? nextSuggestedCommand : workflowExecution.retryCommand,
     nextRecommendedAction: workflowExecution.ok ? record.nextRecommendedStep : (workflowExecution.suggestedFix ?? workflowExecution.validation)
+  }).catch(() => null);
+  await syncExecutionPlan(options.targetRoot, {
+    task: goal,
+    forceState: workflowExecution.ok ? "ready" : "blocked"
   }).catch(() => null);
   if (!workflowExecution.ok || !workflowExecution.result) {
     options.logger.error(workflowExecution.failureReason ?? `Checkpoint "${options.label}" failed.`);

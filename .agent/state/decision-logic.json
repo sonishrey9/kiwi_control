@@ -1,0 +1,18 @@
+{
+  "artifactType": "kiwi-control/decision-logic",
+  "version": 1,
+  "timestamp": "2026-04-05T07:24:16.726Z",
+  "summary": "Prepare bounded context: Context selection and prepared scope must be recorded before execution.",
+  "decisionPriority": "high",
+  "inputSignals": [
+    "execution state: idle",
+    "current step index: 0",
+    "risk: low",
+    "39 validation issue(s)"
+  ],
+  "reasoningChain": [
+    "ExecutionPlan is the canonical source of truth for next-step decisions.",
+    "The active plan step is prepare."
+  ],
+  "ignoredSignals": []
+}

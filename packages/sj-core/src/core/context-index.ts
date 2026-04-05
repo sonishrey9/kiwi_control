@@ -29,11 +29,13 @@ export interface ContextIndexFileRecord {
   file: string;
   mtime: number;
   imports: string[];
+  importedBy: string[];
   exports: string[];
   localFunctions: string[];
   calledSymbols: string[];
   importCallTargets: string[];
   relationships: string[];
+  moduleGroup: string;
 }
 
 export interface ContextImpactAnalysis {
@@ -47,7 +49,7 @@ export interface ContextImpactAnalysis {
 
 export interface ContextIndexState {
   artifactType: "kiwi-control/context-index";
-  version: 1;
+  version: 2;
   timestamp: string;
   indexedFiles: number;
   updatedFiles: string[];
@@ -77,8 +79,11 @@ export async function loadContextIndex(targetRoot: string): Promise<ContextIndex
 
   try {
     const state = await readJson<ContextIndexState>(outputPath);
-    if (state.artifactType !== "kiwi-control/context-index" || state.version !== 1) {
+    if (state.artifactType !== "kiwi-control/context-index") {
       return null;
+    }
+    if (state.version !== 2) {
+      return migrateContextIndexState(state);
     }
     return state;
   } catch {
@@ -116,11 +121,13 @@ export async function buildContextIndex(options: BuildContextIndexOptions): Prom
       file: entry.file,
       mtime: entry.mtime,
       imports,
+      importedBy: [],
       exports: structure.exports,
       localFunctions: structure.localFunctions,
       calledSymbols: structure.calledSymbols,
       importCallTargets: structure.importCallTargets,
-      relationships: uniqueFiles([...imports, ...structure.importCallTargets])
+      relationships: uniqueFiles([...imports, ...structure.importCallTargets]),
+      moduleGroup: deriveModuleGroup(entry.file)
     });
     updatedFiles.push(entry.file);
   }
@@ -129,17 +136,22 @@ export async function buildContextIndex(options: BuildContextIndexOptions): Prom
     .filter((file) => !importableSet.has(file))
     .sort((left, right) => left.localeCompare(right));
   const reverseDependencies = buildReverseDependencyMap(records);
-  const lastImpact = analyzeImpact(records, reverseDependencies, options.changedFiles);
+  const enrichedRecords = records.map((record) => ({
+    ...record,
+    importedBy: reverseDependencies[record.file] ?? [],
+    moduleGroup: record.moduleGroup || deriveModuleGroup(record.file)
+  }));
+  const lastImpact = analyzeImpact(enrichedRecords, reverseDependencies, options.changedFiles, 3);
 
   const state: ContextIndexState = {
     artifactType: "kiwi-control/context-index",
-    version: 1,
+    version: 2,
     timestamp: new Date().toISOString(),
-    indexedFiles: records.length,
+    indexedFiles: enrichedRecords.length,
     updatedFiles,
     removedFiles,
     reusedFiles,
-    files: records,
+    files: enrichedRecords,
     reverseDependencies,
     lastChangedFiles: options.changedFiles,
     lastImpact
@@ -195,7 +207,8 @@ function buildReverseDependencyMap(files: ContextIndexFileRecord[]): Record<stri
 function analyzeImpact(
   files: ContextIndexFileRecord[],
   reverseDependencies: Record<string, string[]>,
-  changedFiles: string[]
+  changedFiles: string[],
+  maxDepth: number
 ): ContextImpactAnalysis {
   const fileMap = new Map(files.map((entry) => [entry.file, entry] as const));
   const importableChangedFiles = changedFiles.filter((file) => fileMap.has(file));
@@ -205,9 +218,10 @@ function analyzeImpact(
   );
   const { reverseDependents, reverseChains, reverseDistances } = walkReverseDependencies(
     importableChangedFiles,
-    reverseDependencies
+    reverseDependencies,
+    maxDepth
   );
-  const { forwardChains, forwardDistances } = walkForwardDependencies(importableChangedFiles, fileMap);
+  const { forwardChains, forwardDistances } = walkForwardDependencies(importableChangedFiles, fileMap, maxDepth);
   const impactedFiles = uniqueFiles(
     [...forwardDependencies, ...reverseDependents].filter((file) => !importableChangedFiles.includes(file))
   );
@@ -250,7 +264,8 @@ function analyzeImpact(
 
 function walkReverseDependencies(
   changedFiles: string[],
-  reverseDependencies: Record<string, string[]>
+  reverseDependencies: Record<string, string[]>,
+  maxDepth: number
 ): {
   reverseDependents: string[];
   reverseChains: Record<string, string[]>;
@@ -268,6 +283,9 @@ function walkReverseDependencies(
 
     for (const dependent of reverseDependencies[current.file] ?? []) {
       const nextDistance = current.distance + 1;
+      if (nextDistance > maxDepth) {
+        continue;
+      }
       if (reverseDistances[dependent] !== undefined && reverseDistances[dependent] <= nextDistance) {
         continue;
       }
@@ -286,7 +304,8 @@ function walkReverseDependencies(
 
 function walkForwardDependencies(
   changedFiles: string[],
-  fileMap: Map<string, ContextIndexFileRecord>
+  fileMap: Map<string, ContextIndexFileRecord>,
+  maxDepth: number
 ): {
   forwardChains: Record<string, string[]>;
   forwardDistances: Record<string, number>;
@@ -303,6 +322,9 @@ function walkForwardDependencies(
 
     for (const dependency of fileMap.get(current.file)?.relationships ?? []) {
       const nextDistance = current.distance + 1;
+      if (nextDistance > maxDepth) {
+        continue;
+      }
       if (forwardDistances[dependency] !== undefined && forwardDistances[dependency] <= nextDistance) {
         continue;
       }
@@ -612,4 +634,56 @@ async function resolveImportPath(
   }
 
   return null;
+}
+
+export function deriveModuleGroup(filePath: string): string {
+  const normalized = filePath.replace(/\\/g, "/");
+  const segments = normalized.split("/").filter(Boolean);
+  if (segments.length === 0) {
+    return ".";
+  }
+  if (segments[0] === "apps" && segments[1]) {
+    return `apps/${segments[1]}`;
+  }
+  if (segments[0] === "packages" && segments[1]) {
+    return `packages/${segments[1]}`;
+  }
+  if (segments[0] === "crates" && segments[1]) {
+    return `crates/${segments[1]}`;
+  }
+  if (segments[0] === "src" && segments[1]) {
+    return `src/${segments[1]}`;
+  }
+  if (segments[0] === "tests") {
+    return "tests";
+  }
+  if (segments[0] === "docs") {
+    return "docs";
+  }
+  return segments[0] ?? ".";
+}
+
+function migrateContextIndexState(state: ContextIndexState): ContextIndexState {
+  const files = (state.files ?? []).map((record) => ({
+    ...record,
+    importedBy: record.importedBy ?? [],
+    moduleGroup: record.moduleGroup ?? deriveModuleGroup(record.file)
+  }));
+  const reverseDependencies = buildReverseDependencyMap(files);
+  return {
+    artifactType: "kiwi-control/context-index",
+    version: 2,
+    timestamp: state.timestamp ?? new Date().toISOString(),
+    indexedFiles: files.length,
+    updatedFiles: state.updatedFiles ?? [],
+    removedFiles: state.removedFiles ?? [],
+    reusedFiles: state.reusedFiles ?? 0,
+    files: files.map((record) => ({
+      ...record,
+      importedBy: reverseDependencies[record.file] ?? record.importedBy ?? []
+    })),
+    reverseDependencies,
+    lastChangedFiles: state.lastChangedFiles ?? [],
+    lastImpact: analyzeImpact(files, reverseDependencies, state.lastChangedFiles ?? [], 3)
+  };
 }

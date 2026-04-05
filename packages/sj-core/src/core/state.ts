@@ -290,7 +290,7 @@ export async function updateActiveRoleHints(
       ".agent/context/commands.md",
       ".agent/context/tool-capabilities.md",
       ".agent/context/mcp-capabilities.md",
-      ".agent/context/architecture.md",
+      ".agent/context/context-tree.json",
       ".agent/checks.yaml",
       ".agent/project.yaml"
     ],

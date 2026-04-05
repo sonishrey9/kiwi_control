@@ -12,6 +12,7 @@ import { isKnownSpecialistId, normalizeSpecialistId, recommendNextSpecialist } f
 import { loadActiveRoleHints, loadCurrentPhase, loadLatestCheckpoint, updateActiveRoleHints, writeHandoffArtifacts } from "@shrey-junior/sj-core/core/state.js";
 import { buildTemplateContext, selectPortableContract } from "@shrey-junior/sj-core/core/router.js";
 import { recordPreparedScopeCompletion } from "@shrey-junior/sj-core/core/execution-log.js";
+import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
 import { executeWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
@@ -214,6 +215,10 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
     validationStatus: workflowExecution.ok ? "ok" : "error",
     nextSuggestedCommand: workflowExecution.ok ? handoff.nextCommand : workflowExecution.retryCommand,
     nextRecommendedAction: workflowExecution.ok ? handoff.nextStep : (workflowExecution.suggestedFix ?? workflowExecution.validation)
+  }).catch(() => null);
+  await syncExecutionPlan(options.targetRoot, {
+    task: currentPhase?.goal ?? null,
+    forceState: workflowExecution.ok ? "completed" : "blocked"
   }).catch(() => null);
   if (!workflowExecution.ok || !workflowExecution.result) {
     options.logger.error(workflowExecution.failureReason ?? `Handoff to ${targetSpecialistId} failed.`);

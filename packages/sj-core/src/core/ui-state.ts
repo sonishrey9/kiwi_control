@@ -3,7 +3,7 @@ import type { LoadedConfig } from "./config.js";
 import { loadCanonicalConfig } from "./config.js";
 import { PRODUCT_METADATA } from "./product.js";
 import { compileRepoContext } from "./context.js";
-import { buildExecutionPlan, persistExecutionPlan } from "./execution-plan.js";
+import { syncExecutionPlan } from "./execution-plan.js";
 import type { ExecutionPlanState } from "./execution-plan.js";
 import { getMemoryPaths, loadOpenRisks } from "./memory.js";
 import { inspectBootstrapTarget } from "./project-detect.js";
@@ -308,9 +308,14 @@ export interface KiwiControlExecutionTrace {
 
 export interface KiwiControlExecutionPlan {
   summary: string;
+  state: ExecutionPlanState["state"];
+  currentStepIndex: number;
+  confidence: string | null;
+  risk: ExecutionPlanState["risk"];
   blocked: boolean;
   steps: ExecutionPlanState["steps"];
   nextCommands: string[];
+  lastError: ExecutionPlanState["lastError"];
 }
 
 export interface KiwiControlState {
@@ -434,12 +439,9 @@ export async function buildRepoControlStateFromConfig(options: {
   const memoryPaths = getMemoryPaths(options.targetRoot);
   const memoryEntries: Array<[string, string]> = [
     ["Repo Facts", memoryPaths.repoFacts],
-    ["Architecture Decisions", memoryPaths.architectureDecisions],
-    ["Domain Glossary", memoryPaths.domainGlossary],
     ["Current Focus", memoryPaths.currentFocus],
     ["Open Risks", memoryPaths.openRisks],
-    ["Known Gotchas", memoryPaths.knownGotchas],
-    ["Last Successful Patterns", memoryPaths.lastSuccessfulPatterns]
+    ["Context Tree", path.join(options.targetRoot, ".agent", "context", "context-tree.json")]
   ];
   const memoryBank: RepoMemoryBankEntry[] = await Promise.all(
     memoryEntries.map(async ([label, filePath]) => ({
@@ -1082,22 +1084,31 @@ async function loadKiwiControlState(
     whyThisHappened: decisionLogic.summary
   };
 
-  const scopeViolation = Boolean(
-    preparedScope &&
-    !validateTouchedFilesAgainstAllowedFiles(preparedScope.allowedFiles, (await inspectGitState(targetRoot)).changedFiles).ok
-  );
-  const executionPlan = buildExecutionPlan({
-    targetRoot,
+  const executionPlan = await syncExecutionPlan(targetRoot, {
     task: contextView.task ?? workflowState.task,
-    workflow: workflowState,
-    nextAction: nextActions.actions[0] ?? null,
-    validationErrors: validationIssues.filter((issue) => issue.level === "error").length,
-    hasPreparedScope: Boolean(preparedScope),
-    hasInstructions,
-    hasTokenUsage: Boolean(tokenAnalytics.estimationMethod),
-    scopeViolation
-  });
-  await persistExecutionPlan(targetRoot, executionPlan).catch(() => null);
+    validationIssues
+  }).catch(() => ({
+    artifactType: "kiwi-control/execution-plan" as const,
+    version: 2,
+    task: contextView.task ?? workflowState.task,
+    state: "idle" as const,
+    currentStepIndex: 0,
+    confidence: null,
+    risk: "low" as const,
+    blocked: false,
+    summary: "No execution plan is recorded yet.",
+    steps: [],
+    nextCommands: [],
+    lastError: null,
+    contextSnapshot: {
+      selectedFiles: [],
+      selectedModuleGroups: [],
+      confidence: null,
+      contextTreePath: null,
+      dependencyChains: {}
+    },
+    updatedAt: new Date().toISOString()
+  }));
 
   return {
     contextView, tokenAnalytics, efficiency,
@@ -1113,9 +1124,14 @@ async function loadKiwiControlState(
     executionTrace,
     executionPlan: {
       summary: executionPlan.summary,
+      state: executionPlan.state,
+      currentStepIndex: executionPlan.currentStepIndex,
+      confidence: executionPlan.confidence,
+      risk: executionPlan.risk,
       blocked: executionPlan.blocked,
       steps: executionPlan.steps,
-      nextCommands: executionPlan.nextCommands
+      nextCommands: executionPlan.nextCommands,
+      lastError: executionPlan.lastError
     }
   };
 }

@@ -47,7 +47,7 @@ test("checkpoint writes git-aware checkpoint artifacts even before the first com
 
   const activeRoleHints = JSON.parse(await fs.readFile(path.join(target, ".agent", "state", "active-role-hints.json"), "utf8"));
   assert.equal(activeRoleHints.latestCheckpoint, ".agent/state/checkpoints/latest.json");
-  assert.match(activeRoleHints.nextSuggestedCommand, /push-check|handoff|status/);
+  assert.match(activeRoleHints.nextSuggestedCommand, /push-check|handoff|status|validate/);
   const markdown = await fs.readFile(path.join(target, ".agent", "state", "checkpoints", "latest.md"), "utf8");
   assert.match(markdown, /# Checkpoint/);
 });

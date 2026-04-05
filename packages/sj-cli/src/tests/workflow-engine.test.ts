@@ -58,7 +58,7 @@ test("workflow engine records failed step execution and increments retry count o
   const afterRetry = await loadWorkflowState(tempDir);
   const completedStep = afterRetry.steps.find((step) => step.stepId === "generate-run-packets");
   assert.equal(afterRetry.status, "running");
-  assert.equal(afterRetry.currentStepId, "checkpoint-progress");
+  assert.equal(afterRetry.currentStepId, "validate-outcome");
   assert.equal(completedStep?.status, "success");
   assert.equal(completedStep?.attemptCount, 2);
   assert.equal(completedStep?.retryCount, 1);

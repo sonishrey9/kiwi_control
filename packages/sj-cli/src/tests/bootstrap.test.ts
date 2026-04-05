@@ -60,10 +60,12 @@ test("bootstrap applies repo-local overlays into a new folder", async () => {
   assert.equal(Array.isArray(activeRoleHints.readNext), true);
   assert.equal(Array.isArray(activeRoleHints.checksToRun), true);
   assert.equal(activeRoleHints.latestCheckpoint, ".agent/state/checkpoints/latest.json");
-  assert.equal(activeRoleHints.nextFileToRead, ".agent/context/architecture.md");
+  assert.equal(activeRoleHints.nextFileToRead, ".agent/context/context-tree.json");
   assert.match(activeRoleHints.nextSuggestedCommand, /checkpoint "context seeded"/);
   assert.equal(activeRoleHints.readNext.includes(".github/instructions/backend.instructions.md"), true);
-  assert.match(activeRoleHints.nextAction, /Fill in \.agent\/context\/architecture\.md/);
+  assert.match(activeRoleHints.nextAction, /Review \.agent\/context\/context-tree\.json/);
+  assert.equal(await fs.readFile(path.join(target, ".agent", "context", "context-tree.json"), "utf8").then(() => true), true);
+  assert.equal(await fs.readFile(path.join(target, ".agent", "state", "context-tree.json"), "utf8").then(() => true), true);
   assert.equal(await fs.readFile(path.join(target, ".github", "instructions", "backend.instructions.md"), "utf8").then(() => true), true);
   assert.equal(await fs.access(path.join(target, ".github", "instructions", "frontend.instructions.md")).then(() => true).catch(() => false), false);
   assert.equal(await fs.access(path.join(target, ".github", "instructions", "docs.instructions.md")).then(() => true).catch(() => false), false);

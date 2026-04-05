@@ -1,0 +1,122 @@
+{
+  "artifactType": "kiwi-control/execution-plan",
+  "version": 2,
+  "task": null,
+  "state": "idle",
+  "currentStepIndex": 0,
+  "confidence": null,
+  "risk": "low",
+  "blocked": false,
+  "summary": "idle: Prepare bounded context.",
+  "steps": [
+    {
+      "id": "prepare",
+      "description": "Prepare bounded context",
+      "command": "kiwi-control prepare \"describe your task\"",
+      "expectedOutput": "Prepared scope, instructions, token state, and context snapshot are ready.",
+      "validation": "Context selection and prepared scope must be recorded before execution.",
+      "status": "pending",
+      "workflowStepId": "prepare-context",
+      "result": {
+        "ok": null,
+        "summary": null,
+        "validation": null,
+        "failureReason": null,
+        "suggestedFix": null,
+        "retryCommand": null
+      },
+      "fixCommand": null,
+      "retryCommand": "kiwi-control prepare \"describe your task\""
+    },
+    {
+      "id": "execute",
+      "description": "Execute the bounded task",
+      "command": "kiwi-control run \"describe your task\"",
+      "expectedOutput": "Run packets or equivalent execution artifacts are ready.",
+      "validation": "Execution must produce packet/output artifacts inside the prepared scope.",
+      "status": "pending",
+      "workflowStepId": "generate-run-packets",
+      "result": {
+        "ok": null,
+        "summary": null,
+        "validation": null,
+        "failureReason": null,
+        "suggestedFix": null,
+        "retryCommand": null
+      },
+      "fixCommand": null,
+      "retryCommand": "kiwi-control run \"describe your task\""
+    },
+    {
+      "id": "validate",
+      "description": "Validate the task outcome",
+      "command": "kiwi-control validate \"describe your task\"",
+      "expectedOutput": "Final validation confirms scope and outcome correctness.",
+      "validation": "Validation must confirm expected files changed, scope remained bounded, and the task goal was achieved.",
+      "status": "pending",
+      "workflowStepId": "validate-outcome",
+      "result": {
+        "ok": null,
+        "summary": null,
+        "validation": null,
+        "failureReason": null,
+        "suggestedFix": null,
+        "retryCommand": null
+      },
+      "fixCommand": null,
+      "retryCommand": "kiwi-control validate \"describe your task\""
+    },
+    {
+      "id": "checkpoint",
+      "description": "Checkpoint the validated work",
+      "command": "kiwi-control checkpoint \"validated-progress\"",
+      "expectedOutput": "Checkpoint artifacts record validated progress.",
+      "validation": "Checkpointing is allowed only after validation passes.",
+      "status": "pending",
+      "workflowStepId": "checkpoint-progress",
+      "result": {
+        "ok": null,
+        "summary": null,
+        "validation": null,
+        "failureReason": null,
+        "suggestedFix": null,
+        "retryCommand": null
+      },
+      "fixCommand": null,
+      "retryCommand": "kiwi-control checkpoint \"validated-progress\""
+    },
+    {
+      "id": "handoff",
+      "description": "Handoff the work",
+      "command": "kiwi-control handoff --to qa-specialist",
+      "expectedOutput": "Handoff artifacts are written for the next specialist/tool.",
+      "validation": "Handoff should happen after checkpoint captures validated progress.",
+      "status": "pending",
+      "workflowStepId": "handoff-work",
+      "result": {
+        "ok": null,
+        "summary": null,
+        "validation": null,
+        "failureReason": null,
+        "suggestedFix": null,
+        "retryCommand": null
+      },
+      "fixCommand": null,
+      "retryCommand": "kiwi-control handoff --to qa-specialist"
+    }
+  ],
+  "nextCommands": [
+    "kiwi-control prepare \"describe your task\"",
+    "kiwi-control run \"describe your task\"",
+    "kiwi-control validate \"describe your task\""
+  ],
+  "lastError": null,
+  "contextSnapshot": {
+    "selectedFiles": [],
+    "selectedModuleGroups": [],
+    "confidence": null,
+    "contextTreePath": null,
+    "dependencyChains": {}
+  },
+  "updatedAt": "2026-04-05T07:24:16.920Z"
+}

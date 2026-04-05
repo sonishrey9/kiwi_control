@@ -36,6 +36,8 @@ export interface ContextSignals {
   changedFiles: string[];
   recentFiles: string[];
   importNeighbors: string[];
+  forwardDependencies?: string[];
+  reverseDependencies?: string[];
   proximityFiles: string[];
   keywordMatches: string[];
   repoContextFiles: string[];
@@ -267,6 +269,11 @@ const SCORE_KEYWORD = 5;
 const SCORE_ADAPTIVE_MAX = 4;
 const SCORE_PROXIMITY = 3;
 const SCORE_RECENT = 2;
+const WEIGHT_DEPENDENCY = 0.4;
+const WEIGHT_TASK_SIMILARITY = 0.25;
+const WEIGHT_PAST_SUCCESS = 0.2;
+const WEIGHT_RECENCY = 0.15;
+const MIN_SELECTION_SCORE = 10;
 
 const CONTEXT_TOKEN_BUDGET = 12_000;
 const MAX_RECENT_FILES = 20;
@@ -389,6 +396,8 @@ async function collectSignals(
   let discoveryMetrics = discovery.metrics;
   let dependencyDistances: Record<string, number> | undefined;
   let dependencyChains: Record<string, string[]> | undefined;
+  let forwardDependencies: string[] | undefined;
+  let reverseDependencies: string[] | undefined;
 
   try {
     const contextIndex = await buildContextIndex({
@@ -400,6 +409,8 @@ async function collectSignals(
       changedFiles
     });
     importNeighbors = contextIndex.lastImpact.impactedFiles;
+    forwardDependencies = contextIndex.lastImpact.forwardDependencies;
+    reverseDependencies = contextIndex.lastImpact.reverseDependencies;
     dependencyDistances = contextIndex.lastImpact.dependencyDistances;
     dependencyChains = contextIndex.lastImpact.dependencyChains;
     discoveryMetrics = {
@@ -431,6 +442,8 @@ async function collectSignals(
     changedFiles,
     recentFiles,
     importNeighbors,
+    ...(forwardDependencies ? { forwardDependencies } : {}),
+    ...(reverseDependencies ? { reverseDependencies } : {}),
     proximityFiles,
     keywordMatches,
     repoContextFiles,
@@ -721,6 +734,7 @@ async function rankAndSelect(
   const keywords = [...new Set([...tokenizeTask(task), ...tokenizeTask(skillSignals.activeSkillKeywords.join(" "))])];
   const taskCategory = deriveTaskCategory(task);
   const taskArea = deriveTaskArea(task);
+  const hardIncluded = new Set<string>(signals.changedFiles);
 
   const addScore = (file: string, amount: number, reason: ExplainabilityReason): void => {
     scored.set(file, (scored.get(file) ?? 0) + amount);
@@ -738,14 +752,20 @@ async function rankAndSelect(
     addScore(file, SCORE_REPO_CONTEXT, "repo context");
   }
 
-  for (const file of signals.importNeighbors) {
+  for (const file of signals.reverseDependencies ?? []) {
     const dependencyDistance = signals.dependencyDistances?.[file] ?? 1;
-    const dependencyScore = Math.max(1, SCORE_DEPENDENCY_DISTANCE_MAX - dependencyDistance + 1);
+    const dependencyValue = Math.min(1, 1 / dependencyDistance);
+    addScore(file, Math.round((dependencyValue * WEIGHT_DEPENDENCY * 100) + 12), "import dependency");
+    addScore(file, Math.round(dependencyValue * 10), "dependency distance");
+  }
+
+  for (const file of signals.forwardDependencies ?? []) {
+    const dependencyDistance = signals.dependencyDistances?.[file] ?? 1;
+    const dependencyValue = Math.min(1, 0.6 / dependencyDistance);
     const dependencyChain = signals.dependencyChains?.[file] ?? [];
-    const dependencyReason: ExplainabilityReason =
-      dependencyChain.length > 2 ? "call dependency" : "import dependency";
-    addScore(file, Math.max(SCORE_IMPORT_NEIGHBOR, dependencyScore), dependencyReason);
-    addScore(file, dependencyScore, "dependency distance");
+    const dependencyReason: ExplainabilityReason = dependencyChain.length > 2 ? "call dependency" : "import dependency";
+    addScore(file, Math.round((dependencyValue * WEIGHT_DEPENDENCY * 100) + 6), dependencyReason);
+    addScore(file, Math.round(dependencyValue * 8), "dependency distance");
   }
 
   for (const file of signals.proximityFiles) {
@@ -760,7 +780,8 @@ async function rankAndSelect(
   for (const [file] of scored) {
     const kwScore = scoreFileAgainstKeywords(file, keywords);
     if (kwScore > 0) {
-      addScore(file, Math.min(kwScore, SCORE_KEYWORD), "keyword match");
+      const normalizedKeyword = Math.min(1, kwScore / SCORE_KEYWORD);
+      addScore(file, Math.round(normalizedKeyword * WEIGHT_TASK_SIMILARITY * 100), "keyword match");
     }
   }
 
@@ -768,14 +789,16 @@ async function rankAndSelect(
   for (const file of signals.keywordMatches) {
     if (!scored.has(file)) {
       const kwScore = scoreFileAgainstKeywords(file, keywords);
-      addScore(file, Math.min(kwScore, SCORE_KEYWORD), "keyword match");
+      const normalizedKeyword = Math.min(1, kwScore / SCORE_KEYWORD);
+      addScore(file, Math.round(normalizedKeyword * WEIGHT_TASK_SIMILARITY * 100), "keyword match");
     }
   }
 
   // Adaptive feedback: boost historically useful files, penalize wasted ones
   for (const [file, boost] of adaptive.boosted) {
     if (scored.has(file)) {
-      addScore(file, Math.min(boost, SCORE_ADAPTIVE_MAX), "adaptive boost");
+      const normalizedBoost = Math.min(1, boost / SCORE_ADAPTIVE_MAX);
+      addScore(file, Math.round(normalizedBoost * WEIGHT_PAST_SUCCESS * 100), "adaptive boost");
       if (adaptive.basedOnPastRuns) {
         addScore(file, 0, "based on past runs");
         if (adaptive.reusedPattern) {
@@ -786,7 +809,8 @@ async function rankAndSelect(
   }
   for (const [file, penalty] of adaptive.penalized) {
     if (scored.has(file)) {
-      scored.set(file, Math.max(0, (scored.get(file) ?? 0) - Math.min(penalty, SCORE_ADAPTIVE_MAX)));
+      const normalizedPenalty = Math.min(1, penalty / SCORE_ADAPTIVE_MAX);
+      scored.set(file, Math.max(0, (scored.get(file) ?? 0) - Math.round(normalizedPenalty * WEIGHT_PAST_SUCCESS * 100)));
       const entry = explainabilityLedger.get(file) ?? { score: 0, reasons: new Set<ExplainabilityReason>() };
       entry.score = scored.get(file) ?? 0;
       entry.reasons.add("adaptive penalty");
@@ -796,7 +820,8 @@ async function rankAndSelect(
 
   for (const [file, score] of scored) {
     const taskFit = scoreFileForTask(file, taskCategory, taskArea);
-    scored.set(file, Math.max(0, score + taskFit));
+    const normalizedTaskFit = taskFit > 0 ? Math.min(1, taskFit / SCORE_KEYWORD) : 0;
+    scored.set(file, Math.max(0, score + Math.round(normalizedTaskFit * WEIGHT_TASK_SIMILARITY * 100)));
     if (taskFit !== 0) {
       const entry = explainabilityLedger.get(file) ?? { score: 0, reasons: new Set<ExplainabilityReason>() };
       entry.score = scored.get(file) ?? 0;
@@ -806,13 +831,15 @@ async function rankAndSelect(
   }
 
   const sorted = [...scored.entries()]
+    .filter(([file, score]) => hardIncluded.has(file) || score >= MIN_SELECTION_SCORE)
     .sort((a, b) => b[1] - a[1]);
 
   const includeBeforeTrim = await selectFilesWithinBudget(
     targetRoot,
     sorted,
     new Set([...signals.changedFiles, ...signals.repoContextFiles]),
-    CONTEXT_TOKEN_BUDGET
+    CONTEXT_TOKEN_BUDGET,
+    maxSelectionCountForTask(task)
   );
   const precisionRefinement = refineSelectionForTask(task, includeBeforeTrim, signals);
   const directSignals = new Set([
@@ -913,7 +940,8 @@ async function selectFilesWithinBudget(
   targetRoot: string,
   rankedFiles: Array<[string, number]>,
   mustInclude: Set<string>,
-  budgetTokens: number
+  budgetTokens: number,
+  maxFiles: number
 ): Promise<string[]> {
   const include: string[] = [];
   const included = new Set<string>();
@@ -926,6 +954,9 @@ async function selectFilesWithinBudget(
 
   for (const [file] of orderedFiles) {
     if (included.has(file)) {
+      continue;
+    }
+    if (include.length >= maxFiles && !mustInclude.has(file)) {
       continue;
     }
 
@@ -941,6 +972,18 @@ async function selectFilesWithinBudget(
   }
 
   return include;
+}
+
+function maxSelectionCountForTask(task: string): number {
+  const normalized = task.toLowerCase();
+  const category = deriveTaskCategory(task);
+  if (category === "docs") {
+    return 8;
+  }
+  if (/\brefactor|migration|broad|cross-cutting|rewrite\b/i.test(normalized)) {
+    return 30;
+  }
+  return 20;
 }
 
 async function estimateSelectionTokens(targetRoot: string, files: string[]): Promise<number> {

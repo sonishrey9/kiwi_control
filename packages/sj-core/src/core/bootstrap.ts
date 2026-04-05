@@ -1,11 +1,13 @@
 import type { GlobalBootstrapDefaults, LoadedConfig, ProjectType } from "./config.js";
 import { getGlobalHomeRoot, loadGlobalBootstrapDefaults } from "./config.js";
 import { initOrSyncTarget, summarizeWrites } from "./executor.js";
+import { buildRepoContextSeedArtifacts, buildRepoContextTree, persistRepoContextSeedArtifacts, persistRepoContextTreeArtifacts } from "./context-tree.js";
 import { buildBootstrapNextAction, buildBootstrapNextFileToRead, buildBootstrapNextSuggestedCommand, buildChecksToRun, buildFirstReadContract } from "./guidance.js";
 import { inspectBootstrapTarget, type BootstrapInspection } from "./project-detect.js";
 import { PRODUCT_METADATA } from "./product.js";
 import { loadProjectOverlay, resolveExecutionMode, type ProfileSelection } from "./profiles.js";
 import { buildTemplateContext, selectPortableContract, type TemplateContext } from "./router.js";
+import { updateActiveRoleHints } from "./state.js";
 import type { WriteResult } from "../utils/fs.js";
 
 export interface BootstrapOptions {
@@ -123,9 +125,23 @@ export async function bootstrapTarget(options: BootstrapOptions, config: LoadedC
         backup: options.backup ?? false,
         backupLabel: context.generatedAt.replace(/[:.]/g, "-")
       });
+  const repoAwareResults =
+    inspection.authorityOptOut || options.dryRun
+      ? []
+      : await syncRepoAwareBootstrapArtifacts(options.targetRoot, {
+          projectName: context.projectName,
+          projectType: inspection.projectType,
+          profileName: profileResolution.profileName,
+          profileSource: profileResolution.source,
+          activeRole: contract.activeRole,
+          recommendedMcpPack: starterMcpHints[0] ?? "core-pack",
+          nextRecommendedSpecialist: starterSpecialists[0] ?? contract.activeRole,
+          nextSuggestedCommand: buildBootstrapNextSuggestedCommand(options.targetRoot)
+        });
 
   const warnings = buildBootstrapWarnings(inspection, profileResolution.source, options.explicitProfileName);
-  const hasConflicts = results.some((result) => result.status === "conflict");
+  const combinedResults = [...results, ...repoAwareResults];
+  const hasConflicts = combinedResults.some((result) => result.status === "conflict");
   const recommendedNextCommand = inspection.authorityOptOut
     ? `Review ${inspection.authorityOptOut} and only bootstrap if the repo explicitly opts in.`
     : hasConflicts
@@ -170,7 +186,7 @@ export async function bootstrapTarget(options: BootstrapOptions, config: LoadedC
       ...contract.ciSurfaces
     ],
     skippedContractSurfaces: contract.skippedSurfaces,
-    results,
+    results: combinedResults,
     nextFileToRead: buildBootstrapNextFileToRead(),
     nextSuggestedCommand,
     recommendedNextCommand
@@ -276,6 +292,48 @@ function resolveBootstrapProfile(inputs: BootstrapProfileInputs): {
     profile: config.routing.profiles[config.global.defaults.default_profile] ?? config.routing.profiles["product-build"]!,
     source: "fallback-default"
   };
+}
+
+export async function syncRepoAwareBootstrapArtifacts(
+  targetRoot: string,
+  options: {
+    projectName: string;
+    projectType: ProjectType | string;
+    profileName: string;
+    profileSource: string;
+    activeRole: string;
+    recommendedMcpPack: string;
+    nextRecommendedSpecialist: string;
+    nextSuggestedCommand: string;
+  }
+): Promise<WriteResult[]> {
+  const { state, view } = await buildRepoContextTree(targetRoot, options.projectType);
+  const treeResults = await persistRepoContextTreeArtifacts(targetRoot, state, view);
+  const memoryResults = await persistRepoContextSeedArtifacts(
+    targetRoot,
+    buildRepoContextSeedArtifacts(state, {
+      projectName: options.projectName,
+      projectType: options.projectType,
+      profile: options.profileName,
+      authoritySource: options.profileSource,
+      activeRole: options.activeRole,
+      recommendedMcpPack: options.recommendedMcpPack,
+      nextRecommendedSpecialist: options.nextRecommendedSpecialist,
+      nextSuggestedCommand: options.nextSuggestedCommand
+    })
+  );
+  await updateActiveRoleHints(targetRoot, {
+    activeRole: options.activeRole,
+    authoritySource: options.profileSource,
+    projectType: String(options.projectType),
+    nextFileToRead: ".agent/context/context-tree.json",
+    nextSuggestedCommand: options.nextSuggestedCommand,
+    nextAction: buildBootstrapNextAction(),
+    nextRecommendedSpecialist: options.nextRecommendedSpecialist,
+    nextSuggestedMcpPack: options.recommendedMcpPack,
+    latestMemoryFocus: ".agent/memory/current-focus.json"
+  }).catch(() => null);
+  return [...treeResults, ...memoryResults];
 }
 
 function resolveStarterSpecialists(

@@ -1,6 +1,6 @@
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
-import { initOrSyncTarget, summarizeWrites } from "@shrey-junior/sj-core/core/executor.js";
-import { prepareBootstrapContext } from "@shrey-junior/sj-core/core/bootstrap.js";
+import { bootstrapTarget } from "@shrey-junior/sj-core/core/bootstrap.js";
+import { summarizeWrites } from "@shrey-junior/sj-core/core/executor.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 
 export interface InitOptions {
@@ -12,7 +12,7 @@ export interface InitOptions {
 
 export async function runInit(options: InitOptions): Promise<number> {
   const config = await loadCanonicalConfig(options.repoRoot);
-  const prepared = await prepareBootstrapContext(
+  const plan = await bootstrapTarget(
     {
       repoRoot: options.repoRoot,
       targetRoot: options.targetRoot,
@@ -20,11 +20,10 @@ export async function runInit(options: InitOptions): Promise<number> {
     },
     config
   );
-  if (prepared.inspection.authorityOptOut) {
-    options.logger.warn(`repo authority requests repo-local-only behavior; init stood down (${prepared.inspection.authorityOptOut})`);
+  if (plan.inspection.authorityOptOut) {
+    options.logger.warn(`repo authority requests repo-local-only behavior; init stood down (${plan.inspection.authorityOptOut})`);
     return 0;
   }
-  const results = await initOrSyncTarget(options.repoRoot, options.targetRoot, config, prepared.context);
-  options.logger.info(summarizeWrites(results, options.targetRoot));
-  return results.some((result) => result.status === "conflict") ? 1 : 0;
+  options.logger.info(summarizeWrites(plan.results, options.targetRoot));
+  return plan.results.some((result) => result.status === "conflict") ? 1 : 0;
 }

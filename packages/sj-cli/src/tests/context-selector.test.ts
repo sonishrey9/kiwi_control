@@ -265,10 +265,10 @@ test("context selector includes selective repo-local .agent state without scanni
 
   const result = await contextSelector("fix app focus", tempDir);
 
-  assert.ok(result.include.includes(".agent/memory/current-focus.json"));
-  assert.ok(result.include.includes(".agent/memory/open-risks.json"));
-  assert.ok(result.include.includes(".agent/memory/repo-facts.json"));
-  assert.ok(result.include.includes(".agent/state/checkpoints/latest.json"));
+  assert.ok(result.signals.repoContextFiles.includes(".agent/memory/current-focus.json"));
+  assert.ok(result.signals.repoContextFiles.includes(".agent/memory/open-risks.json"));
+  assert.ok(result.signals.repoContextFiles.includes(".agent/memory/repo-facts.json"));
+  assert.ok(result.signals.repoContextFiles.includes(".agent/state/checkpoints/latest.json"));
   assert.equal(result.include.some((file) => file.startsWith(".agent/tasks/")), false);
 });
 

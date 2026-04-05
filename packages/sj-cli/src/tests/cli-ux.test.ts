@@ -90,7 +90,7 @@ test("unknown commands exit with usage status and corrective guidance", () => {
   assert.equal(result.code, 2);
   assert.match(result.stderr, /kiwi-control usage error:/);
   assert.match(result.stderr, /unknown command: does-not-exist/);
-  assert.match(result.stderr, /Core commands: init, status, check, specialists, checkpoint, handoff, ui/);
+  assert.match(result.stderr, /Core commands: plan, next, retry, resume, prepare, validate, explain, trace, doctor, init, status, check, specialists, checkpoint, handoff, ui/);
 });
 
 test("inside-folder workflow uses the current working directory by default", async () => {
@@ -109,17 +109,18 @@ test("inside-folder workflow uses the current working directory by default", asy
   assert.match(statusResult.stdout, /token summary:/);
   assert.match(statusResult.stdout, /NEXT ACTION PLAN:/);
   assert.match(statusResult.stdout, /Run: kiwi-control prepare/);
-  assert.match(statusResult.stdout, /Run: kiwi-control status --json/);
+  assert.match(statusResult.stdout, /Run: kiwi-control validate/);
 
   const checkResult = runCliInCwd(["check"], repoDir);
   assert.equal(checkResult.code, 0);
 
-  const checkpointResult = runCliInCwd(["checkpoint", "inside-folder milestone"], repoDir);
-  assert.equal(checkpointResult.code, 0);
+  const planResult = runCliInCwd(["plan", "describe your task"], repoDir);
+  assert.equal(planResult.code, 0);
+  assert.match(planResult.stdout, /plan created:/);
 
-  const handoffResult = runCliInCwd(["handoff", "--to", "qa-specialist"], repoDir);
-  assert.equal(handoffResult.code, 0);
-  assert.match(handoffResult.stdout, /handoff markdown:/);
+  const nextResult = runCliInCwd(["next"], repoDir);
+  assert.equal(nextResult.code, 0);
+  assert.match(nextResult.stdout, /next command:/);
 });
 
 test("status records an out-of-scope completion failure once and points back to prepare", async () => {
@@ -182,7 +183,7 @@ test("status records an out-of-scope completion failure once and points back to 
   });
 
   assert.equal(exitCode, 0);
-  assert.match(logs.join("\n"), /Refresh prepared scope/);
+  assert.match(logs.join("\n"), /Fix the blocking execution issue/);
   assert.match(logs.join("\n"), /kiwi-control prepare "update README docs"/);
   assert.match(logs.join("\n"), /NEXT ACTION PLAN:/);
   assert.doesNotMatch(logs.join("\n"), /Continue the active repo task/);
@@ -208,7 +209,7 @@ test("status records an out-of-scope completion failure once and points back to 
   });
 
   assert.equal(secondExitCode, 0);
-  assert.match(secondLogs.join("\n"), /Refresh prepared scope/);
+  assert.match(secondLogs.join("\n"), /Fix the blocking execution issue/);
 
   const executionLogAfterRepeat = await loadExecutionLog(repoDir);
   assert.equal(executionLogAfterRepeat.entries.length, 1);
@@ -393,6 +394,9 @@ test("successful completion records adaptive feedback and the next similar run c
 
   await fs.writeFile(path.join(repoDir, "README.md"), "# repo\n\nUpdated docs.\n", "utf8");
 
+  const validateResult = runCliInCwd(["validate", "update README docs"], repoDir);
+  assert.equal(validateResult.code, 0);
+
   const checkpointResult = runCliInCwd(["checkpoint", "docs milestone"], repoDir);
   assert.equal(checkpointResult.code, 0);
 
@@ -444,6 +448,7 @@ test("status prioritizes live repo validation issues over stale continuity actio
   });
 
   assert.equal(exitCode, 0);
-  assert.match(logs.join("\n"), /next action: Restore \.agent\/memory\/repo-facts\.json — run kiwi-control check/);
+  assert.match(logs.join("\n"), /next action: Fix the blocking execution issue — run kiwi-control doctor/);
+  assert.match(logs.join("\n"), /generated repo-local state missing/);
   assert.doesNotMatch(logs.join("\n"), /Resume the recorded focus|Continue the active repo task|Capture current progress/);
 });

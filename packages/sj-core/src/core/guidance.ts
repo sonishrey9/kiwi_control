@@ -17,7 +17,7 @@ export interface SearchGuidance {
 }
 
 export function buildBootstrapNextFileToRead(): string {
-  return ".agent/context/architecture.md";
+  return ".agent/context/context-tree.json";
 }
 
 export function buildBootstrapNextSuggestedCommand(targetRoot?: string): string {
@@ -90,7 +90,8 @@ export function buildCanonicalReadNext(options: {
     ".agent/context/specialists.md",
     ".agent/context/tool-capabilities.md",
     ".agent/context/mcp-capabilities.md",
-    ".agent/context/architecture.md",
+    ".agent/context/context-tree.json",
+    ".agent/state/context-tree.json",
     ".agent/memory/repo-facts.json",
     ".agent/memory/open-risks.json",
     ...options.contract.instructionSurfaces,
@@ -99,9 +100,7 @@ export function buildCanonicalReadNext(options: {
     ...options.contract.roleSurfaces,
     ".agent/checks.yaml",
     ".agent/scripts/verify-contract.sh",
-    ".agent/project.yaml",
-    ".agent/context/conventions.md",
-    ".agent/context/runbooks.md"
+    ".agent/project.yaml"
   ]);
 }
 
@@ -179,7 +178,7 @@ export function buildSearchGuidance(options?: {
 }
 
 export function buildBootstrapNextAction(): string {
-  return "Fill in .agent/context/architecture.md, then record a checkpoint before non-trivial implementation or handoff.";
+  return "Review .agent/context/context-tree.json, then record a checkpoint before non-trivial implementation or handoff.";
 }
 
 function uniqueStrings(items: string[]): string[] {

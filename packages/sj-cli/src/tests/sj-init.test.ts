@@ -74,7 +74,7 @@ test("sj-init chooses bootstrap for an empty folder and runs status plus check",
   assert.equal(result.code, 0);
   assert.match(result.stdout, /mode: bootstrap/);
   assert.match(result.stdout, /core installed:/);
-  assert.match(result.stdout, /next action: Fill in \.agent\/context\/architecture\.md, then record a checkpoint/);
+  assert.match(result.stdout, /next action: Review \.agent\/context\/context-tree\.json, then record a checkpoint/);
   assert.match(result.stdout, /status\/check: ok \/ ok/);
   assert.equal(await fs.access(path.join(target, ".agent", "project.yaml")).then(() => true).catch(() => false), true);
   assert.equal(await fs.access(path.join(target, ".agent", "state", "active-role-hints.json")).then(() => true).catch(() => false), true);

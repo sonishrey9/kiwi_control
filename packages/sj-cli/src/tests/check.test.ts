@@ -75,7 +75,7 @@ test("check fails when active-role-hints points at missing continuity artifacts"
         authoritySource: "repo-local",
         projectType: "python",
         readNext: [".agent/state/current-phase.json", ".agent/checks.yaml"],
-        nextFileToRead: ".agent/context/architecture.md",
+        nextFileToRead: ".agent/context/context-tree.json",
         nextSuggestedCommand: 'kiwi-control checkpoint "milestone"',
         writeTargets: [".agent/tasks/*", ".agent/state/handoff/*"],
         checksToRun: ["bash .agent/scripts/verify-contract.sh"],

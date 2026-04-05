@@ -1,6 +1,8 @@
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
 import { initOrSyncTarget, summarizeWrites } from "@shrey-junior/sj-core/core/executor.js";
-import { prepareBootstrapContext } from "@shrey-junior/sj-core/core/bootstrap.js";
+import { prepareBootstrapContext, syncRepoAwareBootstrapArtifacts } from "@shrey-junior/sj-core/core/bootstrap.js";
+import { buildBootstrapNextSuggestedCommand } from "@shrey-junior/sj-core/core/guidance.js";
+import { selectPortableContract } from "@shrey-junior/sj-core/core/router.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 
 export interface SyncOptions {
@@ -25,17 +27,31 @@ export async function runSync(options: SyncOptions): Promise<number> {
     options.logger.warn(`repo authority requests repo-local-only behavior; sync stood down (${prepared.inspection.authorityOptOut})`);
     return 0;
   }
+  const contract = selectPortableContract(config, prepared.context);
   const results = await initOrSyncTarget(options.repoRoot, options.targetRoot, config, prepared.context, {
     ...(options.dryRun !== undefined ? { dryRun: options.dryRun } : {}),
     ...(options.diffSummary !== undefined ? { diffSummary: options.diffSummary } : {}),
     backup: options.backup ?? prepared.profileResolution.profile.sync.default_backup,
     backupLabel: prepared.context.generatedAt.replace(/[:.]/g, "-")
   });
+  const repoAwareResults =
+    options.dryRun
+      ? []
+      : await syncRepoAwareBootstrapArtifacts(options.targetRoot, {
+          projectName: prepared.context.projectName,
+          projectType: prepared.inspection.projectType,
+          profileName: prepared.profileResolution.profileName,
+          profileSource: prepared.profileResolution.source,
+          activeRole: contract.activeRole,
+          recommendedMcpPack: prepared.starterMcpHints[0] ?? "core-pack",
+          nextRecommendedSpecialist: prepared.starterSpecialists[0] ?? contract.activeRole,
+          nextSuggestedCommand: buildBootstrapNextSuggestedCommand(options.targetRoot)
+        });
   options.logger.info(
-    summarizeWrites(results, options.targetRoot, {
+    summarizeWrites([...results, ...repoAwareResults], options.targetRoot, {
       ...(options.diffSummary !== undefined ? { diffSummary: options.diffSummary } : {}),
       ...(options.dryRun !== undefined ? { dryRun: options.dryRun } : {})
     })
   );
-  return results.some((result) => result.status === "conflict") ? 1 : 0;
+  return [...results, ...repoAwareResults].some((result) => result.status === "conflict") ? 1 : 0;
 }

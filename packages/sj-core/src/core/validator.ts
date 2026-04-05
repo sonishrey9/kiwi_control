@@ -772,18 +772,26 @@ export async function validateTargetRepo(
   const memoryPaths = getMemoryPaths(targetRoot);
   const requiredMemoryFiles = [
     memoryPaths.repoFacts,
-    memoryPaths.architectureDecisions,
-    memoryPaths.domainGlossary,
     memoryPaths.currentFocus,
-    memoryPaths.openRisks,
-    memoryPaths.knownGotchas,
-    memoryPaths.lastSuccessfulPatterns
+    memoryPaths.openRisks
   ];
   for (const filePath of requiredMemoryFiles) {
     if (!(await pathExists(filePath))) {
       issues.push({
         level: inspection.alreadyInitialized ? "error" : "warn",
         message: "repo-local memory file missing",
+        filePath
+      });
+    }
+  }
+  for (const filePath of [
+    path.join(targetRoot, ".agent", "context", "context-tree.json"),
+    path.join(targetRoot, ".agent", "state", "context-tree.json")
+  ]) {
+    if (!(await pathExists(filePath))) {
+      issues.push({
+        level: inspection.alreadyInitialized ? "error" : "warn",
+        message: "repo-aware context tree missing",
         filePath
       });
     }

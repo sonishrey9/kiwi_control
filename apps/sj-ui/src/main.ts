@@ -372,14 +372,33 @@ type ExecutionPlanStep = {
   command: string;
   expectedOutput: string;
   validation: string;
-  status: "pending" | "running" | "completed" | "failed";
+  status: "pending" | "running" | "success" | "failed";
+  result: {
+    ok: boolean | null;
+    summary: string | null;
+    validation: string | null;
+    failureReason: string | null;
+    suggestedFix: string | null;
+  };
+  fixCommand: string | null;
+  retryCommand: string | null;
 };
 
 type KiwiControlExecutionPlan = {
   summary: string;
+  state: string;
+  currentStepIndex: number;
+  confidence: string | null;
+  risk: "low" | "medium" | "high";
   blocked: boolean;
   steps: ExecutionPlanStep[];
   nextCommands: string[];
+  lastError: {
+    errorType: string;
+    reason: string;
+    fixCommand: string;
+    retryCommand: string;
+  } | null;
 };
 
 type KiwiControlState = {
@@ -670,9 +689,14 @@ const EMPTY_KC: KiwiControlState = {
   },
   executionPlan: {
     summary: "",
+    state: "idle",
+    currentStepIndex: 0,
+    confidence: null,
+    risk: "low",
     blocked: false,
     steps: [],
-    nextCommands: []
+    nextCommands: [],
+    lastError: null
   }
 };
 
@@ -1120,11 +1144,24 @@ function renderOverviewView(state: RepoControlState): string {
 
       <section class="kc-panel">
         ${renderPanelHeader("Execution Plan", kc.executionPlan.summary || "No execution plan is recorded yet.")}
+        <div class="kc-inline-badges">
+          ${renderInlineBadge(`state: ${kc.executionPlan.state}`)}
+          ${renderInlineBadge(`current: ${kc.executionPlan.steps[kc.executionPlan.currentStepIndex]?.id ?? "none"}`)}
+          ${renderInlineBadge(`risk: ${kc.executionPlan.risk}`)}
+          ${kc.executionPlan.confidence ? renderInlineBadge(`confidence: ${kc.executionPlan.confidence}`) : ""}
+        </div>
+        ${kc.executionPlan.lastError
+          ? `<div class="kc-divider"></div><div class="kc-stack-list">
+              ${renderNoteRow("Failure", kc.executionPlan.lastError.errorType, kc.executionPlan.lastError.reason)}
+              ${renderNoteRow("Fix command", kc.executionPlan.lastError.fixCommand, "Run this before continuing.")}
+              ${renderNoteRow("Retry command", kc.executionPlan.lastError.retryCommand, "Use this to retry the failed step.")}
+            </div>`
+          : ""}
         ${kc.executionPlan.steps.length > 0
           ? `<div class="kc-stack-list">${kc.executionPlan.steps.map((step) => renderNoteRow(
               `${step.description}`,
               step.status,
-              `${step.command} | verify: ${step.validation}`
+              `${step.command} | verify: ${step.validation}${step.fixCommand ? ` | fix: ${step.fixCommand}` : ""}${step.retryCommand ? ` | retry: ${step.retryCommand}` : ""}`
             )).join("")}</div>`
           : renderEmptyState("No execution plan is available yet.")}
       </section>

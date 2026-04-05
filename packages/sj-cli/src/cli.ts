@@ -21,6 +21,14 @@ import { runReconcile } from "./commands/reconcile.js";
 import { runSpecialists } from "./commands/specialists.js";
 import { runUi } from "./commands/ui.js";
 import { runPrepare } from "./commands/prepare.js";
+import { runPlan } from "./commands/plan.js";
+import { runNext } from "./commands/next.js";
+import { runRetry } from "./commands/retry.js";
+import { runResume } from "./commands/resume.js";
+import { runValidate } from "./commands/validate.js";
+import { runExplain } from "./commands/explain.js";
+import { runTrace } from "./commands/trace.js";
+import { runDoctor } from "./commands/doctor.js";
 
 interface ParsedArgs {
   command: string | undefined;
@@ -253,6 +261,77 @@ async function main(): Promise<void> {
       });
       return;
     }
+    case "plan": {
+      const task = parsed.positionals.join(" ").trim();
+      if (!task) {
+        throw new CliUsageError('plan requires a task string. Example: kiwi-control plan "fix auth middleware"');
+      }
+      process.exitCode = await runPlan({
+        repoRoot,
+        targetRoot,
+        task,
+        json: parsed.flags.json === true,
+        logger
+      });
+      return;
+    }
+    case "next":
+      process.exitCode = await runNext({
+        repoRoot,
+        targetRoot,
+        json: parsed.flags.json === true,
+        logger
+      });
+      return;
+    case "retry":
+      process.exitCode = await runRetry({
+        repoRoot,
+        targetRoot,
+        logger
+      });
+      return;
+    case "resume":
+      process.exitCode = await runResume({
+        repoRoot,
+        targetRoot,
+        logger
+      });
+      return;
+    case "validate": {
+      const task = parsed.positionals.join(" ").trim();
+      process.exitCode = await runValidate({
+        repoRoot,
+        targetRoot,
+        ...(task ? { task } : {}),
+        json: parsed.flags.json === true,
+        logger
+      });
+      return;
+    }
+    case "explain":
+      process.exitCode = await runExplain({
+        repoRoot,
+        targetRoot,
+        json: parsed.flags.json === true,
+        logger
+      });
+      return;
+    case "trace":
+      process.exitCode = await runTrace({
+        repoRoot,
+        targetRoot,
+        json: parsed.flags.json === true,
+        logger
+      });
+      return;
+    case "doctor":
+      process.exitCode = await runDoctor({
+        repoRoot,
+        targetRoot,
+        json: parsed.flags.json === true,
+        logger
+      });
+      return;
     default:
       if (parsed.command) {
         throw new CliUsageError(`unknown command: ${parsed.command}`);
@@ -307,7 +386,15 @@ Primary commands:
 Commands default to the current working directory. Use --target only when you need to operate on a different repo or folder.
 
 Core commands:
+  ${primaryCommand} plan "task" [--json] [--target /path/to/repo]
+  ${primaryCommand} next [--json] [--target /path/to/repo]
+  ${primaryCommand} retry [--target /path/to/repo]
+  ${primaryCommand} resume [--target /path/to/repo]
   ${primaryCommand} prepare "task" [--json] [--target /path/to/repo]
+  ${primaryCommand} validate ["task"] [--json] [--target /path/to/repo]
+  ${primaryCommand} explain [--json] [--target /path/to/repo]
+  ${primaryCommand} trace [--json] [--target /path/to/repo]
+  ${primaryCommand} doctor [--json] [--target /path/to/repo]
   ${primaryCommand} init [--profile profile-name] [--target /path/to/repo]
   ${primaryCommand} status [--profile profile-name] [--json] [--target /path/to/repo]
   ${primaryCommand} check [--profile profile-name] [--json] [--target /path/to/repo]
@@ -331,8 +418,11 @@ Advanced commands:
 Inside-folder usage:
   cd /path/to/repo
   ${primaryCommand} init
+  ${primaryCommand} plan "describe your task"
+  ${primaryCommand} next
   ${primaryCommand} status
   ${primaryCommand} check
+  ${primaryCommand} validate
   ${primaryCommand} checkpoint "beta handoff ready"
   ${primaryCommand} handoff --to qa-specialist
   ${primaryCommand} ui
@@ -378,6 +468,15 @@ main().catch((error: unknown) => {
     console.error(`${PRODUCT_METADATA.cli.primaryCommand} usage error: ${error.message}`);
     console.error(
       `Core commands: ${[
+        "plan",
+        "next",
+        "retry",
+        "resume",
+        "prepare",
+        "validate",
+        "explain",
+        "trace",
+        "doctor",
         "init",
         "status",
         "check",

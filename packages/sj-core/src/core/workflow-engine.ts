@@ -106,6 +106,13 @@ const WORKFLOW_STEPS = [
     validation: "Packet output exists and at least one packet was generated."
   },
   {
+    stepId: "validate-outcome",
+    action: "Validate outcome",
+    eventTypes: ["validation_completed"],
+    expectedOutput: "The prepared scope, touched files, and task outcome have been validated.",
+    validation: "Validation confirms expected files changed, scope stayed bounded, and the task goal was met."
+  },
+  {
     stepId: "checkpoint-progress",
     action: "Checkpoint progress",
     eventTypes: ["validation_checkpoint", "checkpoint_recorded"],

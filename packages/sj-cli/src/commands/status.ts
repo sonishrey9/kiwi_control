@@ -26,10 +26,13 @@ export async function runStatus(options: StatusOptions): Promise<number> {
   const nextActionSummary = renderNextActionSummary(topAction, controlState.kiwiControl.nextActions.summary);
   const contextTreeSummary = renderContextTreeSummary(controlState.kiwiControl.contextView.tree);
   const executionPlanSummary = renderExecutionPlan(controlState);
+  const currentStep = controlState.kiwiControl.executionPlan.steps[controlState.kiwiControl.executionPlan.currentStepIndex] ?? null;
 
   options.logger.info(
     [
       `repo status: ${controlState.repoState.title} — ${controlState.repoState.detail}`,
+      `execution state: ${controlState.kiwiControl.executionPlan.state}`,
+      `current step: ${currentStep?.id ?? "none"}`,
       `next action: ${nextActionSummary}`,
       `token summary: ${tokenSummary}`,
       executionPlanSummary,
@@ -102,10 +105,18 @@ function renderExecutionPlan(
     lines.push(`   Expect: ${step.expectedOutput}`);
     lines.push(`   Verify: ${step.validation}`);
     lines.push(`   Status: ${step.status}`);
+    if (step.fixCommand) {
+      lines.push(`   Fix: ${step.fixCommand}`);
+    }
+    if (step.retryCommand) {
+      lines.push(`   Retry: ${step.retryCommand}`);
+    }
   }
 
-  if (plan.blocked) {
-    lines.push("   Failure handling: run the corrective command above first. Do not continue until the blocking issue is cleared.");
+  if (plan.lastError) {
+    lines.push(`Failure: ${plan.lastError.errorType} — ${plan.lastError.reason}`);
+    lines.push(`Fix command: ${plan.lastError.fixCommand}`);
+    lines.push(`Retry command: ${plan.lastError.retryCommand}`);
   }
 
   if (plan.nextCommands.length > 0) {

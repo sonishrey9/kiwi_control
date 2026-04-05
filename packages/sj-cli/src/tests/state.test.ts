@@ -59,7 +59,7 @@ test("state ledger stores current phase and latest tool-specific handoff", async
     supportingRoles: ["review-specialist", "qa-specialist"],
     authoritySource: "repo-local",
     projectType: "node",
-    nextFileToRead: ".agent/context/architecture.md",
+    nextFileToRead: ".agent/context/context-tree.json",
     nextSuggestedCommand: 'kiwi-control checkpoint "milestone"'
   });
   const checkpoint: CheckpointRecord = {
@@ -132,7 +132,7 @@ test("state ledger stores current phase and latest tool-specific handoff", async
     evidence: [".agent/state/checkpoints/latest.json"],
     openQuestions: ["manual review"],
     risks: [],
-    nextFile: ".agent/context/architecture.md",
+    nextFile: ".agent/context/context-tree.json",
     nextCommand: "kiwi-control status",
     recommendedMcpPack: "web-qa-pack",
     checkpointPointer: ".agent/state/checkpoints/latest.json",
@@ -192,7 +192,7 @@ test("state ledger stores current phase and latest tool-specific handoff", async
   assert.equal(activeRoleHints?.latestCheckpoint, ".agent/state/checkpoints/latest.json");
   assert.equal(activeRoleHints?.latestTaskPacket, ".agent/state/latest-task-packets.json");
   assert.equal(activeRoleHints?.latestHandoff, ".agent/state/handoff/latest.json");
-  assert.equal(activeRoleHints?.nextFileToRead, ".agent/context/architecture.md");
+  assert.equal(activeRoleHints?.nextFileToRead, ".agent/context/context-tree.json");
   assert.match(activeRoleHints?.nextSuggestedCommand ?? "", /checkpoint/);
   assert.equal(activeRoleHints?.latestMemoryFocus, ".agent/memory/current-focus.json");
   assert.equal(activeRoleHints?.readNext.length !== 0, true);

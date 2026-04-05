@@ -7,6 +7,7 @@ import type { GeneratedInstructions } from "@shrey-junior/sj-core/core/instructi
 import { matchSkillsForTask } from "@shrey-junior/sj-core/core/skills-registry.js";
 import type { SkillRegistryState } from "@shrey-junior/sj-core/core/skills-registry.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
+import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import type { MeasuredUsageState } from "@shrey-junior/sj-core/core/token-intelligence.js";
 import type { TokenBreakdownState, TokenEstimate } from "@shrey-junior/sj-core/core/token-estimator.js";
 import { estimateTokens, persistTokenUsage } from "@shrey-junior/sj-core/core/token-estimator.js";
@@ -128,6 +129,10 @@ export async function runPrepare(options: PrepareOptions): Promise<number> {
       nextRecommendedAction: workflowExecution.suggestedFix ?? workflowExecution.validation,
       validationStatus: "error"
     }).catch(() => null);
+    await syncExecutionPlan(targetRoot, {
+      task,
+      forceState: "failed"
+    }).catch(() => null);
     logger.error(workflowExecution.failureReason ?? `Prepare failed for "${task}".`);
     return 1;
   }
@@ -153,6 +158,10 @@ export async function runPrepare(options: PrepareOptions): Promise<number> {
     nextSuggestedCommand: `kiwi-control run "${task}"`,
     nextRecommendedAction: "Open the generated instructions and work inside the prepared scope.",
     validationStatus: finalSelection.confidence === "low" ? "warn" : "ok"
+  }).catch(() => null);
+  await syncExecutionPlan(targetRoot, {
+    task,
+    forceState: "ready"
   }).catch(() => null);
   const contextTrace = await readJson<ContextTraceState>(path.join(targetRoot, ".agent", "state", "context-trace.json"));
   const indexing = await readJson<IndexingState>(path.join(targetRoot, ".agent", "state", "indexing.json"));
