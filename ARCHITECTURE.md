@@ -1,10 +1,8 @@
-# Architecture
+# Kiwi Control Architecture
 
-## System overview
+## High-level overview
 
-Kiwi Control is a repo-local, artifact-first control plane for coding agents. It is intentionally not a new agent runtime. The repository remains the source of truth through `.agent/` artifacts, canonical config in `configs/`, prompts in `prompts/`, and templates in `templates/`. The product is split into a backend engine, a CLI shell, and a desktop shell.
-
-### Layer diagram
+Kiwi Control is a repo-local, artifact-first control plane for coding agents. It is not a new agent runtime. The repository remains authoritative through `.agent/` artifacts and canonical product inputs in `configs/`, `prompts/`, and `templates/`. The system is split into a backend engine, a CLI layer, and a desktop shell.
 
 ```text
 repo files + .agent artifacts
@@ -27,32 +25,32 @@ packages/sj-cli  runtime/ui-bridge
 
 ### `packages/sj-core`
 
-`sj-core` owns the platform-neutral control plane:
+`sj-core` owns the control-plane logic:
 
 - context discovery and context trees
-- context selection and confidence scoring
-- execution planning
-- expected outcome validation
-- adaptive feedback and eval summaries
-- repo state aggregation for CLI and UI
-- machine advisory and ecosystem discovery
+- context selection and confidence
+- execution plans and expected outcomes
+- validation and retry strategies
+- eval, feedback, and task-pattern memory
+- repo-state aggregation for CLI and desktop UI
+- machine advisory and ecosystem inventory
 
 Important files:
 
-- `src/core/execution-engine.ts`
-- `src/core/execution-plan.ts`
-- `src/core/context-tree.ts`
-- `src/core/context-selector.ts`
-- `src/core/context-feedback.ts`
-- `src/core/task-pattern-memory.ts`
-- `src/core/eval.ts`
-- `src/core/ui-state.ts`
-- `src/core/task-intent.ts`
-- `src/runtime/ui-bridge.ts`
+- `packages/sj-core/src/core/execution-engine.ts`
+- `packages/sj-core/src/core/execution-plan.ts`
+- `packages/sj-core/src/core/context-tree.ts`
+- `packages/sj-core/src/core/context-selector.ts`
+- `packages/sj-core/src/core/context-feedback.ts`
+- `packages/sj-core/src/core/task-pattern-memory.ts`
+- `packages/sj-core/src/core/eval.ts`
+- `packages/sj-core/src/core/task-intent.ts`
+- `packages/sj-core/src/core/ui-state.ts`
+- `packages/sj-core/src/runtime/ui-bridge.ts`
 
 ### `packages/sj-cli`
 
-`sj-cli` is the installable command surface over `sj-core`. It should stay thin. Commands load or mutate repo-local state through the core package and report the results in human-readable or JSON form.
+`sj-cli` is the operational shell over `sj-core`. It should remain thin and explicit.
 
 Representative commands:
 
@@ -70,82 +68,84 @@ Representative commands:
 
 Important files:
 
-- `src/cli.ts`
-- `src/commands/guide.ts`
-- `src/commands/status.ts`
-- `src/commands/ui.ts`
-- `src/commands/checkpoint.ts`
-- `src/commands/handoff.ts`
+- `packages/sj-cli/src/cli.ts`
+- `packages/sj-cli/src/commands/guide.ts`
+- `packages/sj-cli/src/commands/status.ts`
+- `packages/sj-cli/src/commands/ui.ts`
+- `packages/sj-cli/src/commands/checkpoint.ts`
+- `packages/sj-cli/src/commands/handoff.ts`
 
 ### `apps/sj-ui`
 
-The desktop app is a Tauri shell around repo-local state. It must never become authoritative. Its job is to:
+The desktop app is a Tauri shell around repo-local state. It should never become authoritative.
+
+Responsibilities:
 
 - load repo control state
-- visualize context, plans, validation, tokens, feedback, and machine data
-- trigger allowlisted Kiwi CLI flows
-- provide a native desktop entrypoint for repo-local control
+- render operator-facing state
+- invoke allowlisted Kiwi CLI commands
+- provide native desktop affordances like file opening and app lifecycle handling
 
 Important files:
 
-- `src/main.ts`
-- `src/styles.css`
-- `src-tauri/src/main.rs`
-- `src-tauri/tauri.conf.json`
+- `apps/sj-ui/src/main.ts`
+- `apps/sj-ui/src/styles.css`
+- `apps/sj-ui/src-tauri/src/main.rs`
+- `apps/sj-ui/src-tauri/tauri.conf.json`
 
-## Key runtime flows
+## Runtime flows
 
 ### Repo state hydration
 
-1. Desktop invokes `load_repo_control_state`
-2. Tauri calls the runtime bridge in `sj-core`
+1. The desktop app invokes `load_repo_control_state`
+2. Tauri delegates to the runtime bridge in `sj-core`
 3. `buildRepoControlState(...)` composes:
-   - validation
+   - repo validation
    - context selection
    - execution plan
    - feedback and eval
    - specialists and MCP packs
    - machine advisory
    - token analytics
-4. UI renders a single control-state object
+4. The desktop renderer paints a single `RepoControlState`
 
-### Command execution
+### Action execution
 
-1. User clicks an action in the desktop UI or runs a CLI command directly
-2. The CLI or Tauri allowlist triggers the corresponding command
+1. A user triggers a CLI command or clicks a desktop action
+2. The CLI or Tauri command bridge runs the corresponding Kiwi command
 3. The command mutates repo-local artifacts through `sj-core`
-4. The UI refreshes repo state and re-renders from fresh repo-local truth
+4. The UI refreshes repo state from repo-local truth
 
-### Context and planning flow
+### Context + planning flow
 
-1. Repo tree and context authority are built from safe repo scanning
-2. Context selector builds a bounded file set and confidence score
-3. Execution engine builds hierarchical plan + expected outcomes
-4. Validation compares actual touched files against expected outcomes
-5. Feedback and eval logs adjust future selection behavior
+1. Context tree and authority are built from bounded repo scanning
+2. Context selector builds a file set plus confidence
+3. Execution engine derives steps, expected outcomes, and retry strategy
+4. Validation compares actual touched files to expected outcomes
+5. Feedback and eval affect future context selection
 
 ## Architecture knowledge summary
 
 A new contributor should understand Kiwi Control in this order:
 
-1. The repo is the authority, not the desktop app
-2. `sj-core` is the engine and should hold decision logic
+1. The repo is authoritative, not the desktop app
+2. `sj-core` owns planning, validation, selection, and state aggregation
 3. `sj-cli` is the operational shell over `sj-core`
-4. `sj-ui` is a thin Tauri shell that reads repo state and runs allowlisted actions
-5. `.agent/*` artifacts are the long-lived substrate for continuity, memory, plans, and evaluation
+4. `sj-ui` is a thin Tauri shell that reads repo state and invokes allowlisted actions
+5. `.agent/*` artifacts are the continuity, memory, and evaluation substrate
 
-The project’s design goal is to keep all important behavior:
+The design goals are:
 
-- deterministic
-- inspectable
-- repo-local
-- low-dependency
-- additive rather than magic
+- deterministic behavior
+- inspectable state
+- repo-local authority
+- low dependency footprint
+- additive changes instead of hidden automation
 
 ## Current contributor priorities
 
-- continue splitting the desktop renderer into smaller modules
+- continue splitting the desktop renderer into focused modules
 - improve frontend test coverage
-- normalize CLI output formatting
-- keep machine-global behavior clearly separated from repo-local authority
-- preserve the “thin control plane” principle
+- normalize CLI output behavior
+- keep machine-global setup clearly separate from repo-local truth
+- preserve the thin-control-plane boundary

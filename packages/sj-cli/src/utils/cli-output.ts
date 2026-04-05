@@ -44,8 +44,9 @@ export function dim(text: string): string {
 
 export async function createSpinner(text: string): Promise<SpinnerLike> {
   try {
-    const oraModule = await optionalImport("ora") as { default: (options: { text: string; isEnabled: boolean }) => SpinnerLike };
-    const spinner = oraModule.default({
+    const oraModule = await optionalImport("ora") as { default: unknown };
+    const spinnerFactory = oraModule.default as (options: { text: string; isEnabled: boolean }) => { start(): SpinnerLike };
+    const spinner = spinnerFactory({
       text,
       isEnabled: process.stdout.isTTY
     }).start();

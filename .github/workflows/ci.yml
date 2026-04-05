@@ -45,6 +45,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Remove macOS metadata junk
+        run: node scripts/remove-macos-metadata.mjs .
+
       - name: Build workspace
         run: npm run build
 
@@ -62,18 +65,21 @@ jobs:
         with:
           name: kiwi-control-cli-${{ matrix.os }}
           path: packages/sj-cli/dist
+          if-no-files-found: ignore
 
       - name: Upload core runtime
         uses: actions/upload-artifact@v4
         with:
           name: kiwi-control-core-${{ matrix.os }}
           path: packages/sj-core/dist
+          if-no-files-found: ignore
 
       - name: Upload UI dist
         uses: actions/upload-artifact@v4
         with:
           name: kiwi-control-ui-${{ matrix.os }}
           path: apps/sj-ui/dist
+          if-no-files-found: ignore
 
       - name: Upload Tauri bundles
         uses: actions/upload-artifact@v4

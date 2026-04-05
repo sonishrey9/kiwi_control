@@ -2,6 +2,35 @@
   "artifactType": "kiwi-control/execution-plan",
   "version": 2,
   "task": null,
+  "intent": null,
+  "hierarchy": {
+    "goal": null,
+    "subtasks": [
+      {
+        "id": "scope",
+        "title": "Scope the work",
+        "stepIds": [
+          "prepare"
+        ]
+      },
+      {
+        "id": "change",
+        "title": "Make the change",
+        "stepIds": [
+          "execute"
+        ]
+      },
+      {
+        "id": "verify",
+        "title": "Verify and checkpoint",
+        "stepIds": [
+          "validate",
+          "checkpoint",
+          "handoff"
+        ]
+      }
+    ]
+  },
   "state": "idle",
   "currentStepIndex": 0,
   "confidence": null,
@@ -14,6 +43,14 @@
       "description": "Prepare bounded context",
       "command": "kiwi-control prepare \"describe your task\"",
       "expectedOutput": "Prepared scope, instructions, token state, and context snapshot are ready.",
+      "expectedOutcome": {
+        "expectedFiles": [],
+        "expectedChanges": [
+          "Prepared scope is written",
+          "Instructions are generated",
+          "Token state is recorded"
+        ]
+      },
       "validation": "Context selection and prepared scope must be recorded before execution.",
       "status": "pending",
       "workflowStepId": "prepare-context",
@@ -33,6 +70,13 @@
       "description": "Modify the selected files",
       "command": "kiwi-control run \"describe your task\"",
       "expectedOutput": "Run packets or equivalent execution artifacts are ready.",
+      "expectedOutcome": {
+        "expectedFiles": [],
+        "expectedChanges": [
+          "Implementation changes land in selected source files or module groups.",
+          "Expected files: selected scope"
+        ]
+      },
       "validation": "Execution must produce packet/output artifacts inside the prepared scope.",
       "status": "pending",
       "workflowStepId": "generate-run-packets",
@@ -52,6 +96,14 @@
       "description": "Validate the task outcome",
       "command": "kiwi-control validate \"describe your task\"",
       "expectedOutput": "Final validation confirms scope and outcome correctness.",
+      "expectedOutcome": {
+        "expectedFiles": [],
+        "expectedChanges": [
+          "Selected files remain bounded to: selected scope",
+          "Implementation changes land in selected source files or module groups.",
+          "Expected files: selected scope"
+        ]
+      },
       "validation": "Validation must confirm expected files changed, scope remained bounded, and the task goal was achieved.",
       "status": "pending",
       "workflowStepId": "validate-outcome",
@@ -71,6 +123,12 @@
       "description": "Checkpoint the validated work",
       "command": "kiwi-control checkpoint \"validated-progress\"",
       "expectedOutput": "Checkpoint artifacts record validated progress.",
+      "expectedOutcome": {
+        "expectedFiles": [],
+        "expectedChanges": [
+          "Task outcome remains inside the selected scope."
+        ]
+      },
       "validation": "Checkpointing is allowed only after validation passes.",
       "status": "pending",
       "workflowStepId": "checkpoint-progress",
@@ -90,6 +148,12 @@
       "description": "Handoff the work",
       "command": "kiwi-control handoff --to qa-specialist",
       "expectedOutput": "Handoff artifacts are written for the next specialist/tool.",
+      "expectedOutcome": {
+        "expectedFiles": [],
+        "expectedChanges": [
+          "Task outcome remains inside the selected scope."
+        ]
+      },
       "validation": "Handoff should happen after checkpoint captures validated progress.",
       "status": "pending",
       "workflowStepId": "handoff-work",
@@ -120,12 +184,24 @@
     "forwardDependencies": [],
     "reverseDependencies": []
   },
+  "impactPreview": {
+    "likelyFiles": [],
+    "moduleGroups": []
+  },
+  "verificationLayers": [
+    {
+      "id": "syntax",
+      "description": "Syntax and shape validation for the selected scope."
+    }
+  ],
+  "partialResults": [],
   "evalSummary": {
     "totalRuns": 0,
     "successRate": 0,
+    "retryRate": 0,
     "averageContextPrecision": 0,
     "averageTokenCount": 0,
     "recentEntries": []
   },
-  "updatedAt": "2026-04-05T09:57:33.796Z"
+  "updatedAt": "2026-04-05T14:32:48.000Z"
 }

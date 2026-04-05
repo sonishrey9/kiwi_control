@@ -1,33 +1,34 @@
 # Contributing to Kiwi Control
 
-## What Kiwi Control is
+## Development principles
 
-Kiwi Control is a repo-local agentic control plane. It is intentionally designed to be:
+Kiwi Control is a repo-local control plane. Keep these rules intact:
 
-- deterministic
-- artifact-first
-- additive
-- portable across repos
-- thin at the desktop layer
+- repo-local artifacts are authoritative
+- `sj-core` owns decision logic
+- `sj-cli` stays thin where possible
+- `sj-ui` stays a shell, not a second source of truth
+- additive changes beat rewrites
+- generic repos stay quiet unless explicitly initialized
 
-Do not turn it into a hidden runtime or a destructive automation system.
+## Environment setup
 
-## Local development
-
-### Requirements
+Requirements:
 
 - Node.js 22+
 - npm 10+
 - Rust toolchain for Tauri desktop work
-- Platform prerequisites for Tauri on macOS, Windows, or Linux
+- platform prerequisites for Tauri on macOS, Windows, or Linux
 
-### Install dependencies
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-### Core verification loop
+## Verification
+
+Use this as the default local loop:
 
 ```bash
 npm run build
@@ -35,27 +36,27 @@ npm test
 bash scripts/smoke-test.sh
 ```
 
-### Desktop development
+Desktop dev:
 
 ```bash
 npm run ui:dev
 ```
 
-### Desktop production build
+Desktop production build:
 
 ```bash
 npm run ui:desktop:build
 ```
 
-## Repository layout
+## Repository map
 
-- `packages/sj-core` — planning, context, eval, repo-state aggregation
-- `packages/sj-cli` — installable command surface over `sj-core`
+- `packages/sj-core` — planning, selection, validation, eval, repo-state aggregation
+- `packages/sj-cli` — command surface over `sj-core`
 - `apps/sj-ui` — Tauri desktop shell
 - `configs/`, `prompts/`, `templates/` — canonical product authority
-- `.agent/` — repo-local generated continuity, context, memory, and eval artifacts
+- `.agent/` — generated repo-local state and continuity artifacts
 
-Read these first:
+Start with:
 
 - [README.md](./README.md)
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
@@ -63,51 +64,50 @@ Read these first:
 ## Coding standards
 
 - keep diffs minimal and targeted
-- preserve repo-local authority boundaries
-- prefer additive helpers over broad rewrites
 - avoid speculative cleanup
-- do not make `sj-ui` authoritative
-- keep `sj-cli` thin where possible
-- keep `sj-core` deterministic and inspectable
+- preserve repo-local authority boundaries
+- do not add heavy dependencies casually
+- keep command surfaces explicit
+- keep desktop-native operations allowlisted and path-safe
 
 ## High-value contribution areas
 
-### UI modularization
+### 1. UI modularization
 
-The desktop app has historically concentrated too much renderer logic in `apps/sj-ui/src/main.ts`.
+The desktop renderer still has too much logic concentrated in `apps/sj-ui/src/main.ts`.
 
-Good work here:
+Helpful work:
 
-- extract more renderer/state helpers into focused modules
-- tighten event handling boundaries
+- split more view/state logic into focused modules
+- improve event handling boundaries
 - improve keyboard and focus behavior
 
-### Frontend testing
+### 2. Frontend tests
 
 The backend and CLI are much better tested than the desktop app.
 
-Good work here:
+Helpful work:
 
 - renderer interaction tests
 - Tauri invoke contract tests
 - desktop smoke verification
 
-### CLI output normalization
+### 3. CLI output normalization
 
-Some commands are polished, others still read like internal logs.
+Some commands are polished, others still feel like internal logs.
 
-Good work here:
+Helpful work:
 
-- shared output helpers
-- consistent sections, tables, statuses, and machine-readable JSON
+- shared CLI output helpers
+- consistent sections, tables, statuses, and JSON behavior
 
-### Build hygiene
+### 4. Build hygiene
 
-Good work here:
+Helpful work:
 
-- prevent `._*` metadata leakage
+- stop `._*` macOS metadata junk from polluting working trees
 - keep generated artifacts isolated
-- improve local/CI parity for Tauri builds
+- improve local and CI parity for Tauri builds
 
 ## Pull requests
 
@@ -117,22 +117,22 @@ Please include:
 - user-facing impact
 - repo-local contract impact, if any
 - build/test/smoke results
-- platforms exercised for desktop changes
-- known follow-up work or limitations
+- platform(s) exercised for desktop changes
+- remaining limitations or follow-up work
 
 ## Security and trust
 
-Be extra careful when changing:
+Be extra careful when touching:
 
 - Tauri command handlers
 - CLI execution bridges
-- file-opening flows
+- file opening behavior
 - repo path validation
-- anything that touches `.agent/` authority artifacts
+- `.agent/` authority artifacts
 
 Never weaken:
 
 - path boundary checks
+- explicit command allowlists
 - repo-local authority rules
 - read-only machine advisory guarantees
-- explicit command allowlists

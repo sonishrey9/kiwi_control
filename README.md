@@ -1,29 +1,28 @@
 # Kiwi Control
 
-Kiwi Control is a repo-local control plane for coding agents. It gives you one installable CLI, one desktop app, and one repo-backed operating model without moving authority out of the repository. The backend stays deterministic, the CLI stays practical, and the desktop app stays a thin shell over repo state instead of becoming its own hidden runtime.
+Kiwi Control is a repo-local control plane for coding agents. It keeps authority inside the repository, exposes a practical CLI for day-to-day work, and ships a Tauri desktop shell for visibility, interaction, and review.
 
-![Overview screenshot placeholder](./docs/assets/screenshot-overview-placeholder.png)
-![Graph screenshot placeholder](./docs/assets/screenshot-graph-placeholder.png)
+![Kiwi Control Overview](./docs/assets/overview-placeholder.png)
+![Kiwi Control Graph](./docs/assets/graph-placeholder.png)
 
 ## Why Kiwi
 
-Most agent tooling is either editor-native and opaque, or automated and destructive. Kiwi takes a different path:
+Most agent tools either hide their reasoning in an editor plugin or centralize execution behind a cloud service. Kiwi takes the opposite approach:
 
-- repo-local artifacts stay authoritative
-- machine-global setup is an accelerator, not a dependency
-- the control plane is explicit, inspectable, and versionable
-- the desktop app mirrors repo truth instead of inventing a parallel truth source
-- generic repositories stay quiet until you opt in
+- the repo is the source of truth
+- `.agent/` artifacts are explicit and portable
+- the backend is deterministic and inspectable
+- the CLI is the real operational surface
+- the desktop app is a thin shell over repo-local state, not a parallel runtime
 
 ## Features
 
-- Repo-first execution planning with explicit prepare, validate, checkpoint, and handoff flows
-- Bounded context selection with context trees, dependency hints, and confidence signals
-- Repo-local memory, continuity, and eval artifacts under `.agent/`
-- Machine advisory for toolchain, MCP, usage, and config health
-- CLI surface for day-to-day work: `guide`, `next`, `retry`, `resume`, `status`, `trace`, `validate`, `run --auto`
-- Desktop control surface with sidebar navigation, graph view, inspector, token visibility, and interactive actions
-- Cross-platform desktop packaging via Tauri for macOS and Windows, plus Linux build support
+- Repo-local execution planning and validation
+- Context trees, context authority, and bounded file selection
+- Checkpoints, handoffs, and continuity artifacts
+- Machine advisory for toolchain, MCP, and usage health
+- Cross-platform desktop shell via Tauri
+- CLI-driven workflows for guide, next step, retry, validate, trace, and auto-run
 
 ## Quickstart
 
@@ -42,7 +41,7 @@ kiwi-control --help
 kc --help
 ```
 
-### First repo workflow
+### First repo flow
 
 ```bash
 cd /path/to/repo
@@ -70,17 +69,6 @@ kc ui
 
 If the desktop bundle is installed, Kiwi Control opens it and loads the current repo automatically.
 
-## Desktop usage
-
-The desktop shell gives you:
-
-- Overview: repo health, task summary, execution plan, next actions
-- Context: live context tree, file analysis, context trace
-- Graph: repo mind map from current context tree
-- Tokens: estimated and measured token usage
-- Feedback: adaptive file preference and task reuse
-- Specialists / MCPs / System / Validation / Machine: operator-level visibility and actions
-
 ## Core commands
 
 ```bash
@@ -94,36 +82,45 @@ kc validate --target /path/to/repo
 kc run --auto "stabilize auth flow" --target /path/to/repo
 ```
 
-Use `--json` on operator-facing commands when you need machine-readable output.
+Use `--json` when you need machine-readable output.
+
+## Desktop usage
+
+The desktop shell currently includes:
+
+- left rail navigation for Overview, Context, Graph, Tokens, Feedback, MCPs, Specialists, System, Validation, and Machine
+- center workspace with execution plan, context tree, graph view, and operator cards
+- right inspector for reasoning, validation, and control actions
+- interactive command bar wired to Kiwi CLI flows
 
 ## Architecture
 
 Kiwi Control is a 3-layer monorepo:
 
-- `packages/sj-core` — repo-local engine, planning, selection, eval, validation, state aggregation
-- `packages/sj-cli` — human and machine-friendly command surface over `sj-core`
-- `apps/sj-ui` — Tauri desktop shell that reads repo state and invokes allowlisted command flows
+- `packages/sj-core` — repo-local engine, planning, selection, eval, validation, repo-state aggregation
+- `packages/sj-cli` — installable CLI over `sj-core`
+- `apps/sj-ui` — Tauri desktop shell over repo and CLI state
 
 ```text
-repo + .agent artifacts
-        |
-        v
-    sj-core
-        |
-   +----+----+
-   |         |
-   v         v
- sj-cli    ui-bridge
-   |         |
-   +----+----+
-        |
-        v
-    Tauri desktop
+repo files + .agent artifacts
+          |
+          v
+      packages/sj-core
+          |
+   +------+------+
+   |             |
+   v             v
+packages/sj-cli  runtime/ui-bridge
+   |             |
+   +------+------+
+          |
+          v
+   apps/sj-ui (Tauri desktop)
 ```
 
-Read the full contributor-oriented design in [ARCHITECTURE.md](./ARCHITECTURE.md).
+For the contributor-oriented version, read [ARCHITECTURE.md](./ARCHITECTURE.md).
 
-## Developer quickstart
+## Development
 
 ```bash
 npm install
@@ -133,31 +130,32 @@ bash scripts/smoke-test.sh
 npm run ui:dev
 ```
 
-Desktop build:
+Desktop production build:
 
 ```bash
 npm run ui:desktop:build
 ```
 
-## Open-source status
+## Project goals
 
-What is solid today:
+Kiwi Control is intentionally:
 
-- repo-local backend and CLI
-- desktop shell with working repo-state hydration and command bridge
-- CI-ready build and test flow
-- machine advisory and desktop operator views
+- repo-first
+- local-first
+- additive
+- non-destructive
+- explicit about limits and confidence
 
-What is still actively improving:
+It is intentionally not:
 
-- UI modularization and tests
-- desktop interaction ergonomics
-- CLI output consistency
-- packaging polish and signing
+- a generic agent runtime replacement
+- a hidden automation layer
+- a cloud-required control plane
+- a destructive “auto-fix everything” tool
 
 ## Contributing
 
-Start with [CONTRIBUTING.md](./CONTRIBUTING.md).
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
