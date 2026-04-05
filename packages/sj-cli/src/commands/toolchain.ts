@@ -1,6 +1,7 @@
 import { loadMachineAdvisory } from "@shrey-junior/sj-core/integrations/machine-advisory.js";
 import type { MachineAdvisorySetupPhase, MachineAdvisoryState } from "@shrey-junior/sj-core/integrations/machine-advisory.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { createSpinner, printSection, printTable, success, warn } from "../utils/cli-output.js";
 
 export interface ToolchainOptions {
   repoRoot: string;
@@ -11,23 +12,25 @@ export interface ToolchainOptions {
 }
 
 export async function runToolchain(options: ToolchainOptions): Promise<number> {
+  const spinner = await createSpinner("Loading machine advisory");
   const advisory = await loadMachineAdvisory({
     ...(options.refresh !== undefined ? { forceRefresh: options.refresh } : {})
   });
+  spinner.succeed("Machine advisory ready");
 
   if (options.json) {
     options.logger.info(JSON.stringify(advisory, null, 2));
     return 0;
   }
 
-  renderSection(options.logger, `AI TOOLCHAIN DASHBOARD   ${advisory.updatedAt}${advisory.stale ? " (stale)" : ""}`);
-  renderSection(options.logger, "HEALTH SUMMARY");
+  printSection(options.logger, `AI TOOLCHAIN DASHBOARD   ${advisory.updatedAt}${advisory.stale ? " (stale)" : ""}`);
+  printSection(options.logger, "HEALTH SUMMARY");
   options.logger.info(
     `critical=${formatInteger(advisory.systemHealth.criticalCount)} warning=${formatInteger(advisory.systemHealth.warningCount)} ok=${formatInteger(advisory.systemHealth.okCount)}`
   );
 
-  renderSection(options.logger, `TOOLCHAIN INVENTORY [${formatSection(advisory.sections.inventory)}]`);
-  renderTable(
+  printSection(options.logger, `TOOLCHAIN INVENTORY [${formatSection(advisory.sections.inventory)}]`);
+  await printTable(
     options.logger,
     ["Tool", "Version", "Phase", "Status"],
     advisory.inventory.map((tool) => [
@@ -38,13 +41,13 @@ export async function runToolchain(options: ToolchainOptions): Promise<number> {
     ])
   );
 
-  renderSection(options.logger, `MCP SERVERS [${formatSection(advisory.sections.mcpInventory)}]`);
+  printSection(options.logger, `MCP SERVERS [${formatSection(advisory.sections.mcpInventory)}]`);
   options.logger.info(
     `Total: Claude Code ${formatInteger(advisory.mcpInventory.claudeTotal)}   Codex ${formatInteger(advisory.mcpInventory.codexTotal)}   Copilot ${formatInteger(advisory.mcpInventory.copilotTotal)}`
   );
   options.logger.info("");
   options.logger.info("Token Optimization Servers");
-  renderTable(
+  await printTable(
     options.logger,
     ["Server", "Claude Code", "Codex", "Copilot"],
     advisory.mcpInventory.tokenServers.map((server) => [
@@ -55,8 +58,8 @@ export async function runToolchain(options: ToolchainOptions): Promise<number> {
     ])
   );
 
-  renderSection(options.logger, `TOKEN OPTIMIZATION LAYERS [${formatSection(advisory.sections.optimizationLayers)}]`);
-  renderTable(
+  printSection(options.logger, `TOKEN OPTIMIZATION LAYERS [${formatSection(advisory.sections.optimizationLayers)}]`);
+  await printTable(
     options.logger,
     ["Layer", "Savings", "Claude Code", "Codex", "Copilot"],
     advisory.optimizationLayers.map((layer) => [
@@ -69,7 +72,7 @@ export async function runToolchain(options: ToolchainOptions): Promise<number> {
   );
   options.logger.info("Optimization score intentionally omitted. Kiwi reports factual-only machine advisory.");
 
-  renderSection(options.logger, "SKILLS & PLUGINS");
+  printSection(options.logger, "SKILLS & PLUGINS");
   options.logger.info(`Claude Code: ${formatInteger(advisory.skillsCount)} agent skills in ~/.agents/skills/`);
   options.logger.info(
     `Codex: ${formatInteger(advisory.mcpInventory.codexTotal)} MCP servers${advisory.inventory.some((tool) => tool.name === "omx" && tool.installed) ? " + OMX orchestration" : ""}`
@@ -78,14 +81,14 @@ export async function runToolchain(options: ToolchainOptions): Promise<number> {
     `Copilot CLI: ${formatInteger(advisory.copilotPlugins.length)} plugins${advisory.copilotPlugins.length > 0 ? `: ${advisory.copilotPlugins.join(", ")}` : ""}`
   );
 
-  renderSection(options.logger, "WHAT AI-SETUP ADDED");
+  printSection(options.logger, "WHAT AI-SETUP ADDED");
   options.logger.info(`status: ${formatSection(advisory.sections.setupPhases)}`);
   for (const phase of advisory.setupPhases) {
     renderSetupPhase(options.logger, phase);
   }
 
-  renderSection(options.logger, `CONFIG HEALTH [${formatSection(advisory.sections.configHealth)}]`);
-  renderTable(
+  printSection(options.logger, `CONFIG HEALTH [${formatSection(advisory.sections.configHealth)}]`);
+  await printTable(
     options.logger,
     ["Config", "Status", "Description"],
     advisory.configHealth.map((entry) => [
@@ -95,20 +98,21 @@ export async function runToolchain(options: ToolchainOptions): Promise<number> {
     ])
   );
 
-  renderSection(options.logger, `TOKEN USAGE (LAST ${advisory.windowDays} DAYS) [${formatSection(advisory.sections.usage)}]`);
+  printSection(options.logger, `TOKEN USAGE (LAST ${advisory.windowDays} DAYS) [${formatSection(advisory.sections.usage)}]`);
   options.logger.info(`Claude Code: ${buildUsageSummary(advisory, "claude")}`);
   options.logger.info(`Codex: ${buildUsageSummary(advisory, "codex")}`);
-  options.logger.info(`Copilot CLI: ${advisory.usage.copilot.note}`);
+    options.logger.info(`Copilot CLI: ${advisory.usage.copilot.note}`);
   options.logger.info("Run kiwi-control usage for daily usage tables.");
   if (advisory.guidance.length > 0) {
-    renderSection(options.logger, `GUIDANCE [${formatSection(advisory.sections.guidance)}]`);
+    printSection(options.logger, `GUIDANCE [${formatSection(advisory.sections.guidance)}]`);
     for (const [title, entries] of groupGuidance(advisory.guidance)) {
       if (entries.length === 0) {
         continue;
       }
       options.logger.info(title);
       for (const entry of entries) {
-        options.logger.info(`- [${entry.priority}] ${entry.message}: ${entry.impact}`);
+        const marker = entry.priority === "critical" ? warn(`[${entry.priority}]`) : success(`[${entry.priority}]`);
+        options.logger.info(`- ${marker} ${entry.message}: ${entry.impact}`);
         options.logger.info(`  reason: ${entry.reason ?? entry.section}`);
         if (entry.fixCommand) {
           options.logger.info(`  fix: ${entry.fixCommand}`);
@@ -119,12 +123,8 @@ export async function runToolchain(options: ToolchainOptions): Promise<number> {
       }
     }
   }
-  options.logger.info("next command: kiwi-control usage");
+  options.logger.info(`${success("next command")}: kiwi-control usage`);
   return 0;
-}
-
-function renderSection(logger: Logger, title: string): void {
-  logger.info(title);
 }
 
 function renderSetupPhase(logger: Logger, phase: MachineAdvisorySetupPhase): void {
@@ -134,35 +134,6 @@ function renderSetupPhase(logger: Logger, phase: MachineAdvisorySetupPhase): voi
   }
 }
 
-function renderTable(logger: Logger, headers: string[], rows: string[][]): void {
-  const widths = headers.map((header, index) =>
-    Math.max(
-      header.length,
-      ...rows.map((row) => stripAnsi(row[index] ?? "").length)
-    )
-  );
-  logger.info(formatRow(headers, widths));
-  logger.info(formatRow(widths.map((width) => "-".repeat(width)), widths));
-  for (const row of rows) {
-    logger.info(formatRow(row, widths));
-  }
-}
-
-function formatRow(values: string[], widths: number[]): string {
-  return values
-    .map((value, index) => pad(value, widths[index] ?? value.length))
-    .join("  ");
-}
-
-function pad(value: string, width: number): string {
-  const visible = stripAnsi(value).length;
-  const padding = Math.max(0, width - visible);
-  return `${value}${" ".repeat(padding)}`;
-}
-
-function stripAnsi(value: string): string {
-  return value.replace(/\u001b\[[0-9;]*m/g, "");
-}
 
 function formatInteger(value: number): string {
   return value.toLocaleString("en-US");

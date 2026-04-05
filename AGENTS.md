@@ -1,38 +1,106 @@
 # Shrey Junior Repo Instructions
 
-This repository builds and maintains a thin repo-local control plane.
+Kiwi Control is a thin repo-local control plane.
+
+Keep this repository small, additive, portable, and debuggable.
+
+Do not turn it into a general-purpose agent runtime.
 
 ## Mission
 
-Keep `shrey-junior` small, additive, and portable.
+Improve the product intentionally while preserving the repo-local architecture:
+- `packages/sj-core` owns repo-local truth derivation, planning, validation, and artifact handling
+- `packages/sj-cli` owns operator workflows and machine-readable command output
+- `apps/sj-ui` owns desktop presentation and Tauri interaction
 
-Do not turn it into a new agent runtime.
+Design, UX, interaction, module structure, persistence, and release engineering may be improved when the task clearly requires it.
 
-## Non-negotiables
+## Hard constraints
 
-- Canonical truth lives only in `configs/`, `prompts/`, and `templates/`.
-- Generated repo artifacts are outputs, not authority.
-- Never modify user-global Codex, Claude, or Copilot settings from this repo.
-- Never read or print secret values.
-- Prefer additive managed blocks over rewriting existing repo instructions.
-- Keep dependencies minimal and boring.
+- Do not move core authority away from repo-local files without explicit justification.
+- Canonical human-maintained truth lives in `configs/`, `prompts/`, and `templates/`.
+- Treat generated repo artifacts as outputs or derived state unless the code explicitly defines them as durable repo-local state.
+- Do not expose secrets.
+- Do not modify user-global Codex, Claude, Copilot, or editor settings from this repo.
+- Do not introduce heavy dependencies without clear payoff.
+- Do not make speculative refactors with no product, maintenance, or release benefit.
+
+## Change policy
+
+- Prefer intentional, scoped, and verified improvements.
+- Prefer small reviewable diffs.
+- Prefer explicit contracts over hidden coupling.
+- Prefer additive managed changes where practical.
+- Preserve backward compatibility where reasonable.
+
+If the current design is clearly blocking usability, maintainability, trust, or release-readiness, improve it directly.
+
+## Multi-agent workflow
+
+For large tasks, use plan-first execution.
+
+When safe, split work into parallel subagents or workstreams such as:
+- UI and interaction
+- core and contracts
+- tests and verification
+- release and open-source packaging
+
+Each workstream should return:
+1. exact files changed
+2. exact behavior changed
+3. exact verification commands
+4. exact results
+5. merge risks
+
+Consolidate all work into one coherent patch set.
 
 ## Verification
 
-Run:
+Run relevant checks before considering work complete.
 
+Baseline:
 - `npm run build`
 - `npm test`
 - `bash scripts/smoke-test.sh`
 
+When changing UI, also run relevant UI-specific checks.
+When changing CLI contracts, verify machine-readable outputs explicitly.
+
 ## Output expectations
 
-Changes should preserve:
+For substantial tasks, provide:
+1. plan
+2. exact files changed
+3. exact diffs or exact code where relevant
+4. exact verification commands
+5. exact results
+6. remaining risks
+7. next recommended step
 
-- safe metadata-only discovery
-- managed marker ownership
-- repo-local overlays only
-- clear rollback by deleting generated managed files or blocks
+Do not stop at analysis when implementation is requested.
+
+## Tooling guidance
+
+Use repo-aware structural tools before broad file scanning when available and useful.
+
+Prefer graph or structure-aware tools first for:
+- architecture discovery
+- impact analysis
+- call and dependency tracing
+- review context
+- test coverage lookup
+
+Fall back to direct file reads, grep, or glob when structural tooling is insufficient.
+
+## Release priorities
+
+When the task is release-readiness or open-source launch, prioritize:
+1. correctness and trust
+2. maintainability
+3. tests and verification
+4. contributor readiness
+5. polish
+6. net-new features
 
 
 <!-- code-review-graph MCP tools -->

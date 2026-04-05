@@ -4,6 +4,7 @@ import type {
   MachineAdvisoryCodexUsageDay
 } from "@shrey-junior/sj-core/integrations/machine-advisory.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { createSpinner, printSection, printTable, success, warn } from "../utils/cli-output.js";
 
 export interface UsageOptions {
   repoRoot: string;
@@ -14,9 +15,11 @@ export interface UsageOptions {
 }
 
 export async function runUsage(options: UsageOptions): Promise<number> {
+  const spinner = await createSpinner("Loading usage telemetry");
   const advisory = await loadMachineAdvisory({
     ...(options.refresh !== undefined ? { forceRefresh: options.refresh } : {})
   });
+  spinner.succeed("Usage telemetry ready");
   const payload = advisory.usage;
 
   if (options.json) {
@@ -24,15 +27,15 @@ export async function runUsage(options: UsageOptions): Promise<number> {
     return 0;
   }
 
-  renderSection(options.logger, `TOKEN USAGE (LAST ${advisory.windowDays} DAYS) [${formatSection(advisory.sections.usage)}]`);
-  renderSection(options.logger, "HEALTH SUMMARY");
+  printSection(options.logger, `TOKEN USAGE (LAST ${advisory.windowDays} DAYS) [${formatSection(advisory.sections.usage)}]`);
+  printSection(options.logger, "HEALTH SUMMARY");
   options.logger.info(
     `critical=${formatInteger(advisory.systemHealth.criticalCount)} warning=${formatInteger(advisory.systemHealth.warningCount)} ok=${formatInteger(advisory.systemHealth.okCount)}`
   );
 
-  renderSection(options.logger, "Claude Code (via ccusage)");
+  printSection(options.logger, "Claude Code (via ccusage)");
   if (payload.claude.available) {
-    renderTable(
+    await printTable(
       options.logger,
       ["Date", "Input", "Output", "Cache Read", "Cost", "Models"],
       payload.claude.days.map((day) => renderClaudeDay(day))
@@ -45,9 +48,9 @@ export async function runUsage(options: UsageOptions): Promise<number> {
     options.logger.info(payload.claude.note);
   }
 
-  renderSection(options.logger, "Codex (via session logs)");
+  printSection(options.logger, "Codex (via session logs)");
   if (payload.codex.available) {
-    renderTable(
+    await printTable(
       options.logger,
       ["Date", "Input", "Output", "Cached", "Sessions"],
       payload.codex.days.map((day) => renderCodexDay(day))
@@ -60,12 +63,13 @@ export async function runUsage(options: UsageOptions): Promise<number> {
     options.logger.info(payload.codex.note);
   }
 
-  renderSection(options.logger, "Copilot CLI");
+  printSection(options.logger, "Copilot CLI");
   options.logger.info(payload.copilot.note);
   if (advisory.guidance.length > 0) {
-    renderSection(options.logger, `GUIDANCE [${formatSection(advisory.sections.guidance)}]`);
+    printSection(options.logger, `GUIDANCE [${formatSection(advisory.sections.guidance)}]`);
     for (const entry of advisory.guidance.filter((item) => item.section === "usage" || item.section === "guidance")) {
-      options.logger.info(`- [${entry.priority}] ${entry.message}: ${entry.impact}`);
+      const marker = entry.priority === "critical" ? warn(`[${entry.priority}]`) : success(`[${entry.priority}]`);
+      options.logger.info(`- ${marker} ${entry.message}: ${entry.impact}`);
       options.logger.info(`  reason: ${entry.reason ?? entry.section}`);
       if (entry.fixCommand) {
         options.logger.info(`  fix: ${entry.fixCommand}`);
@@ -75,7 +79,7 @@ export async function runUsage(options: UsageOptions): Promise<number> {
       }
     }
   }
-  options.logger.info("next command: kiwi-control toolchain");
+  options.logger.info(`${success("next command")}: kiwi-control toolchain`);
   return 0;
 }
 
@@ -100,39 +104,6 @@ function renderCodexDay(day: MachineAdvisoryCodexUsageDay): string[] {
   ];
 }
 
-function renderSection(logger: Logger, title: string): void {
-  logger.info(title);
-}
-
-function renderTable(logger: Logger, headers: string[], rows: string[][]): void {
-  const widths = headers.map((header, index) =>
-    Math.max(
-      header.length,
-      ...rows.map((row) => stripAnsi(row[index] ?? "").length)
-    )
-  );
-  logger.info(formatRow(headers, widths));
-  logger.info(formatRow(widths.map((width) => "-".repeat(width)), widths));
-  for (const row of rows) {
-    logger.info(formatRow(row, widths));
-  }
-}
-
-function formatRow(values: string[], widths: number[]): string {
-  return values
-    .map((value, index) => pad(value, widths[index] ?? value.length))
-    .join("  ");
-}
-
-function pad(value: string, width: number): string {
-  const visible = stripAnsi(value).length;
-  const padding = Math.max(0, width - visible);
-  return `${value}${" ".repeat(padding)}`;
-}
-
-function stripAnsi(value: string): string {
-  return value.replace(/\u001b\[[0-9;]*m/g, "");
-}
 
 function formatInteger(value: number): string {
   return value.toLocaleString("en-US");

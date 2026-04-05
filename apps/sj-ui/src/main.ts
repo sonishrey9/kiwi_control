@@ -1,6 +1,26 @@
 import "./styles.css";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { renderTopBarView } from "./ui/TopBar.js";
+import { renderGraphViewPanel } from "./ui/GraphPanel.js";
+import { renderContextTreePanel } from "./ui/ContextTreePanel.js";
+import { renderExecutionPlanPanelView } from "./ui/ExecutionPlanPanel.js";
+import { renderInspectorPanel } from "./ui/InspectorPanel.js";
+import type {
+  CommandComposerMode,
+  CommandState,
+  ContextOverrideMode,
+  DisplayExecutionPlanStep,
+  FocusedItem,
+  InteractiveGraphEdge,
+  InteractiveGraphModel,
+  InteractiveGraphNode,
+  UiCommandName,
+  UiMode,
+  ThemeMode,
+  CliCommandResultPayload,
+  RenderHelperSet
+} from "./ui/contracts.js";
 
 declare global {
   interface Window {
@@ -603,84 +623,11 @@ type MachineSectionPayload = {
   data: unknown;
 };
 
-type UiCommandName =
-  | "guide"
-  | "next"
-  | "validate"
-  | "retry"
-  | "resume"
-  | "status"
-  | "trace"
-  | "run-auto"
-  | "checkpoint"
-  | "handoff";
-
-type ContextOverrideMode = "include" | "exclude" | "ignore";
-
-type CliCommandResultPayload = {
-  ok: boolean;
-  exitCode: number;
-  stdout: string;
-  stderr: string;
-  jsonPayload?: unknown;
-  commandLabel: string;
-};
-
-type CommandComposerMode = "run-auto" | "checkpoint" | "handoff" | null;
-
-type CommandState = {
-  activeCommand: UiCommandName | null;
-  loading: boolean;
-  composer: CommandComposerMode;
-  draftValue: string;
-  lastResult: CliCommandResultPayload | null;
-  lastError: string | null;
-};
-
-type FocusedItem =
-  | { kind: "path"; id: string; label: string; path: string }
-  | { kind: "step"; id: string; label: string };
-
-type InteractiveGraphNode = {
-  path: string;
-  label: string;
-  kind: "root" | "directory" | "file";
-  status: KiwiControlContextTreeStatus;
-  x: number;
-  y: number;
-  radius: number;
-  tone: string;
-  importance: "low" | "medium" | "high";
-  highlighted: boolean;
-};
-
-type InteractiveGraphEdge = {
-  fromPath: string;
-  toPath: string;
-  from: { x: number; y: number };
-  to: { x: number; y: number };
-  highlighted: boolean;
-};
-
-type InteractiveGraphModel = {
-  nodes: InteractiveGraphNode[];
-  edges: InteractiveGraphEdge[];
-  summary: Array<{ label: string; kind: string; meta: string; path: string }>;
-};
-
-type DisplayExecutionPlanStep = ExecutionPlanStep & {
-  displayTitle: string;
-  displayNote: string | null;
-  skipped: boolean;
-};
-
 type NavView = "overview" | "context" | "graph" | "tokens" | "feedback" | "mcps" | "specialists" | "system" | "validation" | "machine";
 type LogTab = "validation" | "history" | "logs";
 type ValidationTab = "all" | "issues" | "pending";
 type HandoffTab = "handoffs" | "checkpoints";
-type ThemeMode = "dark" | "light";
 type PlatformMode = "macos" | "windows" | "linux";
-type UiMode = "execution" | "inspection";
 
 const NAV_ITEMS: Array<{ id: NavView; label: string; icon: string }> = [
   { id: "overview", label: "Overview", icon: iconSvg("overview") },
@@ -2282,78 +2229,26 @@ function renderTopBar(state: RepoControlState): string {
   const phase = getPanelValue(state.repoOverview, "Current phase");
   const validationState = getPanelValue(state.repoOverview, "Validation state");
   const themeLabel = activeTheme === "dark" ? "Light mode" : "Dark mode";
-  const actionsDisabled = !currentTargetRoot || commandState.loading;
   const currentTask = state.kiwiControl?.contextView.task ?? state.kiwiControl?.nextActions.actions[0]?.action ?? "";
   const retryEnabled = Boolean(state.kiwiControl?.executionPlan.lastError?.retryCommand) || Boolean(currentTargetRoot);
 
-  return `
-    <div class="kc-topbar-primary">
-      <div class="kc-topbar-left">
-        <button class="kc-repo-pill" type="button">
-          <span class="kc-repo-name">${escapeHtml(repoLabel)}</span>
-          <span class="kc-repo-path">${escapeHtml(state.targetRoot || "No repo loaded yet")}</span>
-        </button>
-        ${renderHeaderBadge(state.repoState.title, state.repoState.mode)}
-        ${renderHeaderBadge(state.projectType, "neutral")}
-        ${phase !== "none recorded" ? renderHeaderBadge(phase, "neutral") : ""}
-      </div>
-      <div class="kc-topbar-center">
-        ${renderHeaderMeta("Next", decision.nextAction)}
-        ${renderHeaderMeta("Blocking", decision.blockingIssue)}
-        ${renderHeaderMeta("Health", decision.systemHealth)}
-        ${renderHeaderMeta("Changed", decision.lastChangedAt)}
-        ${renderHeaderMeta("Failures", String(decision.recentFailures))}
-        ${renderHeaderMeta("Warnings", String(decision.newWarnings))}
-      </div>
-      <div class="kc-topbar-right">
-        <div class="kc-inline-badges">
-          <button class="kc-tab-button ${activeMode === "execution" ? "is-active" : ""}" type="button" data-ui-mode="execution">Execution</button>
-          <button class="kc-tab-button ${activeMode === "inspection" ? "is-active" : ""}" type="button" data-ui-mode="inspection">Inspection</button>
-        </div>
-        <div class="kc-status-chip">
-          <strong>${escapeHtml(activeMode)} mode</strong>
-          <span>${escapeHtml(validationState)}</span>
-        </div>
-        <button class="kc-theme-toggle" type="button" data-theme-toggle>
-          ${iconSvg(activeTheme === "dark" ? "sun" : "moon")}
-          <span>${escapeHtml(themeLabel)}</span>
-        </button>
-        <button class="kc-icon-button" type="button" data-toggle-logs>
-          ${isLogDrawerOpen ? iconSvg("logs-open") : iconSvg("logs-closed")}
-        </button>
-        <button class="kc-icon-button" type="button" data-toggle-inspector>
-          ${isInspectorOpen ? iconSvg("panel-open") : iconSvg("panel-closed")}
-        </button>
-      </div>
-    </div>
-    <div class="kc-topbar-actions">
-      <div class="kc-topbar-action-group">
-        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="guide" ${actionsDisabled ? "disabled" : ""}>Guide</button>
-        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="next" ${actionsDisabled ? "disabled" : ""}>Next</button>
-        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="validate" ${actionsDisabled ? "disabled" : ""}>Validate</button>
-        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="retry" ${!retryEnabled || actionsDisabled ? "disabled" : ""}>Retry</button>
-        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="run-auto" ${actionsDisabled || !currentTask ? "disabled" : ""}>Run Auto</button>
-        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="checkpoint" ${actionsDisabled ? "disabled" : ""}>Checkpoint</button>
-        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="handoff" ${actionsDisabled || state.specialists.handoffTargets.length === 0 ? "disabled" : ""}>Handoff</button>
-      </div>
-      ${commandState.composer
-        ? `
-          <div class="kc-action-composer">
-            <span class="kc-section-micro">${escapeHtml(commandState.composer)}</span>
-            ${commandState.composer === "handoff"
-              ? `<select class="kc-action-input" data-command-draft>
-                  ${[...new Set([commandState.draftValue, ...state.specialists.handoffTargets].filter(Boolean))].map((value) => `
-                    <option value="${escapeAttribute(value)}" ${value === commandState.draftValue ? "selected" : ""}>${escapeHtml(value)}</option>
-                  `).join("")}
-                </select>`
-              : `<input class="kc-action-input" data-command-draft value="${escapeAttribute(commandState.draftValue)}" placeholder="${escapeAttribute(commandState.composer === "checkpoint" ? "checkpoint label" : "run description")}" />`}
-            <button class="kc-secondary-button kc-action-button is-primary" type="button" data-composer-submit="${commandState.composer}" ${commandState.loading ? "disabled" : ""}>Run</button>
-            <button class="kc-secondary-button kc-action-button" type="button" data-composer-cancel ${commandState.loading ? "disabled" : ""}>Cancel</button>
-          </div>
-        `
-        : ""}
-    </div>
-  `;
+  return renderTopBarView({
+    state,
+    decision,
+    repoLabel,
+    phase,
+    validationState,
+    themeLabel,
+    activeTheme,
+    activeMode,
+    isLogDrawerOpen,
+    isInspectorOpen,
+    currentTargetRoot,
+    commandState,
+    currentTask,
+    retryEnabled,
+    helpers: buildUiRenderHelpers()
+  });
 }
 
 function buildDecisionSummary(state: RepoControlState): {
@@ -2409,6 +2304,31 @@ function renderHeaderMeta(label: string, value: string): string {
       <strong>${escapeHtml(value)}</strong>
     </div>
   `;
+}
+
+function buildUiRenderHelpers(): RenderHelperSet {
+  return {
+    escapeHtml,
+    escapeAttribute,
+    iconSvg,
+    renderHeaderBadge,
+    renderHeaderMeta,
+    renderPanelHeader,
+    renderInlineBadge,
+    renderNoteRow,
+    renderEmptyState,
+    renderStatCard,
+    renderListBadges,
+    renderExplainabilityBadge,
+    renderGateRow,
+    renderBulletRow,
+    deriveSignalImpact,
+    formatInteger,
+    formatPercent,
+    formatCurrency,
+    formatTimestamp,
+    formatTokensShort
+  };
 }
 
 function renderCenterView(state: RepoControlState): string {
@@ -2715,89 +2635,15 @@ function renderContextView(state: RepoControlState): string {
 function renderGraphView(state: RepoControlState): string {
   const graph = deriveGraphModel(state);
   const focusedNode = graph.nodes.find((node) => node.path === (graphSelectedPath ?? (focusedItem?.kind === "path" ? focusedItem.path : null))) ?? null;
-  return `
-    <div class="kc-view-shell">
-      <section class="kc-view-header">
-        <div>
-          <p class="kc-view-kicker">Repo Graph</p>
-          <h1>Mind Map</h1>
-          <p>Repo topology visualized from Kiwi’s context tree with local focus, selection, and impact-path controls.</p>
-        </div>
-        ${renderHeaderBadge(graph.nodes.length > 0 ? `${graph.nodes.length} nodes` : "empty", graph.nodes.length > 0 ? "success" : "warn")}
-      </section>
-
-      <section class="kc-panel">
-        <div class="kc-panel-head-row">
-          ${renderPanelHeader("Graph Overview", "Root-centered map of directories and files Kiwi currently knows about.")}
-          <div class="kc-inline-badges">
-            <button class="kc-secondary-button" type="button" data-graph-action="depth-down">Depth -</button>
-            <span class="kc-inline-badge">depth ${graphDepth}</span>
-            <button class="kc-secondary-button" type="button" data-graph-action="depth-up">Depth +</button>
-            <button class="kc-secondary-button" type="button" data-graph-action="reset-view">Reset view</button>
-          </div>
-        </div>
-        ${graph.nodes.length > 0
-          ? `
-            <div class="kc-graph-shell">
-              <svg class="kc-graph-canvas" data-graph-surface viewBox="0 0 1200 720" role="img" aria-label="Repo graph">
-                <g transform="translate(${graphPan.x} ${graphPan.y}) scale(${graphZoom})">
-                ${graph.edges.map((edge) => `
-                  <line
-                    x1="${edge.from.x}"
-                    y1="${edge.from.y}"
-                    x2="${edge.to.x}"
-                    y2="${edge.to.y}"
-                    class="kc-graph-edge ${edge.highlighted ? "is-highlighted" : ""}"
-                  />
-                `).join("")}
-                ${graph.nodes.map((node) => `
-                  <g transform="translate(${node.x}, ${node.y})" class="kc-graph-node-wrap ${node.highlighted ? "is-highlighted" : ""}">
-                    <circle
-                      r="${node.radius}"
-                      data-graph-node
-                      data-path="${escapeAttribute(node.path)}"
-                      data-kind="${node.kind}"
-                      class="kc-graph-node ${node.tone} importance-${node.importance}"
-                    />
-                    <text class="kc-graph-label" text-anchor="middle" dy=".35em">${escapeHtml(node.label)}</text>
-                  </g>
-                `).join("")}
-                </g>
-              </svg>
-            </div>
-          `
-          : renderEmptyState("No graph data is available yet. Run kiwi-control prepare to build a richer context tree.")}
-      </section>
-
-      <div class="kc-two-column">
-        <section class="kc-panel">
-          ${renderPanelHeader("Cluster Summary", "Top visible nodes from the current context selection tree.")}
-          ${graph.summary.length > 0
-            ? `<div class="kc-stack-list">${graph.summary.map((entry) => renderNoteRow(entry.label, entry.kind, entry.meta)).join("")}</div>`
-            : renderEmptyState("No cluster summary is available yet.")}
-        </section>
-        <section class="kc-panel">
-          ${renderPanelHeader("Node Actions", focusedNode ? `${focusedNode.label} · ${focusedNode.kind}` : "Select a node to act on it.")}
-          ${focusedNode
-            ? `
-              <div class="kc-stack-list">
-                ${renderNoteRow("Status", focusedNode.status, `importance: ${focusedNode.importance}`)}
-                ${renderNoteRow("Path", focusedNode.kind, focusedNode.path)}
-              </div>
-              <div class="kc-divider"></div>
-              <div class="kc-inline-badges">
-                <button class="kc-secondary-button" type="button" data-graph-action="focus" data-path="${escapeAttribute(focusedNode.path)}">Focus</button>
-                <button class="kc-secondary-button" type="button" data-graph-action="include" data-path="${escapeAttribute(focusedNode.path)}">Include</button>
-                <button class="kc-secondary-button" type="button" data-graph-action="exclude" data-path="${escapeAttribute(focusedNode.path)}">Exclude</button>
-                <button class="kc-secondary-button" type="button" data-graph-action="ignore" data-path="${escapeAttribute(focusedNode.path)}">Ignore</button>
-                ${focusedNode.kind === "file" ? `<button class="kc-secondary-button" type="button" data-graph-action="open" data-path="${escapeAttribute(focusedNode.path)}">Open</button>` : ""}
-              </div>
-            `
-            : renderEmptyState("No graph node is currently selected.")}
-        </section>
-      </div>
-    </div>
-  `;
+  return renderGraphViewPanel({
+    state,
+    graph,
+    focusedNode,
+    graphDepth,
+    graphPan,
+    graphZoom,
+    helpers: buildUiRenderHelpers()
+  });
 }
 
 function renderValidationView(state: RepoControlState): string {
@@ -3777,131 +3623,26 @@ function renderInspector(state: RepoControlState): string {
     ?? state.repoState.detail;
   const marker = currentFocus ? approvalMarkers.get(currentFocus.id) ?? "unmarked" : "unmarked";
 
-  return `
-    <div class="kc-inspector-shell">
-      <div class="kc-inspector-header">
-        <div>
-          <span>Inspector</span>
-          <h2>${escapeHtml(focusedLabel)}</h2>
-        </div>
-        <button class="kc-icon-button" type="button" data-toggle-inspector>
-          ${iconSvg("close")}
-        </button>
-      </div>
-
-      <section class="kc-inspector-section">
-        <p class="kc-section-micro">Controls</p>
-        <div class="kc-inline-badges">
-          <button class="kc-secondary-button" type="button" data-inspector-action="approve" ${!focusedItem ? "disabled" : ""}>Approve</button>
-          <button class="kc-secondary-button" type="button" data-inspector-action="reject" ${!focusedItem ? "disabled" : ""}>Reject</button>
-          <button class="kc-secondary-button" type="button" data-inspector-action="add-to-context" ${focusedItem?.kind !== "path" ? "disabled" : ""}>Add to Context</button>
-          <button class="kc-secondary-button" type="button" data-inspector-action="validate" ${commandState.loading ? "disabled" : ""}>Trigger Validation</button>
-          <button class="kc-secondary-button" type="button" data-inspector-action="handoff" ${commandState.loading ? "disabled" : ""}>Quick Handoff</button>
-        </div>
-        <div class="kc-divider"></div>
-        ${renderNoteRow("Selection", currentFocus?.kind ?? "global", focusedReason)}
-        ${renderNoteRow("Decision", marker, currentFocus ? "Local inspector review state for the current focus." : "Select a node or plan step to review it here.")}
-      </section>
-
-      <section class="kc-inspector-section">
-        <p class="kc-section-micro">Reasoning</p>
-        <p>${escapeHtml(focusedReason)}</p>
-        <div class="kc-inline-badges">
-          ${renderInlineBadge(kc.contextView.confidence?.toUpperCase() ?? "UNKNOWN")}
-          ${renderInlineBadge(kc.contextView.confidenceDetail ?? "No confidence detail")}
-          ${renderExplainabilityBadge("heuristic", kc.contextTrace.honesty.heuristic)}
-          ${renderExplainabilityBadge("low confidence", kc.contextTrace.honesty.lowConfidence)}
-          ${renderExplainabilityBadge("partial scan", kc.contextTrace.honesty.partialScan || kc.tokenBreakdown.partialScan || kc.indexing.partialScan)}
-        </div>
-      </section>
-
-      <section class="kc-inspector-section">
-        <p class="kc-section-micro">Decision inputs</p>
-        ${signalItems.length > 0
-          ? `<div class="kc-stack-list">${signalItems.map((item) => renderNoteRow(item, "impact", deriveSignalImpact(item))).join("")}</div>`
-          : "<p>No decision inputs are currently surfaced.</p>"}
-      </section>
-
-      <section class="kc-inspector-section">
-        <p class="kc-section-micro">Lifecycle</p>
-        <div class="kc-gate-list">
-          ${renderGateRow("Stage", kc.runtimeLifecycle.currentStage, "default")}
-          ${renderGateRow("Validation", kc.runtimeLifecycle.validationStatus ?? "unknown", kc.runtimeLifecycle.validationStatus === "error" ? "warn" : "default")}
-        </div>
-        <p>${escapeHtml(kc.runtimeLifecycle.nextRecommendedAction ?? "No runtime lifecycle recommendation is recorded yet.")}</p>
-      </section>
-
-      <section class="kc-inspector-section">
-        <p class="kc-section-micro">Token estimate</p>
-        <div class="kc-gate-list">
-          ${renderGateRow("Measured", kc.measuredUsage.available ? formatTokensShort(kc.measuredUsage.totalTokens) : "none", kc.measuredUsage.available ? "success" : "default")}
-          ${renderGateRow("Selected", `~${formatTokensShort(kc.tokenAnalytics.selectedTokens)}`, "default")}
-          ${renderGateRow("Full repo", `~${formatTokensShort(kc.tokenAnalytics.fullRepoTokens)}`, "default")}
-          ${renderGateRow("Saved", `~${kc.tokenAnalytics.savingsPercent}%`, "success")}
-        </div>
-        <p>${escapeHtml(kc.measuredUsage.available ? kc.measuredUsage.note : (kc.tokenAnalytics.estimateNote ?? "No repo-local token estimate is available yet."))}</p>
-      </section>
-
-      <section class="kc-inspector-section">
-        <p class="kc-section-micro">Feedback</p>
-        <div class="kc-gate-list">
-          ${renderGateRow("Adaptation", kc.feedback.adaptationLevel, kc.feedback.adaptationLevel === "active" ? "success" : "default")}
-          ${renderGateRow("Runs", String(kc.feedback.totalRuns), "default")}
-          ${renderGateRow("Success", `${kc.feedback.successRate}%`, kc.feedback.successRate >= 80 ? "success" : "default")}
-        </div>
-        <p>${escapeHtml(kc.feedback.note)}</p>
-      </section>
-
-      ${activeMode === "inspection"
-        ? `
-          <section class="kc-inspector-section">
-            <p class="kc-section-micro">MCP usage</p>
-            <div class="kc-gate-list">
-              ${renderGateRow("Pack", state.mcpPacks.suggestedPack.name ?? state.mcpPacks.suggestedPack.id, "default")}
-              ${renderGateRow("Compatible", String(state.mcpPacks.compatibleCapabilities.length), state.mcpPacks.compatibleCapabilities.length > 0 ? "success" : "warn")}
-              ${renderGateRow("Top capability", topCapability?.id ?? "none", topCapability ? "success" : "warn")}
-            </div>
-            <p>${escapeHtml(state.mcpPacks.note)}</p>
-          </section>
-
-          <section class="kc-inspector-section">
-            <p class="kc-section-micro">Specialist usage</p>
-            <div class="kc-gate-list">
-              ${renderGateRow("Active", activeSpecialist?.name ?? state.specialists.activeSpecialist, "default")}
-              ${renderGateRow("Risk", activeSpecialist?.riskPosture ?? "unknown", activeSpecialist?.riskPosture === "conservative" ? "success" : "default")}
-              ${renderGateRow("Tool fit", (activeSpecialist?.preferredTools ?? []).join(", ") || "none", "default")}
-            </div>
-            <p>${escapeHtml(activeSpecialist?.purpose ?? state.specialists.safeParallelHint)}</p>
-          </section>
-
-          <section class="kc-inspector-section">
-            <p class="kc-section-micro">Skills & trace</p>
-            ${kc.skills.activeSkills.length > 0
-              ? `<div class="kc-stack-list">${kc.skills.activeSkills.slice(0, 3).map((skill) => renderBulletRow(`${skill.name} — ${skill.executionTemplate[0] ?? skill.description}`)).join("")}</div>`
-              : `<p>No active skills are currently matched.</p>`}
-            <div class="kc-divider"></div>
-            <p>${escapeHtml(kc.executionTrace.whyThisHappened || "No execution trace explanation is recorded yet.")}</p>
-          </section>
-        `
-        : ""}
-
-      <section class="kc-inspector-section">
-        <p class="kc-section-micro">Command</p>
-        ${commandState.lastResult
-          ? `<code class="kc-command-block">${escapeHtml(commandState.lastResult.commandLabel)}</code>`
-          : primaryAction?.command
-            ? `<code class="kc-command-block">${escapeHtml(primaryAction.command)}</code>`
-            : `<p>No command recorded for the current state.</p>`}
-      </section>
-
-      <section class="kc-inspector-section">
-        <p class="kc-section-micro">Next Commands</p>
-        ${kc.executionPlan.nextCommands.length > 0
-          ? `<div class="kc-stack-list">${kc.executionPlan.nextCommands.map((command) => renderBulletRow(command)).join("")}</div>`
-          : `<p>No execution plan commands are currently recorded.</p>`}
-      </section>
-    </div>
-  `;
+  return renderInspectorPanel({
+    state,
+    primaryAction,
+    activeSpecialist,
+    topCapability,
+    signalItems,
+    focusedStep,
+    focusedNode,
+    focusedItem: currentFocus,
+    focusedLabel,
+    focusedReason,
+    marker,
+    activeMode,
+    commandState,
+    helpers: {
+      ...buildUiRenderHelpers(),
+      renderGateRow,
+      renderBulletRow
+    }
+  });
 }
 
 function renderLogDrawer(state: RepoControlState): string {
@@ -4220,69 +3961,24 @@ function renderMeterRow(label: string, value: number, total: number): string {
 }
 
 function renderExecutionPlanPanel(state: RepoControlState): string {
-  const kc = state.kiwiControl ?? EMPTY_KC;
   const steps = deriveDisplayExecutionPlanSteps(state);
-  return `
-    <section class="kc-panel">
-      ${renderPanelHeader("Execution Plan", kc.executionPlan.summary || "No execution plan is recorded yet.")}
-      <div class="kc-inline-badges">
-        ${renderInlineBadge(`state: ${kc.executionPlan.state}`)}
-        ${renderInlineBadge(`current: ${steps[kc.executionPlan.currentStepIndex]?.id ?? "none"}`)}
-        ${renderInlineBadge(`risk: ${kc.executionPlan.risk}`)}
-        ${kc.executionPlan.confidence ? renderInlineBadge(`confidence: ${kc.executionPlan.confidence}`) : ""}
-      </div>
-      ${kc.executionPlan.lastError
-        ? `<div class="kc-divider"></div><div class="kc-stack-list">
-            ${renderNoteRow("Failure", kc.executionPlan.lastError.errorType, kc.executionPlan.lastError.reason)}
-            ${renderNoteRow("Fix command", kc.executionPlan.lastError.fixCommand, "Run this before continuing.")}
-            ${renderNoteRow("Retry command", kc.executionPlan.lastError.retryCommand, "Use this to retry the failed step.")}
-          </div>`
-        : ""}
-      ${steps.length > 0
-        ? `<div class="kc-plan-list">${steps.map((step, index) => renderExecutionPlanStepRow(step, index)).join("")}</div>`
-        : renderEmptyState("No execution plan is available yet.")}
-    </section>
-  `;
-}
-
-function renderExecutionPlanStepRow(step: DisplayExecutionPlanStep, index: number): string {
-  const isEditing = editingPlanStepId === step.id;
-  return `
-    <article class="kc-plan-step ${step.skipped ? "is-skipped" : ""} ${focusedItem?.kind === "step" && focusedItem.id === step.id ? "is-focused" : ""}" data-step-row="${escapeAttribute(step.id)}">
-      <div class="kc-plan-step-head">
-        <div>
-          <span class="kc-section-micro">step ${index + 1}</span>
-          ${isEditing
-            ? `<input class="kc-action-input kc-plan-edit-input" data-plan-edit-input value="${escapeAttribute(editingPlanDraft)}" />`
-            : `<strong>${escapeHtml(step.displayTitle)}</strong>`}
-          <p>${escapeHtml(step.displayNote ?? step.command)}</p>
-        </div>
-        <div class="kc-inline-badges">
-          ${renderHeaderBadge(step.status, step.status === "failed" ? "warn" : step.status === "success" ? "success" : "neutral")}
-          ${step.skipped ? renderInlineBadge("skipped") : ""}
-        </div>
-      </div>
-      <div class="kc-plan-step-actions">
-        <button class="kc-secondary-button" type="button" data-plan-action="focus" data-step-id="${escapeAttribute(step.id)}">Focus</button>
-        <button class="kc-secondary-button" type="button" data-plan-action="run" data-step-id="${escapeAttribute(step.id)}" ${commandState.loading ? "disabled" : ""}>Run</button>
-        <button class="kc-secondary-button" type="button" data-plan-action="retry" data-step-id="${escapeAttribute(step.id)}" ${commandState.loading ? "disabled" : ""}>Retry</button>
-        <button class="kc-secondary-button" type="button" data-plan-action="skip" data-step-id="${escapeAttribute(step.id)}">${step.skipped ? "Unskip" : "Skip"}</button>
-        ${isEditing
-          ? `
-            <button class="kc-secondary-button" type="button" data-plan-action="edit-save" data-step-id="${escapeAttribute(step.id)}">Save</button>
-            <button class="kc-secondary-button" type="button" data-plan-action="edit-cancel" data-step-id="${escapeAttribute(step.id)}">Cancel</button>
-          `
-          : `<button class="kc-secondary-button" type="button" data-plan-action="edit" data-step-id="${escapeAttribute(step.id)}">Edit</button>`}
-        <button class="kc-secondary-button" type="button" data-plan-action="move-up" data-step-id="${escapeAttribute(step.id)}">↑</button>
-        <button class="kc-secondary-button" type="button" data-plan-action="move-down" data-step-id="${escapeAttribute(step.id)}">↓</button>
-      </div>
-      <div class="kc-plan-step-meta">
-        <code class="kc-command-chip">${escapeHtml(step.command)}</code>
-        <span>${escapeHtml(step.validation)}</span>
-        ${step.retryCommand ? `<span>${escapeHtml(step.retryCommand)}</span>` : ""}
-      </div>
-    </article>
-  `;
+  return renderExecutionPlanPanelView({
+    state,
+    steps,
+    editingPlanStepId,
+    editingPlanDraft,
+    focusedItem,
+    commandState,
+    helpers: {
+      escapeHtml,
+      escapeAttribute,
+      renderPanelHeader,
+      renderInlineBadge,
+      renderNoteRow,
+      renderEmptyState,
+      renderHeaderBadge
+    }
+  });
 }
 
 function renderValidationIssueCard(issue: ValidationIssue): string {
@@ -4302,74 +3998,16 @@ function renderEmptyState(message: string): string {
 }
 
 function renderContextTree(tree: KiwiControlContextTree): string {
-  return `
-    <div class="kc-tree-shell">
-      <div class="kc-tree-legend">
-        <span><strong>✓</strong> selected</span>
-        <span><strong>•</strong> candidate</span>
-        <span><strong>×</strong> excluded</span>
-        <span><strong>local</strong> UI-only until a CLI command runs</span>
-      </div>
-      <div class="kc-tree-root">
-        ${tree.nodes.map((node) => renderContextTreeNode(node)).join("")}
-      </div>
-    </div>
-  `;
-}
-
-function renderContextTreeNode(node: KiwiControlContextTreeNode): string {
-  const override = contextOverrides.get(node.path);
-  const overrideLabel = override ? `override: ${override}` : node.status;
-  if (node.kind === "file") {
-    return `
-      <div class="kc-tree-node tree-${escapeHtml(node.status)} ${focusedItem?.kind === "path" && focusedItem.path === node.path ? "is-focused" : ""}">
-        <span class="kc-tree-row">
-          <span class="kc-tree-status">${contextTreeStatusIcon(node.status)}</span>
-          <span class="kc-tree-name">${escapeHtml(node.name)}</span>
-          <span class="kc-tree-actions">
-            <button class="kc-tree-action" type="button" data-tree-action="focus" data-path="${escapeAttribute(node.path)}">Focus</button>
-            <button class="kc-tree-action" type="button" data-tree-action="include" data-path="${escapeAttribute(node.path)}">Include</button>
-            <button class="kc-tree-action" type="button" data-tree-action="exclude" data-path="${escapeAttribute(node.path)}">Exclude</button>
-            <button class="kc-tree-action" type="button" data-tree-action="ignore" data-path="${escapeAttribute(node.path)}">Ignore</button>
-            <button class="kc-tree-action" type="button" data-tree-action="open" data-path="${escapeAttribute(node.path)}">Open</button>
-          </span>
-        </span>
-        <span class="kc-tree-meta">${escapeHtml(overrideLabel)}</span>
-      </div>
-    `;
-  }
-
-  return `
-    <details class="kc-tree-node tree-dir tree-${escapeHtml(node.status)} ${focusedItem?.kind === "path" && focusedItem.path === node.path ? "is-focused" : ""}" ${node.expanded ? "open" : ""}>
-      <summary class="kc-tree-row">
-        <span class="kc-tree-caret"></span>
-        <span class="kc-tree-status">${contextTreeStatusIcon(node.status)}</span>
-        <span class="kc-tree-name">${escapeHtml(node.name)}/</span>
-        <span class="kc-tree-actions">
-          <button class="kc-tree-action" type="button" data-tree-action="focus" data-path="${escapeAttribute(node.path)}">Focus</button>
-          <button class="kc-tree-action" type="button" data-tree-action="include" data-path="${escapeAttribute(node.path)}">Include</button>
-          <button class="kc-tree-action" type="button" data-tree-action="exclude" data-path="${escapeAttribute(node.path)}">Exclude</button>
-          <button class="kc-tree-action" type="button" data-tree-action="ignore" data-path="${escapeAttribute(node.path)}">Ignore</button>
-          <button class="kc-tree-action" type="button" data-tree-action="open" data-path="${escapeAttribute(node.path)}">Open</button>
-        </span>
-      </summary>
-      <div class="kc-tree-meta">${escapeHtml(overrideLabel)}</div>
-      <div class="kc-tree-children">
-        ${node.children.map((child) => renderContextTreeNode(child)).join("")}
-      </div>
-    </details>
-  `;
-}
-
-function contextTreeStatusIcon(status: KiwiControlContextTreeStatus): string {
-  switch (status) {
-    case "selected":
-      return "✓";
-    case "excluded":
-      return "×";
-    default:
-      return "•";
-  }
+  return renderContextTreePanel({
+    tree,
+    focusedItem,
+    contextOverrides,
+    helpers: {
+      escapeHtml,
+      escapeAttribute,
+      renderEmptyState
+    }
+  });
 }
 
 function buildActivityItems(state: RepoControlState): Array<{

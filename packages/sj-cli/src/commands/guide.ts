@@ -1,6 +1,7 @@
 import { getCurrentExecutionStep, syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import { loadPreparedScope } from "@shrey-junior/sj-core/core/prepared-scope.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { createSpinner, printSection, success, warn } from "../utils/cli-output.js";
 
 export interface GuideOptions {
   repoRoot: string;
@@ -10,10 +11,12 @@ export interface GuideOptions {
 }
 
 export async function runGuide(options: GuideOptions): Promise<number> {
+  const spinner = await createSpinner(`Loading guide state for ${options.targetRoot}`);
   const [plan, preparedScope] = await Promise.all([
     syncExecutionPlan(options.targetRoot),
     loadPreparedScope(options.targetRoot)
   ]);
+  spinner.succeed(`Guide ready for ${options.targetRoot}`);
   const step = getCurrentExecutionStep(plan);
   const nextCommand =
     plan.confidence === "high" && step?.id === "execute" && plan.task
@@ -46,17 +49,18 @@ export async function runGuide(options: GuideOptions): Promise<number> {
     return 0;
   }
 
+  printSection(options.logger, "GUIDE");
   options.logger.info(`target: ${options.targetRoot}`);
   options.logger.info(`goal: ${plan.hierarchy.goal ?? "none"}`);
   options.logger.info(`current step: ${step?.id ?? "none"}`);
   if (plan.lastError) {
-    options.logger.info(`blocking issue: ${plan.lastError.errorType} (${plan.lastError.retryStrategy})`);
+    options.logger.info(`${warn("blocking issue")}: ${plan.lastError.errorType} (${plan.lastError.retryStrategy})`);
     options.logger.info(`reason: ${plan.lastError.reason}`);
   }
   if (plan.hierarchy.subtasks.length > 0) {
     options.logger.info(`subtasks: ${plan.hierarchy.subtasks.map((entry) => entry.title).join(" -> ")}`);
   }
   options.logger.info(`impact preview: ${plan.impactPreview.likelyFiles.slice(0, 8).join(", ") || "none"}`);
-  options.logger.info(`next command: ${nextCommand}`);
+  options.logger.info(`${success("next command")}: ${nextCommand}`);
   return 0;
 }

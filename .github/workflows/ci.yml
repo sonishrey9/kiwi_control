@@ -7,15 +7,77 @@ on:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
-      - run: npm ci
-      - run: npm run build
-      - run: npm test
-      - run: bash scripts/smoke-test.sh
-      - run: node scripts/prepare-release-manifest.mjs
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux Tauri prerequisites
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build workspace
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Smoke test
+        run: bash scripts/smoke-test.sh
+
+      - name: Build desktop bundle
+        run: npm run ui:desktop:build
+
+      - name: Upload CLI dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: kiwi-control-cli-${{ matrix.os }}
+          path: packages/sj-cli/dist
+
+      - name: Upload core runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: kiwi-control-core-${{ matrix.os }}
+          path: packages/sj-core/dist
+
+      - name: Upload UI dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: kiwi-control-ui-${{ matrix.os }}
+          path: apps/sj-ui/dist
+
+      - name: Upload Tauri bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: kiwi-control-desktop-${{ matrix.os }}
+          path: apps/sj-ui/src-tauri/target/release/bundle
+          if-no-files-found: ignore
