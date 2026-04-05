@@ -15,11 +15,11 @@ export interface UsageOptions {
 }
 
 export async function runUsage(options: UsageOptions): Promise<number> {
-  const spinner = await createSpinner("Loading usage telemetry");
+  const spinner = options.json ? null : await createSpinner("Loading usage telemetry");
   const advisory = await loadMachineAdvisory({
     ...(options.refresh !== undefined ? { forceRefresh: options.refresh } : {})
   });
-  spinner.succeed("Usage telemetry ready");
+  spinner?.succeed("Usage telemetry ready");
   const payload = advisory.usage;
 
   if (options.json) {

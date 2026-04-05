@@ -12,11 +12,11 @@ export interface ToolchainOptions {
 }
 
 export async function runToolchain(options: ToolchainOptions): Promise<number> {
-  const spinner = await createSpinner("Loading machine advisory");
+  const spinner = options.json ? null : await createSpinner("Loading machine advisory");
   const advisory = await loadMachineAdvisory({
     ...(options.refresh !== undefined ? { forceRefresh: options.refresh } : {})
   });
-  spinner.succeed("Machine advisory ready");
+  spinner?.succeed("Machine advisory ready");
 
   if (options.json) {
     options.logger.info(JSON.stringify(advisory, null, 2));

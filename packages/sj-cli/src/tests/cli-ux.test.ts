@@ -75,6 +75,14 @@ test("--help exits cleanly and leads with the installed Kiwi Control command sur
   assert.match(result.stdout, /npm run ui:dev/);
 });
 
+test("guide --json prints machine-clean json without spinner noise", () => {
+  const result = runCli(["guide", "--json", "--target", repoRoot()]);
+
+  assert.equal(result.code, 0);
+  assert.doesNotMatch(result.stdout, /Guide ready|✔|\u001b\[/);
+  assert.doesNotThrow(() => JSON.parse(result.stdout));
+});
+
 test("compatibility aliases still work but point new usage toward kiwi-control and kc", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-cli-alias-"));
   const aliasPath = path.join(tempDir, "sj");
