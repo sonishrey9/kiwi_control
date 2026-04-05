@@ -1,0 +1,96 @@
+type KiwiBootApi = {
+  mounted: boolean;
+  renderMessage: (title: string, detail: string) => void;
+  renderError: (detail: string) => void;
+  hide: () => void;
+};
+
+declare global {
+  interface Window {
+    __KIWI_BOOT_API__?: KiwiBootApi;
+  }
+}
+
+function bootOverlay(): HTMLDivElement | null {
+  return document.querySelector<HTMLDivElement>("#boot-overlay");
+}
+
+function renderMessage(title: string, detail: string): void {
+  const overlay = bootOverlay();
+  if (!overlay) {
+    return;
+  }
+  overlay.classList.remove("is-hidden");
+  overlay.innerHTML = `
+    <div class="kc-boot-fallback">
+      <div class="kc-boot-card">
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(detail)}</p>
+      </div>
+    </div>
+  `;
+}
+
+function renderError(detail: string): void {
+  const overlay = bootOverlay();
+  if (!overlay) {
+    return;
+  }
+  overlay.classList.remove("is-hidden");
+  overlay.innerHTML = `
+    <div class="kc-boot-fallback">
+      <div class="kc-boot-card">
+        <h1>Kiwi Control failed to start</h1>
+        <p>The renderer hit an error before it could mount the UI.</p>
+        <pre>${escapeHtml(detail)}</pre>
+      </div>
+    </div>
+  `;
+}
+
+function hide(): void {
+  bootOverlay()?.classList.add("is-hidden");
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+window.__KIWI_BOOT_API__ = {
+  mounted: false,
+  renderMessage,
+  renderError,
+  hide
+};
+
+renderMessage(
+  "Loading Kiwi Control",
+  "External boot diagnostics loaded. If this message never changes, the main renderer bundle is failing before mount."
+);
+
+window.addEventListener("error", (event) => {
+  if (window.__KIWI_BOOT_API__?.mounted) {
+    return;
+  }
+  renderError(event.message || "Unknown startup error");
+});
+
+window.addEventListener("unhandledrejection", (event) => {
+  if (window.__KIWI_BOOT_API__?.mounted) {
+    return;
+  }
+  const reason = event.reason;
+  renderError(typeof reason === "string" ? reason : reason?.message ?? "Unhandled promise rejection");
+});
+
+window.setTimeout(() => {
+  if (window.__KIWI_BOOT_API__?.mounted) {
+    return;
+  }
+  renderError("Renderer timeout: the main UI bundle did not report a successful mount.");
+}, 3000);

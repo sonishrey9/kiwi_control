@@ -969,6 +969,73 @@ button {
   border-color: color-mix(in srgb, var(--warning) 20%, var(--border));
 }
 
+.kc-table-shell {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--secondary) 28%, transparent);
+}
+
+.kc-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+.kc-data-table th,
+.kc-data-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: left;
+  vertical-align: top;
+}
+
+.kc-data-table th {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+}
+
+.kc-data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.kc-table-note {
+  margin: 12px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.kc-machine-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.kc-machine-state.is-active {
+  border-color: color-mix(in srgb, var(--success) 30%, var(--border));
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--success);
+}
+
+.kc-machine-state.is-inactive {
+  border-color: color-mix(in srgb, var(--warning) 24%, var(--border));
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+  color: var(--warning);
+}
+
 .kc-bar-row {
   flex-direction: column;
   align-items: stretch;

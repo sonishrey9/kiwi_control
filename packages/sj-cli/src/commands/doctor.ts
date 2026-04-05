@@ -70,6 +70,8 @@ async function runMachineDoctor(options: DoctorOptions): Promise<number> {
   const findings = buildMachineDoctorFindings(advisory);
   const payload = {
     ok: findings.length === 0,
+    updatedAt: advisory.updatedAt,
+    stale: advisory.stale,
     findings,
     nextCommand: findings[0]?.fixCommand ?? "kiwi-control toolchain"
   };
@@ -77,7 +79,7 @@ async function runMachineDoctor(options: DoctorOptions): Promise<number> {
   if (options.json) {
     options.logger.info(JSON.stringify(payload, null, 2));
   } else if (findings.length === 0) {
-    options.logger.info("doctor: machine advisory looks healthy");
+    options.logger.info(`doctor: machine advisory looks healthy (${advisory.updatedAt}${advisory.stale ? " stale" : ""})`);
     options.logger.info(`next command: ${payload.nextCommand}`);
   } else {
     for (const finding of findings) {

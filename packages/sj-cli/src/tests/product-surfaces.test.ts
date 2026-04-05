@@ -124,9 +124,12 @@ test("ui command returns structured repo-control state in json mode", async () =
     mcpPacks: { suggestedPack: { id: string }; compatibleCapabilities: Array<{ id: string }>; note: string };
     validation: { ok: boolean };
     machineAdvisory: {
+      generatedBy: string;
+      windowDays: number;
       inventory: Array<{ name: string }>;
       mcpInventory: { claudeTotal: number; codexTotal: number; copilotTotal: number };
       optimizationLayers: Array<{ name: string }>;
+      setupPhases: Array<{ phase: string }>;
       configHealth: Array<{ path: string }>;
       usage: { claude: { available: boolean }; codex: { available: boolean }; copilot: { available: boolean } };
     };
@@ -157,8 +160,11 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.match(payload.mcpPacks.note, /MCP/i);
   assert.equal(payload.validation.ok, true);
   assert.equal(Array.isArray(payload.machineAdvisory.inventory), true);
+  assert.equal(typeof payload.machineAdvisory.generatedBy, "string");
+  assert.equal(typeof payload.machineAdvisory.windowDays, "number");
   assert.equal(typeof payload.machineAdvisory.mcpInventory.claudeTotal, "number");
   assert.equal(Array.isArray(payload.machineAdvisory.optimizationLayers), true);
+  assert.equal(Array.isArray(payload.machineAdvisory.setupPhases), true);
   assert.equal(Array.isArray(payload.machineAdvisory.configHealth), true);
   assert.equal(typeof payload.machineAdvisory.usage.claude.available, "boolean");
   assert.equal(typeof payload.kiwiControl.indexing.discoveredFiles, "number");
@@ -403,7 +409,7 @@ writeFileSync(${JSON.stringify(launchStatusPath)}, JSON.stringify({
   });
 });
 
-test("ui command prefers a locally built Kiwi Control app bundle when the source checkout has one", async () => {
+test("ui command prefers installed Kiwi Control app bundles before falling back to a locally built source bundle", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-source-bundle-"));
   const sourceRepo = path.join(tempDir, "repo");
   const bundlePath =
@@ -433,10 +439,18 @@ test("ui command prefers a locally built Kiwi Control app bundle when the source
 
   if (process.platform === "darwin") {
     assert.deepEqual(candidates[0], {
+      command: "open",
+      args: ["/Applications/Kiwi Control.app"]
+    });
+    assert.deepEqual(candidates[1], {
+      command: "open",
+      args: [path.join(os.homedir(), "Applications", "Kiwi Control.app")]
+    });
+    assert.deepEqual(candidates[2], {
       command: bundleExecutablePath,
       args: []
     });
-    assert.deepEqual(candidates[1], {
+    assert.deepEqual(candidates[3], {
       command: "open",
       args: [bundlePath]
     });
@@ -445,7 +459,7 @@ test("ui command prefers a locally built Kiwi Control app bundle when the source
   }
 });
 
-test("ui command prefers a locally built Kiwi Control app bundle from the current workspace even when the installed CLI root is elsewhere", async () => {
+test("ui command still offers the current workspace source bundle after installed app candidates", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-source-cwd-bundle-"));
   const sourceRepo = path.join(tempDir, "repo");
   const installedRoot = path.join(tempDir, "installed-cli-root");
@@ -482,11 +496,19 @@ test("ui command prefers a locally built Kiwi Control app bundle from the curren
     const candidates = buildDesktopLaunchCandidates(installedRoot, path.join(tempDir, "target-repo"));
 
     if (process.platform === "darwin") {
-      assert.equal(candidates[0]?.args.length, 0);
-      assert.equal(await fs.realpath(candidates[0]?.command ?? ""), await fs.realpath(bundleExecutablePath ?? ""));
-      assert.equal(candidates[1]?.command, "open");
-      assert.deepEqual(candidates[1]?.args.length, 1);
-      assert.equal(await fs.realpath(candidates[1]?.args[0] ?? ""), await fs.realpath(bundlePath ?? ""));
+      assert.deepEqual(candidates[0], {
+        command: "open",
+        args: ["/Applications/Kiwi Control.app"]
+      });
+      assert.deepEqual(candidates[1], {
+        command: "open",
+        args: [path.join(os.homedir(), "Applications", "Kiwi Control.app")]
+      });
+      assert.equal(candidates[2]?.args.length, 0);
+      assert.equal(await fs.realpath(candidates[2]?.command ?? ""), await fs.realpath(bundleExecutablePath ?? ""));
+      assert.equal(candidates[3]?.command, "open");
+      assert.deepEqual(candidates[3]?.args.length, 1);
+      assert.equal(await fs.realpath(candidates[3]?.args[0] ?? ""), await fs.realpath(bundlePath ?? ""));
     } else {
       assert.equal(candidates.some((candidate) => candidate.args.includes("Kiwi Control.app")), false);
     }

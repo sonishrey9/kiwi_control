@@ -164,6 +164,12 @@ export function buildDesktopLaunchCandidates(repoRoot?: string, targetRoot?: str
     return candidates;
   }
 
+  if (process.platform === "darwin") {
+    for (const installedBundlePath of buildInstalledMacOsDesktopBundlePaths()) {
+      candidates.push(buildDesktopCandidateFromEnvValue(installedBundlePath));
+    }
+  }
+
   const discoveredSourceRoots = [
     repoRoot,
     findNearestSourceProductCheckout(process.cwd()),
@@ -201,6 +207,15 @@ export function buildDesktopLaunchCandidates(repoRoot?: string, targetRoot?: str
   }
 
   return candidates;
+}
+
+function buildInstalledMacOsDesktopBundlePaths(): string[] {
+  const candidates = [
+    path.join("/Applications", `${PRODUCT_METADATA.desktop.appName}.app`),
+    path.join(os.homedir(), "Applications", `${PRODUCT_METADATA.desktop.appName}.app`)
+  ];
+
+  return candidates.filter((candidate, index, items) => items.indexOf(candidate) === index);
 }
 
 export function resolveDesktopLaunchRequestPath(): string {
@@ -427,15 +442,16 @@ async function terminateConflictingDesktopProcesses(
   candidate: DesktopLaunchCandidate,
   launchRequest: DesktopLaunchRequest
 ): Promise<void> {
-  if (
-    process.platform !== "darwin" ||
-    !path.isAbsolute(candidate.command) ||
-    !candidate.command.includes(`${PRODUCT_METADATA.desktop.appName}.app/Contents/MacOS/`)
-  ) {
+  if (process.platform !== "darwin") {
     return;
   }
 
-  const runningProcesses = listRunningDesktopProcesses().filter((processInfo) => !processInfo.command.includes(candidate.command));
+  const candidateExecutable = resolveDesktopCandidateExecutablePath(candidate);
+  if (!candidateExecutable) {
+    return;
+  }
+
+  const runningProcesses = listRunningDesktopProcesses().filter((processInfo) => !processInfo.command.includes(candidateExecutable));
   if (runningProcesses.length === 0) {
     return;
   }
@@ -462,6 +478,23 @@ async function terminateConflictingDesktopProcesses(
   }
 
   await delay(400);
+}
+
+function resolveDesktopCandidateExecutablePath(candidate: DesktopLaunchCandidate): string | null {
+  if (path.isAbsolute(candidate.command) && candidate.command.includes(`${PRODUCT_METADATA.desktop.appName}.app/Contents/MacOS/`)) {
+    return candidate.command;
+  }
+
+  if (candidate.command !== "open") {
+    return null;
+  }
+
+  const openTarget = candidate.args.find((arg) => arg.endsWith(".app"));
+  if (!openTarget || !path.isAbsolute(openTarget)) {
+    return null;
+  }
+
+  return resolveMacOsBundleExecutable(openTarget);
 }
 
 function listRunningDesktopProcesses(): Array<{ pid: number; command: string }> {

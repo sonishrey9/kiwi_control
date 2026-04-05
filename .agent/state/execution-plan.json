@@ -30,7 +30,7 @@
     },
     {
       "id": "execute",
-      "description": "Execute the bounded task",
+      "description": "Modify the selected files",
       "command": "kiwi-control run \"describe your task\"",
       "expectedOutput": "Run packets or equivalent execution artifacts are ready.",
       "validation": "Execution must produce packet/output artifacts inside the prepared scope.",
@@ -116,7 +116,16 @@
     "selectedModuleGroups": [],
     "confidence": null,
     "contextTreePath": null,
-    "dependencyChains": {}
+    "dependencyChains": {},
+    "forwardDependencies": [],
+    "reverseDependencies": []
   },
-  "updatedAt": "2026-04-05T07:24:16.920Z"
+  "evalSummary": {
+    "totalRuns": 0,
+    "successRate": 0,
+    "averageContextPrecision": 0,
+    "averageTokenCount": 0,
+    "recentEntries": []
+  },
+  "updatedAt": "2026-04-05T09:57:33.796Z"
 }

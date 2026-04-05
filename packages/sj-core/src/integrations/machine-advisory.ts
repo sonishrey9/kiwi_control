@@ -50,6 +50,18 @@ export interface MachineAdvisoryOptimizationLayer {
   copilot: boolean;
 }
 
+export interface MachineAdvisorySetupPhaseItem {
+  name: string;
+  description: string;
+  location: string;
+  active: boolean;
+}
+
+export interface MachineAdvisorySetupPhase {
+  phase: string;
+  items: MachineAdvisorySetupPhaseItem[];
+}
+
 export interface MachineAdvisoryConfigHealth {
   path: string;
   healthy: boolean;
@@ -114,12 +126,15 @@ export interface MachineAdvisoryUsage {
 
 export interface MachineAdvisoryState {
   artifactType: "kiwi-control/machine-advisory";
-  version: 1;
+  version: 2;
+  generatedBy: string;
+  windowDays: number;
   updatedAt: string;
   stale: boolean;
   inventory: MachineAdvisoryTool[];
   mcpInventory: MachineAdvisoryMcpInventory;
   optimizationLayers: MachineAdvisoryOptimizationLayer[];
+  setupPhases: MachineAdvisorySetupPhase[];
   configHealth: MachineAdvisoryConfigHealth[];
   skillsCount: number;
   copilotPlugins: string[];
@@ -151,7 +166,7 @@ export async function loadMachineAdvisory(options: MachineAdvisoryBuildOptions =
   if (!options.forceRefresh && await pathExists(cachePath)) {
     try {
       const cached = await readJson<MachineAdvisoryState>(cachePath);
-      if (cached.artifactType === "kiwi-control/machine-advisory" && cached.version === 1) {
+      if (cached.artifactType === "kiwi-control/machine-advisory" && cached.version === 2) {
         const age = now.getTime() - new Date(cached.updatedAt).getTime();
         if (age < CACHE_TTL_MS && !cached.stale) {
           return { ...cached, stale: false };
@@ -171,6 +186,7 @@ export async function loadMachineAdvisory(options: MachineAdvisoryBuildOptions =
 export async function buildMachineAdvisory(options: MachineAdvisoryBuildOptions = {}): Promise<MachineAdvisoryState> {
   const homeRoot = resolveMachineHome(options.homeRoot);
   const now = options.now ?? new Date();
+  const windowDays = 7;
   const fastMode = process.env.CODEX_CI === "1" && !options.homeRoot && !options.commandRunner && options.ccusagePayload === undefined;
   const commandRunner = fastMode
     ? async () => ({ code: 1, stdout: "", stderr: "" } satisfies CommandOutput)
@@ -183,24 +199,36 @@ export async function buildMachineAdvisory(options: MachineAdvisoryBuildOptions 
     buildConfigHealth(homeRoot),
     countSkills(homeRoot),
     getCopilotPlugins(homeRoot),
-    buildUsage(homeRoot, now, commandRunner, ccusagePayload)
+    buildUsage(homeRoot, windowDays, now, commandRunner, ccusagePayload)
   ]);
-
-  return {
-    artifactType: "kiwi-control/machine-advisory",
-    version: 1,
-    updatedAt: now.toISOString(),
-    stale: fastMode,
+  const setupPhases = await buildSetupPhases({
+    homeRoot,
     inventory,
     mcpInventory,
     optimizationLayers,
     configHealth,
     skillsCount,
+    copilotPlugins
+  });
+
+  return {
+    artifactType: "kiwi-control/machine-advisory",
+    version: 2,
+    generatedBy: "kiwi-control machine-advisory",
+    windowDays,
+    updatedAt: now.toISOString(),
+    stale: fastMode,
+    inventory,
+    mcpInventory,
+    optimizationLayers,
+    setupPhases,
+    configHealth,
+    skillsCount,
     copilotPlugins,
     usage,
     note: fastMode
-      ? "Machine-local advisory was built in CI fast mode. Refresh in a live shell for actual machine readings."
-      : "Machine-local advisory only. This data never overrides repo-local Kiwi state."
+      ? "Machine-local advisory was built in CI fast mode. Optimization score is intentionally omitted. Refresh in a live shell for actual machine readings."
+      : "Machine-local advisory only. Optimization score is intentionally omitted and this data never overrides repo-local Kiwi state."
   };
 }
 
@@ -265,15 +293,6 @@ async function buildToolchainInventory(homeRoot: string, commandRunner?: (comman
       version
     });
   }
-  if (await pathExists(path.join(homeRoot, ".local", "bin", "ai-dashboard"))) {
-    results.push({
-      name: "ai-dashboard",
-      description: "Machine-local AI toolchain dashboard",
-      phase: "Existing",
-      installed: true,
-      version: "script"
-    });
-  }
   return results;
 }
 
@@ -326,7 +345,7 @@ async function buildOptimizationLayers(homeRoot: string): Promise<MachineAdvisor
       name: "context-mode",
       savings: "98% tool output sandbox",
       claude: "context-mode" in claudeServers,
-      codex: "context-mode" in codexServers,
+      codex: false,
       copilot: false
     },
     {
@@ -396,16 +415,17 @@ async function getCopilotPlugins(homeRoot: string): Promise<string[]> {
 
 async function buildUsage(
   homeRoot: string,
+  days: number,
   now: Date,
   commandRunner?: (command: string, args: string[]) => Promise<CommandOutput>,
   ccusagePayload?: { daily?: Array<Record<string, unknown>> } | null
 ): Promise<MachineAdvisoryUsage> {
   const [claude, codex] = await Promise.all([
-    loadClaudeUsage(now, commandRunner, ccusagePayload),
-    loadCodexUsage(homeRoot, 7, now)
+    loadClaudeUsage(now, days, commandRunner, ccusagePayload),
+    loadCodexUsage(homeRoot, days, now)
   ]);
   return {
-    days: 7,
+    days,
     claude,
     codex,
     copilot: {
@@ -417,10 +437,11 @@ async function buildUsage(
 
 async function loadClaudeUsage(
   now: Date,
+  days: number,
   commandRunner?: (command: string, args: string[]) => Promise<CommandOutput>,
   ccusagePayload?: { daily?: Array<Record<string, unknown>> } | null
 ): Promise<MachineAdvisoryUsage["claude"]> {
-  const since = formatSinceDate(now, 7);
+  const since = formatSinceDate(now, days);
   const command = ["npx", "-y", "ccusage", "daily", "--since", since, "--json"];
   try {
     const payload = ccusagePayload ?? (JSON.parse((await runMachineCommand(command[0]!, command.slice(1), commandRunner)).stdout) as { daily?: Array<Record<string, unknown>> });
@@ -538,6 +559,119 @@ async function loadCodexUsage(homeRoot: string, days: number, now: Date): Promis
     },
     note: dayValues.length > 0 ? "Measured Codex usage came from local session logs." : "No Codex session usage was available."
   };
+}
+
+async function buildSetupPhases(context: {
+  homeRoot: string;
+  inventory: MachineAdvisoryTool[];
+  mcpInventory: MachineAdvisoryMcpInventory;
+  optimizationLayers: MachineAdvisoryOptimizationLayer[];
+  configHealth: MachineAdvisoryConfigHealth[];
+  skillsCount: number;
+  copilotPlugins: string[];
+}): Promise<MachineAdvisorySetupPhase[]> {
+  const toolInstalled = (name: string): boolean => context.inventory.some((tool) => tool.name === name && tool.installed);
+  const tokenServer = (name: string): MachineAdvisoryMcpTokenServer | undefined =>
+    context.mcpInventory.tokenServers.find((server) => server.name === name);
+  const optimizationLayer = (name: string): MachineAdvisoryOptimizationLayer | undefined =>
+    context.optimizationLayers.find((layer) => layer.name === name);
+  const configHealthy = (displayPath: string): boolean =>
+    context.configHealth.find((entry) => entry.path === displayPath)?.healthy ?? false;
+  const anyHarnessActive = (layerName: string): boolean => {
+    const layer = optimizationLayer(layerName);
+    return Boolean(layer?.claude || layer?.codex || layer?.copilot);
+  };
+  const aiSetupInstalled = await pathExists(path.join(context.homeRoot, ".local", "bin", "ai-setup"));
+
+  return [
+    {
+      phase: "Phase 1 — Core",
+      items: [
+        {
+          name: "code-review-graph",
+          description: "Graph-based structural code search (22 MCP tools)",
+          location: "MCP server + per-project graph",
+          active: toolInstalled("code-review-graph") && Boolean(tokenServer("code-review-graph")?.claude || tokenServer("code-review-graph")?.codex || tokenServer("code-review-graph")?.copilot)
+        },
+        {
+          name: "oh-my-claudecode (OMC)",
+          description: "19-agent orchestration for Claude Code",
+          location: "Global CLAUDE.md + skills",
+          active: toolInstalled("omc") && configHealthy("~/.claude.json") && configHealthy("~/.claude/CLAUDE.md")
+        },
+        {
+          name: "oh-my-codex (OMX)",
+          description: "Multi-agent orchestration for Codex",
+          location: "Global config.toml + AGENTS.md",
+          active: toolInstalled("omx") && configHealthy("~/.codex/config.toml") && configHealthy("~/.codex/AGENTS.md")
+        },
+        {
+          name: "ai-setup script",
+          description: "One-command per-project setup",
+          location: "~/.local/bin/ai-setup",
+          active: aiSetupInstalled
+        }
+      ]
+    },
+    {
+      phase: "Phase 2 — Token Optimization",
+      items: [
+        {
+          name: "lean-ctx",
+          description: "Shell output compression (89-99% savings)",
+          location: "~/.zshrc aliases + Codex hook + Copilot MCP",
+          active: anyHarnessActive("lean-ctx")
+        },
+        {
+          name: "repomix",
+          description: "Codebase-to-summary (70% reduction)",
+          location: "Per-project .repomix-output.xml",
+          active: toolInstalled("repomix")
+        },
+        {
+          name: "context-mode",
+          description: "Tool output sandboxing (98% savings)",
+          location: "Claude Code MCP server",
+          active: Boolean(tokenServer("context-mode")?.claude)
+        },
+        {
+          name: "Copilot CLI",
+          description: "Terminal AI agent with MCP support",
+          location: "~/.copilot/mcp-config.json",
+          active: toolInstalled("copilot") && configHealthy("~/.copilot/mcp-config.json")
+        }
+      ]
+    },
+    {
+      phase: "Phase 3 — Capability Expansion",
+      items: [
+        {
+          name: "ccusage",
+          description: "Token usage visibility",
+          location: "Claude Code MCP server",
+          active: Boolean(tokenServer("ccusage")?.claude)
+        },
+        {
+          name: "Token-efficient rules",
+          description: "5 output verbosity rules",
+          location: "CLAUDE.md + AGENTS.md",
+          active: anyHarnessActive("token-efficient rules")
+        },
+        {
+          name: `Agent skills (${context.skillsCount} total)`,
+          description: "Skill inventory under ~/.agents/skills/",
+          location: "~/.agents/skills/",
+          active: context.skillsCount > 0
+        },
+        {
+          name: `Copilot plugins (${context.copilotPlugins.length})`,
+          description: "Installed Copilot plugin registry",
+          location: "~/.copilot/installed-plugins/",
+          active: context.copilotPlugins.length > 0
+        }
+      ]
+    }
+  ];
 }
 
 function emptyCodexUsage(note: string): MachineAdvisoryUsage["codex"] {

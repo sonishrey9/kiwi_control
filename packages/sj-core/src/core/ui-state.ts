@@ -519,7 +519,9 @@ export async function buildRepoControlStateFromConfig(options: {
   const ecosystem = buildEcosystemCatalog();
   const machineAdvisory = await loadMachineAdvisory().catch(() => ({
     artifactType: "kiwi-control/machine-advisory" as const,
-    version: 1 as const,
+    version: 2 as const,
+    generatedBy: "kiwi-control machine-advisory",
+    windowDays: 7,
     updatedAt: new Date().toISOString(),
     stale: true,
     inventory: [],
@@ -530,6 +532,7 @@ export async function buildRepoControlStateFromConfig(options: {
       tokenServers: []
     },
     optimizationLayers: [],
+    setupPhases: [],
     configHealth: [],
     skillsCount: 0,
     copilotPlugins: [],
@@ -568,7 +571,7 @@ export async function buildRepoControlStateFromConfig(options: {
         note: "Machine advisory unavailable."
       }
     },
-    note: "Machine-local advisory is unavailable."
+    note: "Machine-local advisory is unavailable. Optimization score is intentionally omitted."
   }));
 
   const kiwiControl = await loadKiwiControlState(options.targetRoot, validationIssues);

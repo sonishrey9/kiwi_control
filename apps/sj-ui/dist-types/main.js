@@ -185,6 +185,7 @@ const EMPTY_KC = {
     }
 };
 const app = document.querySelector("#app");
+const bootOverlay = document.querySelector("#boot-overlay");
 if (!app) {
     throw new Error("App root not found");
 }
@@ -197,68 +198,84 @@ let isInspectorOpen = true;
 let currentState = buildBridgeUnavailableState("");
 let activeTheme = loadStoredTheme();
 const platformMode = detectPlatform();
-app.innerHTML = buildShellHtml();
-const shellElement = requireElement(".kc-shell");
-const railNavElement = requireElement("#rail-nav");
-const bridgeNoteElement = requireElement("#bridge-note");
-const topbarElement = requireElement("#topbar");
-const centerMainElement = requireElement("#center-main");
-const inspectorElement = requireElement("#inspector");
-const logDrawerElement = requireElement("#log-drawer");
-const workspaceSurfaceElement = requireElement("#workspace-surface");
+let shellElement;
+let railNavElement;
+let bridgeNoteElement;
+let topbarElement;
+let centerMainElement;
+let inspectorElement;
+let logDrawerElement;
+let workspaceSurfaceElement;
 let currentTargetRoot = "";
 let isLoadingRepoState = false;
 let queuedLaunchRequest = null;
 let lastHandledLaunchRequestId = "";
-applyChromePreferences();
-renderState(currentState);
-bridgeNoteElement.textContent = buildBridgeNote(currentState, "shell");
-app.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!target) {
-        return;
-    }
-    const viewButton = target.closest("[data-view]");
-    if (viewButton?.dataset.view) {
-        activeView = viewButton.dataset.view;
-        renderState(currentState);
-        return;
-    }
-    if (target.closest("[data-toggle-logs]")) {
-        isLogDrawerOpen = !isLogDrawerOpen;
-        renderState(currentState);
-        return;
-    }
-    if (target.closest("[data-toggle-inspector]")) {
-        isInspectorOpen = !isInspectorOpen;
-        renderState(currentState);
-        return;
-    }
-    const logTabButton = target.closest("[data-log-tab]");
-    if (logTabButton?.dataset.logTab) {
-        activeLogTab = logTabButton.dataset.logTab;
-        renderState(currentState);
-        return;
-    }
-    const validationTabButton = target.closest("[data-validation-tab]");
-    if (validationTabButton?.dataset.validationTab) {
-        activeValidationTab = validationTabButton.dataset.validationTab;
-        renderState(currentState);
-        return;
-    }
-    if (target.closest("[data-theme-toggle]")) {
-        activeTheme = activeTheme === "dark" ? "light" : "dark";
-        applyChromePreferences();
-        renderState(currentState);
-        return;
-    }
-    if (target.closest("[data-reload-state]")) {
-        if (currentTargetRoot) {
-            void loadAndRenderTarget(currentTargetRoot, "manual");
+try {
+    app.innerHTML = buildShellHtml();
+    shellElement = requireElement(".kc-shell");
+    railNavElement = requireElement("#rail-nav");
+    bridgeNoteElement = requireElement("#bridge-note");
+    topbarElement = requireElement("#topbar");
+    centerMainElement = requireElement("#center-main");
+    inspectorElement = requireElement("#inspector");
+    logDrawerElement = requireElement("#log-drawer");
+    workspaceSurfaceElement = requireElement("#workspace-surface");
+    applyChromePreferences();
+    renderState(currentState);
+    bridgeNoteElement.textContent = buildBridgeNote(currentState, "shell");
+    finalizeInitialRender();
+    app.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!target) {
+            return;
         }
-    }
-});
-void boot();
+        const viewButton = target.closest("[data-view]");
+        if (viewButton?.dataset.view) {
+            activeView = viewButton.dataset.view;
+            renderState(currentState);
+            return;
+        }
+        if (target.closest("[data-toggle-logs]")) {
+            isLogDrawerOpen = !isLogDrawerOpen;
+            renderState(currentState);
+            return;
+        }
+        if (target.closest("[data-toggle-inspector]")) {
+            isInspectorOpen = !isInspectorOpen;
+            renderState(currentState);
+            return;
+        }
+        const logTabButton = target.closest("[data-log-tab]");
+        if (logTabButton?.dataset.logTab) {
+            activeLogTab = logTabButton.dataset.logTab;
+            renderState(currentState);
+            return;
+        }
+        const validationTabButton = target.closest("[data-validation-tab]");
+        if (validationTabButton?.dataset.validationTab) {
+            activeValidationTab = validationTabButton.dataset.validationTab;
+            renderState(currentState);
+            return;
+        }
+        if (target.closest("[data-theme-toggle]")) {
+            activeTheme = activeTheme === "dark" ? "light" : "dark";
+            applyChromePreferences();
+            renderState(currentState);
+            return;
+        }
+        if (target.closest("[data-reload-state]")) {
+            if (currentTargetRoot) {
+                void loadAndRenderTarget(currentTargetRoot, "manual");
+            }
+        }
+    });
+    void boot();
+}
+catch (error) {
+    const detail = error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ""}` : String(error);
+    console.error(detail);
+    window.__KIWI_BOOT_API__?.renderError(`Synchronous renderer boot failure:\n${detail}`);
+}
 function requireElement(selector) {
     const element = document.querySelector(selector);
     if (!element) {
@@ -277,6 +294,22 @@ function loadStoredTheme() {
         // Ignore storage failures and fall back to dark mode.
     }
     return "dark";
+}
+function finalizeInitialRender() {
+    const bootApi = window.__KIWI_BOOT_API__;
+    window.requestAnimationFrame(() => {
+        const hasVisibleShell = Boolean(topbarElement.textContent?.trim()) ||
+            Boolean(centerMainElement.textContent?.trim()) ||
+            Boolean(inspectorElement.textContent?.trim());
+        if (!hasVisibleShell) {
+            bootApi?.renderError("Renderer mounted but produced no visible UI content.");
+            return;
+        }
+        if (bootApi) {
+            bootApi.mounted = true;
+        }
+        bootApi?.hide();
+    });
 }
 function detectPlatform() {
     const userAgent = navigator.userAgent.toLowerCase();
@@ -1287,7 +1320,7 @@ function renderMachineView(state) {
         <div>
           <p class="kc-view-kicker">Machine Advisory</p>
           <h1>Machine-local AI toolchain</h1>
-          <p>Read-only machine inventory, optimization layers, config health, and usage. This does not override repo-local Kiwi state.</p>
+          <p>Read-only machine inventory, optimization layers, config health, and usage. This does not override repo-local Kiwi state. Generated by ${escapeHtml(machine.generatedBy)}.</p>
         </div>
         ${renderHeaderBadge(machine.stale ? "stale" : "fresh", machine.stale ? "warn" : "success")}
       </section>
@@ -1298,64 +1331,148 @@ function renderMachineView(state) {
         ${renderStatCard("Copilot MCPs", String(machine.mcpInventory.copilotTotal), "configured servers", "neutral")}
         ${renderStatCard("Skills", String(machine.skillsCount), "agent skills in ~/.agents/skills", "neutral")}
         ${renderStatCard("Copilot Plugins", String(machine.copilotPlugins.length), "installed plugins", "neutral")}
-        ${renderStatCard("Updated", machine.updatedAt ? formatTimestamp(machine.updatedAt) : "unknown", machine.note, machine.stale ? "warn" : "success")}
+        ${renderStatCard("Window", `${machine.windowDays} days`, machine.note, machine.stale ? "warn" : "success")}
       </div>
 
-      <div class="kc-two-column">
-        <section class="kc-panel">
-          ${renderPanelHeader("Toolchain Inventory", "Detected binaries and versions on this machine.")}
-          ${machine.inventory.length > 0
-        ? `<div class="kc-stack-list">${machine.inventory.map((tool) => renderNoteRow(tool.name, tool.version, `${tool.phase} · ${tool.installed ? "installed" : "missing"} · ${tool.description}`)).join("")}</div>`
+      <section class="kc-panel">
+        ${renderPanelHeader("Toolchain Inventory", "Detected binaries and versions on this machine.")}
+        ${machine.inventory.length > 0
+        ? renderMachineTable(["Tool", "Version", "Phase", "Status"], machine.inventory.map((tool) => [
+            escapeHtml(tool.name),
+            escapeHtml(tool.version),
+            escapeHtml(tool.phase),
+            renderMachineStateChip(tool.installed, "installed", "missing")
+        ]))
         : renderEmptyState("No machine-local tool inventory is available.")}
-        </section>
-        <section class="kc-panel">
-          ${renderPanelHeader("MCP Servers", "Configured MCP counts by harness plus token-focused servers.")}
-          <div class="kc-info-grid">
-            ${renderInfoRow("Claude", String(machine.mcpInventory.claudeTotal))}
-            ${renderInfoRow("Codex", String(machine.mcpInventory.codexTotal))}
-            ${renderInfoRow("Copilot", String(machine.mcpInventory.copilotTotal))}
-          </div>
-          <div class="kc-divider"></div>
-          ${machine.mcpInventory.tokenServers.length > 0
-        ? `<div class="kc-stack-list">${machine.mcpInventory.tokenServers.map((server) => renderNoteRow(server.name, `claude ${server.claude ? "active" : "—"} · codex ${server.codex ? "active" : "—"} · copilot ${server.copilot ? "active" : "—"}`, "Token optimization coverage")).join("")}</div>`
+      </section>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("MCP Servers", "Configured MCP counts by harness plus token-focused server coverage.")}
+        <div class="kc-info-grid">
+          ${renderInfoRow("Claude Code", formatInteger(machine.mcpInventory.claudeTotal))}
+          ${renderInfoRow("Codex", formatInteger(machine.mcpInventory.codexTotal))}
+          ${renderInfoRow("Copilot CLI", formatInteger(machine.mcpInventory.copilotTotal))}
+        </div>
+        <div class="kc-divider"></div>
+        ${machine.mcpInventory.tokenServers.length > 0
+        ? renderMachineTable(["Server", "Claude Code", "Codex", "Copilot"], machine.mcpInventory.tokenServers.map((server) => [
+            escapeHtml(server.name),
+            renderMachineStateChip(server.claude, "active", "—"),
+            renderMachineStateChip(server.codex, "active", "—"),
+            renderMachineStateChip(server.copilot, "active", "—")
+        ]))
         : renderEmptyState("No token-focused MCP inventory is available.")}
-        </section>
-      </div>
+      </section>
 
-      <div class="kc-two-column">
-        <section class="kc-panel">
-          ${renderPanelHeader("Optimization Layers", "Machine-local optimization layers and whether they are active per harness.")}
-          ${machine.optimizationLayers.length > 0
-        ? `<div class="kc-stack-list">${machine.optimizationLayers.map((layer) => renderNoteRow(layer.name, `${layer.savings}`, `claude ${layer.claude ? "✓" : "✗"} · codex ${layer.codex ? "✓" : "✗"} · copilot ${layer.copilot ? "✓" : "✗"}`)).join("")}</div>`
+      <section class="kc-panel">
+        ${renderPanelHeader("Token Optimization Layers", "Machine-local optimization layers and whether they are active per harness.")}
+        ${machine.optimizationLayers.length > 0
+        ? renderMachineTable(["Layer", "Savings", "Claude Code", "Codex", "Copilot"], machine.optimizationLayers.map((layer) => [
+            escapeHtml(layer.name),
+            escapeHtml(layer.savings),
+            renderMachineStateChip(layer.claude, "yes", "no"),
+            renderMachineStateChip(layer.codex, "yes", "no"),
+            renderMachineStateChip(layer.copilot, "yes", "no")
+        ]))
         : renderEmptyState("No optimization layer data is available.")}
-        </section>
-        <section class="kc-panel">
-          ${renderPanelHeader("Config Health", "Machine-level config and hook surfaces.")}
-          ${machine.configHealth.length > 0
-        ? `<div class="kc-stack-list">${machine.configHealth.map((entry) => renderNoteRow(entry.path, entry.healthy ? "healthy" : "unhealthy", entry.description)).join("")}</div>`
-        : renderEmptyState("No config health data is available.")}
-        </section>
-      </div>
+        <p class="kc-table-note">Optimization score is intentionally omitted. Kiwi surfaces factual-only machine advisory.</p>
+      </section>
 
-      <div class="kc-two-column">
-        <section class="kc-panel">
-          ${renderPanelHeader("Usage", "Measured usage from Claude and Codex local sources.")}
-          <div class="kc-stack-list">
-            ${renderNoteRow("Claude", machine.usage.claude.available ? `${formatTokensShort(machine.usage.claude.totals.totalTokens)} tokens` : "unavailable", machine.usage.claude.totals.totalCost != null ? `cache ${machine.usage.claude.totals.cacheHitRatio ?? "n/a"}% · cost $${machine.usage.claude.totals.totalCost.toFixed(2)}` : machine.usage.claude.note)}
-            ${renderNoteRow("Codex", machine.usage.codex.available ? `${formatTokensShort(machine.usage.codex.totals.totalTokens)} tokens` : "unavailable", machine.usage.codex.available ? `cache ${machine.usage.codex.totals.cacheHitRatio ?? "n/a"}% · sessions ${machine.usage.codex.totals.sessions}` : machine.usage.codex.note)}
-            ${renderNoteRow("Copilot", machine.usage.copilot.available ? "available" : "unavailable", machine.usage.copilot.note)}
-          </div>
-        </section>
-        <section class="kc-panel">
-          ${renderPanelHeader("Plugins & Skills", "Machine-local capability expansion surfaces.")}
-          <div class="kc-stack-list">
-            ${renderNoteRow("Agent skills", String(machine.skillsCount), "~/.agents/skills")}
-            ${renderNoteRow("Copilot plugins", String(machine.copilotPlugins.length), machine.copilotPlugins.join(", ") || "none")}
-          </div>
-        </section>
-      </div>
+      <section class="kc-panel">
+        ${renderPanelHeader("Skills & Plugins", "Machine-local capability expansion surfaces.")}
+        <div class="kc-stack-list">
+          ${renderNoteRow("Claude Code", `${formatInteger(machine.skillsCount)} agent skills`, "~/.agents/skills/")}
+          ${renderNoteRow("Codex", `${formatInteger(machine.mcpInventory.codexTotal)} MCP servers`, machine.inventory.some((tool) => tool.name === "omx" && tool.installed) ? "OMX orchestration detected" : "No OMX orchestration detected")}
+          ${renderNoteRow("Copilot CLI", `${formatInteger(machine.copilotPlugins.length)} plugins`, machine.copilotPlugins.join(", ") || "none")}
+        </div>
+      </section>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("What AI-setup Added", "Structured provenance of the machine-local AI setup, grouped by phase.")}
+        ${machine.setupPhases.length > 0
+        ? machine.setupPhases.map((phase) => `
+              <div class="kc-stack-block">
+                <p class="kc-stack-label">${escapeHtml(phase.phase)}</p>
+                <div class="kc-stack-list">
+                  ${phase.items.map((item) => renderNoteRow(item.name, item.active ? "active" : "inactive", `${item.description} · ${item.location}`)).join("")}
+                </div>
+              </div>
+            `).join('<div class="kc-divider"></div>')
+        : renderEmptyState("No machine-local setup provenance is available.")}
+      </section>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("Config Health", "Machine-level config and hook surfaces.")}
+        ${machine.configHealth.length > 0
+        ? renderMachineTable(["Config", "Status", "Description"], machine.configHealth.map((entry) => [
+            escapeHtml(entry.path),
+            renderMachineStateChip(entry.healthy, "healthy", "issue"),
+            escapeHtml(entry.description)
+        ]))
+        : renderEmptyState("No config health data is available.")}
+      </section>
+
+      <section class="kc-panel">
+        ${renderPanelHeader(`Token Usage (Last ${machine.windowDays} Days)`, "Measured usage from Claude and Codex local sources.")}
+        <div class="kc-two-column">
+          <section class="kc-subpanel">
+            ${renderPanelHeader("Claude Code (via ccusage)", machine.usage.claude.note)}
+            <div class="kc-stack-list">
+              ${renderNoteRow("Total", machine.usage.claude.available ? `${formatInteger(machine.usage.claude.totals.totalTokens)} tokens` : "unavailable", machine.usage.claude.totals.totalCost != null ? `cache ${formatPercent(machine.usage.claude.totals.cacheHitRatio)} · cost ${formatCurrency(machine.usage.claude.totals.totalCost)}` : machine.usage.claude.note)}
+            </div>
+            <div class="kc-divider"></div>
+            ${machine.usage.claude.days.length > 0
+        ? renderMachineTable(["Date", "Input", "Output", "Cache Read", "Cost", "Models"], machine.usage.claude.days.map((day) => [
+            escapeHtml(day.date),
+            escapeHtml(formatInteger(day.inputTokens)),
+            escapeHtml(formatInteger(day.outputTokens)),
+            escapeHtml(formatInteger(day.cacheReadTokens)),
+            escapeHtml(formatCurrency(day.totalCost)),
+            escapeHtml(day.modelsUsed.join(", ") || "—")
+        ]))
+        : renderEmptyState(machine.usage.claude.note)}
+          </section>
+          <section class="kc-subpanel">
+            ${renderPanelHeader("Codex (via session logs)", machine.usage.codex.note)}
+            <div class="kc-stack-list">
+              ${renderNoteRow("Total", machine.usage.codex.available ? `${formatInteger(machine.usage.codex.totals.totalTokens)} tokens` : "unavailable", machine.usage.codex.available ? `cache ${formatPercent(machine.usage.codex.totals.cacheHitRatio)} · sessions ${formatInteger(machine.usage.codex.totals.sessions)}` : machine.usage.codex.note)}
+            </div>
+            <div class="kc-divider"></div>
+            ${machine.usage.codex.days.length > 0
+        ? renderMachineTable(["Date", "Input", "Output", "Cached", "Sessions"], machine.usage.codex.days.map((day) => [
+            escapeHtml(day.date),
+            escapeHtml(formatInteger(day.inputTokens)),
+            escapeHtml(formatInteger(day.outputTokens)),
+            escapeHtml(formatInteger(day.cachedInputTokens)),
+            escapeHtml(formatInteger(day.sessions))
+        ]))
+        : renderEmptyState(machine.usage.codex.note)}
+          </section>
+        </div>
+        <div class="kc-divider"></div>
+        <div class="kc-stack-list">
+          ${renderNoteRow("Copilot CLI", machine.usage.copilot.available ? "available" : "unavailable", machine.usage.copilot.note)}
+        </div>
+      </section>
     </div>
   `;
+}
+function renderMachineTable(headers, rows) {
+    return `
+    <div class="kc-table-shell">
+      <table class="kc-data-table">
+        <thead>
+          <tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>
+        </thead>
+        <tbody>
+          ${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+function renderMachineStateChip(active, activeLabel, inactiveLabel) {
+    return `<span class="kc-machine-state ${active ? "is-active" : "is-inactive"}">${escapeHtml(active ? activeLabel : inactiveLabel)}</span>`;
 }
 function renderHandoffsView(state) {
     const latestCheckpoint = getPanelValue(state.continuity, "Latest checkpoint");
@@ -2035,6 +2152,15 @@ function formatTokensShort(count) {
     }
     return String(count);
 }
+function formatInteger(value) {
+    return value.toLocaleString("en-US");
+}
+function formatPercent(value) {
+    return value == null ? "n/a" : `${value.toFixed(1)}%`;
+}
+function formatCurrency(value) {
+    return value == null ? "—" : `$${value.toFixed(2)}`;
+}
 function formatTimestamp(timestamp) {
     if (!timestamp) {
         return "unknown time";
@@ -2180,7 +2306,9 @@ function buildBridgeUnavailableState(targetRoot) {
         },
         machineAdvisory: {
             artifactType: "kiwi-control/machine-advisory",
-            version: 1,
+            version: 2,
+            generatedBy: "kiwi-control machine-advisory",
+            windowDays: 7,
             updatedAt: "",
             stale: true,
             inventory: [],
@@ -2191,6 +2319,7 @@ function buildBridgeUnavailableState(targetRoot) {
                 tokenServers: []
             },
             optimizationLayers: [],
+            setupPhases: [],
             configHealth: [],
             skillsCount: 0,
             copilotPlugins: [],
@@ -2229,7 +2358,7 @@ function buildBridgeUnavailableState(targetRoot) {
                     note: "Machine-local advisory is unavailable."
                 }
             },
-            note: "Machine-local advisory is unavailable."
+            note: "Machine-local advisory is unavailable. Optimization score is intentionally omitted."
         },
         kiwiControl: EMPTY_KC
     };
