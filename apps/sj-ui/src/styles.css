@@ -196,6 +196,90 @@ button {
   gap: 12px;
 }
 
+.kc-load-strip {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--card) 90%, transparent);
+}
+
+.kc-load-strip.tone-loading {
+  border-color: color-mix(in srgb, var(--warning) 26%, var(--border));
+}
+
+.kc-load-strip.tone-running {
+  border-color: color-mix(in srgb, var(--primary) 26%, var(--border));
+}
+
+.kc-load-strip.tone-ready {
+  border-color: color-mix(in srgb, var(--success) 18%, var(--border));
+}
+
+.kc-load-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.kc-load-row strong {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.kc-load-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.kc-load-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 40%, transparent);
+  animation: kc-pulse 1.4s ease-in-out infinite;
+}
+
+.kc-load-progress {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--secondary) 88%, transparent);
+}
+
+.kc-load-progress-fill {
+  display: block;
+  height: 100%;
+  min-width: 12%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--primary) 70%, white), var(--primary));
+  transition: width 180ms ease;
+}
+
+@keyframes kc-pulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+}
+
 .kc-topbar-action-group {
   display: flex;
   flex-wrap: wrap;

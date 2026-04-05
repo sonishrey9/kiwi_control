@@ -271,6 +271,13 @@ export interface TopBarRenderContext {
   commandState: CommandState;
   currentTask: string;
   retryEnabled: boolean;
+  loadStatus: {
+    visible: boolean;
+    label: string;
+    detail: string;
+    progress: number;
+    tone: "loading" | "running" | "ready";
+  };
   helpers: RenderHelperSet;
 }
 

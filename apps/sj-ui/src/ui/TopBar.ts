@@ -16,6 +16,7 @@ export function renderTopBarView(context: TopBarRenderContext): string {
     commandState,
     currentTask,
     retryEnabled,
+    loadStatus,
     helpers
   } = context;
   const {
@@ -95,5 +96,21 @@ export function renderTopBarView(context: TopBarRenderContext): string {
         `
         : ""}
     </div>
+    ${loadStatus.visible
+      ? `
+        <div class="kc-load-strip tone-${loadStatus.tone}">
+          <div class="kc-load-row">
+            <span class="kc-load-badge">
+              <span class="kc-load-dot"></span>
+              ${escapeHtml(loadStatus.label)}
+            </span>
+            <strong>${escapeHtml(loadStatus.detail)}</strong>
+          </div>
+          <div class="kc-load-progress">
+            <span class="kc-load-progress-fill" style="width:${loadStatus.progress}%"></span>
+          </div>
+        </div>
+      `
+      : ""}
   `;
 }

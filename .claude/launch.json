@@ -1,0 +1,122 @@
+{
+  "version": "1",
+  "project": "kiwi-control-workspace",
+  "description": "Dev server and run configurations for Kiwi Control (Tauri 2 + Vite monorepo)",
+  "configurations": [
+    {
+      "name": "Desktop App (UI dev mode)",
+      "description": "Full Tauri + Vite dev loop — builds CLI first, then launches desktop window with hot-reload",
+      "command": "npm run ui:dev",
+      "cwd": "/Volumes/shrey ssd/shrey-junior",
+      "env": {
+        "KIWI_CONTROL_CLI": "/Volumes/shrey ssd/shrey-junior/packages/sj-cli/dist/cli.js",
+        "SHREY_JUNIOR_CLI": "/Volumes/shrey ssd/shrey-junior/packages/sj-cli/dist/cli.js"
+      },
+      "prereq": "npm run build",
+      "notes": [
+        "Requires Rust/Cargo installed (checked at startup)",
+        "Vite dev server starts on http://localhost:1420 (Tauri 2 default)",
+        "Native desktop window opens automatically via Tauri"
+      ],
+      "type": "desktop"
+    },
+    {
+      "name": "Build All Workspaces",
+      "description": "Compile sj-core → sj-cli → sj-ui in dependency order",
+      "command": "npm run build",
+      "cwd": "/Volumes/shrey ssd/shrey-junior",
+      "type": "build"
+    },
+    {
+      "name": "Build CLI only (sj-cli)",
+      "description": "Rebuild only the CLI package — faster than full build when working on CLI logic",
+      "command": "npm run build -w @shrey-junior/sj-core && npm run build -w shrey-junior",
+      "cwd": "/Volumes/shrey ssd/shrey-junior",
+      "type": "build"
+    },
+    {
+      "name": "Build UI only (sj-ui)",
+      "description": "Compile and bundle the Tauri/Vite frontend without rebuilding CLI or core",
+      "command": "npm run ui:build",
+      "cwd": "/Volumes/shrey ssd/shrey-junior",
+      "type": "build"
+    },
+    {
+      "name": "Desktop App (production build)",
+      "description": "Full Tauri production bundle — outputs .app/.dmg to apps/sj-ui/src-tauri/target/release/bundle",
+      "command": "npm run ui:desktop:build",
+      "cwd": "/Volumes/shrey ssd/shrey-junior",
+      "prereq": "npm run build",
+      "type": "build"
+    },
+    {
+      "name": "Audit (CLI audit mode)",
+      "description": "Build + run sj-cli audit command against the current repo",
+      "command": "npm run audit",
+      "cwd": "/Volumes/shrey ssd/shrey-junior",
+      "type": "tool"
+    },
+    {
+      "name": "Check (CLI check mode)",
+      "description": "Build + run sj-cli check command",
+      "command": "npm run check",
+      "cwd": "/Volumes/shrey ssd/shrey-junior",
+      "type": "tool"
+    },
+    {
+      "name": "Smoke Test",
+      "description": "Build + unit tests + smoke-test.sh — full pre-release validation",
+      "command": "npm run smoke",
+      "cwd": "/Volumes/shrey ssd/shrey-junior",
+      "type": "test"
+    },
+    {
+      "name": "Unit Tests",
+      "description": "Run unit tests for sj-cli package",
+      "command": "npm test",
+      "cwd": "/Volumes/shrey ssd/shrey-junior",
+      "type": "test"
+    },
+    {
+      "name": "Release: Prepare Manifest",
+      "description": "Build core + generate release manifest JSON",
+      "command": "npm run release:manifest",
+      "cwd": "/Volumes/shrey ssd/shrey-junior",
+      "type": "release"
+    },
+    {
+      "name": "Release: Full Check",
+      "description": "Build + test + smoke + release manifest — run before tagging a release",
+      "command": "npm run release:check",
+      "cwd": "/Volumes/shrey ssd/shrey-junior",
+      "type": "release"
+    }
+  ],
+  "workspaces": {
+    "sj-core": {
+      "path": "packages/sj-core",
+      "package": "@shrey-junior/sj-core",
+      "type": "library",
+      "description": "Core engine — repo-first local control plane logic"
+    },
+    "sj-cli": {
+      "path": "packages/sj-cli",
+      "package": "shrey-junior",
+      "type": "cli",
+      "description": "CLI tool — audit, check, and release commands",
+      "dist": "packages/sj-cli/dist/cli.js"
+    },
+    "sj-ui": {
+      "path": "apps/sj-ui",
+      "package": "@shrey-junior/sj-ui",
+      "type": "desktop",
+      "description": "Tauri 2 desktop app — local-first control surface",
+      "framework": "Tauri 2 + Vite 5",
+      "devPort": 1420,
+      "tauriConfig": "apps/sj-ui/src-tauri/tauri.conf.json",
+      "appName": "Kiwi Control",
+      "identifier": "com.kiwicontrol.desktop",
+      "window": { "width": 1320, "height": 920 }
+    }
+  }
+}

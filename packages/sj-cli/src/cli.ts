@@ -91,6 +91,7 @@ async function main(): Promise<void> {
       });
       return;
     case "check":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runCheck({
         repoRoot,
         ...(typeof parsed.flags.target === "string" ? { targetRoot } : {}),
@@ -184,6 +185,7 @@ async function main(): Promise<void> {
       return;
     }
     case "status":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runStatus({
         repoRoot,
         targetRoot,
@@ -193,6 +195,7 @@ async function main(): Promise<void> {
       });
       return;
     case "specialists":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runSpecialists({
         repoRoot,
         ...(typeof parsed.flags.profile === "string" ? { profileName: String(parsed.flags.profile) } : {}),
@@ -201,6 +204,7 @@ async function main(): Promise<void> {
       });
       return;
     case "ui":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runUi({
         repoRoot,
         targetRoot,
@@ -210,6 +214,7 @@ async function main(): Promise<void> {
       });
       return;
     case "push-check":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runPushCheck({
         repoRoot,
         targetRoot,
@@ -292,6 +297,7 @@ async function main(): Promise<void> {
       return;
     }
     case "next":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runNext({
         repoRoot,
         targetRoot,
@@ -300,6 +306,7 @@ async function main(): Promise<void> {
       });
       return;
     case "retry":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runRetry({
         repoRoot,
         targetRoot,
@@ -307,6 +314,7 @@ async function main(): Promise<void> {
       });
       return;
     case "resume":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runResume({
         repoRoot,
         targetRoot,
@@ -314,6 +322,7 @@ async function main(): Promise<void> {
       });
       return;
     case "guide":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runGuide({
         repoRoot,
         targetRoot,
@@ -333,6 +342,7 @@ async function main(): Promise<void> {
       return;
     }
     case "explain":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runExplain({
         repoRoot,
         targetRoot,
@@ -341,6 +351,7 @@ async function main(): Promise<void> {
       });
       return;
     case "trace":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runTrace({
         repoRoot,
         targetRoot,
@@ -349,6 +360,7 @@ async function main(): Promise<void> {
       });
       return;
     case "doctor":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runDoctor({
         repoRoot,
         targetRoot,
@@ -358,6 +370,7 @@ async function main(): Promise<void> {
       });
       return;
     case "toolchain":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runToolchain({
         repoRoot,
         targetRoot,
@@ -367,6 +380,7 @@ async function main(): Promise<void> {
       });
       return;
     case "usage":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runUsage({
         repoRoot,
         targetRoot,
@@ -376,6 +390,7 @@ async function main(): Promise<void> {
       });
       return;
     case "eval":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runEval({
         repoRoot,
         targetRoot,
@@ -390,6 +405,30 @@ async function main(): Promise<void> {
       printHelp(invokedCommand);
       process.exitCode = 0;
   }
+}
+
+function assertNoUnexpectedPositionals(
+  command: string,
+  positionals: string[],
+  targetFlag: string | boolean | undefined
+): void {
+  if (positionals.length === 0) {
+    return;
+  }
+
+  const quoteHint =
+    typeof targetFlag === "string" && looksLikeTruncatedPath(targetFlag, positionals)
+      ? ` If your --target path contains spaces, wrap it in quotes: kiwi-control ${command} --target "${targetFlag} ${positionals.join(" ")}".`
+      : "";
+
+  throw new CliUsageError(`${command} does not accept positional arguments.${quoteHint}`);
+}
+
+function looksLikeTruncatedPath(targetFlag: string, positionals: string[]): boolean {
+  if (!targetFlag.startsWith("/") && !targetFlag.includes(":\\") && !targetFlag.includes(":/")) {
+    return false;
+  }
+  return positionals.every((value) => !value.startsWith("--"));
 }
 
 function parseArgs(argv: string[]): ParsedArgs {

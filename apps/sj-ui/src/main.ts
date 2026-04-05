@@ -848,6 +848,9 @@ let isLoadingRepoState = false;
 let queuedLaunchRequest: LaunchRequestPayload | null = null;
 let lastHandledLaunchRequestId = "";
 let machineHydrationRound = 0;
+let currentLoadSource: "cli" | "manual" | "auto" | null = null;
+let lastRepoRefreshAt = 0;
+let renderQueued = false;
 let activeInteractiveTargetRoot = "";
 let commandState: CommandState = {
   activeCommand: null,
@@ -892,7 +895,9 @@ try {
   renderState(currentState);
   bridgeNoteElement.textContent = buildBridgeNote(currentState, "shell");
   finalizeInitialRender();
-  void hydrateMachineAdvisory(false);
+  window.setTimeout(() => {
+    void hydrateMachineAdvisory(false);
+  }, 180);
 
   app.addEventListener("click", (event) => {
   const target = event.target as HTMLElement | null;
@@ -1194,6 +1199,20 @@ async function boot(): Promise<void> {
   window.setInterval(() => {
     void pollPendingLaunchRequest();
   }, 250);
+
+  window.setInterval(() => {
+    void maybeAutoRefreshState();
+  }, 15_000);
+
+  window.addEventListener("focus", () => {
+    void maybeAutoRefreshState();
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      void maybeAutoRefreshState();
+    }
+  });
 }
 
 async function registerLaunchRequestListener(): Promise<void> {
@@ -1237,7 +1256,7 @@ async function pollPendingLaunchRequest(): Promise<void> {
   await handleLaunchRequest(pendingLaunchRequest);
 }
 
-async function loadAndRenderTarget(targetRoot: string, source: "cli" | "manual", requestId?: string): Promise<void> {
+async function loadAndRenderTarget(targetRoot: string, source: "cli" | "manual" | "auto", requestId?: string): Promise<void> {
   if (isLoadingRepoState) {
     if (requestId) {
       queuedLaunchRequest = { requestId, targetRoot };
@@ -1246,25 +1265,33 @@ async function loadAndRenderTarget(targetRoot: string, source: "cli" | "manual",
   }
 
   isLoadingRepoState = true;
+  currentLoadSource = source;
   currentTargetRoot = targetRoot;
   bridgeNoteElement.textContent =
     source === "cli"
       ? `Opening ${targetRoot} from ${requestId ? "kc ui" : "the CLI"}...`
+      : source === "auto"
+        ? `Refreshing repo-local state for ${targetRoot}...`
       : `Loading repo-local state for ${targetRoot}...`;
+  renderState(currentState);
 
   const state = await loadRepoControlState(targetRoot);
   currentTargetRoot = state.targetRoot || targetRoot;
   currentState = state;
+  lastRepoRefreshAt = Date.now();
   renderState(state);
   bridgeNoteElement.textContent = buildBridgeNote(state, source);
   await logUiEvent("ui-repo-state-rendered", requestId, state.targetRoot || targetRoot, state.repoState.mode);
-  void hydrateMachineAdvisory(true);
+  window.setTimeout(() => {
+    void hydrateMachineAdvisory(true);
+  }, 180);
 
   if (requestId) {
     await acknowledgeLaunchRequest(requestId, state);
   }
 
   isLoadingRepoState = false;
+  currentLoadSource = null;
 
   if (queuedLaunchRequest && queuedLaunchRequest.requestId !== requestId) {
     const nextRequest = queuedLaunchRequest;
@@ -1274,6 +1301,20 @@ async function loadAndRenderTarget(targetRoot: string, source: "cli" | "manual",
   }
 
   queuedLaunchRequest = null;
+}
+
+async function maybeAutoRefreshState(): Promise<void> {
+  if (
+    !currentTargetRoot
+    || isLoadingRepoState
+    || commandState.loading
+    || document.hidden
+    || Date.now() - lastRepoRefreshAt < 10_000
+  ) {
+    return;
+  }
+
+  await loadAndRenderTarget(currentTargetRoot, "auto");
 }
 
 async function acknowledgeLaunchRequest(requestId: string, state: RepoControlState): Promise<void> {
@@ -1338,7 +1379,7 @@ async function hydrateMachineSection(section: MachineSectionName, refresh: boole
       return;
     }
     applyMachineSectionPayload(payload);
-    renderState(currentState);
+    scheduleRenderState();
   } catch (error) {
     if (round !== machineHydrationRound) {
       return;
@@ -1348,7 +1389,7 @@ async function hydrateMachineSection(section: MachineSectionName, refresh: boole
       updatedAt: new Date().toISOString(),
       reason: error instanceof Error ? error.message : String(error)
     };
-    renderState(currentState);
+    scheduleRenderState();
   }
 }
 
@@ -1966,6 +2007,42 @@ function basenameForPath(path: string): string {
 }
 
 function renderCommandBanner(): string {
+  if (commandState.loading) {
+    return `
+      <div class="kc-view-shell">
+        <section class="kc-panel kc-command-banner tone-neutral">
+          <div class="kc-command-banner-head">
+            <div>
+              <p class="kc-section-micro">Running</p>
+              <strong>Kiwi is executing ${escapeHtml(commandState.activeCommand ?? "a command")}</strong>
+            </div>
+            <span class="kc-load-badge"><span class="kc-load-dot"></span>working</span>
+          </div>
+          <p>Results will appear here automatically when the command finishes.</p>
+          <div class="kc-load-progress"><span class="kc-load-progress-fill" style="width:72%"></span></div>
+        </section>
+      </div>
+    `;
+  }
+
+  if (isLoadingRepoState) {
+    return `
+      <div class="kc-view-shell">
+        <section class="kc-panel kc-command-banner tone-neutral">
+          <div class="kc-command-banner-head">
+            <div>
+              <p class="kc-section-micro">Loading</p>
+              <strong>Kiwi is loading repo-local state</strong>
+            </div>
+            <span class="kc-load-badge"><span class="kc-load-dot"></span>hydrating</span>
+          </div>
+          <p>The app is open, and the repo is still hydrating. Panels will refresh automatically.</p>
+          <div class="kc-load-progress"><span class="kc-load-progress-fill" style="width:48%"></span></div>
+        </section>
+      </div>
+    `;
+  }
+
   if (!commandState.lastResult && !commandState.lastError) {
     return "";
   }
@@ -2214,6 +2291,17 @@ function renderState(state: RepoControlState): void {
   logDrawerElement.classList.toggle("is-hidden", !isLogDrawerOpen);
 }
 
+function scheduleRenderState(): void {
+  if (renderQueued) {
+    return;
+  }
+  renderQueued = true;
+  window.requestAnimationFrame(() => {
+    renderQueued = false;
+    renderState(currentState);
+  });
+}
+
 function renderRailNav(): string {
   return NAV_ITEMS.map((item) => `
     <button class="kc-rail-button ${item.id === activeView ? "is-active" : ""}" data-view="${item.id}" type="button">
@@ -2247,8 +2335,61 @@ function renderTopBar(state: RepoControlState): string {
     commandState,
     currentTask,
     retryEnabled,
+    loadStatus: buildLoadStatus(state),
     helpers: buildUiRenderHelpers()
   });
+}
+
+function buildLoadStatus(state: RepoControlState): {
+  visible: boolean;
+  label: string;
+  detail: string;
+  progress: number;
+  tone: "loading" | "running" | "ready";
+} {
+  if (commandState.loading) {
+    return {
+      visible: true,
+      label: "Running command",
+      detail: commandState.activeCommand ? `Executing ${commandState.activeCommand}...` : "Executing command...",
+      progress: 68,
+      tone: "running"
+    };
+  }
+
+  if (isLoadingRepoState) {
+    return {
+      visible: true,
+      label: currentLoadSource === "auto" ? "Auto refresh" : "Loading repo",
+      detail:
+        currentLoadSource === "cli"
+          ? "Desktop launched. Kiwi is loading repo-local state now."
+          : currentLoadSource === "auto"
+            ? "Refreshing repo-local state in the background."
+            : "Building the repo-local control surface.",
+      progress: currentLoadSource === "auto" ? 55 : 42,
+      tone: "loading"
+    };
+  }
+
+  const pendingMachineSections = Object.values(state.machineAdvisory.sections).filter((entry) => entry.status !== "fresh").length;
+  if (currentTargetRoot && pendingMachineSections > 0) {
+    return {
+      visible: true,
+      label: "Hydrating system",
+      detail: `Repo is usable. ${pendingMachineSections} advisory section${pendingMachineSections === 1 ? "" : "s"} still updating.`,
+      progress: 82,
+      tone: "ready"
+    };
+  }
+
+  return {
+    visible: false,
+    label: "",
+    detail: "",
+    progress: 100,
+    tone: "ready"
+  };
 }
 
 function buildDecisionSummary(state: RepoControlState): {
@@ -4355,7 +4496,7 @@ function buildActiveTargetHint(state: RepoControlState): string {
   }
 }
 
-function buildBridgeNote(state: RepoControlState, source: "cli" | "manual" | "shell"): string {
+function buildBridgeNote(state: RepoControlState, source: "cli" | "manual" | "auto" | "shell"): string {
   const activeHint = buildActiveTargetHint(state);
   if (!state.targetRoot) {
     return activeHint;
@@ -4368,6 +4509,9 @@ function buildBridgeNote(state: RepoControlState, source: "cli" | "manual" | "sh
   }
   if (source === "manual") {
     return `Loaded ${getRepoLabel(state.targetRoot)}. ${activeHint}`;
+  }
+  if (source === "auto") {
+    return `Refreshed ${getRepoLabel(state.targetRoot)}. ${activeHint}`;
   }
   return activeHint;
 }

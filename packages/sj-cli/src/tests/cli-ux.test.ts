@@ -83,6 +83,21 @@ test("guide --json prints machine-clean json without spinner noise", () => {
   assert.doesNotThrow(() => JSON.parse(result.stdout));
 });
 
+test("guide rejects stray positionals and hints when target path was likely unquoted", () => {
+  const result = runCli([
+    "guide",
+    "--json",
+    "--target",
+    "/Volumes/shrey",
+    "ssd/my",
+    "ssd-playground/My-learning-playground/remote-jobs"
+  ]);
+
+  assert.equal(result.code, 2);
+  assert.match(result.stderr, /guide does not accept positional arguments/);
+  assert.match(result.stderr, /If your --target path contains spaces, wrap it in quotes/);
+});
+
 test("compatibility aliases still work but point new usage toward kiwi-control and kc", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-cli-alias-"));
   const aliasPath = path.join(tempDir, "sj");
