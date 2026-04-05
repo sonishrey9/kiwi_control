@@ -521,6 +521,63 @@ test("ui command still offers the current workspace source bundle after installe
   }
 });
 
+test("ui command reports hydrating success when the desktop has observed the request but has not written ready status yet", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-hydrating-"));
+  const launcherPath = path.join(tempDir, "desktop-launcher.js");
+  await withIsolatedDesktopLaunchBridge(async ({ launchRequestPath, launchStatusPath, launchLogPath }) => {
+    await fs.rm(launchRequestPath, { force: true });
+    await fs.rm(launchStatusPath, { force: true });
+    await fs.rm(launchLogPath, { force: true });
+
+    await fs.writeFile(
+      launcherPath,
+      `import { appendFileSync, readFileSync } from "node:fs";
+const request = JSON.parse(readFileSync(${JSON.stringify(launchRequestPath)}, "utf8"));
+appendFileSync(${JSON.stringify(launchLogPath)}, JSON.stringify({
+  event: "desktop-request-observed",
+  reportedAt: new Date().toISOString(),
+  requestId: request.requestId,
+  targetRoot: request.targetRoot,
+  detail: "observed by desktop"
+}) + "\\n", "utf8");`,
+      "utf8"
+    );
+
+    const previousDesktopLauncher = process.env.KIWI_CONTROL_DESKTOP;
+    process.env.KIWI_CONTROL_DESKTOP = launcherPath;
+
+    try {
+      const logs: string[] = [];
+      const exitCode = await runUi({
+        repoRoot: repoRoot(),
+        targetRoot: tempDir,
+        logger: {
+          info(message: string) {
+            logs.push(message);
+          },
+          warn(message: string) {
+            logs.push(message);
+          },
+          error(message: string) {
+            logs.push(message);
+          }
+        } as never
+      });
+
+      const logPayload = await readLaunchLogEntries(launchLogPath);
+      assert.equal(exitCode, 0);
+      assert.equal(logPayload.some((entry) => entry.event === "launch-hydrating"), true);
+      assert.match(logs.join("\n"), /repo is still hydrating/i);
+    } finally {
+      if (previousDesktopLauncher === undefined) {
+        delete process.env.KIWI_CONTROL_DESKTOP;
+      } else {
+        process.env.KIWI_CONTROL_DESKTOP = previousDesktopLauncher;
+      }
+    }
+  });
+});
+
 test("desktop unavailable messaging distinguishes contributor checkouts from installed CLI usage", async () => {
   const contributorMessage = buildDesktopUnavailableMessage(repoRoot());
   const installedMessage = buildDesktopUnavailableMessage(path.join(os.tmpdir(), "kiwi-control-installed-cli"));
@@ -529,7 +586,7 @@ test("desktop unavailable messaging distinguishes contributor checkouts from ins
   assert.match(installedMessage, /Install the matching Kiwi Control desktop bundle from the GitHub Release/);
 });
 
-test("ui command times out with one exact next step when the desktop never acknowledges readiness", async () => {
+test("ui command reports a pending desktop hydration state instead of failing when the app is still opening", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-timeout-"));
   const launcherPath = path.join(tempDir, "desktop-launcher.js");
   await withIsolatedDesktopLaunchBridge(async ({ launchRequestPath, launchStatusPath, launchLogPath }) => {
@@ -567,13 +624,9 @@ readFileSync(${JSON.stringify(launchRequestPath)}, "utf8");`,
 
       const logPayload = await readLaunchLogEntries(launchLogPath);
 
-      assert.equal(exitCode, 1);
-      assert.equal(logPayload.some((entry) => entry.event === "launch-timeout"), true);
-      if (process.platform === "darwin") {
-        assert.match(logs.join("\n"), /Open Kiwi Control once from Applications, then run kc ui again/);
-      } else {
-        assert.match(logs.join("\n"), /Install the matching Kiwi Control desktop bundle from the GitHub Release|Run `npm run ui:dev`/);
-      }
+      assert.equal(exitCode, 0);
+      assert.equal(logPayload.some((entry) => entry.event === "launch-pending"), true);
+      assert.match(logs.join("\n"), /repo hydration is still in progress/i);
     } finally {
       if (previousDesktopLauncher === undefined) {
         delete process.env.KIWI_CONTROL_DESKTOP;

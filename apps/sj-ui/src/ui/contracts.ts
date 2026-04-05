@@ -254,6 +254,7 @@ export interface TopBarRenderContext {
     nextAction: string;
     blockingIssue: string;
     systemHealth: string;
+    executionSafety: string;
     lastChangedAt: string;
     recentFailures: number;
     newWarnings: number;

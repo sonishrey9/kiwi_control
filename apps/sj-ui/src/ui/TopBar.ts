@@ -42,6 +42,7 @@ export function renderTopBarView(context: TopBarRenderContext): string {
         ${renderHeaderMeta("Next", decision.nextAction)}
         ${renderHeaderMeta("Blocking", decision.blockingIssue)}
         ${renderHeaderMeta("Health", decision.systemHealth)}
+        ${renderHeaderMeta("Safe", decision.executionSafety)}
         ${renderHeaderMeta("Changed", decision.lastChangedAt)}
         ${renderHeaderMeta("Failures", String(decision.recentFailures))}
         ${renderHeaderMeta("Warnings", String(decision.newWarnings))}

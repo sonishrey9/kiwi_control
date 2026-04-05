@@ -53,8 +53,16 @@ interface DesktopLaunchResult {
   candidate: DesktopLaunchCandidate;
 }
 
+interface DesktopLaunchObservation {
+  requestId: string;
+  targetRoot: string;
+  state: "ready" | "hydrating" | "error";
+  detail: string;
+  reportedAt: string;
+}
+
 const DESKTOP_BINARY_CANDIDATES = ["kiwi-control-ui", "kiwi-control-desktop"];
-const DESKTOP_LAUNCH_WAIT_TIMEOUT_MS = 5_000;
+const DESKTOP_LAUNCH_WAIT_TIMEOUT_MS = 8_000;
 const DESKTOP_LAUNCH_POLL_INTERVAL_MS = 100;
 const DESKTOP_LAUNCH_PROBE_SETTLE_MS = 1000;
 const DESKTOP_LAUNCH_BRIDGE_DIR_ENV = "KIWI_CONTROL_DESKTOP_BRIDGE_DIR";
@@ -110,8 +118,19 @@ export async function runUi(options: UiOptions): Promise<number> {
     return 0;
   }
 
-  await clearDesktopLaunchRequest();
+  if (launchStatus?.state === "hydrating") {
+    await appendDesktopLaunchLog({
+      event: "launch-hydrating",
+      requestId: launchStatus.requestId,
+      targetRoot: launchStatus.targetRoot,
+      detail: launchStatus.detail
+    });
+    options.logger.info(`Opened ${PRODUCT_METADATA.desktop.appName} for ${options.targetRoot}. ${launchStatus.detail}`);
+    return 0;
+  }
+
   if (launchStatus?.state === "error") {
+    await clearDesktopLaunchRequest();
     await appendDesktopLaunchLog({
       event: "launch-error",
       requestId: launchStatus.requestId,
@@ -123,13 +142,15 @@ export async function runUi(options: UiOptions): Promise<number> {
   }
 
   await appendDesktopLaunchLog({
-    event: "launch-timeout",
+    event: "launch-pending",
     requestId: launchRequest.requestId,
     targetRoot: launchRequest.targetRoot,
     detail: `No matching desktop launch status arrived within ${DESKTOP_LAUNCH_WAIT_TIMEOUT_MS}ms`
   });
-  options.logger.error(buildDesktopLaunchTimeoutMessage(options.repoRoot));
-  return 1;
+  options.logger.info(
+    `${PRODUCT_METADATA.desktop.appName} launched, but repo hydration is still in progress for ${options.targetRoot}. Watch the desktop app for the final ready state.`
+  );
+  return 0;
 }
 
 async function warmDesktopRegistration(): Promise<void> {
@@ -352,12 +373,17 @@ async function clearDesktopLaunchRequest(): Promise<void> {
   await fs.rm(resolveDesktopLaunchRequestPath(), { force: true });
 }
 
-async function waitForDesktopLaunchStatus(requestId: string, timeoutMs: number): Promise<DesktopLaunchStatus | null> {
+async function waitForDesktopLaunchStatus(requestId: string, timeoutMs: number): Promise<DesktopLaunchStatus | DesktopLaunchObservation | null> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() <= deadline) {
     const status = await readDesktopLaunchStatus();
     if (status?.requestId === requestId) {
       return status;
+    }
+
+    const observation = await readDesktopLaunchObservation(requestId);
+    if (observation) {
+      return observation;
     }
 
     await delay(DESKTOP_LAUNCH_POLL_INTERVAL_MS);
@@ -377,6 +403,55 @@ async function readDesktopLaunchStatus(): Promise<DesktopLaunchStatus | null> {
 
     return null;
   }
+}
+
+async function readDesktopLaunchObservation(requestId: string): Promise<DesktopLaunchObservation | null> {
+  try {
+    const payload = await fs.readFile(resolveDesktopLaunchLogPath(), "utf8");
+    const entries = payload
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => JSON.parse(line) as DesktopLaunchLogEntry)
+      .filter((entry) => entry.requestId === requestId);
+
+    for (let index = entries.length - 1; index >= 0; index -= 1) {
+      const entry = entries[index];
+      if (!entry) {
+        continue;
+      }
+
+      if (entry.event === "ui-repo-state-rendered" || entry.event === "desktop-repo-state-ready") {
+        return {
+          requestId,
+          targetRoot: entry.targetRoot ?? "",
+          state: "ready",
+          detail: entry.detail ? `Repo state rendered (${entry.detail}).` : "Repo state rendered in the desktop app.",
+          reportedAt: entry.reportedAt
+        };
+      }
+
+      if (
+        entry.event === "desktop-request-observed"
+        || entry.event === "ui-launch-request-received"
+        || entry.event === "desktop-repo-state-requested"
+      ) {
+        return {
+          requestId,
+          targetRoot: entry.targetRoot ?? "",
+          state: "hydrating",
+          detail: "The app is open and the repo is still hydrating. Watch the desktop for final readiness.",
+          reportedAt: entry.reportedAt
+        };
+      }
+    }
+  } catch (error) {
+    if (!isMissingFileError(error)) {
+      return null;
+    }
+  }
+
+  return null;
 }
 
 async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate, launchRequest: DesktopLaunchRequest): Promise<boolean> {

@@ -2255,6 +2255,7 @@ function buildDecisionSummary(state: RepoControlState): {
   nextAction: string;
   blockingIssue: string;
   systemHealth: string;
+  executionSafety: string;
   lastChangedAt: string;
   recentFailures: number;
   newWarnings: number;
@@ -2274,6 +2275,14 @@ function buildDecisionSummary(state: RepoControlState): {
       : newWarnings > 0
         ? "attention"
         : "healthy";
+  const executionSafety =
+    isLoadingRepoState
+      ? "loading"
+      : systemHealth === "blocked"
+        ? "blocked"
+        : kc.contextView.confidence === "low" || kc.indexing.partialScan
+          ? "guarded"
+          : "ready";
   const timestamps = [
     kc.execution.recentExecutions[0]?.timestamp,
     kc.runtimeLifecycle.recentEvents[0]?.timestamp,
@@ -2291,6 +2300,7 @@ function buildDecisionSummary(state: RepoControlState): {
     nextAction,
     blockingIssue,
     systemHealth,
+    executionSafety,
     lastChangedAt,
     recentFailures,
     newWarnings
@@ -2360,6 +2370,7 @@ function renderCenterView(state: RepoControlState): string {
 function renderOverviewView(state: RepoControlState): string {
   const kc = state.kiwiControl ?? EMPTY_KC;
   const interactiveTree = deriveInteractiveTree(state);
+  const decision = buildDecisionSummary(state);
   const primaryAction = kc.nextActions.actions[0] ?? null;
   const currentFocus = getPanelValue(state.continuity, "Current focus");
   const activeSpecialist = state.specialists.activeProfile?.name ?? state.specialists.activeSpecialist;
@@ -2392,6 +2403,26 @@ function renderOverviewView(state: RepoControlState): string {
         ${renderStatCard("Lifecycle", kc.runtimeLifecycle.currentStage, kc.runtimeLifecycle.nextRecommendedAction ?? "runtime stage not recorded yet", "neutral")}
         ${renderStatCard("Skills", String(kc.skills.activeSkills.length), kc.skills.activeSkills.length > 0 ? kc.skills.activeSkills.map((skill) => skill.name).join(", ") : "none active", "neutral")}
       </div>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("Guided Operation", "What is happening, what is wrong, and what to do next.")}
+        <div class="kc-two-column">
+          <section class="kc-subpanel">
+            <div class="kc-stack-list">
+              ${renderNoteRow("Current state", state.repoState.title, state.repoState.detail)}
+              ${renderNoteRow("Blocking issue", decision.blockingIssue, decision.systemHealth === "blocked" ? "Resolve this before trusting execution." : "No hard blocker is currently active.")}
+              ${renderNoteRow("Recommended next action", decision.nextAction, primaryAction?.command ?? kc.executionPlan.nextCommands[0] ?? "No next command is currently recorded.")}
+            </div>
+          </section>
+          <section class="kc-subpanel">
+            <div class="kc-stack-list">
+              ${renderNoteRow("Execution safety", decision.executionSafety, decision.executionSafety === "ready" ? "Execution is safe to continue." : decision.executionSafety === "guarded" ? "Context or validation signals suggest caution." : "Wait for hydration or clear blockers first.")}
+              ${renderNoteRow("Recent change", decision.lastChangedAt, kc.runtimeLifecycle.recentEvents[0]?.summary ?? "No recent lifecycle event is recorded.")}
+              ${renderNoteRow("State trust", "repo-local", "Repo state and .agent artifacts remain authoritative. Local UI-only edits do not replace repo truth.")}
+            </div>
+          </section>
+        </div>
+      </section>
 
       <div class="kc-two-column">
         <section class="kc-panel">
@@ -2491,6 +2522,7 @@ function renderContextView(state: RepoControlState): string {
   const indexing = kc.indexing;
   const interactiveTree = deriveInteractiveTree(state);
   const selectedFiles = deriveInteractiveSelectedFiles(state);
+  const topLevelMap = interactiveTree.nodes.slice(0, 8);
 
   return `
     <div class="kc-view-shell">
@@ -2525,6 +2557,11 @@ function renderContextView(state: RepoControlState): string {
         </section>
 
         <section class="kc-panel">
+          ${renderPanelHeader("Navigation Map", "Use this as a high-density orientation strip before drilling into the full tree.")}
+          ${topLevelMap.length > 0
+            ? `<div class="kc-inline-badges">${topLevelMap.map((node) => renderInlineBadge(`${node.name}:${node.status}`)).join("")}</div>`
+            : renderEmptyState("No top-level repo map is available yet.")}
+          <div class="kc-divider"></div>
           ${renderPanelHeader("Selection State", ctx.reason ?? "No selection reason recorded.")}
           <div class="kc-info-grid">
             ${renderInfoRow("Confidence", ctx.confidence?.toUpperCase() ?? "UNKNOWN")}
@@ -2813,6 +2850,13 @@ function renderTokensView(state: RepoControlState): string {
       </div>
 
       <section class="kc-panel">
+        ${renderPanelHeader("How To Reduce Tokens", "Concrete actions that affect selection size, measured usage, and model tradeoffs.")}
+        <div class="kc-stack-list">
+          ${buildTokenGuidanceItems(state).map((entry) => renderNoteRow(entry.title, entry.metric, entry.note)).join("")}
+        </div>
+      </section>
+
+      <section class="kc-panel">
         ${renderPanelHeader("Heavy Directories", "Directories that dominate repo token volume.")}
         ${kc.heavyDirectories.directories.length > 0
           ? `<div class="kc-stack-list">${kc.heavyDirectories.directories.slice(0, 4).map((directory) => renderNoteRow(directory.directory, `${directory.percentOfRepo}% of repo`, directory.suggestion)).join("")}</div>`
@@ -2910,6 +2954,61 @@ function renderMcpView(state: RepoControlState): string {
       </section>
     </div>
   `;
+}
+
+function buildTokenGuidanceItems(state: RepoControlState): Array<{ title: string; metric: string; note: string }> {
+  const kc = state.kiwiControl ?? EMPTY_KC;
+  const tokens = kc.tokenAnalytics;
+  const items: Array<{ title: string; metric: string; note: string }> = [];
+
+  if (!tokens.estimationMethod) {
+    items.push({
+      title: "Generate a bounded estimate",
+      metric: "prepare first",
+      note: 'Run kc prepare "your task" so Kiwi can record a selected working set before showing reduction guidance.'
+    });
+  } else {
+    items.push({
+      title: "Narrow the working set",
+      metric: `${tokens.fileCountSelected}/${tokens.fileCountTotal} files`,
+      note: "Use Include, Exclude, and Ignore in Context or Graph to shrink the selected scope before execution."
+    });
+  }
+
+  if (kc.wastedFiles.files.length > 0) {
+    items.push({
+      title: "Remove wasted files",
+      metric: `~${formatTokensShort(kc.wastedFiles.totalWastedTokens)}`,
+      note: `Exclude or ignore ${kc.wastedFiles.files[0]?.file ?? "low-value files"} to reduce token use without changing the task goal.`
+    });
+  }
+
+  if (kc.heavyDirectories.directories.length > 0) {
+    const heavyDirectory = kc.heavyDirectories.directories[0];
+    if (heavyDirectory) {
+      items.push({
+        title: "Scope the heaviest directory",
+        metric: `${heavyDirectory.percentOfRepo}%`,
+        note: heavyDirectory.suggestion
+      });
+    }
+  }
+
+  items.push({
+    title: "Understand the tradeoff",
+    metric: tokens.savingsPercent > 0 ? `~${tokens.savingsPercent}% saved` : "no savings yet",
+    note: "Smaller context usually lowers tokens and speeds review, but it increases the risk of missing adjacent files or reverse dependents."
+  });
+
+  if (!kc.measuredUsage.available) {
+    items.push({
+      title: "Collect real usage",
+      metric: "estimated only",
+      note: "Run guide, validate, or execution flows to collect measured token usage. Until then, the token view is heuristic."
+    });
+  }
+
+  return items;
 }
 
 function renderSpecialistsView(state: RepoControlState): string {

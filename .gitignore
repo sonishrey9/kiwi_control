@@ -1,8 +1,11 @@
 node_modules/
 dist/
+apps/sj-ui/dist-types/
+apps/sj-ui/src-tauri/target/
 .DS_Store
 ._*
 *.log
+*.tsbuildinfo
 coverage/
 .code-review-graph/
 .omc/
