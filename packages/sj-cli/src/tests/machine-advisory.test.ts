@@ -296,6 +296,57 @@ test("machine advisory sections reuse cached advisory data before rebuilding exp
   assert.equal(guidance.meta.status === "fresh" || guidance.meta.status === "cached", true);
 });
 
+test("machine advisory fast mode reuses the cached advisory without downgrading section freshness", async () => {
+  const homeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "sj-machine-fast-cache-home-"));
+  await fs.mkdir(path.join(homeRoot, ".claude"), { recursive: true });
+  await fs.writeFile(path.join(homeRoot, ".claude.json"), JSON.stringify({ mcpServers: { "ccusage": {} } }, null, 2));
+  await fs.writeFile(path.join(homeRoot, ".claude", "CLAUDE.md"), "Token-Efficient Output Rules\n", "utf8");
+
+  let commandCalls = 0;
+  await loadMachineAdvisory({
+    homeRoot,
+    now: new Date("2026-04-05T12:58:01.000Z"),
+    commandRunner: async (command, args) => {
+      commandCalls += 1;
+      if (command === "which") {
+        return { code: 0, stdout: `/mock/bin/${args[0]}\n`, stderr: "" };
+      }
+      return { code: 0, stdout: `${command} 1.0.0\n`, stderr: "" };
+    },
+    ccusagePayload: {
+      daily: [
+        {
+          date: "2026-04-05",
+          inputTokens: 10,
+          outputTokens: 20,
+          cacheCreationTokens: 0,
+          cacheReadTokens: 30,
+          totalTokens: 60,
+          totalCost: 0.1,
+          modelsUsed: ["claude-opus-4-6"]
+        }
+      ]
+    }
+  });
+  assert.equal(commandCalls > 0, true);
+
+  commandCalls = 0;
+  const advisory = await loadMachineAdvisory({
+    homeRoot,
+    now: new Date("2026-04-05T12:58:20.000Z"),
+    fastMode: true,
+    commandRunner: async () => {
+      commandCalls += 1;
+      throw new Error("cached advisory should be reused before rebuilding");
+    }
+  });
+
+  assert.equal(commandCalls, 0);
+  assert.equal(advisory.stale, true);
+  assert.match(advisory.note, /fast mode/);
+  assert.equal(advisory.sections.inventory.status, "fresh");
+});
+
 test("machine advisory command surfaces expose near-dashboard sections and richer json fields", async () => {
   const homeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "sj-machine-cli-home-"));
   const previousMachineHome = process.env.KIWI_MACHINE_HOME;

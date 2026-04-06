@@ -40,6 +40,133 @@ export interface RecoveryGuidance {
   actionLabel?: string | null;
 }
 
+export interface DecisionSummary {
+  nextAction: string;
+  blockingIssue: string;
+  systemHealth: string;
+  executionSafety: string;
+  lastChangedAt: string;
+  recentFailures: number;
+  newWarnings: number;
+}
+
+export interface MachineHeroSummary {
+  overallStatus: "ready" | "needs work";
+  overallTone: "success" | "warn";
+  title: string;
+  detail: string;
+  bestHeuristicLabel: string;
+  bestHeuristicValue: string;
+  strongestGapLabel: string;
+  strongestGapDetail: string;
+  nextFixLabel: string;
+  nextFixCommand: string;
+}
+
+export type MachineAdvisorySectionName =
+  | "inventory"
+  | "mcpInventory"
+  | "optimizationLayers"
+  | "setupPhases"
+  | "configHealth"
+  | "usage"
+  | "guidance";
+
+export interface MachineAdvisorySectionState {
+  status: "fresh" | "cached" | "partial";
+  updatedAt: string;
+  reason?: string;
+}
+
+export interface MachineAdvisoryViewState {
+  artifactType: string;
+  version: number;
+  generatedBy: string;
+  windowDays: number;
+  updatedAt: string;
+  stale: boolean;
+  sections: Record<MachineAdvisorySectionName, MachineAdvisorySectionState>;
+  inventory: Array<{ name: string; description: string; phase: string; installed: boolean; version: string }>;
+  mcpInventory: {
+    claudeTotal: number;
+    codexTotal: number;
+    copilotTotal: number;
+    tokenServers: Array<{ name: string; claude: boolean; codex: boolean; copilot: boolean }>;
+  };
+  optimizationLayers: Array<{ name: string; savings: string; claude: boolean; codex: boolean; copilot: boolean }>;
+  setupPhases: Array<{
+    phase: string;
+    items: Array<{ name: string; description: string; location: string; active: boolean }>;
+  }>;
+  configHealth: Array<{ path: string; healthy: boolean; description: string }>;
+  skillsCount: number;
+  copilotPlugins: string[];
+  usage: {
+    days: number;
+    claude: {
+      available: boolean;
+      days: Array<{ date: string; inputTokens: number; outputTokens: number; cacheCreationTokens: number; cacheReadTokens: number; totalTokens: number; totalCost: number | null; modelsUsed: string[] }>;
+      totals: {
+        inputTokens: number;
+        outputTokens: number;
+        cacheCreationTokens: number;
+        cacheReadTokens: number;
+        totalTokens: number;
+        totalCost: number | null;
+        cacheHitRatio: number | null;
+      };
+      note: string;
+    };
+    codex: {
+      available: boolean;
+      days: Array<{ date: string; inputTokens: number; outputTokens: number; cachedInputTokens: number; reasoningOutputTokens: number; sessions: number }>;
+      totals: {
+        inputTokens: number;
+        outputTokens: number;
+        cachedInputTokens: number;
+        reasoningOutputTokens: number;
+        sessions: number;
+        totalTokens: number;
+        cacheHitRatio: number | null;
+      };
+      note: string;
+    };
+    copilot: {
+      available: boolean;
+      note: string;
+    };
+  };
+  optimizationScore: {
+    planning: { label: "planning" | "execution" | "assistant"; score: number; earnedPoints: number; maxPoints: number; activeSignals: string[]; missingSignals: string[] };
+    execution: { label: "planning" | "execution" | "assistant"; score: number; earnedPoints: number; maxPoints: number; activeSignals: string[]; missingSignals: string[] };
+    assistant: { label: "planning" | "execution" | "assistant"; score: number; earnedPoints: number; maxPoints: number; activeSignals: string[]; missingSignals: string[] };
+  };
+  setupSummary: {
+    installedTools: { readyCount: number; totalCount: number };
+    healthyConfigs: { readyCount: number; totalCount: number };
+    activeTokenLayers: string[];
+    readyRuntimes: { planning: boolean; execution: boolean; assistant: boolean };
+  };
+  systemHealth: {
+    criticalCount: number;
+    warningCount: number;
+    okCount: number;
+  };
+  guidance: Array<{
+    id: string;
+    section: MachineAdvisorySectionName;
+    priority: "critical" | "recommended" | "optional";
+    group: "critical-issues" | "improvements" | "optional-optimizations";
+    severity: "info" | "warn";
+    message: string;
+    impact: string;
+    reason?: string;
+    fixCommand?: string;
+    hintCommand?: string;
+  }>;
+  note: string;
+}
+
 export interface KiwiControlContextTreeNode {
   name: string;
   path: string;
@@ -97,6 +224,7 @@ export interface RepoControlState {
       id: string;
     }>;
   };
+  machineAdvisory: MachineAdvisoryViewState;
   kiwiControl?: {
     contextView: {
       confidence: string | null;
@@ -269,6 +397,7 @@ export interface RenderHelperSet {
   escapeHtml(value: string): string;
   escapeAttribute(value: string): string;
   iconSvg(name: string): string;
+  iconLabel(icon: string, label: string): string;
   renderHeaderBadge(
     label: string,
     tone: RepoControlMode | "critical" | "high" | "normal" | "low" | "neutral" | "success" | "warn" | "medium"
@@ -279,6 +408,7 @@ export interface RenderHelperSet {
   renderNoteRow(title: string, metric: string, note: string): string;
   renderEmptyState(message: string): string;
   renderStatCard(label: string, value: string, meta: string, tone: "neutral" | "success" | "warn" | "critical"): string;
+  renderInfoRow(label: string, value: string, tone?: "default" | "warn"): string;
   renderListBadges(values: string[]): string;
   renderExplainabilityBadge(label: string, active: boolean): string;
   renderGateRow(label: string, value: string, tone: "default" | "success" | "warn"): string;
@@ -293,15 +423,7 @@ export interface RenderHelperSet {
 
 export interface TopBarRenderContext {
   state: RepoControlState;
-  decision: {
-    nextAction: string;
-    blockingIssue: string;
-    systemHealth: string;
-    executionSafety: string;
-    lastChangedAt: string;
-    recentFailures: number;
-    newWarnings: number;
-  };
+  decision: DecisionSummary;
   repoLabel: string;
   phase: string;
   validationState: string;
@@ -337,6 +459,29 @@ export interface GraphPanelRenderContext {
   graphMechanics: Array<{ title: string; metric: string; note: string }>;
   treeMechanics: Array<{ title: string; metric: string; note: string }>;
   helpers: RenderHelperSet;
+}
+
+export interface MachinePanelRenderContext {
+  state: RepoControlState;
+  activeMode: UiMode;
+  helpers: Pick<
+    RenderHelperSet,
+    | "escapeHtml"
+    | "escapeAttribute"
+    | "iconSvg"
+    | "iconLabel"
+    | "renderHeaderBadge"
+    | "renderPanelHeader"
+    | "renderInlineBadge"
+    | "renderNoteRow"
+    | "renderEmptyState"
+    | "renderStatCard"
+    | "renderInfoRow"
+    | "formatInteger"
+    | "formatPercent"
+    | "formatCurrency"
+    | "formatTimestamp"
+  >;
 }
 
 export interface ContextTreePanelRenderContext {

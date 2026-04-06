@@ -3,12 +3,28 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
-import { pathExists, readJson, writeText } from "../utils/fs.js";
+import { pathExists, readJson } from "../utils/fs.js";
+import {
+  buildMachineGuidance,
+  buildMachineGuidanceContext,
+  buildMachineSystemHealth,
+  filterMachineGuidance
+} from "./machine-advisory-guidance.js";
+import {
+  loadMachineAdvisoryFromCache,
+  loadMachineAdvisorySectionFromCache,
+  MACHINE_ADVISORY_ARTIFACT_TYPE,
+  MACHINE_ADVISORY_VERSION,
+  writeMachineAdvisoryCache
+} from "./machine-advisory-cache.js";
+import { buildOptimizationScore } from "./machine-advisory-score.js";
+import { buildSetupSummary } from "./machine-advisory-summary.js";
+
+export { buildMachineGuidanceContext, filterMachineGuidance } from "./machine-advisory-guidance.js";
 
 const execFile = promisify(execFileCallback);
 const MACHINE_HOME_ENV = "KIWI_MACHINE_HOME";
 const MACHINE_FAST_ENV = "KIWI_MACHINE_ADVISORY_FAST";
-const CACHE_TTL_MS = 60_000;
 const DEFAULT_TOOLS: Array<{ name: string; description: string; phase: string; versionArgs?: string[] }> = [
   { name: "code-review-graph", description: "Graph-based code search", phase: "Phase 1" },
   { name: "omc", description: "Planning orchestration layer", phase: "Phase 1" },
@@ -244,27 +260,16 @@ type CommandOutput = { code: number; stdout: string; stderr: string };
 export async function loadMachineAdvisory(options: MachineAdvisoryBuildOptions = {}): Promise<MachineAdvisoryState> {
   const now = options.now ?? new Date();
   const homeRoot = resolveMachineHome(options.homeRoot);
-  const cachePath = advisoryCachePath(homeRoot);
   const explicitFastMode = resolveMachineAdvisoryFastMode(options);
 
-  if (!options.forceRefresh && await pathExists(cachePath)) {
-    try {
-      const cached = await readJson<MachineAdvisoryState>(cachePath);
-      if (cached.artifactType === "kiwi-control/machine-advisory" && cached.version === 3) {
-        const age = now.getTime() - new Date(cached.updatedAt).getTime();
-        if (explicitFastMode) {
-          return {
-            ...cached,
-            stale: true,
-            note: appendFastModeNote(cached.note)
-          };
-        }
-        if (age < CACHE_TTL_MS && !cached.stale) {
-          return { ...cached, stale: false };
-        }
-      }
-    } catch {
-      // rebuild below
+  if (!options.forceRefresh) {
+    const cached = await loadMachineAdvisoryFromCache(homeRoot, now, explicitFastMode
+      ? { forceStale: true }
+      : undefined);
+    if (cached) {
+      return explicitFastMode
+        ? { ...cached, note: appendFastModeNote(cached.note) }
+        : cached;
     }
   }
 
@@ -273,8 +278,7 @@ export async function loadMachineAdvisory(options: MachineAdvisoryBuildOptions =
   }
 
   const built = await buildMachineAdvisory(options);
-  await ensureCacheDir(path.dirname(cachePath));
-  await writeText(cachePath, `${JSON.stringify(built, null, 2)}\n`);
+  await writeMachineAdvisoryCache(homeRoot, built);
   return built;
 }
 
@@ -348,8 +352,8 @@ export async function buildMachineAdvisory(options: MachineAdvisoryBuildOptions 
   });
 
   return {
-    artifactType: "kiwi-control/machine-advisory",
-    version: 3,
+    artifactType: MACHINE_ADVISORY_ARTIFACT_TYPE,
+    version: MACHINE_ADVISORY_VERSION,
     generatedBy: "kiwi-control machine-advisory",
     windowDays,
     updatedAt: builtAt,
@@ -399,7 +403,7 @@ export async function loadMachineAdvisorySection(
   const ccusagePayload = fastMode ? { daily: [] } : options.ccusagePayload;
 
   if (!options.forceRefresh) {
-    const cachedSection = await loadCachedMachineSection(section, homeRoot, now);
+    const cachedSection = await loadMachineAdvisorySectionFromCache(section, homeRoot, now);
     if (cachedSection) {
       return cachedSection;
     }
@@ -470,66 +474,6 @@ export async function loadMachineAdvisorySection(
       };
     }
   }
-}
-
-async function loadCachedMachineSection(
-  section: MachineAdvisorySectionName,
-  homeRoot: string,
-  now: Date
-): Promise<{ section: MachineAdvisorySectionName; meta: MachineAdvisorySectionState; data: unknown } | null> {
-  const cached = await safeReadJson<MachineAdvisoryState>(advisoryCachePath(homeRoot));
-  if (!cached || cached.artifactType !== "kiwi-control/machine-advisory" || cached.version !== 3) {
-    return null;
-  }
-
-  const age = now.getTime() - new Date(cached.updatedAt).getTime();
-  if (!Number.isFinite(age) || age < 0) {
-    return null;
-  }
-
-  const advisory = age < CACHE_TTL_MS && !cached.stale
-    ? { ...cached, stale: false }
-    : markMachineAdvisoryCached(cached, now);
-
-  return sectionFromMachineAdvisory(section, advisory);
-}
-
-function sectionFromMachineAdvisory(
-  section: MachineAdvisorySectionName,
-  advisory: MachineAdvisoryState
-): { section: MachineAdvisorySectionName; meta: MachineAdvisorySectionState; data: unknown } {
-  switch (section) {
-    case "inventory":
-      return { section, meta: advisory.sections.inventory, data: advisory.inventory };
-    case "mcpInventory":
-      return { section, meta: advisory.sections.mcpInventory, data: advisory.mcpInventory };
-    case "optimizationLayers":
-      return { section, meta: advisory.sections.optimizationLayers, data: advisory.optimizationLayers };
-    case "setupPhases":
-      return { section, meta: advisory.sections.setupPhases, data: advisory.setupPhases };
-    case "configHealth":
-      return { section, meta: advisory.sections.configHealth, data: advisory.configHealth };
-    case "usage":
-      return { section, meta: advisory.sections.usage, data: advisory.usage };
-    case "guidance":
-      return { section, meta: advisory.sections.guidance, data: advisory.guidance };
-  }
-}
-
-export function buildMachineGuidanceContext(options: {
-  taskType?: string | null;
-  workflowStep?: string | null;
-  validationFailed?: boolean;
-  evalPrecisionLow?: boolean;
-  executionRetriesTriggered?: boolean;
-}): MachineGuidanceContext {
-  return {
-    taskType: options.taskType ?? null,
-    workflowStep: options.workflowStep ?? null,
-    validationFailed: options.validationFailed ?? false,
-    evalPrecisionLow: options.evalPrecisionLow ?? false,
-    executionRetriesTriggered: options.executionRetriesTriggered ?? false
-  };
 }
 
 export function buildMachineDoctorFindings(state: MachineAdvisoryState, homeRoot?: string): MachineDoctorFinding[] {
@@ -606,115 +550,6 @@ async function buildMachineSection<T>(
       data: fallback
     };
   }
-}
-
-function markMachineAdvisoryCached(
-  advisory: MachineAdvisoryState,
-  now: Date,
-  note = advisory.note
-): MachineAdvisoryState {
-  const updatedAt = advisory.updatedAt || now.toISOString();
-  return {
-    ...advisory,
-    stale: true,
-    note,
-    sections: Object.fromEntries(
-      Object.entries(advisory.sections ?? buildDefaultSectionState(updatedAt)).map(([key, value]) => [
-        key,
-        value.status === "partial"
-          ? value
-          : {
-              ...value,
-              status: "cached"
-            }
-      ])
-    ) as Record<MachineAdvisorySectionName, MachineAdvisorySectionState>
-  };
-}
-
-function buildDefaultSectionState(updatedAt: string): Record<MachineAdvisorySectionName, MachineAdvisorySectionState> {
-  return {
-    inventory: { status: "cached", updatedAt },
-    mcpInventory: { status: "cached", updatedAt },
-    optimizationLayers: { status: "cached", updatedAt },
-    setupPhases: { status: "cached", updatedAt },
-    configHealth: { status: "cached", updatedAt },
-    usage: { status: "cached", updatedAt },
-    guidance: { status: "cached", updatedAt }
-  };
-}
-
-function buildMachineGuidance(context: {
-  inventory: MachineAdvisoryTool[];
-  mcpInventory: MachineAdvisoryMcpInventory;
-  optimizationLayers: MachineAdvisoryOptimizationLayer[];
-  configHealth: MachineAdvisoryConfigHealth[];
-  usage: MachineAdvisoryUsage;
-}): MachineAdvisoryGuidance[] {
-  const guidance: MachineAdvisoryGuidance[] = [];
-  const toolInstalled = (name: string): boolean => context.inventory.some((tool) => tool.name === name && tool.installed);
-  const tokenServer = (name: string): MachineAdvisoryMcpTokenServer | undefined =>
-    context.mcpInventory.tokenServers.find((entry) => entry.name === name);
-
-  if (!context.usage.claude.available && (!toolInstalled("ccusage") || !tokenServer("ccusage")?.claude)) {
-    guidance.push({
-      id: "missing-ccusage",
-      section: "usage",
-      priority: "recommended",
-      group: "improvements",
-      severity: "warn",
-      message: "Token tracking limited",
-      impact: "Improves token tracking accuracy for Claude usage.",
-      reason: "Claude usage cannot be measured locally without ccusage.",
-      fixCommand: "npm install -g ccusage"
-    });
-  }
-
-  if (!tokenServer("code-review-graph")?.codex) {
-    guidance.push({
-      id: "missing-code-review-graph",
-      section: "mcpInventory",
-      priority: "critical",
-      group: "critical-issues",
-      severity: "warn",
-      message: "Structural code graph unavailable for Codex",
-      impact: "Improves structural code search and impact analysis quality.",
-      reason: "Graph-guided exploration and change analysis are limited until the MCP server is installed.",
-      fixCommand: "ai-setup"
-    });
-  }
-
-  const codexTotal = context.usage.codex.totals.totalTokens;
-  const claudeTotal = context.usage.claude.totals.totalTokens;
-  if (codexTotal >= 100_000_000 || claudeTotal >= 50_000_000) {
-    guidance.push({
-      id: "high-token-usage",
-      section: "usage",
-      priority: "optional",
-      group: "optional-optimizations",
-      severity: "info",
-      message: "High token usage detected",
-      impact: "Can reduce token spend and broaden context planning quality on larger tasks.",
-      reason: "Large machine-level usage suggests broad tasks where wider context planning may help.",
-      hintCommand: 'kiwi-control plan "<task>" --expand'
-    });
-  }
-
-  if (!toolInstalled("context-mode")) {
-    guidance.push({
-      id: "missing-context-mode",
-      section: "optimizationLayers",
-      priority: "optional",
-      group: "optional-optimizations",
-      severity: "info",
-      message: "Context sandboxing not installed",
-      impact: "Improves tool-output containment and reduces noisy machine context.",
-      reason: "Machine-level tool output compression and sandboxing remain limited.",
-      fixCommand: "ai-setup"
-    });
-  }
-
-  return sortMachineGuidance(guidance);
 }
 
 async function buildToolchainInventory(homeRoot: string, commandRunner?: (command: string, args: string[]) => Promise<CommandOutput>): Promise<MachineAdvisoryTool[]> {
@@ -1131,8 +966,8 @@ function emptyCodexUsage(note: string): MachineAdvisoryUsage["codex"] {
 function buildUnavailableMachineAdvisory(now: Date, note: string): MachineAdvisoryState {
   const updatedAt = now.toISOString();
   return {
-    artifactType: "kiwi-control/machine-advisory",
-    version: 3,
+    artifactType: MACHINE_ADVISORY_ARTIFACT_TYPE,
+    version: MACHINE_ADVISORY_VERSION,
     generatedBy: "kiwi-control machine-advisory",
     windowDays: 7,
     updatedAt,
@@ -1252,155 +1087,6 @@ function appendFastModeNote(note: string): string {
   return `${note} Machine-local advisory fast mode is active for desktop repo loading.`;
 }
 
-function sortMachineGuidance(entries: MachineAdvisoryGuidance[]): MachineAdvisoryGuidance[] {
-  const priorityRank: Record<MachineAdvisoryGuidance["priority"], number> = {
-    critical: 0,
-    recommended: 1,
-    optional: 2
-  };
-  return [...entries].sort((left, right) => {
-    const byPriority = priorityRank[left.priority] - priorityRank[right.priority];
-    if (byPriority !== 0) {
-      return byPriority;
-    }
-    return left.message.localeCompare(right.message);
-  });
-}
-
-function buildMachineSystemHealth(context: {
-  inventory: MachineAdvisoryTool[];
-  optimizationLayers: MachineAdvisoryOptimizationLayer[];
-  configHealth: MachineAdvisoryConfigHealth[];
-  guidance: MachineAdvisoryGuidance[];
-}): MachineAdvisorySystemHealth {
-  const criticalCount = context.guidance.filter((entry) => entry.priority === "critical").length;
-  const warningCount = context.guidance.filter((entry) => entry.priority === "recommended").length;
-  const okCount =
-    context.inventory.filter((tool) => tool.installed).length +
-    context.configHealth.filter((entry) => entry.healthy).length +
-    context.optimizationLayers.filter((layer) => layer.claude || layer.codex || layer.copilot).length;
-  return {
-    criticalCount,
-    warningCount,
-    okCount
-  };
-}
-
-function buildOptimizationScore(context: {
-  inventory: MachineAdvisoryTool[];
-  mcpInventory: MachineAdvisoryMcpInventory;
-  optimizationLayers: MachineAdvisoryOptimizationLayer[];
-  configHealth: MachineAdvisoryConfigHealth[];
-  copilotPlugins: string[];
-  usage: MachineAdvisoryUsage;
-}): MachineAdvisoryOptimizationScore {
-  const toolInstalled = (name: string): boolean => context.inventory.some((tool) => tool.name === name && tool.installed);
-  const configHealthy = (displayPath: string): boolean =>
-    context.configHealth.find((entry) => entry.path === displayPath)?.healthy ?? false;
-  const optimizationLayer = (name: string): MachineAdvisoryOptimizationLayer | undefined =>
-    context.optimizationLayers.find((layer) => layer.name === name);
-
-  const buildRuntimeScore = (
-    label: MachineAdvisoryOptimizationScoreRuntime["label"],
-    signals: Array<{ label: string; points: number; active: boolean }>
-  ): MachineAdvisoryOptimizationScoreRuntime => {
-    const earnedPoints = signals.reduce((sum, signal) => sum + (signal.active ? signal.points : 0), 0);
-    const maxPoints = signals.reduce((sum, signal) => sum + signal.points, 0);
-    const score = maxPoints > 0 ? Math.round((earnedPoints / maxPoints) * 100) : 0;
-    return {
-      label,
-      score,
-      earnedPoints,
-      maxPoints,
-      activeSignals: signals.filter((signal) => signal.active).map((signal) => signal.label),
-      missingSignals: signals.filter((signal) => !signal.active).map((signal) => signal.label)
-    };
-  };
-
-  return {
-    planning: buildRuntimeScore("planning", [
-      { label: "code-review-graph", points: 20, active: Boolean(context.mcpInventory.tokenServers.find((server) => server.name === "code-review-graph")?.claude) },
-      { label: "lean-ctx", points: 10, active: Boolean(optimizationLayer("lean-ctx")?.claude) },
-      { label: "repomix", points: 10, active: toolInstalled("repomix") },
-      { label: "context-mode", points: 15, active: Boolean(optimizationLayer("context-mode")?.claude) },
-      { label: "token-efficient rules", points: 15, active: Boolean(optimizationLayer("token-efficient rules")?.claude) },
-      { label: "ccusage", points: 10, active: context.usage.claude.available },
-      { label: "planning orchestration", points: 10, active: toolInstalled("omc") },
-      { label: "Claude config health", points: 10, active: configHealthy("~/.claude.json") && configHealthy("~/.claude/CLAUDE.md") }
-    ]),
-    execution: buildRuntimeScore("execution", [
-      { label: "code-review-graph", points: 20, active: Boolean(context.mcpInventory.tokenServers.find((server) => server.name === "code-review-graph")?.codex) },
-      { label: "lean-ctx", points: 15, active: Boolean(optimizationLayer("lean-ctx")?.codex) },
-      { label: "repomix", points: 10, active: toolInstalled("repomix") },
-      { label: "context-mode", points: 15, active: Boolean(optimizationLayer("context-mode")?.codex) },
-      { label: "token-efficient rules", points: 10, active: Boolean(optimizationLayer("token-efficient rules")?.codex) },
-      { label: "session telemetry", points: 10, active: context.usage.codex.available },
-      { label: "execution orchestration", points: 10, active: toolInstalled("omx") },
-      { label: "Codex config health", points: 10, active: configHealthy("~/.codex/config.toml") && configHealthy("~/.codex/AGENTS.md") }
-    ]),
-    assistant: buildRuntimeScore("assistant", [
-      { label: "code-review-graph", points: 15, active: Boolean(context.mcpInventory.tokenServers.find((server) => server.name === "code-review-graph")?.copilot) },
-      { label: "lean-ctx", points: 15, active: Boolean(optimizationLayer("lean-ctx")?.copilot) },
-      { label: "repomix", points: 10, active: toolInstalled("repomix") },
-      { label: "token-efficient rules", points: 15, active: Boolean(optimizationLayer("token-efficient rules")?.copilot) },
-      { label: "usage telemetry", points: 10, active: context.usage.copilot.available },
-      { label: "assistant runtime", points: 15, active: toolInstalled("copilot") },
-      { label: "Copilot config health", points: 10, active: configHealthy("~/.copilot/mcp-config.json") && configHealthy("~/.copilot/config.json") },
-      { label: "Copilot plugins", points: 10, active: context.copilotPlugins.length > 0 }
-    ])
-  };
-}
-
-function buildSetupSummary(context: {
-  inventory: MachineAdvisoryTool[];
-  configHealth: MachineAdvisoryConfigHealth[];
-  optimizationLayers: MachineAdvisoryOptimizationLayer[];
-  optimizationScore: MachineAdvisoryOptimizationScore;
-}): MachineAdvisorySetupSummary {
-  return {
-    installedTools: {
-      readyCount: context.inventory.filter((tool) => tool.installed).length,
-      totalCount: context.inventory.length
-    },
-    healthyConfigs: {
-      readyCount: context.configHealth.filter((entry) => entry.healthy).length,
-      totalCount: context.configHealth.length
-    },
-    activeTokenLayers: context.optimizationLayers
-      .filter((layer) => layer.claude || layer.codex || layer.copilot)
-      .map((layer) => layer.name),
-    readyRuntimes: {
-      planning: context.optimizationScore.planning.score >= 70,
-      execution: context.optimizationScore.execution.score >= 70,
-      assistant: context.optimizationScore.assistant.score >= 60
-    }
-  };
-}
-
-export function filterMachineGuidance(
-  guidance: MachineAdvisoryGuidance[],
-  context: MachineGuidanceContext
-): MachineAdvisoryGuidance[] {
-  const taskType = context.taskType ?? null;
-  const workflowStep = context.workflowStep ?? null;
-  const triggered =
-    Boolean(context.validationFailed) ||
-    Boolean(context.evalPrecisionLow) ||
-    Boolean(context.executionRetriesTriggered);
-
-  const filtered = guidance.filter((entry) => {
-    if (!triggered && entry.priority !== "critical") {
-      return false;
-    }
-    if ((taskType === "read" || taskType === "docs") && workflowStep === "prepare" && entry.id === "missing-ccusage") {
-      return false;
-    }
-    return true;
-  });
-
-  return sortMachineGuidance(filtered);
-}
-
 async function loadClaudeMcpServers(homeRoot: string): Promise<Record<string, unknown>> {
   const config = await safeReadJson<{ mcpServers?: Record<string, unknown> }>(path.join(homeRoot, ".claude.json"));
   return config?.mcpServers ?? {};
@@ -1496,14 +1182,6 @@ async function runMachineCommand(
 
 function resolveMachineHome(homeRoot?: string): string {
   return homeRoot ?? process.env[MACHINE_HOME_ENV]?.trim() ?? os.homedir();
-}
-
-function advisoryCachePath(homeRoot: string): string {
-  return path.join(homeRoot, ".kiwi-control", "cache", "machine-advisory.json");
-}
-
-async function ensureCacheDir(cacheDir: string): Promise<void> {
-  await fs.mkdir(cacheDir, { recursive: true });
 }
 
 async function safeReadJson<T>(filePath: string): Promise<T | null> {

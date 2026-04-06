@@ -1,0 +1,55 @@
+{
+  "artifactType": "shrey-junior/checkpoint",
+  "schemaVersion": 1,
+  "createdAt": "2026-04-06T15:07:32.854Z",
+  "checkpointId": "bootstrap-initialized",
+  "phase": "bootstrap initialized",
+  "activeRole": "fullstack-specialist",
+  "supportingRoles": [
+  "frontend-specialist",
+  "backend-specialist",
+  "qa-specialist",
+  "architecture-specialist",
+  "review-specialist"
+],
+  "authoritySource": "project-type",
+  "summary": "Bootstrap seed only. Fill in the repo context, then replace this with a real checkpoint after meaningful work.",
+  "taskContext": {
+    "goal": "Establish the repo-local Shrey Junior contract and initial context.",
+    "taskType": "planning",
+    "fileArea": "context",
+    "changeSize": "small",
+    "riskLevel": "low",
+    "primaryTool": "claude",
+    "reviewTool": "codex"
+  },
+  "filesTouched": [],
+  "filesCreated": [],
+  "filesDeleted": [],
+  "checksRun": [
+    "portable repo contract installed"
+  ],
+  "checksPassed": [
+    "portable repo contract installed"
+  ],
+  "checksFailed": [],
+  "gitBranch": null,
+  "gitCommitBefore": null,
+  "gitCommitAfter": null,
+  "dirtyState": {
+    "isGitRepo": false,
+    "clean": true,
+    "stagedCount": 0,
+    "unstagedCount": 0,
+    "untrackedCount": 0
+  },
+  "stagedFiles": [],
+  "relatedTaskPacket": null,
+  "relatedHandoff": null,
+  "relatedReconcile": null,
+  "latestMemoryFocus": ".agent/memory/current-focus.json",
+  "nextRecommendedSpecialist": "architecture-specialist",
+  "nextSuggestedMcpPack": "research-pack",
+  "nextRecommendedAction": "Review .agent/context/context-tree.json, then record a checkpoint before non-trivial implementation or handoff.",
+  "nextSuggestedCommand": "kiwi-control checkpoint \"context seeded\""
+}

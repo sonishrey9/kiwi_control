@@ -1,0 +1,236 @@
+# SHREY-JUNIOR:FILE-START .agent/project.yaml
+version: 2
+managed_by: shrey-junior
+project_name: "shrey-junior"
+profile: "product-build"
+bootstrap:
+  project_type: "node"
+  profile_source: "project-type"
+  specialist_suggestions: "fullstack-specialist, frontend-specialist, backend-specialist, qa-specialist"
+  validation_hints: "npm test, npm run build, kiwi-control check"
+  mcp_policy_hints: ""
+authority:
+  canonical_repo: shrey-junior
+  precedence:
+    - explicit trusted repo authority
+    - repo-local generated overlays and state
+    - user-global accelerators
+    - fallback templates and defaults
+  generated_outputs_are_derived: true
+  read_first:
+      - .agent/state/active-role-hints.json
+      - .agent/state/current-phase.json
+      - .agent/memory/current-focus.json
+      - .agent/state/checkpoints/latest.json
+      - .agent/state/latest-task-packets.json
+      - .agent/state/handoff/latest.json
+      - .agent/state/reconcile/latest.json
+      - .agent/state/dispatch/latest-manifest.json
+      - .agent/context/commands.md
+      - .agent/context/specialists.md
+      - .agent/context/tool-capabilities.md
+      - .agent/context/mcp-capabilities.md
+      - .agent/context/context-tree.json
+      - .agent/state/context-tree.json
+      - .agent/memory/repo-facts.json
+      - .agent/memory/open-risks.json
+      - .github/instructions/backend.instructions.md
+      - .github/instructions/frontend.instructions.md
+      - .github/agents/shrey-junior.md
+      - .github/agents/fullstack-specialist.md
+      - .github/agents/frontend-specialist.md
+      - .github/agents/backend-specialist.md
+      - .github/agents/qa-specialist.md
+      - .github/agents/architecture-specialist.md
+      - .github/agents/review-specialist.md
+      - .agent/roles/fullstack-specialist.md
+      - .agent/roles/frontend-specialist.md
+      - .agent/roles/backend-specialist.md
+      - .agent/roles/qa-specialist.md
+      - .agent/roles/architecture-specialist.md
+      - .agent/roles/review-specialist.md
+      - .agent/checks.yaml
+      - .agent/scripts/verify-contract.sh
+      - .agent/project.yaml
+contract:
+  source_of_truth:
+    - explicit repo authority
+    - .agent/project.yaml
+    - .agent/checks.yaml
+    - .agent/context/commands.md
+    - .agent/context/specialists.md
+    - .agent/context/tool-capabilities.md
+    - .agent/context/mcp-capabilities.md
+    - .agent/memory/current-focus.json
+    - .agent/memory/repo-facts.json
+    - .github/copilot-instructions.md
+    - .github/instructions/*.instructions.md
+    - .github/agents/*.md
+    - .agent/roles/*.md
+  generated_state:
+    - .agent/state/current-phase.json
+    - .agent/state/active-role-hints.json
+    - .agent/state/checkpoints/latest.json
+    - .agent/state/checkpoints/latest.md
+    - .agent/state/handoff/latest.json
+    - .agent/state/dispatch/latest-manifest.json
+    - .agent/state/dispatch/latest-collect.json
+    - .agent/state/reconcile/latest.json
+    - .agent/state/latest-task-packets.json
+  generated_surfaces:
+    core:
+      - AGENTS.md
+      - CLAUDE.md
+      - .github/copilot-instructions.md
+      - .agent/project.yaml
+      - .agent/checks.yaml
+      - .agent/context/commands.md
+      - .agent/context/specialists.md
+      - .agent/context/tool-capabilities.md
+      - .agent/context/mcp-capabilities.md
+      - .agent/context/context-tree.json
+      - .agent/memory/repo-facts.json
+      - .agent/memory/current-focus.json
+      - .agent/memory/open-risks.json
+      - .agent/roles/README.md
+      - .agent/templates/role-result.md
+      - .agent/state/current-phase.json
+      - .agent/state/active-role-hints.json
+      - .agent/state/context-tree.json
+      - .agent/state/checkpoints/latest.json
+      - .agent/state/checkpoints/latest.md
+      - .agent/state/handoff/README.md
+      - .agent/state/dispatch/README.md
+      - .agent/state/reconcile/README.md
+      - .agent/scripts/verify-contract.sh
+    instructions:
+      - .github/instructions/backend.instructions.md
+      - .github/instructions/frontend.instructions.md
+    agent_surfaces:
+      - .github/agents/shrey-junior.md
+      - .github/agents/fullstack-specialist.md
+      - .github/agents/frontend-specialist.md
+      - .github/agents/backend-specialist.md
+      - .github/agents/qa-specialist.md
+      - .github/agents/architecture-specialist.md
+      - .github/agents/review-specialist.md
+    role_specs:
+      - .agent/roles/fullstack-specialist.md
+      - .agent/roles/frontend-specialist.md
+      - .agent/roles/backend-specialist.md
+      - .agent/roles/qa-specialist.md
+      - .agent/roles/architecture-specialist.md
+      - .agent/roles/review-specialist.md
+    state_artifacts:
+      - .agent/state/current-phase.json
+      - .agent/state/active-role-hints.json
+      - .agent/state/checkpoints/latest.json
+      - .agent/state/handoff/latest.json
+      - .agent/state/dispatch/latest-manifest.json
+      - .agent/state/dispatch/latest-collect.json
+      - .agent/state/reconcile/latest.json
+      - .agent/state/latest-task-packets.json
+    ci_surfaces:
+      - .github/workflows/shrey-junior-contract.yml
+    skipped_as_irrelevant:
+      - .github/instructions/docs.instructions.md
+      - .github/instructions/data.instructions.md
+      - .agent/roles/android-specialist.md
+      - .github/agents/android-specialist.md
+      - .agent/roles/data-platform-specialist.md
+      - .github/agents/data-platform-specialist.md
+      - .agent/roles/docs-specialist.md
+      - .github/agents/docs-specialist.md
+      - .agent/roles/ios-specialist.md
+      - .github/agents/ios-specialist.md
+      - .agent/roles/mcp-specialist.md
+      - .github/agents/mcp-specialist.md
+      - .agent/roles/push-specialist.md
+      - .github/agents/push-specialist.md
+      - .agent/roles/python-specialist.md
+      - .github/agents/python-specialist.md
+      - .agent/roles/refactor-specialist.md
+      - .github/agents/refactor-specialist.md
+      - .agent/roles/release-specialist.md
+      - .github/agents/release-specialist.md
+      - .agent/roles/security-specialist.md
+      - .github/agents/security-specialist.md
+  portability:
+    repo_local_contract_is_portable: true
+    global_accelerators_are_advisory_only: true
+    cloud_runtime_visibility_of_machine_global_files_is_not_guaranteed: true
+surfaces:
+  codex: AGENTS.md
+  claude: CLAUDE.md
+  copilot: .github/copilot-instructions.md
+  copilot_instructions_dir: .github/instructions
+  copilot_agents_dir: .github/agents
+  specialist_roles_dir: .agent/roles
+paths:
+  context: .agent/context
+  commands: .agent/context/commands.md
+  specialists: .agent/context/specialists.md
+  tool_capabilities: .agent/context/tool-capabilities.md
+  mcp_capabilities: .agent/context/mcp-capabilities.md
+  memory: .agent/memory
+  repo_facts: .agent/memory/repo-facts.json
+  current_focus: .agent/memory/current-focus.json
+  open_risks: .agent/memory/open-risks.json
+  tasks: .agent/tasks
+  state: .agent/state
+  active_role_hints: .agent/state/active-role-hints.json
+  latest_checkpoint: .agent/state/checkpoints/latest.json
+  latest_handoff: .agent/state/handoff/latest.json
+  latest_dispatch: .agent/state/dispatch/latest-manifest.json
+  latest_reconcile: .agent/state/reconcile/latest.json
+  latest_task_packets: .agent/state/latest-task-packets.json
+routing:
+  preferred_execution_mode: "assisted"
+  primary_tool_override: ""
+workflow:
+  trivial_work:
+    description: stay direct only for typo-level, wording, formatting, or one-line local fixes with no contract, auth, data, security, release, or multi-file impact
+  non_trivial_triggers:
+    - multi-file change
+    - interface or stable contract change
+    - guarded or cross-cutting refactor
+    - auth, data, security, or release-sensitive work
+    - reviewer or tester separation needed
+  required_context_when_non_trivial:
+    - existing repo authority files
+    - promoted canonical docs explicitly referenced by repo authority
+    - .agent/state/active-role-hints.json
+    - .agent/state/current-phase.json when present
+    - .agent/state/checkpoints/latest.json when present
+    - latest task packet, latest handoff, latest reconcile, and latest dispatch manifest when present
+    - .agent/context/commands.md, .agent/context/tool-capabilities.md, and .agent/context/mcp-capabilities.md
+    - relevant .github/instructions/*.instructions.md and .agent/roles/*.md
+    - .agent/checks.yaml and .agent/scripts/verify-contract.sh
+    - .agent/project.yaml
+  preferred_escalation:
+    direct: trivial work only
+    run: non-trivial single-owner work
+    fanout: guarded or role-separated work
+    dispatch: simultaneous small-role coordination
+    continuity: checkpoint and handoff at phase boundaries
+    push_gate: push-check before non-trivial or guarded push recommendations
+  specialist_bias:
+      - fullstack-specialist
+      - frontend-specialist
+      - backend-specialist
+      - qa-specialist
+      - architecture-specialist
+      - review-specialist
+  verification_commands:
+      - .agent/checks.yaml
+      - bash .agent/scripts/verify-contract.sh
+      - npm test
+      - npm run build
+      - kiwi-control check
+      - kiwi-control push-check when the CLI is available
+rules:
+  machine_local_state_is_reference_only: true
+  global_config_changes_allowed: false
+  additive_sync_only: true
+  backup_before_sync: false
+# SHREY-JUNIOR:FILE-END .agent/project.yaml

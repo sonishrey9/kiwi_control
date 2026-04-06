@@ -1,0 +1,42 @@
+{
+  "artifactType": "shrey-junior/repo-facts",
+  "version": 1,
+  "updatedAt": "2026-04-06T15:07:33.134Z",
+  "projectName": "shrey-junior",
+  "projectType": "node",
+  "profile": "product-build",
+  "authoritySource": "project-type",
+  "activeRole": "fullstack-specialist",
+  "recommendedMcpPack": "core-pack",
+  "languages": [
+    "docs",
+    "javascript",
+    "rust",
+    "typescript"
+  ],
+  "entryPoints": [
+    "apps/sj-ui/dist-types/bootcheck.js",
+    "apps/sj-ui/dist-types/main.js",
+    "apps/sj-ui/dist-types/ui/ContextTreePanel.d.ts",
+    "apps/sj-ui/dist-types/ui/ExecutionPlanPanel.d.ts",
+    "apps/sj-ui/dist-types/ui/graph-model.d.ts",
+    "apps/sj-ui/dist-types/ui/GraphPanel.d.ts",
+    "apps/sj-ui/dist-types/ui/guidance.d.ts",
+    "apps/sj-ui/dist-types/ui/InspectorPanel.d.ts",
+    "apps/sj-ui/dist-types/ui/MachinePanel.d.ts",
+    "apps/sj-ui/dist-types/ui/readiness.d.ts",
+    "apps/sj-ui/dist-types/ui/TopBar.d.ts",
+    "apps/sj-ui/dist-types/ui/view-models.d.ts",
+    "apps/sj-ui/package.json",
+    "apps/sj-ui/src-tauri/Cargo.toml",
+    "apps/sj-ui/src/bootcheck.ts",
+    "apps/sj-ui/src/main.ts"
+  ],
+  "keyModules": [
+    "packages/sj-cli",
+    "packages/sj-core",
+    "apps/sj-ui",
+    "scripts",
+    "hooks"
+  ]
+}

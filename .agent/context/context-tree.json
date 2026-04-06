@@ -1,0 +1,2747 @@
+{
+  "artifactType": "kiwi-control/context-tree-view",
+  "version": 1,
+  "timestamp": "2026-04-06T15:07:33.131Z",
+  "summary": "Discovered 362 files across 5 module groups. Entry points: apps/sj-ui/dist-types/bootcheck.js, apps/sj-ui/dist-types/main.js, apps/sj-ui/dist-types/ui/ContextTreePanel.d.ts, apps/sj-ui/dist-types/ui/ExecutionPlanPanel.d.ts, apps/sj-ui/dist-types/ui/graph-model.d.ts.",
+  "languages": [
+    "docs",
+    "javascript",
+    "rust",
+    "typescript"
+  ],
+  "entryPoints": [
+    "apps/sj-ui/dist-types/bootcheck.js",
+    "apps/sj-ui/dist-types/main.js",
+    "apps/sj-ui/dist-types/ui/ContextTreePanel.d.ts",
+    "apps/sj-ui/dist-types/ui/ExecutionPlanPanel.d.ts",
+    "apps/sj-ui/dist-types/ui/graph-model.d.ts",
+    "apps/sj-ui/dist-types/ui/GraphPanel.d.ts",
+    "apps/sj-ui/dist-types/ui/guidance.d.ts",
+    "apps/sj-ui/dist-types/ui/InspectorPanel.d.ts",
+    "apps/sj-ui/dist-types/ui/MachinePanel.d.ts",
+    "apps/sj-ui/dist-types/ui/readiness.d.ts",
+    "apps/sj-ui/dist-types/ui/TopBar.d.ts",
+    "apps/sj-ui/dist-types/ui/view-models.d.ts",
+    "apps/sj-ui/package.json",
+    "apps/sj-ui/src-tauri/Cargo.toml",
+    "apps/sj-ui/src/bootcheck.ts",
+    "apps/sj-ui/src/main.ts"
+  ],
+  "keyModules": [
+    {
+      "id": "packages/sj-cli",
+      "fileCount": 69,
+      "entryPoints": [
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/commands/commit-plan.ts",
+        "packages/sj-cli/src/commands/launch.ts",
+        "packages/sj-cli/src/commands/phase-close.ts",
+        "packages/sj-cli/src/commands/release-check.ts",
+        "packages/sj-cli/src/tests/bootstrap.test.ts",
+        "packages/sj-cli/src/tests/check.test.ts",
+        "packages/sj-cli/src/tests/checkpoint.test.ts",
+        "packages/sj-cli/src/tests/cli-ux.test.ts",
+        "packages/sj-cli/src/tests/collect.test.ts",
+        "packages/sj-cli/src/tests/context-feedback.test.ts",
+        "packages/sj-cli/src/tests/context-selector.test.ts",
+        "packages/sj-cli/src/tests/context.test.ts",
+        "packages/sj-cli/src/tests/dispatch.test.ts",
+        "packages/sj-cli/src/tests/fs.test.ts",
+        "packages/sj-cli/src/tests/git.test.ts",
+        "packages/sj-cli/src/tests/handoff.test.ts",
+        "packages/sj-cli/src/tests/machine-advisory.test.ts",
+        "packages/sj-cli/src/tests/packets.test.ts",
+        "packages/sj-cli/src/tests/prepare.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.desktop-bundles.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+        "packages/sj-cli/src/tests/profiles.test.ts",
+        "packages/sj-cli/src/tests/project-detect.test.ts",
+        "packages/sj-cli/src/tests/reconcile.test.ts",
+        "packages/sj-cli/src/tests/redact.test.ts",
+        "packages/sj-cli/src/tests/router.test.ts",
+        "packages/sj-cli/src/tests/runtime.test.ts",
+        "packages/sj-cli/src/tests/sj-init.test.ts",
+        "packages/sj-cli/src/tests/specialists.test.ts",
+        "packages/sj-cli/src/tests/standardize.test.ts",
+        "packages/sj-cli/src/tests/state.test.ts",
+        "packages/sj-cli/src/tests/sync.test.ts",
+        "packages/sj-cli/src/tests/workflow-engine.test.ts"
+      ]
+    },
+    {
+      "id": "packages/sj-core",
+      "fileCount": 65,
+      "entryPoints": [
+        "packages/sj-core/src/core/bootstrap.ts",
+        "packages/sj-core/src/core/discovery.ts",
+        "packages/sj-core/src/core/execution-engine.ts",
+        "packages/sj-core/src/core/handoff.ts",
+        "packages/sj-core/src/core/instruction-generator.ts",
+        "packages/sj-core/src/core/launch.ts",
+        "packages/sj-core/src/core/logger.ts",
+        "packages/sj-core/src/core/release.ts",
+        "packages/sj-core/src/index.ts",
+        "packages/sj-core/src/runtime/ui-bridge.ts"
+      ]
+    },
+    {
+      "id": "apps/sj-ui",
+      "fileCount": 40,
+      "entryPoints": [
+        "apps/sj-ui/dist-types/bootcheck.d.ts",
+        "apps/sj-ui/dist-types/bootcheck.js",
+        "apps/sj-ui/dist-types/main.d.ts",
+        "apps/sj-ui/dist-types/main.js",
+        "apps/sj-ui/dist-types/ui/ContextTreePanel.d.ts",
+        "apps/sj-ui/dist-types/ui/contracts.d.ts",
+        "apps/sj-ui/dist-types/ui/ExecutionPlanPanel.d.ts",
+        "apps/sj-ui/dist-types/ui/graph-model.d.ts",
+        "apps/sj-ui/dist-types/ui/GraphPanel.d.ts",
+        "apps/sj-ui/dist-types/ui/guidance.d.ts",
+        "apps/sj-ui/dist-types/ui/InspectorPanel.d.ts",
+        "apps/sj-ui/dist-types/ui/MachinePanel.d.ts",
+        "apps/sj-ui/dist-types/ui/readiness.d.ts",
+        "apps/sj-ui/dist-types/ui/TopBar.d.ts",
+        "apps/sj-ui/dist-types/ui/view-models.d.ts",
+        "apps/sj-ui/src/bootcheck.ts",
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/vite.config.ts"
+      ]
+    },
+    {
+      "id": "scripts",
+      "fileCount": 7,
+      "entryPoints": [
+        "scripts/copy-runtime-assets.mjs",
+        "scripts/generate-release-checksums.mjs",
+        "scripts/prepare-release-manifest.mjs",
+        "scripts/remove-macos-metadata.mjs",
+        "scripts/run-cli.mjs",
+        "scripts/run-ui-desktop-build.mjs",
+        "scripts/run-ui-dev.mjs"
+      ]
+    },
+    {
+      "id": "hooks",
+      "fileCount": 4,
+      "entryPoints": [
+        "hooks/post-edit.ts",
+        "hooks/pre-command.ts",
+        "hooks/pre-commit.ts",
+        "hooks/risk-gate.ts"
+      ]
+    }
+  ],
+  "topReverseDependencyHubs": [
+    {
+      "file": "packages/sj-core/src/utils/fs.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 41
+    },
+    {
+      "file": "packages/sj-core/src/core/config.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 26
+    },
+    {
+      "file": "packages/sj-core/src/core/state.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 17
+    },
+    {
+      "file": "apps/sj-ui/dist-types/ui/contracts.js",
+      "moduleGroup": "apps/sj-ui",
+      "importedByCount": 10
+    },
+    {
+      "file": "packages/sj-core/src/core/specialists.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 10
+    },
+    {
+      "file": "packages/sj-core/src/core/context.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 9
+    },
+    {
+      "file": "packages/sj-core/src/core/product.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 9
+    },
+    {
+      "file": "packages/sj-core/src/core/router.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 9
+    },
+    {
+      "file": "apps/sj-ui/src/ui/contracts.ts",
+      "moduleGroup": "apps/sj-ui",
+      "importedByCount": 7
+    },
+    {
+      "file": "packages/sj-core/src/core/git.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 7
+    }
+  ],
+  "tree": [
+    {
+      "name": ".claude",
+      "path": ".claude",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "skills",
+          "path": ".claude/skills",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "debug-issue.md",
+              "path": ".claude/skills/debug-issue.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "explore-codebase.md",
+              "path": ".claude/skills/explore-codebase.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "refactor-safely.md",
+              "path": ".claude/skills/refactor-safely.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "review-changes.md",
+              "path": ".claude/skills/review-changes.md",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "launch.json",
+          "path": ".claude/launch.json",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "settings.json",
+          "path": ".claude/settings.json",
+          "kind": "file",
+          "children": []
+        }
+      ]
+    },
+    {
+      "name": ".cursor",
+      "path": ".cursor",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "mcp.json",
+          "path": ".cursor/mcp.json",
+          "kind": "file",
+          "children": []
+        }
+      ]
+    },
+    {
+      "name": ".github",
+      "path": ".github",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "agents",
+          "path": ".github/agents",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "architecture-specialist.md",
+              "path": ".github/agents/architecture-specialist.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "backend-specialist.md",
+              "path": ".github/agents/backend-specialist.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "frontend-specialist.md",
+              "path": ".github/agents/frontend-specialist.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "fullstack-specialist.md",
+              "path": ".github/agents/fullstack-specialist.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "qa-specialist.md",
+              "path": ".github/agents/qa-specialist.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "review-specialist.md",
+              "path": ".github/agents/review-specialist.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "shrey-junior.md",
+              "path": ".github/agents/shrey-junior.md",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "copilot",
+          "path": ".github/copilot",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "mcp.json",
+              "path": ".github/copilot/mcp.json",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "instructions",
+          "path": ".github/instructions",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "backend.instructions.md",
+              "path": ".github/instructions/backend.instructions.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "frontend.instructions.md",
+              "path": ".github/instructions/frontend.instructions.md",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "ISSUE_TEMPLATE",
+          "path": ".github/ISSUE_TEMPLATE",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "bug-report.yml",
+              "path": ".github/ISSUE_TEMPLATE/bug-report.yml",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "config.yml",
+              "path": ".github/ISSUE_TEMPLATE/config.yml",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "feature-request.yml",
+              "path": ".github/ISSUE_TEMPLATE/feature-request.yml",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "workflows",
+          "path": ".github/workflows",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "ci.yml",
+              "path": ".github/workflows/ci.yml",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "release.yml",
+              "path": ".github/workflows/release.yml",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "shrey-junior-contract.yml",
+              "path": ".github/workflows/shrey-junior-contract.yml",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "copilot-instructions.md",
+          "path": ".github/copilot-instructions.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "FUNDING.yml",
+          "path": ".github/FUNDING.yml",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "PULL_REQUEST_TEMPLATE.md",
+          "path": ".github/PULL_REQUEST_TEMPLATE.md",
+          "kind": "file",
+          "children": []
+        }
+      ]
+    },
+    {
+      "name": ".omx",
+      "path": ".omx",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "state",
+          "path": ".omx/state",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "hud-state.json",
+              "path": ".omx/state/hud-state.json",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "notify-hook-state.json",
+              "path": ".omx/state/notify-hook-state.json",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "skill-active-state.json",
+              "path": ".omx/state/skill-active-state.json",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "team-leader-nudge.json",
+              "path": ".omx/state/team-leader-nudge.json",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "tmux-hook-state.json",
+              "path": ".omx/state/tmux-hook-state.json",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "metrics.json",
+          "path": ".omx/metrics.json",
+          "kind": "file",
+          "children": []
+        }
+      ]
+    },
+    {
+      "name": "apps",
+      "path": "apps",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "sj-ui",
+          "path": "apps/sj-ui",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "dist-types",
+              "path": "apps/sj-ui/dist-types",
+              "kind": "directory",
+              "children": [
+                {
+                  "name": "ui",
+                  "path": "apps/sj-ui/dist-types/ui",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "ContextTreePanel.d.ts",
+                      "path": "apps/sj-ui/dist-types/ui/ContextTreePanel.d.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "ContextTreePanel.js",
+                      "path": "apps/sj-ui/dist-types/ui/ContextTreePanel.js",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "contracts.d.ts",
+                      "path": "apps/sj-ui/dist-types/ui/contracts.d.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "contracts.js",
+                      "path": "apps/sj-ui/dist-types/ui/contracts.js",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "ExecutionPlanPanel.d.ts",
+                      "path": "apps/sj-ui/dist-types/ui/ExecutionPlanPanel.d.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "ExecutionPlanPanel.js",
+                      "path": "apps/sj-ui/dist-types/ui/ExecutionPlanPanel.js",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "graph-model.d.ts",
+                      "path": "apps/sj-ui/dist-types/ui/graph-model.d.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "graph-model.js",
+                      "path": "apps/sj-ui/dist-types/ui/graph-model.js",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "GraphPanel.d.ts",
+                      "path": "apps/sj-ui/dist-types/ui/GraphPanel.d.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "GraphPanel.js",
+                      "path": "apps/sj-ui/dist-types/ui/GraphPanel.js",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "guidance.d.ts",
+                      "path": "apps/sj-ui/dist-types/ui/guidance.d.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "guidance.js",
+                      "path": "apps/sj-ui/dist-types/ui/guidance.js",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "InspectorPanel.d.ts",
+                      "path": "apps/sj-ui/dist-types/ui/InspectorPanel.d.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "InspectorPanel.js",
+                      "path": "apps/sj-ui/dist-types/ui/InspectorPanel.js",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "MachinePanel.d.ts",
+                      "path": "apps/sj-ui/dist-types/ui/MachinePanel.d.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "MachinePanel.js",
+                      "path": "apps/sj-ui/dist-types/ui/MachinePanel.js",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "readiness.d.ts",
+                      "path": "apps/sj-ui/dist-types/ui/readiness.d.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "readiness.js",
+                      "path": "apps/sj-ui/dist-types/ui/readiness.js",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "TopBar.d.ts",
+                      "path": "apps/sj-ui/dist-types/ui/TopBar.d.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "TopBar.js",
+                      "path": "apps/sj-ui/dist-types/ui/TopBar.js",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "view-models.d.ts",
+                      "path": "apps/sj-ui/dist-types/ui/view-models.d.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "view-models.js",
+                      "path": "apps/sj-ui/dist-types/ui/view-models.js",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "bootcheck.d.ts",
+                  "path": "apps/sj-ui/dist-types/bootcheck.d.ts",
+                  "kind": "file",
+                  "children": []
+                },
+                {
+                  "name": "bootcheck.js",
+                  "path": "apps/sj-ui/dist-types/bootcheck.js",
+                  "kind": "file",
+                  "children": []
+                },
+                {
+                  "name": "main.d.ts",
+                  "path": "apps/sj-ui/dist-types/main.d.ts",
+                  "kind": "file",
+                  "children": []
+                },
+                {
+                  "name": "main.js",
+                  "path": "apps/sj-ui/dist-types/main.js",
+                  "kind": "file",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "name": "src",
+              "path": "apps/sj-ui/src",
+              "kind": "directory",
+              "children": [
+                {
+                  "name": "ui",
+                  "path": "apps/sj-ui/src/ui",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "ContextTreePanel.ts",
+                      "path": "apps/sj-ui/src/ui/ContextTreePanel.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "contracts.ts",
+                      "path": "apps/sj-ui/src/ui/contracts.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "ExecutionPlanPanel.ts",
+                      "path": "apps/sj-ui/src/ui/ExecutionPlanPanel.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "graph-model.ts",
+                      "path": "apps/sj-ui/src/ui/graph-model.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "GraphPanel.ts",
+                      "path": "apps/sj-ui/src/ui/GraphPanel.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "guidance.ts",
+                      "path": "apps/sj-ui/src/ui/guidance.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "InspectorPanel.ts",
+                      "path": "apps/sj-ui/src/ui/InspectorPanel.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "MachinePanel.ts",
+                      "path": "apps/sj-ui/src/ui/MachinePanel.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "readiness.ts",
+                      "path": "apps/sj-ui/src/ui/readiness.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "TopBar.ts",
+                      "path": "apps/sj-ui/src/ui/TopBar.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "view-models.ts",
+                      "path": "apps/sj-ui/src/ui/view-models.ts",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "bootcheck.ts",
+                  "path": "apps/sj-ui/src/bootcheck.ts",
+                  "kind": "file",
+                  "children": []
+                },
+                {
+                  "name": "main.ts",
+                  "path": "apps/sj-ui/src/main.ts",
+                  "kind": "file",
+                  "children": []
+                },
+                {
+                  "name": "styles.css",
+                  "path": "apps/sj-ui/src/styles.css",
+                  "kind": "file",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "name": "src-tauri",
+              "path": "apps/sj-ui/src-tauri",
+              "kind": "directory",
+              "children": [
+                {
+                  "name": "gen",
+                  "path": "apps/sj-ui/src-tauri/gen",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "schemas",
+                      "path": "apps/sj-ui/src-tauri/gen/schemas",
+                      "kind": "directory",
+                      "children": [
+                        {
+                          "name": "acl-manifests.json",
+                          "path": "apps/sj-ui/src-tauri/gen/schemas/acl-manifests.json",
+                          "kind": "file",
+                          "children": []
+                        },
+                        {
+                          "name": "capabilities.json",
+                          "path": "apps/sj-ui/src-tauri/gen/schemas/capabilities.json",
+                          "kind": "file",
+                          "children": []
+                        },
+                        {
+                          "name": "desktop-schema.json",
+                          "path": "apps/sj-ui/src-tauri/gen/schemas/desktop-schema.json",
+                          "kind": "file",
+                          "children": []
+                        },
+                        {
+                          "name": "macOS-schema.json",
+                          "path": "apps/sj-ui/src-tauri/gen/schemas/macOS-schema.json",
+                          "kind": "file",
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name": "src",
+                  "path": "apps/sj-ui/src-tauri/src",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "main.rs",
+                      "path": "apps/sj-ui/src-tauri/src/main.rs",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "build.rs",
+                  "path": "apps/sj-ui/src-tauri/build.rs",
+                  "kind": "file",
+                  "children": []
+                },
+                {
+                  "name": "Cargo.toml",
+                  "path": "apps/sj-ui/src-tauri/Cargo.toml",
+                  "kind": "file",
+                  "children": []
+                },
+                {
+                  "name": "tauri.conf.json",
+                  "path": "apps/sj-ui/src-tauri/tauri.conf.json",
+                  "kind": "file",
+                  "children": []
+                },
+                {
+                  "name": "tauri.conf.snippet.json",
+                  "path": "apps/sj-ui/src-tauri/tauri.conf.snippet.json",
+                  "kind": "file",
+                  "children": []
+                },
+                {
+                  "name": "updater.json",
+                  "path": "apps/sj-ui/src-tauri/updater.json",
+                  "kind": "file",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "name": "agents.md",
+              "path": "apps/sj-ui/agents.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "index.html",
+              "path": "apps/sj-ui/index.html",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "package.json",
+              "path": "apps/sj-ui/package.json",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "tsconfig.json",
+              "path": "apps/sj-ui/tsconfig.json",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "vite.config.ts",
+              "path": "apps/sj-ui/vite.config.ts",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "configs",
+      "path": "configs",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "global.yaml",
+          "path": "configs/global.yaml",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "guardrails.yaml",
+          "path": "configs/guardrails.yaml",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "mcp.servers.json",
+          "path": "configs/mcp.servers.json",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "models.yaml",
+          "path": "configs/models.yaml",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "policies.yaml",
+          "path": "configs/policies.yaml",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "routing.yaml",
+          "path": "configs/routing.yaml",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "specialists.yaml",
+          "path": "configs/specialists.yaml",
+          "kind": "file",
+          "children": []
+        }
+      ]
+    },
+    {
+      "name": "docs",
+      "path": "docs",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "active-role-hints.md",
+          "path": "docs/active-role-hints.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "architecture.md",
+          "path": "docs/architecture.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "artifact-contracts.md",
+          "path": "docs/artifact-contracts.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "beta-limitations.md",
+          "path": "docs/beta-limitations.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "beta-readiness-checklist.md",
+          "path": "docs/beta-readiness-checklist.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "bootstrap-and-standardize.md",
+          "path": "docs/bootstrap-and-standardize.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "checkpointing.md",
+          "path": "docs/checkpointing.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "ci-enforcement.md",
+          "path": "docs/ci-enforcement.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "claude-role-integration.md",
+          "path": "docs/claude-role-integration.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "contract-minimization.md",
+          "path": "docs/contract-minimization.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "copilot-integration.md",
+          "path": "docs/copilot-integration.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "daily-workflow.md",
+          "path": "docs/daily-workflow.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "defaults-precedence.md",
+          "path": "docs/defaults-precedence.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "discovery-report.md",
+          "path": "docs/discovery-report.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "final-global-closeout.md",
+          "path": "docs/final-global-closeout.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "global-accelerators.md",
+          "path": "docs/global-accelerators.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "global-adapter-strategy.md",
+          "path": "docs/global-adapter-strategy.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "global-bootstrap.md",
+          "path": "docs/global-bootstrap.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "global-integration.md",
+          "path": "docs/global-integration.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "install.md",
+          "path": "docs/install.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "managed-files.md",
+          "path": "docs/managed-files.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "mcp-inventory.md",
+          "path": "docs/mcp-inventory.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "migration-plan.md",
+          "path": "docs/migration-plan.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "multi-agent-coordination.md",
+          "path": "docs/multi-agent-coordination.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "package-architecture.md",
+          "path": "docs/package-architecture.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "phase-continuity.md",
+          "path": "docs/phase-continuity.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "privacy-policy.md",
+          "path": "docs/privacy-policy.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "release-packaging.md",
+          "path": "docs/release-packaging.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "repo-contract-spec.md",
+          "path": "docs/repo-contract-spec.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "repo-first-upgrade-closeout.md",
+          "path": "docs/repo-first-upgrade-closeout.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "repo-first-upgrade-plan.md",
+          "path": "docs/repo-first-upgrade-plan.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "repo-lifecycle.md",
+          "path": "docs/repo-lifecycle.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "result-schema.md",
+          "path": "docs/result-schema.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "safety-model.md",
+          "path": "docs/safety-model.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "security-and-trust.md",
+          "path": "docs/security-and-trust.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "skill-inventory.md",
+          "path": "docs/skill-inventory.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "specialists.md",
+          "path": "docs/specialists.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "technical-architecture.md",
+          "path": "docs/technical-architecture.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "terms-and-conditions.md",
+          "path": "docs/terms-and-conditions.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "tool-awareness.md",
+          "path": "docs/tool-awareness.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "tool-global-rollbacks.md",
+          "path": "docs/tool-global-rollbacks.md",
+          "kind": "file",
+          "children": []
+        }
+      ]
+    },
+    {
+      "name": "examples",
+      "path": "examples",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "flows",
+          "path": "examples/flows",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "bootstrap-empty-folder.md",
+              "path": "examples/flows/bootstrap-empty-folder.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "bootstrap-existing-repo.md",
+              "path": "examples/flows/bootstrap-existing-repo.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "bootstrap-python-project.md",
+              "path": "examples/flows/bootstrap-python-project.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "bugfix-flow.md",
+              "path": "examples/flows/bugfix-flow.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "claude-to-codex.md",
+              "path": "examples/flows/claude-to-codex.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "codex-to-claude.md",
+              "path": "examples/flows/codex-to-claude.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "dispatch-collect-reconcile.md",
+              "path": "examples/flows/dispatch-collect-reconcile.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "new-repo.md",
+              "path": "examples/flows/new-repo.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "onboard-existing-repo.md",
+              "path": "examples/flows/onboard-existing-repo.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "packet-chain.md",
+              "path": "examples/flows/packet-chain.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "product-build.md",
+              "path": "examples/flows/product-build.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "push-check.md",
+              "path": "examples/flows/push-check.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "refactor-flow.md",
+              "path": "examples/flows/refactor-flow.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "strict-production.md",
+              "path": "examples/flows/strict-production.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "structured-role-results.md",
+              "path": "examples/flows/structured-role-results.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "tool-aware-claude.md",
+              "path": "examples/flows/tool-aware-claude.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "tool-aware-codex.md",
+              "path": "examples/flows/tool-aware-codex.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "tool-aware-copilot.md",
+              "path": "examples/flows/tool-aware-copilot.md",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "sample-project",
+          "path": "examples/sample-project",
+          "kind": "directory",
+          "children": [
+            {
+              "name": ".github",
+              "path": "examples/sample-project/.github",
+              "kind": "directory",
+              "children": [
+                {
+                  "name": "copilot-instructions.md",
+                  "path": "examples/sample-project/.github/copilot-instructions.md",
+                  "kind": "file",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "name": "AGENTS.md",
+              "path": "examples/sample-project/AGENTS.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "CLAUDE.md",
+              "path": "examples/sample-project/CLAUDE.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "README.md",
+              "path": "examples/sample-project/README.md",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "hooks",
+      "path": "hooks",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "post-edit.ts",
+          "path": "hooks/post-edit.ts",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "pre-command.ts",
+          "path": "hooks/pre-command.ts",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "pre-commit.ts",
+          "path": "hooks/pre-commit.ts",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "risk-gate.ts",
+          "path": "hooks/risk-gate.ts",
+          "kind": "file",
+          "children": []
+        }
+      ]
+    },
+    {
+      "name": "packages",
+      "path": "packages",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "sj-cli",
+          "path": "packages/sj-cli",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "src",
+              "path": "packages/sj-cli/src",
+              "kind": "directory",
+              "children": [
+                {
+                  "name": "commands",
+                  "path": "packages/sj-cli/src/commands",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "audit.ts",
+                      "path": "packages/sj-cli/src/commands/audit.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "bootstrap.ts",
+                      "path": "packages/sj-cli/src/commands/bootstrap.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "check.ts",
+                      "path": "packages/sj-cli/src/commands/check.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "checkpoint.ts",
+                      "path": "packages/sj-cli/src/commands/checkpoint.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "collect.ts",
+                      "path": "packages/sj-cli/src/commands/collect.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "commit-plan.ts",
+                      "path": "packages/sj-cli/src/commands/commit-plan.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "dispatch.ts",
+                      "path": "packages/sj-cli/src/commands/dispatch.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "doctor.ts",
+                      "path": "packages/sj-cli/src/commands/doctor.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "eval.ts",
+                      "path": "packages/sj-cli/src/commands/eval.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "execution-step-runner.ts",
+                      "path": "packages/sj-cli/src/commands/execution-step-runner.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "explain.ts",
+                      "path": "packages/sj-cli/src/commands/explain.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "fanout.ts",
+                      "path": "packages/sj-cli/src/commands/fanout.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "guide.ts",
+                      "path": "packages/sj-cli/src/commands/guide.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "handoff.ts",
+                      "path": "packages/sj-cli/src/commands/handoff.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "init.ts",
+                      "path": "packages/sj-cli/src/commands/init.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "launch.ts",
+                      "path": "packages/sj-cli/src/commands/launch.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "next.ts",
+                      "path": "packages/sj-cli/src/commands/next.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "phase-close.ts",
+                      "path": "packages/sj-cli/src/commands/phase-close.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "plan.ts",
+                      "path": "packages/sj-cli/src/commands/plan.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "prepare.ts",
+                      "path": "packages/sj-cli/src/commands/prepare.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "push-check.ts",
+                      "path": "packages/sj-cli/src/commands/push-check.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "reconcile.ts",
+                      "path": "packages/sj-cli/src/commands/reconcile.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "release-check.ts",
+                      "path": "packages/sj-cli/src/commands/release-check.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "resume.ts",
+                      "path": "packages/sj-cli/src/commands/resume.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "retry.ts",
+                      "path": "packages/sj-cli/src/commands/retry.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "run-auto.ts",
+                      "path": "packages/sj-cli/src/commands/run-auto.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "run.ts",
+                      "path": "packages/sj-cli/src/commands/run.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "specialists.ts",
+                      "path": "packages/sj-cli/src/commands/specialists.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "standardize.ts",
+                      "path": "packages/sj-cli/src/commands/standardize.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "status.ts",
+                      "path": "packages/sj-cli/src/commands/status.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "sync.ts",
+                      "path": "packages/sj-cli/src/commands/sync.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "toolchain.ts",
+                      "path": "packages/sj-cli/src/commands/toolchain.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "trace.ts",
+                      "path": "packages/sj-cli/src/commands/trace.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "ui.ts",
+                      "path": "packages/sj-cli/src/commands/ui.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "usage.ts",
+                      "path": "packages/sj-cli/src/commands/usage.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "validate.ts",
+                      "path": "packages/sj-cli/src/commands/validate.ts",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "tests",
+                  "path": "packages/sj-cli/src/tests",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "helpers",
+                      "path": "packages/sj-cli/src/tests/helpers",
+                      "kind": "directory",
+                      "children": [
+                        {
+                          "name": "desktop-launch.ts",
+                          "path": "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
+                          "kind": "file",
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "name": "bootstrap.test.ts",
+                      "path": "packages/sj-cli/src/tests/bootstrap.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "check.test.ts",
+                      "path": "packages/sj-cli/src/tests/check.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "checkpoint.test.ts",
+                      "path": "packages/sj-cli/src/tests/checkpoint.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "cli-ux.test.ts",
+                      "path": "packages/sj-cli/src/tests/cli-ux.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "collect.test.ts",
+                      "path": "packages/sj-cli/src/tests/collect.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "context-feedback.test.ts",
+                      "path": "packages/sj-cli/src/tests/context-feedback.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "context-selector.test.ts",
+                      "path": "packages/sj-cli/src/tests/context-selector.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "context.test.ts",
+                      "path": "packages/sj-cli/src/tests/context.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "dispatch.test.ts",
+                      "path": "packages/sj-cli/src/tests/dispatch.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "fs.test.ts",
+                      "path": "packages/sj-cli/src/tests/fs.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "git.test.ts",
+                      "path": "packages/sj-cli/src/tests/git.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "handoff.test.ts",
+                      "path": "packages/sj-cli/src/tests/handoff.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "machine-advisory.test.ts",
+                      "path": "packages/sj-cli/src/tests/machine-advisory.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "packets.test.ts",
+                      "path": "packages/sj-cli/src/tests/packets.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "prepare.test.ts",
+                      "path": "packages/sj-cli/src/tests/prepare.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "product-surfaces.desktop-bundles.test.ts",
+                      "path": "packages/sj-cli/src/tests/product-surfaces.desktop-bundles.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "product-surfaces.desktop-launch.test.ts",
+                      "path": "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "product-surfaces.ui-json.test.ts",
+                      "path": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "profiles.test.ts",
+                      "path": "packages/sj-cli/src/tests/profiles.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "project-detect.test.ts",
+                      "path": "packages/sj-cli/src/tests/project-detect.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "reconcile.test.ts",
+                      "path": "packages/sj-cli/src/tests/reconcile.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "redact.test.ts",
+                      "path": "packages/sj-cli/src/tests/redact.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "router.test.ts",
+                      "path": "packages/sj-cli/src/tests/router.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "runtime.test.ts",
+                      "path": "packages/sj-cli/src/tests/runtime.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "sj-init.test.ts",
+                      "path": "packages/sj-cli/src/tests/sj-init.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "specialists.test.ts",
+                      "path": "packages/sj-cli/src/tests/specialists.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "standardize.test.ts",
+                      "path": "packages/sj-cli/src/tests/standardize.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "state.test.ts",
+                      "path": "packages/sj-cli/src/tests/state.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "sync.test.ts",
+                      "path": "packages/sj-cli/src/tests/sync.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "workflow-engine.test.ts",
+                      "path": "packages/sj-cli/src/tests/workflow-engine.test.ts",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "utils",
+                  "path": "packages/sj-cli/src/utils",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "cli-output.ts",
+                      "path": "packages/sj-cli/src/utils/cli-output.ts",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "cli.ts",
+                  "path": "packages/sj-cli/src/cli.ts",
+                  "kind": "file",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "name": "agents.md",
+              "path": "packages/sj-cli/agents.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "package.json",
+              "path": "packages/sj-cli/package.json",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "tsconfig.json",
+              "path": "packages/sj-cli/tsconfig.json",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "sj-core",
+          "path": "packages/sj-core",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "src",
+              "path": "packages/sj-core/src",
+              "kind": "directory",
+              "children": [
+                {
+                  "name": "adapters",
+                  "path": "packages/sj-core/src/adapters",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "claude.ts",
+                      "path": "packages/sj-core/src/adapters/claude.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "codex.ts",
+                      "path": "packages/sj-core/src/adapters/codex.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "copilot.ts",
+                      "path": "packages/sj-core/src/adapters/copilot.ts",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "core",
+                  "path": "packages/sj-core/src/core",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "bootstrap.ts",
+                      "path": "packages/sj-core/src/core/bootstrap.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "config.ts",
+                      "path": "packages/sj-core/src/core/config.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "conflicts.ts",
+                      "path": "packages/sj-core/src/core/conflicts.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "context-feedback.ts",
+                      "path": "packages/sj-core/src/core/context-feedback.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "context-index.ts",
+                      "path": "packages/sj-core/src/core/context-index.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "context-selector.ts",
+                      "path": "packages/sj-core/src/core/context-selector.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "context-trace.ts",
+                      "path": "packages/sj-core/src/core/context-trace.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "context-tree.ts",
+                      "path": "packages/sj-core/src/core/context-tree.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "context.ts",
+                      "path": "packages/sj-core/src/core/context.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "discovery.ts",
+                      "path": "packages/sj-core/src/core/discovery.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "dispatch.ts",
+                      "path": "packages/sj-core/src/core/dispatch.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "eval.ts",
+                      "path": "packages/sj-core/src/core/eval.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "execution-engine.ts",
+                      "path": "packages/sj-core/src/core/execution-engine.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "execution-log.ts",
+                      "path": "packages/sj-core/src/core/execution-log.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "execution-plan.ts",
+                      "path": "packages/sj-core/src/core/execution-plan.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "executor.ts",
+                      "path": "packages/sj-core/src/core/executor.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "git.ts",
+                      "path": "packages/sj-core/src/core/git.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "guidance.ts",
+                      "path": "packages/sj-core/src/core/guidance.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "handoff.ts",
+                      "path": "packages/sj-core/src/core/handoff.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "instruction-generator.ts",
+                      "path": "packages/sj-core/src/core/instruction-generator.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "launch.ts",
+                      "path": "packages/sj-core/src/core/launch.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "logger.ts",
+                      "path": "packages/sj-core/src/core/logger.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "memory.ts",
+                      "path": "packages/sj-core/src/core/memory.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "next-action.ts",
+                      "path": "packages/sj-core/src/core/next-action.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "packets.ts",
+                      "path": "packages/sj-core/src/core/packets.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "planner.ts",
+                      "path": "packages/sj-core/src/core/planner.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "policies.ts",
+                      "path": "packages/sj-core/src/core/policies.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "prepared-scope.ts",
+                      "path": "packages/sj-core/src/core/prepared-scope.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "product.ts",
+                      "path": "packages/sj-core/src/core/product.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "profiles.ts",
+                      "path": "packages/sj-core/src/core/profiles.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "project-detect.ts",
+                      "path": "packages/sj-core/src/core/project-detect.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "recommendations.ts",
+                      "path": "packages/sj-core/src/core/recommendations.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "reconcile.ts",
+                      "path": "packages/sj-core/src/core/reconcile.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "release.ts",
+                      "path": "packages/sj-core/src/core/release.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "risk.ts",
+                      "path": "packages/sj-core/src/core/risk.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "router.ts",
+                      "path": "packages/sj-core/src/core/router.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "runtime-lifecycle.ts",
+                      "path": "packages/sj-core/src/core/runtime-lifecycle.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "skills-registry.ts",
+                      "path": "packages/sj-core/src/core/skills-registry.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "specialists.ts",
+                      "path": "packages/sj-core/src/core/specialists.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "state.ts",
+                      "path": "packages/sj-core/src/core/state.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "task-intent.ts",
+                      "path": "packages/sj-core/src/core/task-intent.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "task-pattern-memory.ts",
+                      "path": "packages/sj-core/src/core/task-pattern-memory.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "token-estimator.ts",
+                      "path": "packages/sj-core/src/core/token-estimator.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "token-intelligence.ts",
+                      "path": "packages/sj-core/src/core/token-intelligence.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "ui-state.ts",
+                      "path": "packages/sj-core/src/core/ui-state.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "validator.ts",
+                      "path": "packages/sj-core/src/core/validator.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "workflow-engine.ts",
+                      "path": "packages/sj-core/src/core/workflow-engine.ts",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "integrations",
+                  "path": "packages/sj-core/src/integrations",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "ccusage.ts",
+                      "path": "packages/sj-core/src/integrations/ccusage.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "ecosystem-catalog.ts",
+                      "path": "packages/sj-core/src/integrations/ecosystem-catalog.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "machine-advisory-cache.ts",
+                      "path": "packages/sj-core/src/integrations/machine-advisory-cache.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "machine-advisory-guidance.ts",
+                      "path": "packages/sj-core/src/integrations/machine-advisory-guidance.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "machine-advisory-score.ts",
+                      "path": "packages/sj-core/src/integrations/machine-advisory-score.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "machine-advisory-summary.ts",
+                      "path": "packages/sj-core/src/integrations/machine-advisory-summary.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "machine-advisory.ts",
+                      "path": "packages/sj-core/src/integrations/machine-advisory.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "token-efficiency.ts",
+                      "path": "packages/sj-core/src/integrations/token-efficiency.ts",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "runtime",
+                  "path": "packages/sj-core/src/runtime",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "ui-bridge.ts",
+                      "path": "packages/sj-core/src/runtime/ui-bridge.ts",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "utils",
+                  "path": "packages/sj-core/src/utils",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "child-process.ts",
+                      "path": "packages/sj-core/src/utils/child-process.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "fs.ts",
+                      "path": "packages/sj-core/src/utils/fs.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "redact.ts",
+                      "path": "packages/sj-core/src/utils/redact.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "yaml.ts",
+                      "path": "packages/sj-core/src/utils/yaml.ts",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "index.ts",
+                  "path": "packages/sj-core/src/index.ts",
+                  "kind": "file",
+                  "children": []
+                },
+                {
+                  "name": "runtime.ts",
+                  "path": "packages/sj-core/src/runtime.ts",
+                  "kind": "file",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "name": "agents.md",
+              "path": "packages/sj-core/agents.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "package.json",
+              "path": "packages/sj-core/package.json",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "tsconfig.json",
+              "path": "packages/sj-core/tsconfig.json",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "packaging",
+      "path": "packaging",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "signing",
+          "path": "packaging/signing",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "README.md",
+              "path": "packaging/signing/README.md",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "prompts",
+      "path": "prompts",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "bugfix.md",
+          "path": "prompts/bugfix.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "implementer.md",
+          "path": "prompts/implementer.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "migration.md",
+          "path": "prompts/migration.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "planner.md",
+          "path": "prompts/planner.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "refactor.md",
+          "path": "prompts/refactor.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "release-readiness.md",
+          "path": "prompts/release-readiness.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "reviewer.md",
+          "path": "prompts/reviewer.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "security.md",
+          "path": "prompts/security.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "summarizer.md",
+          "path": "prompts/summarizer.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "tester.md",
+          "path": "prompts/tester.md",
+          "kind": "file",
+          "children": []
+        }
+      ]
+    },
+    {
+      "name": "scripts",
+      "path": "scripts",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "apply-global-preferences.sh",
+          "path": "scripts/apply-global-preferences.sh",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "backup-global.sh",
+          "path": "scripts/backup-global.sh",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "bootstrap.sh",
+          "path": "scripts/bootstrap.sh",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "copy-runtime-assets.mjs",
+          "path": "scripts/copy-runtime-assets.mjs",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "generate-release-checksums.mjs",
+          "path": "scripts/generate-release-checksums.mjs",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "install-global.sh",
+          "path": "scripts/install-global.sh",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "install-local.sh",
+          "path": "scripts/install-local.sh",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "prepare-release-manifest.mjs",
+          "path": "scripts/prepare-release-manifest.mjs",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "remove-macos-metadata.mjs",
+          "path": "scripts/remove-macos-metadata.mjs",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "restore-global.sh",
+          "path": "scripts/restore-global.sh",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "run-cli.mjs",
+          "path": "scripts/run-cli.mjs",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "run-ui-desktop-build.mjs",
+          "path": "scripts/run-ui-desktop-build.mjs",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "run-ui-dev.mjs",
+          "path": "scripts/run-ui-dev.mjs",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "sj-init.sh",
+          "path": "scripts/sj-init.sh",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "smoke-test.sh",
+          "path": "scripts/smoke-test.sh",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "verify-global-hard.sh",
+          "path": "scripts/verify-global-hard.sh",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "verify-global.sh",
+          "path": "scripts/verify-global.sh",
+          "kind": "file",
+          "children": []
+        }
+      ]
+    },
+    {
+      "name": "templates",
+      "path": "templates",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "project",
+          "path": "templates/project",
+          "kind": "directory",
+          "children": [
+            {
+              "name": ".github",
+              "path": "templates/project/.github",
+              "kind": "directory",
+              "children": [
+                {
+                  "name": "agents",
+                  "path": "templates/project/.github/agents",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "shrey-junior.md",
+                      "path": "templates/project/.github/agents/shrey-junior.md",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "specialist-agent.md",
+                      "path": "templates/project/.github/agents/specialist-agent.md",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "instructions",
+                  "path": "templates/project/.github/instructions",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "backend.instructions.md",
+                      "path": "templates/project/.github/instructions/backend.instructions.md",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "data.instructions.md",
+                      "path": "templates/project/.github/instructions/data.instructions.md",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "docs.instructions.md",
+                      "path": "templates/project/.github/instructions/docs.instructions.md",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "frontend.instructions.md",
+                      "path": "templates/project/.github/instructions/frontend.instructions.md",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "workflows",
+                  "path": "templates/project/.github/workflows",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "shrey-junior-contract.yml",
+                      "path": "templates/project/.github/workflows/shrey-junior-contract.yml",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "copilot-instructions.md",
+                  "path": "templates/project/.github/copilot-instructions.md",
+                  "kind": "file",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "name": "AGENTS.md",
+              "path": "templates/project/AGENTS.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "CLAUDE.md",
+              "path": "templates/project/CLAUDE.md",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "website",
+      "path": "website",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "beta",
+          "path": "website/beta",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "index.html",
+              "path": "website/beta/index.html",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "install",
+          "path": "website/install",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "index.html",
+              "path": "website/install/index.html",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "index.html",
+          "path": "website/index.html",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "README.md",
+          "path": "website/README.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "styles.css",
+          "path": "website/styles.css",
+          "kind": "file",
+          "children": []
+        }
+      ]
+    },
+    {
+      "name": ".mcp.json",
+      "path": ".mcp.json",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": ".opencode.json",
+      "path": ".opencode.json",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "AGENTS.md",
+      "path": "AGENTS.md",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "ARCHITECTURE.md",
+      "path": "ARCHITECTURE.md",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "CLAUDE.md",
+      "path": "CLAUDE.md",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "CODE_OF_CONDUCT.md",
+      "path": "CODE_OF_CONDUCT.md",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "CONTRIBUTING.md",
+      "path": "CONTRIBUTING.md",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "GEMINI.md",
+      "path": "GEMINI.md",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "install.sh",
+      "path": "install.sh",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "LICENSE.md",
+      "path": "LICENSE.md",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "package-lock.json",
+      "path": "package-lock.json",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "package.json",
+      "path": "package.json",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "README.md",
+      "path": "README.md",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "ROADMAP.md",
+      "path": "ROADMAP.md",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "SECURITY.md",
+      "path": "SECURITY.md",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "SUPPORT.md",
+      "path": "SUPPORT.md",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "tsconfig.base.json",
+      "path": "tsconfig.base.json",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "tsconfig.json",
+      "path": "tsconfig.json",
+      "kind": "file",
+      "children": []
+    }
+  ]
+}

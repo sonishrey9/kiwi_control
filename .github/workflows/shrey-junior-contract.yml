@@ -1,0 +1,28 @@
+# SHREY-JUNIOR:FILE-START .github/workflows/shrey-junior-contract.yml
+name: Shrey Junior Contract
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  verify-repo-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify portable repo contract and push gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash .agent/scripts/verify-contract.sh
+
+      - name: Contract verification scope note
+        run: |
+          echo "This workflow verifies the portable repo-local Shrey Junior contract and repo-local push gate."
+          echo "If the Shrey Junior CLI is available, the verifier also runs push-check."
+          echo "Repo-specific commands declared in .agent/checks.yaml run here when present."
+# SHREY-JUNIOR:FILE-END .github/workflows/shrey-junior-contract.yml
