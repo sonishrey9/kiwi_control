@@ -211,7 +211,7 @@ export async function loadMachineAdvisory(options: MachineAdvisoryBuildOptions =
   const now = options.now ?? new Date();
   const homeRoot = resolveMachineHome(options.homeRoot);
   const cachePath = advisoryCachePath(homeRoot);
-  const explicitFastMode = options.fastMode ?? process.env[MACHINE_FAST_ENV] === "1";
+  const explicitFastMode = resolveMachineAdvisoryFastMode(options);
 
   if (!options.forceRefresh && await pathExists(cachePath)) {
     try {
@@ -248,7 +248,7 @@ export async function buildMachineAdvisory(options: MachineAdvisoryBuildOptions 
   const homeRoot = resolveMachineHome(options.homeRoot);
   const now = options.now ?? new Date();
   const windowDays = 7;
-  const fastMode = options.fastMode ?? (process.env.CODEX_CI === "1" && !options.homeRoot && !options.commandRunner && options.ccusagePayload === undefined);
+  const fastMode = resolveMachineAdvisoryFastMode(options);
   const commandRunner = fastMode
     ? async () => ({ code: 1, stdout: "", stderr: "" } satisfies CommandOutput)
     : options.commandRunner;
@@ -342,7 +342,7 @@ export async function loadMachineAdvisorySection(
   const now = options.now ?? new Date();
   const builtAt = now.toISOString();
   const windowDays = 7;
-  const fastMode = options.fastMode ?? (process.env.CODEX_CI === "1" && !options.homeRoot && !options.commandRunner && options.ccusagePayload === undefined);
+  const fastMode = resolveMachineAdvisoryFastMode(options);
   const commandRunner = fastMode
     ? async () => ({ code: 1, stdout: "", stderr: "" } satisfies CommandOutput)
     : options.commandRunner;
@@ -831,7 +831,7 @@ async function loadClaudeUsage(
   const since = formatSinceDate(now, days);
   const command = ["npx", "-y", "ccusage", "daily", "--since", since, "--json"];
   try {
-    const payload = ccusagePayload ?? (JSON.parse((await runMachineCommand(command[0]!, command.slice(1), commandRunner, 8_000)).stdout) as { daily?: Array<Record<string, unknown>> });
+    const payload = ccusagePayload ?? await loadClaudeUsagePayload(command, commandRunner);
     const days = (payload.daily ?? []).map((entry) => ({
       date: String(entry.date ?? ""),
       inputTokens: numberOrZero(entry.inputTokens),
@@ -867,7 +867,7 @@ async function loadClaudeUsage(
       },
       note: days.length > 0 ? "Measured Claude usage came from ccusage daily output." : "No Claude ccusage data was available."
     };
-  } catch {
+  } catch (error) {
     return {
       available: false,
       days: [],
@@ -880,7 +880,7 @@ async function loadClaudeUsage(
         totalCost: null,
         cacheHitRatio: null
       },
-      note: "No Claude ccusage data was available."
+      note: describeClaudeUsageFailure(error)
     };
   }
 }
@@ -1432,12 +1432,48 @@ function round2(value: number): number {
   return Math.round(value * 10000) / 100;
 }
 
+function resolveMachineAdvisoryFastMode(options: MachineAdvisoryBuildOptions): boolean {
+  return options.fastMode ?? process.env[MACHINE_FAST_ENV] === "1";
+}
+
 function formatSinceDate(now: Date, days: number): string {
   const since = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
   const year = since.getFullYear();
   const month = `${since.getMonth() + 1}`.padStart(2, "0");
   const day = `${since.getDate()}`.padStart(2, "0");
   return `${year}${month}${day}`;
+}
+
+async function loadClaudeUsagePayload(
+  command: string[],
+  commandRunner?: (command: string, args: string[]) => Promise<CommandOutput>
+): Promise<{ daily?: Array<Record<string, unknown>> }> {
+  const result = await runMachineCommand(command[0]!, command.slice(1), commandRunner, 8_000);
+  const stdout = result.stdout.trim();
+  const stderr = result.stderr.trim();
+
+  if (result.code !== 0) {
+    throw new Error(stderr || stdout || `ccusage exited with code ${result.code}`);
+  }
+
+  try {
+    return JSON.parse(stdout) as { daily?: Array<Record<string, unknown>> };
+  } catch {
+    throw new Error(stdout || stderr || "ccusage did not return valid JSON output");
+  }
+}
+
+function describeClaudeUsageFailure(error: unknown): string {
+  const detail = error instanceof Error ? error.message.trim() : String(error).trim();
+  if (!detail) {
+    return "No Claude ccusage data was available.";
+  }
+
+  if (/not found|enoent/i.test(detail)) {
+    return "Claude ccusage could not be loaded because ccusage was not available on PATH. Install it with `npm install -g ccusage`.";
+  }
+
+  return `Claude ccusage could not be loaded: ${detail}`;
 }
 
 function suggestMachineFixForTools(missingTools: string[]): string {

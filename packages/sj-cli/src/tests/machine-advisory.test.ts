@@ -119,6 +119,109 @@ test("machine advisory builds fixture-driven machine state from local configs an
   assert.equal(advisory.usage.codex.totals.totalTokens, 1200);
 });
 
+test("machine advisory usage does not suppress Claude ccusage telemetry just because CODEX_CI=1 is set", async () => {
+  const homeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "sj-machine-codex-ci-home-"));
+  const previousPath = process.env.PATH;
+  const previousCodexCi = process.env.CODEX_CI;
+  const previousFast = process.env.KIWI_MACHINE_ADVISORY_FAST;
+  const previousHome = process.env.HOME;
+
+  const cargoBinRoot = path.join(homeRoot, ".cargo", "bin");
+  await fs.mkdir(cargoBinRoot, { recursive: true });
+  const npxPath = path.join(cargoBinRoot, "npx");
+  await fs.writeFile(
+    npxPath,
+    `#!/usr/bin/env bash
+printf '%s\n' '{"daily":[{"date":"2026-04-06","inputTokens":12,"outputTokens":34,"cacheCreationTokens":0,"cacheReadTokens":56,"totalTokens":102,"totalCost":0.42,"modelsUsed":["claude-opus-4-6"]}]}'`,
+    "utf8"
+  );
+  await fs.chmod(npxPath, 0o755);
+
+  process.env.HOME = homeRoot;
+  process.env.PATH = `${cargoBinRoot}:${previousPath ?? ""}`;
+  process.env.CODEX_CI = "1";
+  delete process.env.KIWI_MACHINE_ADVISORY_FAST;
+
+  try {
+    const usageSection = await loadMachineAdvisorySection("usage", {
+      homeRoot,
+      now: new Date("2026-04-06T11:30:00.000Z"),
+      forceRefresh: true
+    });
+
+    const usage = usageSection.data as Awaited<ReturnType<typeof buildMachineAdvisory>>["usage"];
+    assert.equal(usage.claude.available, true);
+    assert.equal(usage.claude.days.length, 1);
+    assert.equal(usage.claude.totals.totalTokens, 102);
+    assert.match(usage.claude.note, /Measured Claude usage came from ccusage daily output/);
+  } finally {
+    if (previousPath === undefined) {
+      delete process.env.PATH;
+    } else {
+      process.env.PATH = previousPath;
+    }
+    if (previousHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = previousHome;
+    }
+    if (previousCodexCi === undefined) {
+      delete process.env.CODEX_CI;
+    } else {
+      process.env.CODEX_CI = previousCodexCi;
+    }
+    if (previousFast === undefined) {
+      delete process.env.KIWI_MACHINE_ADVISORY_FAST;
+    } else {
+      process.env.KIWI_MACHINE_ADVISORY_FAST = previousFast;
+    }
+  }
+});
+
+test("machine advisory usage reports the real ccusage failure reason instead of a vague empty-state note", async () => {
+  const homeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "sj-machine-ccusage-error-home-"));
+  const previousPath = process.env.PATH;
+  const previousHome = process.env.HOME;
+
+  const cargoBinRoot = path.join(homeRoot, ".cargo", "bin");
+  await fs.mkdir(cargoBinRoot, { recursive: true });
+  const npxPath = path.join(cargoBinRoot, "npx");
+  await fs.writeFile(
+    npxPath,
+    `#!/usr/bin/env bash
+printf '%s\n' 'Date must be in YYYYMMDD format'`,
+    "utf8"
+  );
+  await fs.chmod(npxPath, 0o755);
+
+  process.env.HOME = homeRoot;
+  process.env.PATH = `${cargoBinRoot}:${previousPath ?? ""}`;
+
+  try {
+    const usageSection = await loadMachineAdvisorySection("usage", {
+      homeRoot,
+      now: new Date("2026-04-06T11:30:00.000Z"),
+      forceRefresh: true
+    });
+
+    const usage = usageSection.data as Awaited<ReturnType<typeof buildMachineAdvisory>>["usage"];
+    assert.equal(usage.claude.available, false);
+    assert.match(usage.claude.note, /Date must be in YYYYMMDD format/);
+    assert.match(usage.claude.note, /Claude ccusage could not be loaded/);
+  } finally {
+    if (previousPath === undefined) {
+      delete process.env.PATH;
+    } else {
+      process.env.PATH = previousPath;
+    }
+    if (previousHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = previousHome;
+    }
+  }
+});
+
 test("machine doctor groups missing config and toolchain findings into repair commands", async () => {
   const homeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "sj-machine-home-empty-"));
   const advisory = await buildMachineAdvisory({
