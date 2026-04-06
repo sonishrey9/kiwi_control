@@ -17,6 +17,7 @@ export function renderTopBarView(context: TopBarRenderContext): string {
     currentTask,
     retryEnabled,
     composerConstraint,
+    runtimeInfo,
     loadStatus,
     helpers
   } = context;
@@ -48,6 +49,7 @@ export function renderTopBarView(context: TopBarRenderContext): string {
         ${renderHeaderMeta("Changed", decision.lastChangedAt)}
         ${renderHeaderMeta("Failures", String(decision.recentFailures))}
         ${renderHeaderMeta("Warnings", String(decision.newWarnings))}
+        ${runtimeInfo ? renderHeaderMeta(runtimeInfo.label, runtimeInfo.detail) : ""}
       </div>
       <div class="kc-topbar-right">
         <div class="kc-inline-badges">

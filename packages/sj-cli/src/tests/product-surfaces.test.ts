@@ -369,6 +369,7 @@ writeFileSync(statusPath, JSON.stringify({
   targetRoot: request.targetRoot,
   state: "ready",
   detail: "visible window shown",
+  launchSource: request.launchSource,
   reportedAt: new Date().toISOString()
 }, null, 2), "utf8");`,
       "utf8"
@@ -404,10 +405,78 @@ writeFileSync(statusPath, JSON.stringify({
       }
 
       const finalMarker = await fs.readFile(markerPath, "utf8");
+      const logPayload = await readLaunchLogEntries(launchLogPath);
       assert.equal(exitCode, 0);
       assert.equal(finalMarker.trim(), tempDir);
       assert.match(logs.join("\n"), new RegExp(`Opened Kiwi Control via .* for ${tempDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+      assert.match(logs.join("\n"), /Launch source: fallback-launcher/);
+      assert.equal(logPayload.some((entry) => entry.event === "launch-ready" && entry.launchSource === "fallback-launcher"), true);
     } finally {
+      if (previousDesktopLauncher === undefined) {
+        delete process.env.KIWI_CONTROL_DESKTOP;
+      } else {
+        process.env.KIWI_CONTROL_DESKTOP = previousDesktopLauncher;
+      }
+    }
+  });
+});
+
+test("ui command returns promptly even when the launcher process remains alive after writing ready status", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-persistent-launcher-"));
+  const launcherPath = path.join(tempDir, "desktop-launcher.js");
+  const pidPath = path.join(tempDir, "launcher.pid");
+
+  await withIsolatedDesktopLaunchBridge(async ({ launchRequestPath, launchStatusPath, launchLogPath }) => {
+    await fs.rm(launchRequestPath, { force: true });
+    await fs.rm(launchStatusPath, { force: true });
+    await fs.rm(launchLogPath, { force: true });
+
+    await fs.writeFile(
+      launcherPath,
+      `import { readFileSync, writeFileSync } from "node:fs";
+const request = JSON.parse(readFileSync(${JSON.stringify(launchRequestPath)}, "utf8"));
+writeFileSync(${JSON.stringify(pidPath)}, String(process.pid), "utf8");
+writeFileSync(${JSON.stringify(launchStatusPath)}, JSON.stringify({
+  requestId: request.requestId,
+  targetRoot: request.targetRoot,
+  state: "ready",
+  detail: "persistent launcher ready",
+  launchSource: request.launchSource,
+  reportedAt: new Date().toISOString()
+}, null, 2), "utf8");
+setInterval(() => {}, 1_000);`,
+      "utf8"
+    );
+
+    const previousDesktopLauncher = process.env.KIWI_CONTROL_DESKTOP;
+    process.env.KIWI_CONTROL_DESKTOP = launcherPath;
+
+    try {
+      const launchPromise = runUi({
+        repoRoot: repoRoot(),
+        targetRoot: tempDir,
+        logger: {
+          info() {},
+          warn() {},
+          error() {}
+        } as never
+      });
+
+      const exitCode = await Promise.race([
+        launchPromise,
+        new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), 4_000))
+      ]);
+
+      assert.notEqual(exitCode, "timeout");
+      assert.equal(exitCode, 0);
+    } finally {
+      try {
+        const pid = Number.parseInt((await fs.readFile(pidPath, "utf8")).trim(), 10);
+        if (Number.isFinite(pid)) {
+          process.kill(pid, "SIGTERM");
+        }
+      } catch {}
+
       if (previousDesktopLauncher === undefined) {
         delete process.env.KIWI_CONTROL_DESKTOP;
       } else {
@@ -528,19 +597,23 @@ test("ui command prefers the local source bundle before installed app bundles wh
     if (process.platform === "darwin") {
       assert.deepEqual(candidates[0], {
         command: bundleExecutablePath,
-        args: []
+        args: [],
+        launchSource: "source-bundle"
       });
       assert.deepEqual(candidates[1], {
         command: "open",
-        args: [bundlePath]
+        args: [bundlePath],
+        launchSource: "source-bundle"
       });
       assert.deepEqual(candidates[2], {
         command: "open",
-        args: ["/Applications/Kiwi Control.app"]
+        args: ["/Applications/Kiwi Control.app"],
+        launchSource: "installed-bundle"
       });
       assert.deepEqual(candidates[3], {
         command: "open",
-        args: [path.join(os.homedir(), "Applications", "Kiwi Control.app")]
+        args: [path.join(os.homedir(), "Applications", "Kiwi Control.app")],
+        launchSource: "installed-bundle"
       });
     } else {
       assert.equal(candidates.some((candidate) => candidate.args.includes("Kiwi Control.app")), false);
@@ -602,17 +675,21 @@ test("ui command still offers installed app bundles after the current workspace 
 
     if (process.platform === "darwin") {
       assert.equal(candidates[0]?.args.length, 0);
+      assert.equal(candidates[0]?.launchSource, "source-bundle");
       assert.equal(await fs.realpath(candidates[0]?.command ?? ""), await fs.realpath(bundleExecutablePath ?? ""));
       assert.equal(candidates[1]?.command, "open");
       assert.equal(candidates[1]?.args.length, 1);
+      assert.equal(candidates[1]?.launchSource, "source-bundle");
       assert.equal(await fs.realpath(candidates[1]?.args[0] ?? ""), await fs.realpath(bundlePath ?? ""));
       assert.deepEqual(candidates[2], {
         command: "open",
-        args: ["/Applications/Kiwi Control.app"]
+        args: ["/Applications/Kiwi Control.app"],
+        launchSource: "installed-bundle"
       });
       assert.deepEqual(candidates[3], {
         command: "open",
-        args: [path.join(os.homedir(), "Applications", "Kiwi Control.app")]
+        args: [path.join(os.homedir(), "Applications", "Kiwi Control.app")],
+        launchSource: "installed-bundle"
       });
     } else {
       assert.equal(candidates.some((candidate) => candidate.args.includes("Kiwi Control.app")), false);
@@ -629,6 +706,41 @@ test("ui command still offers installed app bundles after the current workspace 
     } else {
       process.env.SHREY_JUNIOR_DESKTOP = previousLegacyDesktopLauncher;
     }
+  }
+});
+
+test("ui command prefers installed app bundles when no source checkout bundle is available", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-installed-bundles-"));
+  const installedRoot = path.join(tempDir, "installed-cli-root");
+  const previousCwd = process.cwd();
+
+  await fs.mkdir(path.join(installedRoot, "configs"), { recursive: true });
+  await fs.writeFile(path.join(installedRoot, "configs", "global.yaml"), "version: 2\n", "utf8");
+
+  process.chdir(tempDir);
+
+  try {
+    const candidates = buildDesktopLaunchCandidates(installedRoot, path.join(tempDir, "target-repo"));
+
+    if (process.platform === "darwin") {
+      assert.deepEqual(candidates[0], {
+        command: "open",
+        args: ["/Applications/Kiwi Control.app"],
+        launchSource: "installed-bundle"
+      });
+      assert.deepEqual(candidates[1], {
+        command: "open",
+        args: [path.join(os.homedir(), "Applications", "Kiwi Control.app")],
+        launchSource: "installed-bundle"
+      });
+      assert.deepEqual(candidates[2], {
+        command: "open",
+        args: ["-a", "Kiwi Control"],
+        launchSource: "fallback-launcher"
+      });
+    }
+  } finally {
+    process.chdir(previousCwd);
   }
 });
 
@@ -649,7 +761,8 @@ appendFileSync(${JSON.stringify(launchLogPath)}, JSON.stringify({
   reportedAt: new Date().toISOString(),
   requestId: request.requestId,
   targetRoot: request.targetRoot,
-  detail: "observed by desktop"
+  detail: "observed by desktop",
+  launchSource: request.launchSource
 }) + "\\n", "utf8");`,
       "utf8"
     );
@@ -678,6 +791,7 @@ appendFileSync(${JSON.stringify(launchLogPath)}, JSON.stringify({
       const logPayload = await readLaunchLogEntries(launchLogPath);
       assert.equal(exitCode, 0);
       assert.equal(logPayload.some((entry) => entry.event === "launch-hydrating"), true);
+      assert.equal(logPayload.some((entry) => entry.event === "launch-hydrating" && entry.launchSource === "fallback-launcher"), true);
       assert.match(logs.join("\n"), /repo is still hydrating/i);
     } finally {
       if (previousDesktopLauncher === undefined) {
@@ -815,11 +929,11 @@ async function waitForMarkerLines(markerPath: string, expectedLineCount: number)
   assert.fail(`Timed out waiting for ${expectedLineCount} launch marker lines in ${markerPath}`);
 }
 
-async function readLaunchLogEntries(logPath: string): Promise<Array<{ event: string; detail?: string }>> {
+async function readLaunchLogEntries(logPath: string): Promise<Array<{ event: string; detail?: string; launchSource?: string }>> {
   const payload = await fs.readFile(logPath, "utf8");
   return payload
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => JSON.parse(line) as { event: string; detail?: string });
+    .map((line) => JSON.parse(line) as { event: string; detail?: string; launchSource?: string });
 }

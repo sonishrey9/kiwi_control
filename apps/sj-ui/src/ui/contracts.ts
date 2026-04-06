@@ -284,6 +284,10 @@ export interface TopBarRenderContext {
     reason: string;
     nextCommand: string | null;
   } | null;
+  runtimeInfo: {
+    label: string;
+    detail: string;
+  } | null;
   loadStatus: {
     visible: boolean;
     label: string;

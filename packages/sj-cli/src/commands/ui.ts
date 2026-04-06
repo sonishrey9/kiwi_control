@@ -20,15 +20,19 @@ export interface UiOptions {
   logger: Logger;
 }
 
+type DesktopLaunchSource = "source-bundle" | "installed-bundle" | "fallback-launcher";
+
 interface DesktopLaunchCandidate {
   command: string;
   args: string[];
+  launchSource: DesktopLaunchSource;
 }
 
 interface DesktopLaunchRequest {
   requestId: string;
   targetRoot: string;
   requestedAt: string;
+  launchSource?: DesktopLaunchSource;
 }
 
 interface DesktopLaunchStatus {
@@ -37,6 +41,7 @@ interface DesktopLaunchStatus {
   state: "ready" | "hydrating" | "error";
   detail: string;
   reportedAt: string;
+  launchSource?: DesktopLaunchSource;
 }
 
 interface DesktopLaunchLogEntry {
@@ -45,6 +50,7 @@ interface DesktopLaunchLogEntry {
   requestId?: string;
   targetRoot?: string;
   detail?: string;
+  launchSource?: DesktopLaunchSource;
   command?: string;
   args?: string[];
 }
@@ -59,6 +65,7 @@ interface DesktopLaunchObservation {
   state: "ready" | "hydrating" | "error";
   detail: string;
   reportedAt: string;
+  launchSource?: DesktopLaunchSource;
 }
 
 const DESKTOP_BINARY_CANDIDATES = ["kiwi-control-ui", "kiwi-control-desktop"];
@@ -87,13 +94,6 @@ export async function runUi(options: UiOptions): Promise<number> {
     requestedAt: new Date().toISOString()
   };
 
-  await writeDesktopLaunchRequest(launchRequest);
-  await appendDesktopLaunchLog({
-    event: "launch-requested",
-    requestId: launchRequest.requestId,
-    targetRoot: launchRequest.targetRoot
-  });
-
   const launched = await launchDesktopControlSurface(launchRequest, options.repoRoot);
   if (!launched) {
     await clearDesktopLaunchRequest();
@@ -112,9 +112,10 @@ export async function runUi(options: UiOptions): Promise<number> {
       event: "launch-ready",
       requestId: launchStatus.requestId,
       targetRoot: launchStatus.targetRoot,
-      detail: launchStatus.detail
+      detail: launchStatus.detail,
+      launchSource: launchStatus.launchSource ?? launched.candidate.launchSource
     });
-    options.logger.info(`Opened ${PRODUCT_METADATA.desktop.appName} via ${describeDesktopLaunchCandidate(launched.candidate)} for ${options.targetRoot}. The app is visible and loading this repo now.`);
+    options.logger.info(`Opened ${PRODUCT_METADATA.desktop.appName} via ${describeDesktopLaunchCandidate(launched.candidate)} for ${options.targetRoot}. Launch source: ${launchStatus.launchSource ?? launched.candidate.launchSource}. The app is visible and loading this repo now.`);
     return 0;
   }
 
@@ -123,9 +124,10 @@ export async function runUi(options: UiOptions): Promise<number> {
       event: "launch-hydrating",
       requestId: launchStatus.requestId,
       targetRoot: launchStatus.targetRoot,
-      detail: launchStatus.detail
+      detail: launchStatus.detail,
+      launchSource: launchStatus.launchSource ?? launched.candidate.launchSource
     });
-    options.logger.info(`Opened ${PRODUCT_METADATA.desktop.appName} via ${describeDesktopLaunchCandidate(launched.candidate)} for ${options.targetRoot}. ${launchStatus.detail}`);
+    options.logger.info(`Opened ${PRODUCT_METADATA.desktop.appName} via ${describeDesktopLaunchCandidate(launched.candidate)} for ${options.targetRoot}. Launch source: ${launchStatus.launchSource ?? launched.candidate.launchSource}. ${launchStatus.detail}`);
     return 0;
   }
 
@@ -145,10 +147,11 @@ export async function runUi(options: UiOptions): Promise<number> {
     event: "launch-pending",
     requestId: launchRequest.requestId,
     targetRoot: launchRequest.targetRoot,
-    detail: `No matching desktop launch status arrived within ${DESKTOP_LAUNCH_WAIT_TIMEOUT_MS}ms`
+    detail: `No matching desktop launch status arrived within ${DESKTOP_LAUNCH_WAIT_TIMEOUT_MS}ms`,
+    launchSource: launched.candidate.launchSource
   });
   options.logger.info(
-    `${PRODUCT_METADATA.desktop.appName} launched via ${describeDesktopLaunchCandidate(launched.candidate)}, but repo hydration is still in progress for ${options.targetRoot}. Watch the desktop app for the final ready state.`
+    `${PRODUCT_METADATA.desktop.appName} launched via ${describeDesktopLaunchCandidate(launched.candidate)} (${launched.candidate.launchSource}), but repo hydration is still in progress for ${options.targetRoot}. Watch the desktop app for the final ready state.`
   );
   return 0;
 }
@@ -228,10 +231,11 @@ export function buildDesktopLaunchCandidates(repoRoot?: string, targetRoot?: str
     if (sourceBundleExecutable) {
       sourceCandidates.push({
         command: sourceBundleExecutable,
-        args: []
+        args: [],
+        launchSource: "source-bundle"
       });
     }
-    sourceCandidates.push(buildDesktopCandidateFromEnvValue(sourceBundlePath));
+    sourceCandidates.push(buildDesktopCandidateFromEnvValue(sourceBundlePath, "source-bundle"));
   }
 
   const preferSourceBundle = sourceCandidates.length > 0;
@@ -242,7 +246,7 @@ export function buildDesktopLaunchCandidates(repoRoot?: string, targetRoot?: str
 
   if (process.platform === "darwin") {
     for (const installedBundlePath of buildInstalledMacOsDesktopBundlePaths()) {
-      candidates.push(buildDesktopCandidateFromEnvValue(installedBundlePath));
+      candidates.push(buildDesktopCandidateFromEnvValue(installedBundlePath, "installed-bundle"));
     }
   }
 
@@ -253,14 +257,16 @@ export function buildDesktopLaunchCandidates(repoRoot?: string, targetRoot?: str
   if (process.platform === "darwin") {
     candidates.push({
       command: "open",
-      args: ["-a", PRODUCT_METADATA.desktop.appName]
+      args: ["-a", PRODUCT_METADATA.desktop.appName],
+      launchSource: "fallback-launcher"
     });
   }
 
   for (const binaryName of DESKTOP_BINARY_CANDIDATES) {
     candidates.push({
       command: binaryName,
-      args: []
+      args: [],
+      launchSource: "fallback-launcher"
     });
   }
 
@@ -348,7 +354,28 @@ export function resolveDesktopLaunchLogPath(): string {
 
 async function launchDesktopControlSurface(launchRequest: DesktopLaunchRequest, repoRoot?: string): Promise<DesktopLaunchResult | null> {
   for (const candidate of buildDesktopLaunchCandidates(repoRoot, launchRequest.targetRoot)) {
-    if (await tryLaunchDesktopCandidate(candidate, launchRequest)) {
+    const candidateRequest: DesktopLaunchRequest = {
+      ...launchRequest,
+      launchSource: candidate.launchSource
+    };
+    await writeDesktopLaunchRequest(candidateRequest);
+    await appendDesktopLaunchLog({
+      event: "launch-requested",
+      requestId: candidateRequest.requestId,
+      targetRoot: candidateRequest.targetRoot,
+      launchSource: candidate.launchSource,
+      detail: describeDesktopLaunchCandidate(candidate)
+    });
+    if (await tryLaunchDesktopCandidate(candidate, candidateRequest)) {
+      await appendDesktopLaunchLog({
+        event: "launch-dispatched",
+        requestId: candidateRequest.requestId,
+        targetRoot: candidateRequest.targetRoot,
+        launchSource: candidate.launchSource,
+        detail: describeDesktopLaunchCandidate(candidate),
+        command: candidate.command,
+        args: candidate.args
+      });
       return { candidate };
     }
   }
@@ -387,39 +414,64 @@ function resolveMacOsBundleExecutable(bundlePath: string): string | null {
   return path.join(macOsDirectory, executable.name);
 }
 
-function buildDesktopCandidateFromEnvValue(value: string): DesktopLaunchCandidate {
+function buildDesktopCandidateFromEnvValue(value: string, defaultLaunchSource: DesktopLaunchSource = "fallback-launcher"): DesktopLaunchCandidate {
+  const launchSource = inferDesktopLaunchSourceFromValue(value, defaultLaunchSource);
   if (process.platform === "darwin" && value.endsWith(".app")) {
     return {
       command: "open",
-      args: [value]
+      args: [value],
+      launchSource
     };
   }
 
   if (value.endsWith(".js")) {
     return {
       command: "node",
-      args: [value]
+      args: [value],
+      launchSource
     };
   }
 
   if (process.platform === "win32" && /\.(cmd|bat)$/i.test(value)) {
     return {
       command: "cmd.exe",
-      args: ["/c", value]
+      args: ["/c", value],
+      launchSource
     };
   }
 
   if (process.platform === "win32" && /\.ps1$/i.test(value)) {
     return {
       command: "powershell.exe",
-      args: ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", value]
+      args: ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", value],
+      launchSource
     };
   }
 
   return {
     command: value,
-    args: []
+    args: [],
+    launchSource
   };
+}
+
+function inferDesktopLaunchSourceFromValue(
+  value: string,
+  defaultLaunchSource: DesktopLaunchSource
+): DesktopLaunchSource {
+  if (defaultLaunchSource !== "fallback-launcher") {
+    return defaultLaunchSource;
+  }
+
+  if (value.includes(`${path.sep}src-tauri${path.sep}target${path.sep}release${path.sep}bundle${path.sep}macos${path.sep}`)) {
+    return "source-bundle";
+  }
+
+  if (value.endsWith(".app") && (value.startsWith("/Applications/") || value.includes(`${path.sep}Applications${path.sep}`))) {
+    return "installed-bundle";
+  }
+
+  return defaultLaunchSource;
 }
 
 function resolveDesktopLaunchBridgeDir(): string {
@@ -491,13 +543,18 @@ async function readDesktopLaunchObservation(requestId: string): Promise<DesktopL
       }
 
       if (entry.event === "ui-repo-state-rendered" || entry.event === "desktop-repo-state-ready") {
-        return {
+        const readyObservation: DesktopLaunchObservation = {
           requestId,
           targetRoot: entry.targetRoot ?? "",
           state: "ready",
           detail: entry.detail ? `Repo state rendered (${entry.detail}).` : "Repo state rendered in the desktop app.",
           reportedAt: entry.reportedAt
         };
+        const launchSource = inferLaunchSourceForRequest(entries, index);
+        if (launchSource) {
+          readyObservation.launchSource = launchSource;
+        }
+        return readyObservation;
       }
 
       if (
@@ -505,13 +562,18 @@ async function readDesktopLaunchObservation(requestId: string): Promise<DesktopL
         || entry.event === "ui-launch-request-received"
         || entry.event === "desktop-repo-state-requested"
       ) {
-        return {
+        const hydratingObservation: DesktopLaunchObservation = {
           requestId,
           targetRoot: entry.targetRoot ?? "",
           state: "hydrating",
           detail: "The app is open and the repo is still hydrating. Watch the desktop for final readiness.",
           reportedAt: entry.reportedAt
         };
+        const launchSource = inferLaunchSourceForRequest(entries, index);
+        if (launchSource) {
+          hydratingObservation.launchSource = launchSource;
+        }
+        return hydratingObservation;
       }
     }
   } catch (error) {
@@ -530,6 +592,7 @@ async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate, laun
     event: "launch-attempt",
     requestId: launchRequest.requestId,
     targetRoot: launchRequest.targetRoot,
+    launchSource: candidate.launchSource,
     command: candidate.command,
     args: candidate.args
   });
@@ -556,6 +619,7 @@ async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate, laun
         event: "launch-attempt-failed",
         requestId: launchRequest.requestId,
         targetRoot: launchRequest.targetRoot,
+        launchSource: candidate.launchSource,
         command: candidate.command,
         args: candidate.args,
         detail: failureDetail || "desktop launch candidate exited before Kiwi Control could open"
@@ -578,6 +642,7 @@ async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate, laun
         event: "launch-attempt-failed",
         requestId: launchRequest.requestId,
         targetRoot: launchRequest.targetRoot,
+        launchSource: candidate.launchSource,
         command: candidate.command,
         args: candidate.args,
         detail: error.message
@@ -590,6 +655,7 @@ async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate, laun
         event: "launch-spawned",
         requestId: launchRequest.requestId,
         targetRoot: launchRequest.targetRoot,
+        launchSource: candidate.launchSource,
         command: candidate.command,
         args: candidate.args
       });
@@ -600,6 +666,7 @@ async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate, laun
         }
 
         settled = true;
+        child.stderr?.destroy();
         child.unref();
         resolve(true);
       }, DESKTOP_LAUNCH_PROBE_SETTLE_MS);
@@ -645,6 +712,7 @@ async function terminateConflictingDesktopProcesses(
         event: "launch-conflict-terminated",
         requestId: launchRequest.requestId,
         targetRoot: launchRequest.targetRoot,
+        launchSource: candidate.launchSource,
         command: processInfo.command,
         detail: `terminated conflicting desktop process ${processInfo.pid}`
       });
@@ -653,6 +721,7 @@ async function terminateConflictingDesktopProcesses(
         event: "launch-conflict-termination-failed",
         requestId: launchRequest.requestId,
         targetRoot: launchRequest.targetRoot,
+        launchSource: candidate.launchSource,
         command: processInfo.command,
         detail: error instanceof Error ? error.message : String(error)
       });
@@ -721,6 +790,20 @@ async function appendDesktopLaunchLog(entry: Omit<DesktopLaunchLogEntry, "report
     reportedAt: new Date().toISOString()
   });
   await fs.appendFile(logPath, `${payload}\n`, "utf8");
+}
+
+function inferLaunchSourceForRequest(
+  entries: DesktopLaunchLogEntry[],
+  startIndex: number
+): DesktopLaunchSource | undefined {
+  for (let index = startIndex; index >= 0; index -= 1) {
+    const entry = entries[index];
+    if (entry?.launchSource) {
+      return entry.launchSource;
+    }
+  }
+
+  return undefined;
 }
 
 function isMissingFileError(error: unknown): boolean {

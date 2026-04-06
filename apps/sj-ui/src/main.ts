@@ -616,6 +616,14 @@ type RepoControlState = {
 type LaunchRequestPayload = {
   requestId: string;
   targetRoot: string;
+  launchSource?: "source-bundle" | "installed-bundle" | "fallback-launcher";
+};
+
+type DesktopRuntimeInfo = {
+  appVersion: string;
+  bundleId: string;
+  executablePath: string;
+  buildSource: "source-bundle" | "installed-bundle" | "fallback-launcher";
 };
 
 type MachineSectionName =
@@ -656,6 +664,7 @@ const BRIDGE_UNAVAILABLE_NEXT_STEP = "Confirm kiwi-control works in Terminal, th
 const AUTO_REFRESH_INTERVAL_MS = 45_000;
 const AUTO_REFRESH_MIN_AGE_MS = 30_000;
 const READY_STATE_PULSE_MS = 4_500;
+const GRAPH_INTERACTION_SETTLE_MS = 180;
 const MACHINE_LIGHTWEIGHT_SECTIONS: MachineSectionName[] = [
   "inventory",
   "configHealth",
@@ -877,11 +886,15 @@ let machineHydrationInFlight = false;
 let machineHydrationActiveSections = new Set<MachineSectionName>();
 let hydratedMachineSections = new Set<MachineSectionName>();
 let currentLoadSource: "cli" | "manual" | "auto" | null = null;
+let desktopRuntimeInfo: DesktopRuntimeInfo | null = null;
 let lastRepoRefreshAt = 0;
 let lastRepoLoadFailure: string | null = null;
 let renderQueued = false;
 let centerRenderQueued = false;
 let deferredMachineHydrationTimer: number | null = null;
+let deferredShellRenderTimer: number | null = null;
+let pendingShellRenderAfterInteraction = false;
+let lastGraphInteractionAt = 0;
 let activeInteractiveTargetRoot = "";
 let lastReadyStateSignal:
   | {
@@ -1044,6 +1057,7 @@ try {
       return;
     }
     event.preventDefault();
+    markGraphInteractionActivity();
     const delta = event.deltaY > 0 ? -0.12 : 0.12;
     graphZoom = Math.max(0.65, Math.min(2.4, Number((graphZoom + delta).toFixed(2))));
     if (!updateGraphViewportTransform()) {
@@ -1058,6 +1072,7 @@ try {
     }
     const node = target.closest<HTMLElement>("[data-graph-node]");
     if (node?.dataset.path) {
+      markGraphInteractionActivity();
       graphInteraction = {
         mode: "drag-node",
         path: node.dataset.path,
@@ -1067,6 +1082,7 @@ try {
       return;
     }
     if (target.closest("[data-graph-surface]")) {
+      markGraphInteractionActivity();
       graphInteraction = {
         mode: "pan",
         lastClientX: event.clientX,
@@ -1081,6 +1097,7 @@ try {
     }
     const deltaX = event.clientX - graphInteraction.lastClientX;
     const deltaY = event.clientY - graphInteraction.lastClientY;
+    markGraphInteractionActivity();
     if (graphInteraction.mode === "pan") {
       graphPan = {
         x: graphPan.x + deltaX,
@@ -1105,9 +1122,13 @@ try {
 
   window.addEventListener("pointerup", () => {
     if (graphInteraction) {
+      markGraphInteractionActivity();
       scheduleCenterRender();
     }
     graphInteraction = null;
+    if (pendingShellRenderAfterInteraction) {
+      scheduleNonCriticalShellRender();
+    }
   });
 
   window.addEventListener("keydown", (event) => {
@@ -1239,6 +1260,7 @@ function buildShellHtml(): string {
 }
 
 async function boot(): Promise<void> {
+  await loadDesktopRuntimeInfo();
   await registerLaunchRequestListener();
 
   const initialLaunchRequest = await consumeInitialLaunchRequest();
@@ -1279,6 +1301,19 @@ async function registerLaunchRequestListener(): Promise<void> {
     });
   } catch {
     // Browser-only contexts do not need live retarget listeners.
+  }
+}
+
+async function loadDesktopRuntimeInfo(): Promise<void> {
+  if (!isTauriBridgeAvailable()) {
+    return;
+  }
+
+  try {
+    desktopRuntimeInfo = await invoke<DesktopRuntimeInfo>("get_desktop_runtime_info");
+    scheduleRenderState();
+  } catch {
+    desktopRuntimeInfo = null;
   }
 }
 
@@ -1368,7 +1403,7 @@ async function loadAndRenderTarget(
     }
 
     startMachineHydrationCycle(false);
-    noteReadyState(`Fresh repo-local state is ready for ${getRepoLabel(currentTargetRoot)}.`);
+    noteReadyState(buildFinalReadyDetail(state));
     scheduleRenderState();
 
     if (requestId) {
@@ -1440,12 +1475,16 @@ async function refreshFreshRepoState(targetRoot: string, requestId?: string): Pr
     currentState = freshState;
     lastRepoRefreshAt = Date.now();
     lastRepoLoadFailure = null;
-    renderState(freshState);
+    if (shouldDeferShellRenderForGraphInteraction()) {
+      scheduleNonCriticalShellRender();
+    } else {
+      renderState(freshState);
+    }
     bridgeNoteElement.textContent = buildBridgeNote(freshState, "manual");
     await logUiEvent("ui-repo-state-refreshed", requestId, currentTargetRoot, freshState.repoState.mode);
     startMachineHydrationCycle(false);
-    noteReadyState(`Fresh repo-local state is ready for ${getRepoLabel(currentTargetRoot)}.`);
-    scheduleRenderState();
+    noteReadyState(buildFinalReadyDetail(freshState));
+    scheduleNonCriticalShellRender();
 
     if (requestId) {
       await acknowledgeLaunchRequest(
@@ -1458,7 +1497,7 @@ async function refreshFreshRepoState(targetRoot: string, requestId?: string): Pr
     lastRepoLoadFailure = error instanceof Error ? error.message : String(error);
     bridgeNoteElement.textContent = `Showing a warm repo snapshot for ${targetRoot}. Fresh refresh failed: ${lastRepoLoadFailure}`;
     await logUiEvent("ui-repo-state-refresh-failed", requestId, targetRoot, lastRepoLoadFailure);
-    renderState(currentState);
+    scheduleNonCriticalShellRender();
   } finally {
     isRefreshingFreshRepoState = false;
     await flushQueuedLaunchRequest(requestId);
@@ -1661,7 +1700,7 @@ async function hydrateMachineSection(section: MachineSectionName, refresh: boole
     }
     applyMachineSectionPayload(payload);
     hydratedMachineSections.add(section);
-    scheduleRenderState();
+    scheduleNonCriticalShellRender();
   } catch (error) {
     if (round !== machineHydrationRound) {
       return;
@@ -1671,7 +1710,7 @@ async function hydrateMachineSection(section: MachineSectionName, refresh: boole
       updatedAt: new Date().toISOString(),
       reason: error instanceof Error ? error.message : String(error)
     };
-    scheduleRenderState();
+    scheduleNonCriticalShellRender();
   }
 }
 
@@ -2148,8 +2187,43 @@ function noteReadyState(detail: string): void {
   }
   readyStateTimer = window.setTimeout(() => {
     readyStateTimer = null;
-    scheduleRenderState();
+    scheduleNonCriticalShellRender();
   }, READY_STATE_PULSE_MS + 32);
+}
+
+function markGraphInteractionActivity(): void {
+  lastGraphInteractionAt = Date.now();
+}
+
+function shouldDeferShellRenderForGraphInteraction(): boolean {
+  return activeView === "graph" && Date.now() - lastGraphInteractionAt < GRAPH_INTERACTION_SETTLE_MS;
+}
+
+function scheduleNonCriticalShellRender(): void {
+  if (!shouldDeferShellRenderForGraphInteraction()) {
+    pendingShellRenderAfterInteraction = false;
+    if (deferredShellRenderTimer != null) {
+      window.clearTimeout(deferredShellRenderTimer);
+      deferredShellRenderTimer = null;
+    }
+    scheduleRenderState();
+    return;
+  }
+
+  pendingShellRenderAfterInteraction = true;
+  if (deferredShellRenderTimer != null) {
+    return;
+  }
+
+  const remainingMs = Math.max(0, GRAPH_INTERACTION_SETTLE_MS - (Date.now() - lastGraphInteractionAt));
+  deferredShellRenderTimer = window.setTimeout(() => {
+    deferredShellRenderTimer = null;
+    if (!pendingShellRenderAfterInteraction) {
+      return;
+    }
+    pendingShellRenderAfterInteraction = false;
+    scheduleRenderState();
+  }, remainingMs + 16);
 }
 
 function resolveGraphViewportElement(): SVGGElement | null {
@@ -2528,6 +2602,23 @@ function renderCommandBanner(): string {
     `;
   }
 
+  if (lastReadyStateSignal && Date.now() - lastReadyStateSignal.at < READY_STATE_PULSE_MS) {
+    return `
+      <div class="kc-view-shell">
+        <section class="kc-panel kc-command-banner tone-success">
+          <div class="kc-command-banner-head">
+            <div>
+              <p class="kc-section-micro">Ready</p>
+              <strong>Fresh repo-local state is ready</strong>
+            </div>
+            <span class="kc-load-badge"><span class="kc-load-dot"></span>ready</span>
+          </div>
+          <p>${escapeHtml(machineHydrationInFlight ? `${lastReadyStateSignal.detail} ${describeMachineHydration()}` : lastReadyStateSignal.detail)}</p>
+        </section>
+      </div>
+    `;
+  }
+
   if (!commandState.lastResult && !commandState.lastError) {
     return "";
   }
@@ -2834,6 +2925,12 @@ function renderTopBar(state: RepoControlState): string {
     commandState.composer
       ? deriveComposerConstraint(state, commandState.composer, commandState.draftValue)
       : null;
+  const runtimeInfo = desktopRuntimeInfo
+    ? {
+        label: "App",
+        detail: `${describeBuildSource(desktopRuntimeInfo.buildSource)} · v${desktopRuntimeInfo.appVersion}`
+      }
+    : null;
 
   return renderTopBarView({
     state,
@@ -2851,6 +2948,7 @@ function renderTopBar(state: RepoControlState): string {
     currentTask,
     retryEnabled,
     composerConstraint,
+    runtimeInfo,
     loadStatus: buildLoadStatus(state),
     helpers: buildUiRenderHelpers()
   });
@@ -2972,9 +3070,9 @@ function buildLoadStatus(state: RepoControlState): {
   if (currentTargetRoot && machineHydrationInFlight) {
     return {
       visible: true,
-      label: isMachineHeavyView(activeView) ? "Hydrating system" : "Refreshing system",
-      detail: describeMachineHydration(),
-      progress: 82,
+      label: "Ready",
+      detail: `Fresh repo-local state is ready. ${describeMachineHydration()}`,
+      progress: 88,
       tone: "ready"
     };
   }
@@ -3116,10 +3214,66 @@ function renderCenterView(state: RepoControlState): string {
   }
 }
 
+function deriveReadinessSummary(state: RepoControlState): { label: string; detail: string } {
+  if (isLoadingRepoState && !isSnapshotLoadSource(state.loadState.source)) {
+    return {
+      label: "opening",
+      detail: currentLoadSource === "cli"
+        ? "The desktop is open and Kiwi is loading repo-local state."
+        : "Kiwi is opening the repo-local control surface."
+    };
+  }
+
+  if (isRefreshingFreshRepoState && isSnapshotLoadSource(state.loadState.source)) {
+    return {
+      label: lastRepoLoadFailure ? "degraded" : "warm loaded",
+      detail: lastRepoLoadFailure
+        ? `Kiwi kept a recent snapshot because fresh repo-local state failed to load: ${lastRepoLoadFailure}`
+        : state.loadState.detail
+    };
+  }
+
+  if (state.loadState.source === "bridge-fallback") {
+    return {
+      label: currentTargetRoot ? "failed" : "degraded",
+      detail: lastRepoLoadFailure ?? state.loadState.detail
+    };
+  }
+
+  if (lastReadyStateSignal && Date.now() - lastReadyStateSignal.at < READY_STATE_PULSE_MS) {
+    return {
+      label: "ready",
+      detail: machineHydrationInFlight
+        ? `${lastReadyStateSignal.detail} ${describeMachineHydration()}`
+        : lastReadyStateSignal.detail
+    };
+  }
+
+  if (currentTargetRoot && machineHydrationInFlight) {
+    return {
+      label: "refreshing",
+      detail: describeMachineHydration()
+    };
+  }
+
+  if (state.targetRoot) {
+    return {
+      label: "ready",
+      detail: buildFinalReadyDetail(state)
+    };
+  }
+
+  return {
+    label: "opening",
+    detail: "Run kc ui inside a repo to load it automatically."
+  };
+}
+
 function renderOverviewView(state: RepoControlState): string {
   const kc = state.kiwiControl ?? EMPTY_KC;
   const interactiveTree = deriveInteractiveTree(state);
   const decision = buildDecisionSummary(state);
+  const readiness = deriveReadinessSummary(state);
   const primaryAction = kc.nextActions.actions[0] ?? null;
   const currentFocus = getPanelValue(state.continuity, "Current focus");
   const activeSpecialist = state.specialists.activeProfile?.name ?? state.specialists.activeSpecialist;
@@ -3158,6 +3312,7 @@ function renderOverviewView(state: RepoControlState): string {
         <div class="kc-two-column">
           <section class="kc-subpanel">
             <div class="kc-stack-list">
+              ${renderNoteRow("Readiness", readiness.label, readiness.detail)}
               ${renderNoteRow("Current state", state.repoState.title, state.repoState.detail)}
               ${renderNoteRow("Blocking issue", decision.blockingIssue, decision.systemHealth === "blocked" ? "Resolve this before trusting execution." : "No hard blocker is currently active.")}
               ${renderNoteRow("Recommended next action", decision.nextAction, primaryAction?.command ?? kc.executionPlan.nextCommands[0] ?? "No next command is currently recorded.")}
@@ -5329,6 +5484,36 @@ function buildActiveTargetHint(state: RepoControlState): string {
   }
 }
 
+function buildFinalReadyDetail(state: RepoControlState): string {
+  const repoLabel = getRepoLabel(state.targetRoot || currentTargetRoot);
+  const prefix = `Fresh repo-local state is ready for ${repoLabel}.`;
+
+  switch (state.repoState.mode) {
+    case "healthy":
+      return prefix;
+    case "initialized-invalid":
+      return `${prefix} The repo is loaded, but workflow execution is still blocked until the repo contract is repaired.`;
+    case "repo-not-initialized":
+      return `${prefix} This repo still needs kc init before the normal workflow can continue.`;
+    case "initialized-with-warnings":
+      return `${prefix} The repo is usable, but Kiwi still sees warning-level issues worth addressing.`;
+    case "bridge-unavailable":
+    default:
+      return prefix;
+  }
+}
+
+function describeBuildSource(source: DesktopRuntimeInfo["buildSource"]): string {
+  switch (source) {
+    case "source-bundle":
+      return "local source bundle";
+    case "installed-bundle":
+      return "installed bundle";
+    default:
+      return "fallback launcher";
+  }
+}
+
 function buildBridgeNote(state: RepoControlState, source: "cli" | "manual" | "auto" | "shell"): string {
   const activeHint = buildActiveTargetHint(state);
   if (!state.targetRoot) {
@@ -5337,11 +5522,22 @@ function buildBridgeNote(state: RepoControlState, source: "cli" | "manual" | "au
   if (state.repoState.mode === "bridge-unavailable") {
     return BRIDGE_UNAVAILABLE_NEXT_STEP;
   }
+  if (lastRepoLoadFailure && isSnapshotLoadSource(state.loadState.source)) {
+    return `Kiwi is in a degraded state for ${getRepoLabel(state.targetRoot)}: ${lastRepoLoadFailure}. ${activeHint}`;
+  }
+  if (lastReadyStateSignal && Date.now() - lastReadyStateSignal.at < READY_STATE_PULSE_MS) {
+    return machineHydrationInFlight
+      ? `${lastReadyStateSignal.detail} ${describeMachineHydration()} ${activeHint}`
+      : `${lastReadyStateSignal.detail} ${activeHint}`;
+  }
   if (state.loadState.source === "stale-snapshot") {
     return `Showing ${getRepoLabel(state.targetRoot)} from an older snapshot while Kiwi refreshes current repo-local state. ${activeHint}`;
   }
   if (state.loadState.source === "warm-snapshot") {
     return `Showing ${getRepoLabel(state.targetRoot)} from a recent warm snapshot while fresh repo-local state refreshes. ${activeHint}`;
+  }
+  if (machineHydrationInFlight) {
+    return `Fresh repo-local state is ready for ${getRepoLabel(state.targetRoot)}. ${describeMachineHydration()} ${activeHint}`;
   }
   if (source === "cli") {
     return `Loaded ${getRepoLabel(state.targetRoot)} from kc ui. ${activeHint}`;

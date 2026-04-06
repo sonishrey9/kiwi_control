@@ -34,6 +34,8 @@ struct DesktopLaunchRequest {
     request_id: String,
     target_root: String,
     requested_at: String,
+    #[serde(default)]
+    launch_source: Option<String>,
 }
 
 #[derive(Clone, Serialize)]
@@ -41,6 +43,7 @@ struct DesktopLaunchRequest {
 struct DesktopLaunchPayload {
     request_id: String,
     target_root: String,
+    launch_source: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -51,6 +54,7 @@ struct DesktopLaunchStatus {
     state: String,
     detail: String,
     reported_at: String,
+    launch_source: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -61,6 +65,16 @@ struct DesktopLaunchLogEntry {
     request_id: Option<String>,
     target_root: Option<String>,
     detail: Option<String>,
+    launch_source: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopRuntimeInfo {
+    app_version: String,
+    bundle_id: String,
+    executable_path: String,
+    build_source: String,
 }
 
 #[derive(Default)]
@@ -77,6 +91,7 @@ fn load_repo_control_state(target_root: String, prefer_snapshot: Option<bool>) -
         request_id: None,
         target_root: Some(target_root.clone()),
         detail: None,
+        launch_source: None,
     })
     .ok();
 
@@ -88,6 +103,7 @@ fn load_repo_control_state(target_root: String, prefer_snapshot: Option<bool>) -
             request_id: None,
             target_root: Some(target_root.clone()),
             detail: Some(detail.clone()),
+            launch_source: None,
         })
         .ok();
         detail
@@ -109,6 +125,7 @@ fn load_repo_control_state(target_root: String, prefer_snapshot: Option<bool>) -
             request_id: None,
             target_root: Some(target_root.clone()),
             detail: Some(detail.clone()),
+            launch_source: None,
         })
         .ok();
         return Err(detail);
@@ -123,6 +140,7 @@ fn load_repo_control_state(target_root: String, prefer_snapshot: Option<bool>) -
         request_id: None,
         target_root: Some(target_root),
         detail: None,
+        launch_source: None,
     })
     .ok();
 
@@ -150,6 +168,16 @@ fn load_machine_advisory_section(section: String, refresh: Option<bool>) -> Resu
 
     serde_json::from_slice(&output.stdout)
         .map_err(|error| format!("invalid machine advisory json payload: {error}"))
+}
+
+#[tauri::command]
+fn get_desktop_runtime_info() -> Result<DesktopRuntimeInfo, String> {
+    Ok(DesktopRuntimeInfo {
+        app_version: env!("CARGO_PKG_VERSION").to_string(),
+        bundle_id: DESKTOP_APP_BUNDLE_ID.to_string(),
+        executable_path: current_desktop_executable_path(),
+        build_source: infer_runtime_build_source(),
+    })
 }
 
 #[tauri::command]
@@ -248,6 +276,7 @@ fn ack_launch_request(
             }
         }),
         reported_at: timestamp_now(),
+        launch_source: resolve_launch_source(&state, &request_id),
     };
 
     write_launch_status(&launch_status)?;
@@ -263,6 +292,7 @@ fn ack_launch_request(
         request_id: Some(request_id.clone()),
         target_root: Some(target_root.clone()),
         detail: Some(launch_status.detail.clone()),
+        launch_source: launch_status.launch_source.clone(),
     })?;
 
     clear_pending_request_if_matching(&state, &request_id)?;
@@ -279,6 +309,7 @@ fn ack_launch_request(
                     request_id: Some(ready_request_id),
                     target_root: Some(ready_target_root),
                     detail: Some(error),
+                    launch_source: None,
                 });
             } else {
                 let _ = append_launch_log(&DesktopLaunchLogEntry {
@@ -287,6 +318,7 @@ fn ack_launch_request(
                     request_id: Some(ready_request_id),
                     target_root: Some(ready_target_root),
                     detail: None,
+                    launch_source: None,
                 });
             }
         });
@@ -309,6 +341,7 @@ fn append_ui_launch_log(
         request_id: requestId,
         target_root: targetRoot,
         detail,
+        launch_source: None,
     })
 }
 
@@ -334,6 +367,7 @@ fn main() {
                     request_id: None,
                     target_root: None,
                     detail: Some(error.clone()),
+                    launch_source: None,
                 });
                 return Err(error.into());
             }
@@ -344,6 +378,7 @@ fn main() {
                 request_id: None,
                 target_root: None,
                 detail: None,
+                launch_source: None,
             });
 
             match read_launch_request() {
@@ -355,6 +390,7 @@ fn main() {
                             request_id: Some(request.request_id),
                             target_root: Some(request.target_root),
                             detail: Some(error),
+                            launch_source: request.launch_source.clone(),
                         });
                     }
                 }
@@ -365,6 +401,7 @@ fn main() {
                         request_id: None,
                         target_root: None,
                         detail: None,
+                        launch_source: None,
                     });
                 }
                 Err(error) => {
@@ -374,6 +411,7 @@ fn main() {
                         request_id: None,
                         target_root: None,
                         detail: Some(error),
+                        launch_source: None,
                     });
                 }
             }
@@ -385,6 +423,7 @@ fn main() {
             consume_initial_launch_request,
             load_repo_control_state,
             load_machine_advisory_section,
+            get_desktop_runtime_info,
             run_cli_command,
             open_path,
             ack_launch_request,
@@ -410,6 +449,7 @@ fn handle_launch_request(
                 request_id: Some(request.request_id.clone()),
                 target_root: Some(request.target_root.clone()),
                 detail: Some(error.clone()),
+                launch_source: request.launch_source.clone(),
             });
 
             return Err(error);
@@ -421,6 +461,7 @@ fn handle_launch_request(
         request_id: Some(request.request_id.clone()),
         target_root: Some(request.target_root.clone()),
         detail: Some(format!("origin={origin}")),
+        launch_source: request.launch_source.clone(),
     })?;
 
     if emit_event {
@@ -435,6 +476,7 @@ fn handle_launch_request(
                 request_id: Some(request.request_id.clone()),
                 target_root: Some(request.target_root.clone()),
                 detail: Some(error.to_string()),
+                launch_source: request.launch_source.clone(),
             });
             error
         })
@@ -961,6 +1003,7 @@ fn append_launch_log(entry: &DesktopLaunchLogEntry) -> Result<(), String> {
         request_id: entry.request_id.clone(),
         target_root: entry.target_root.clone(),
         detail: entry.detail.clone(),
+        launch_source: entry.launch_source.clone(),
     };
 
     let payload =
@@ -993,6 +1036,39 @@ fn resolve_launch_bridge_dir() -> PathBuf {
     }
 }
 
+fn resolve_launch_source(state: &State<LaunchBridgeState>, request_id: &str) -> Option<String> {
+    if let Ok(pending_request) = state.pending_request.lock() {
+        if let Some(request) = pending_request
+            .as_ref()
+            .filter(|request| request.request_id == request_id)
+        {
+            if request.launch_source.is_some() {
+                return request.launch_source.clone();
+            }
+        }
+    }
+
+    Some(infer_runtime_build_source())
+}
+
+fn current_desktop_executable_path() -> String {
+    std::env::current_exe()
+        .ok()
+        .map(|path| path.to_string_lossy().to_string())
+        .unwrap_or_else(|| String::from("unknown"))
+}
+
+fn infer_runtime_build_source() -> String {
+    let executable_path = current_desktop_executable_path();
+    if executable_path.contains("/Applications/") && executable_path.contains(".app/Contents/MacOS/") {
+        return String::from("installed-bundle");
+    }
+    if executable_path.contains("/src-tauri/target/release/bundle/macos/") {
+        return String::from("source-bundle");
+    }
+    String::from("fallback-launcher")
+}
+
 fn timestamp_now() -> String {
     match SystemTime::now().duration_since(UNIX_EPOCH) {
         Ok(duration) => duration.as_millis().to_string(),
@@ -1005,6 +1081,7 @@ impl From<&DesktopLaunchRequest> for DesktopLaunchPayload {
         Self {
             request_id: request.request_id.clone(),
             target_root: request.target_root.clone(),
+            launch_source: request.launch_source.clone(),
         }
     }
 }
