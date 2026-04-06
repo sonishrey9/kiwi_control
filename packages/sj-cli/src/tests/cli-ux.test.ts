@@ -10,6 +10,7 @@ import { computeAdaptiveWeights, loadContextFeedback } from "@shrey-junior/sj-co
 import { loadExecutionLog } from "@shrey-junior/sj-core/core/execution-log.js";
 import { bootstrapTarget } from "@shrey-junior/sj-core/core/bootstrap.js";
 import { buildRepoControlState } from "@shrey-junior/sj-core/core/ui-state.js";
+import { failWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import { runStatus } from "../commands/status.js";
 
 function repoRoot(): string {
@@ -174,6 +175,139 @@ test("doctor points missing repo-local state at a target-aware sync command", as
   const result = runCli(["doctor", "--target", repoDir]);
   assert.equal([0, 1].includes(result.code), true);
   assert.match(result.stdout, new RegExp(`fix command: kiwi-control sync --target \"${repoDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\" --dry-run --diff-summary`));
+});
+
+test("explain prefers the blocked workflow recovery command over a stale next step", async () => {
+  const repoRootPath = repoRoot();
+  const config = await loadCanonicalConfig(repoRootPath);
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-cli-explain-blocked-"));
+  const repoDir = path.join(tempDir, "repo");
+  await fs.mkdir(repoDir, { recursive: true });
+  await fs.writeFile(path.join(repoDir, "package.json"), '{\n  "name": "explain-blocked-repo"\n}\n', "utf8");
+
+  await bootstrapTarget(
+    {
+      repoRoot: repoRootPath,
+      targetRoot: repoDir
+    },
+    config
+  );
+
+  await failWorkflowStep(repoDir, {
+    task: "stabilize product surface launch semantics",
+    stepId: "generate-run-packets",
+    failureReason: "Run packets could not be generated for the current repo guidance state.",
+    validation: "Generate run packets before execution can continue."
+  });
+
+  const result = runCli(["explain", "--target", repoDir]);
+  assert.equal(result.code, 0);
+  assert.match(result.stdout, /blocking issue:/);
+  assert.match(result.stdout, /fix command:/);
+  assert.match(result.stdout, /retry command:/);
+
+  const fixCommandMatch = result.stdout.match(/fix command:\s+(.+)/);
+  const nextCommandMatch = result.stdout.match(/next command:\s+(.+)/);
+  assert.ok(fixCommandMatch?.[1]);
+  assert.ok(nextCommandMatch?.[1]);
+  assert.equal(nextCommandMatch?.[1]?.trim(), fixCommandMatch?.[1]?.trim());
+});
+
+test("next and trace prefer the blocked workflow recovery command over stale next steps", async () => {
+  const repoRootPath = repoRoot();
+  const config = await loadCanonicalConfig(repoRootPath);
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-cli-next-trace-blocked-"));
+  const repoDir = path.join(tempDir, "repo");
+  await fs.mkdir(repoDir, { recursive: true });
+  await fs.writeFile(path.join(repoDir, "package.json"), '{\n  "name": "next-trace-blocked-repo"\n}\n', "utf8");
+
+  await bootstrapTarget(
+    {
+      repoRoot: repoRootPath,
+      targetRoot: repoDir
+    },
+    config
+  );
+
+  await failWorkflowStep(repoDir, {
+    task: "stabilize product surface launch semantics",
+    stepId: "generate-run-packets",
+    failureReason: "Run packets could not be generated for the current repo guidance state.",
+    validation: "Generate run packets before execution can continue."
+  });
+
+  const nextResult = runCli(["next", "--json", "--target", repoDir]);
+  assert.equal(nextResult.code, 0);
+  const nextPayload = JSON.parse(nextResult.stdout) as {
+    nextCommand: string | null;
+    fixCommand?: string;
+    retryCommand?: string;
+  };
+  assert.equal(nextPayload.nextCommand, nextPayload.fixCommand);
+  assert.match(nextPayload.nextCommand ?? "", /kiwi-control run/);
+
+  const traceResult = runCli(["trace", "--json", "--target", repoDir]);
+  assert.equal(traceResult.code, 0);
+  const tracePayload = JSON.parse(traceResult.stdout) as {
+    nextCommand: string | null;
+  };
+  assert.match(tracePayload.nextCommand ?? "", /kiwi-control run/);
+});
+
+test("validate prints a fix-first recovery command when prepared scope drift blocks execution", async () => {
+  const repoRootPath = repoRoot();
+  const config = await loadCanonicalConfig(repoRootPath);
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-cli-validate-blocked-"));
+  const repoDir = path.join(tempDir, "repo");
+  await fs.mkdir(repoDir, { recursive: true });
+  await fs.writeFile(path.join(repoDir, "package.json"), '{\n  "name": "validate-blocked-repo"\n}\n', "utf8");
+  await fs.writeFile(path.join(repoDir, "README.md"), "# repo\n", "utf8");
+  await fs.writeFile(path.join(repoDir, "app.ts"), "export const app = true;\n", "utf8");
+
+  await bootstrapTarget(
+    {
+      repoRoot: repoRootPath,
+      targetRoot: repoDir
+    },
+    config
+  );
+
+  spawnSync("git", ["init"], { cwd: repoDir, encoding: "utf8" });
+  spawnSync("git", ["checkout", "-b", "main"], { cwd: repoDir, encoding: "utf8" });
+  spawnSync("git", ["add", "."], { cwd: repoDir, encoding: "utf8" });
+  spawnSync("git", ["-c", "user.name=test", "-c", "user.email=test@test.com", "commit", "-m", "init"], { cwd: repoDir, encoding: "utf8" });
+
+  await fs.writeFile(
+    path.join(repoDir, ".agent", "state", "context-selection.json"),
+    JSON.stringify({
+      artifactType: "kiwi-control/context-selection",
+      version: 1,
+      timestamp: new Date().toISOString(),
+      task: "update README docs",
+      include: ["README.md"],
+      exclude: [],
+      reason: "docs only",
+      confidence: "high",
+      signals: {
+        changedFiles: ["README.md"],
+        recentFiles: [],
+        importNeighbors: [],
+        proximityFiles: [],
+        keywordMatches: []
+      }
+    }, null, 2),
+    "utf8"
+  );
+
+  await fs.writeFile(path.join(repoDir, "app.ts"), "export const app = false;\n", "utf8");
+
+  const result = runCli(["validate", "update README docs", "--target", repoDir]);
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /Prepared scope violated by touched files: app\.ts/);
+  assert.match(result.stdout, /fix command:/);
+  assert.match(result.stdout, /retry command:/);
+  assert.match(result.stdout, /kiwi-control prepare "update README docs"/);
+  assert.match(result.stdout, /kiwi-control validate "update README docs"/);
 });
 
 test("status records an out-of-scope completion failure once and points back to prepare", async () => {

@@ -625,6 +625,8 @@ function buildWorkflowRetryCommand(
       return `${primary} prepare "${normalizedTask}"`;
     case "generate-run-packets":
       return `${primary} run "${normalizedTask}"`;
+    case "validate-outcome":
+      return `${primary} validate "${normalizedTask}"`;
     case "checkpoint-progress":
       return `${primary} checkpoint "${(input ?? "<milestone>").trim() || "<milestone>"}"`;
     case "handoff-work":

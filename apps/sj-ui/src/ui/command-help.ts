@@ -189,7 +189,7 @@ export function buildBlockedWorkflowEntries(params: {
   };
 
   pushEntry(
-    "Inspect the blocker",
+    describeBlockedWorkflowTitle(params.executionPlan.lastError?.fixCommand),
     params.executionPlan.lastError?.fixCommand ?? params.recoveryGuidance?.nextCommand,
     params.executionPlan.lastError?.reason ?? params.recoveryGuidance?.detail ?? "Review the current workflow blocker before changing repo-local state."
   );
@@ -217,6 +217,22 @@ export function buildBlockedWorkflowEntries(params: {
   }
 
   return entries.slice(0, 4);
+}
+
+function describeBlockedWorkflowTitle(command: string | null | undefined): string {
+  if (!command) {
+    return "Inspect the blocker";
+  }
+  if (/\bprepare\b/i.test(command)) {
+    return "Refresh the prepared scope";
+  }
+  if (/\bdoctor\b/i.test(command)) {
+    return "Check the environment";
+  }
+  if (/\bexplain\b/i.test(command)) {
+    return "Inspect the blocker";
+  }
+  return "Fix the blocking issue";
 }
 
 function tokenizeCommand(value: string): string[] {

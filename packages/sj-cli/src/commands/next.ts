@@ -1,5 +1,6 @@
 import { getCurrentExecutionStep, syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { selectPrimaryPlanCommand } from "./execution-plan-recovery.js";
 
 export interface NextOptions {
   repoRoot: string;
@@ -16,7 +17,7 @@ export async function runNext(options: NextOptions): Promise<number> {
     currentStepIndex: plan.currentStepIndex,
     currentStep: step?.id ?? null,
     impactPreview: plan.impactPreview,
-    nextCommand: plan.nextCommands[0] ?? null,
+    nextCommand: selectPrimaryPlanCommand(plan, "kiwi-control status"),
     ...(plan.lastError ? { fixCommand: plan.lastError.fixCommand, retryCommand: plan.lastError.retryCommand, errorType: plan.lastError.errorType, retryStrategy: plan.lastError.retryStrategy } : {})
   };
 
@@ -30,6 +31,7 @@ export async function runNext(options: NextOptions): Promise<number> {
       options.logger.info(`retry strategy: ${plan.lastError.retryStrategy}`);
       options.logger.info(`fix command: ${plan.lastError.fixCommand}`);
       options.logger.info(`retry command: ${plan.lastError.retryCommand}`);
+      options.logger.info(`next command: ${payload.nextCommand}`);
     } else {
       options.logger.info(`next command: ${plan.nextCommands[0] ?? "kiwi-control status"}`);
     }

@@ -5,6 +5,7 @@ import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js"
 import { PRODUCT_METADATA } from "@shrey-junior/sj-core";
 import { buildMachineDoctorFindings, loadMachineAdvisory } from "@shrey-junior/sj-core/integrations/machine-advisory.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { selectPrimaryPlanCommand } from "./execution-plan-recovery.js";
 
 export interface DoctorOptions {
   repoRoot: string;
@@ -34,7 +35,7 @@ export async function runDoctor(options: DoctorOptions): Promise<number> {
   const payload = {
     ok: findings.every((finding) => finding.level !== "error"),
     findings,
-    nextCommand: plan.nextCommands[0] ?? "kiwi-control status"
+    nextCommand: selectPrimaryPlanCommand(plan, "kiwi-control status")
   };
 
   if (options.json) {

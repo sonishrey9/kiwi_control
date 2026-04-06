@@ -1,6 +1,7 @@
 import { loadWorkflowState } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { selectPrimaryPlanCommand } from "./execution-plan-recovery.js";
 
 export interface TraceOptions {
   repoRoot: string;
@@ -35,7 +36,7 @@ export async function runTrace(options: TraceOptions): Promise<number> {
       failureReason: step.failureReason,
       retryCommand: step.result.retryCommand
     })),
-    nextCommand: plan.nextCommands[0] ?? null
+    nextCommand: selectPrimaryPlanCommand(plan, "kiwi-control next")
   };
 
   if (options.json) {
@@ -62,7 +63,7 @@ export async function runTrace(options: TraceOptions): Promise<number> {
         options.logger.info(`retry command: ${step.retryCommand}`);
       }
     }
-    options.logger.info(`next command: ${payload.nextCommand ?? "kiwi-control next"}`);
+    options.logger.info(`next command: ${payload.nextCommand}`);
   }
 
   return 0;

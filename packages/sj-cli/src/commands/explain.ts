@@ -3,6 +3,7 @@ import { readJson, pathExists } from "@shrey-junior/sj-core/utils/fs.js";
 import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 import type { ContextTraceState } from "@shrey-junior/sj-core/core/context-trace.js";
+import { buildPlanRecoveryWorkflow, selectPrimaryPlanCommand } from "./execution-plan-recovery.js";
 
 export interface ExplainOptions {
   repoRoot: string;
@@ -23,7 +24,14 @@ export async function runExplain(options: ExplainOptions): Promise<number> {
     forwardDependencies: plan.contextSnapshot.forwardDependencies,
     reverseDependencies: plan.contextSnapshot.reverseDependencies,
     reasoning: trace?.expansionSteps ?? [],
-    nextCommand: plan.nextCommands[0] ?? null
+    nextCommand: selectPrimaryPlanCommand(plan, "kiwi-control next"),
+    ...(plan.lastError
+      ? {
+          fixCommand: plan.lastError.fixCommand,
+          retryCommand: plan.lastError.retryCommand,
+          blockedWorkflow: buildPlanRecoveryWorkflow(plan)
+        }
+      : {})
   };
 
   if (options.json) {
@@ -42,6 +50,16 @@ export async function runExplain(options: ExplainOptions): Promise<number> {
     }
     if (payload.forwardDependencies.length > 0) {
       options.logger.info(`forward dependencies: ${payload.forwardDependencies.slice(0, 10).join(", ")}`);
+    }
+    if (plan.lastError) {
+      options.logger.info(`blocking issue: ${plan.lastError.errorType} (${plan.lastError.retryStrategy})`);
+      options.logger.info(`reason: ${plan.lastError.reason}`);
+      options.logger.info(`fix command: ${plan.lastError.fixCommand}`);
+      options.logger.info(`retry command: ${plan.lastError.retryCommand}`);
+      for (const [index, entry] of buildPlanRecoveryWorkflow(plan).entries()) {
+        options.logger.info(`${index + 1}. ${entry.title}: ${entry.command}`);
+        options.logger.info(`   ${entry.detail}`);
+      }
     }
     options.logger.info(`next command: ${payload.nextCommand ?? "kiwi-control next"}`);
   }

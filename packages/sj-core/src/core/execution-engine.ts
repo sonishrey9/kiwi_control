@@ -728,12 +728,15 @@ function deriveLastError(options: {
 }): ExecutionPlanError | null {
   if (options.scopeValidation && !options.scopeValidation.ok) {
     const retryStrategy = deriveRetryStrategy("logic_error", options.selection?.confidence ?? null);
+    const resolvedTask = options.preparedScope?.task ?? options.task ?? "describe your task";
     return {
       errorType: "logic_error",
       retryStrategy,
       reason: `Prepared scope violated by touched files: ${options.scopeValidation.outOfScopeFiles.slice(0, 5).join(", ")}`,
-      fixCommand: buildRetryCommand(retryStrategy, options.preparedScope?.task ?? options.task ?? null, `${PRIMARY} explain`),
-      retryCommand: buildRetryCommand(retryStrategy, options.preparedScope?.task ?? options.task ?? null, `${PRIMARY} validate "${options.preparedScope?.task ?? options.task ?? "describe your task"}"`)
+      fixCommand: retryStrategy === "expand"
+        ? `${PRIMARY} prepare "${resolvedTask}" --expand`
+        : `${PRIMARY} prepare "${resolvedTask}"`,
+      retryCommand: `${PRIMARY} validate "${resolvedTask}"`
     };
   }
 

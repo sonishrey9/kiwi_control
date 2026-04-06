@@ -47,10 +47,16 @@ export async function runValidate(options: ValidateOptions): Promise<number> {
     })
   });
 
-  await syncExecutionPlan(options.targetRoot, {
+  const updatedPlan = await syncExecutionPlan(options.targetRoot, {
     task,
     ...(execution.ok ? {} : { forceState: execution.failureReason ? "blocked" : "failed" })
   }).catch(() => null);
+
+  const recoveryFixCommand = updatedPlan?.lastError?.fixCommand ?? null;
+  const recoveryRetryCommand = updatedPlan?.lastError?.retryCommand ?? execution.retryCommand;
+  const nextCommand = execution.ok
+    ? 'kiwi-control checkpoint "validated-progress"'
+    : recoveryFixCommand ?? recoveryRetryCommand;
 
   await recordRuntimeProgress(options.targetRoot, {
     type: "validation_completed",
@@ -58,12 +64,12 @@ export async function runValidate(options: ValidateOptions): Promise<number> {
     status: execution.ok ? "ok" : "error",
     summary: execution.ok ? `Validation passed for "${task}".` : (execution.failureReason ?? `Validation failed for "${task}".`),
     task,
-    command: execution.ok ? 'kiwi-control checkpoint "validated-progress"' : execution.retryCommand,
+    command: nextCommand,
     files: gitState.changedFiles.slice(0, 12),
     validation: execution.validation,
     ...(execution.failureReason ? { failureReason: execution.failureReason } : {}),
     validationStatus: execution.ok ? "ok" : "error",
-    nextSuggestedCommand: execution.ok ? 'kiwi-control checkpoint "validated-progress"' : execution.retryCommand,
+    nextSuggestedCommand: nextCommand,
     nextRecommendedAction: execution.ok
       ? "Record a checkpoint now that final validation passed."
       : (execution.suggestedFix ?? execution.validation)
@@ -91,7 +97,9 @@ export async function runValidate(options: ValidateOptions): Promise<number> {
     task,
     validation: execution.validation,
     ...(execution.failureReason ? { failureReason: execution.failureReason } : {}),
-    nextCommand: execution.ok ? 'kiwi-control checkpoint "validated-progress"' : execution.retryCommand
+    nextCommand,
+    ...(execution.ok ? {} : recoveryFixCommand ? { fixCommand: recoveryFixCommand } : {}),
+    ...(execution.ok ? {} : recoveryRetryCommand ? { retryCommand: recoveryRetryCommand } : {})
   };
 
   if (options.json) {
@@ -101,8 +109,11 @@ export async function runValidate(options: ValidateOptions): Promise<number> {
     options.logger.info(`next command: kiwi-control checkpoint "validated-progress"`);
   } else {
     options.logger.error(execution.failureReason ?? `Validation failed for "${task}".`);
-    if (execution.retryCommand) {
-      options.logger.info(`retry command: ${execution.retryCommand}`);
+    if (recoveryFixCommand) {
+      options.logger.info(`fix command: ${recoveryFixCommand}`);
+    }
+    if (recoveryRetryCommand) {
+      options.logger.info(`retry command: ${recoveryRetryCommand}`);
     }
   }
 

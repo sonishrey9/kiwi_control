@@ -2,6 +2,7 @@ import { getCurrentExecutionStep, syncExecutionPlan } from "@shrey-junior/sj-cor
 import { loadPreparedScope } from "@shrey-junior/sj-core/core/prepared-scope.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 import { createSpinner, printSection, success, warn } from "../utils/cli-output.js";
+import { buildPlanRecoveryWorkflow, selectPrimaryPlanCommand } from "./execution-plan-recovery.js";
 
 export interface GuideOptions {
   repoRoot: string;
@@ -19,9 +20,9 @@ export async function runGuide(options: GuideOptions): Promise<number> {
   spinner?.succeed(`Guide ready for ${options.targetRoot}`);
   const step = getCurrentExecutionStep(plan);
   const nextCommand =
-    plan.confidence === "high" && step?.id === "execute" && plan.task
+    !plan.lastError && plan.confidence === "high" && step?.id === "execute" && plan.task
       ? `kiwi-control run --auto "${plan.task}"`
-      : plan.nextCommands[0] ?? "kiwi-control next";
+      : selectPrimaryPlanCommand(plan, "kiwi-control next");
 
   const payload = {
     targetRoot: options.targetRoot,
@@ -38,7 +39,10 @@ export async function runGuide(options: GuideOptions): Promise<number> {
             type: plan.lastError.errorType,
             strategy: plan.lastError.retryStrategy,
             reason: plan.lastError.reason
-          }
+          },
+          fixCommand: plan.lastError.fixCommand,
+          retryCommand: plan.lastError.retryCommand,
+          blockedWorkflow: buildPlanRecoveryWorkflow(plan)
         }
       : {}),
     nextCommand
@@ -56,6 +60,12 @@ export async function runGuide(options: GuideOptions): Promise<number> {
   if (plan.lastError) {
     options.logger.info(`${warn("blocking issue")}: ${plan.lastError.errorType} (${plan.lastError.retryStrategy})`);
     options.logger.info(`reason: ${plan.lastError.reason}`);
+    options.logger.info(`fix command: ${plan.lastError.fixCommand}`);
+    options.logger.info(`retry command: ${plan.lastError.retryCommand}`);
+    for (const [index, entry] of buildPlanRecoveryWorkflow(plan).entries()) {
+      options.logger.info(`${index + 1}. ${entry.title}: ${entry.command}`);
+      options.logger.info(`   ${entry.detail}`);
+    }
   }
   if (plan.hierarchy.subtasks.length > 0) {
     options.logger.info(`subtasks: ${plan.hierarchy.subtasks.map((entry) => entry.title).join(" -> ")}`);
