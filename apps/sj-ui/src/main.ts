@@ -6,15 +6,34 @@ import { renderGraphViewPanel } from "./ui/GraphPanel.js";
 import { renderContextTreePanel } from "./ui/ContextTreePanel.js";
 import { renderExecutionPlanPanelView } from "./ui/ExecutionPlanPanel.js";
 import { renderInspectorPanel } from "./ui/InspectorPanel.js";
+import {
+  buildActiveTargetHint as buildActiveTargetHintModel,
+  buildBridgeNote as buildBridgeNoteModel,
+  buildFinalReadyDetail as buildFinalReadyDetailModel,
+  buildLoadStatus as buildLoadStatusModel,
+  deriveReadinessSummary as deriveReadinessSummaryModel,
+  type ReadinessEnv
+} from "./ui/readiness.js";
+import {
+  buildBlockedActionGuidance,
+  deriveExecutionPlanFailureGuidance,
+  deriveRepoRecoveryGuidance
+} from "./ui/guidance.js";
+import {
+  deriveGraphProjection,
+  materializeGraphModel,
+  resolveProjectedNodePosition,
+  type GraphProjection
+} from "./ui/graph-model.js";
 import type {
   CommandComposerMode,
   CommandState,
   ContextOverrideMode,
+  DesktopReadinessState,
   DisplayExecutionPlanStep,
   FocusedItem,
-  InteractiveGraphEdge,
   InteractiveGraphModel,
-  InteractiveGraphNode,
+  RecoveryGuidance,
   UiCommandName,
   UiMode,
   ThemeMode,
@@ -911,6 +930,7 @@ let commandState: CommandState = {
   lastResult: null,
   lastError: null
 };
+let lastBlockedActionGuidance: RecoveryGuidance | null = null;
 let focusedItem: FocusedItem | null = null;
 let contextOverrides = new Map<string, ContextOverrideMode>();
 let contextOverrideHistory: Array<Map<string, ContextOverrideMode>> = [];
@@ -938,6 +958,20 @@ let derivedTreeCache:
       flatNodes: KiwiControlContextTreeNode[];
     }
   | null = null;
+let graphProjectionCache:
+  | {
+      baseTree: KiwiControlContextTree;
+      overrideVersion: number;
+      targetRoot: string;
+      graphDepth: number;
+      focusPath: string | null;
+      selectedAnalysis: KiwiControlFileAnalysis["selected"];
+      projection: GraphProjection;
+    }
+  | null = null;
+let activeGraphProjection: GraphProjection | null = null;
+let graphPatchQueued = false;
+let pendingGraphPatchPaths = new Set<string>();
 let graphViewportElement: SVGGElement | null = null;
 
 try {
@@ -1117,13 +1151,13 @@ try {
     });
     graphInteraction.lastClientX = event.clientX;
     graphInteraction.lastClientY = event.clientY;
-    scheduleCenterRender();
+    scheduleGraphInteractionPatch(graphInteraction.path);
   });
 
   window.addEventListener("pointerup", () => {
-    if (graphInteraction) {
+    if (graphInteraction?.mode === "drag-node") {
       markGraphInteractionActivity();
-      scheduleCenterRender();
+      scheduleGraphInteractionPatch(graphInteraction.path);
     }
     graphInteraction = null;
     if (pendingShellRenderAfterInteraction) {
@@ -1362,6 +1396,7 @@ async function loadAndRenderTarget(
   currentTargetRoot = targetRoot;
   lastRepoLoadFailure = null;
   lastReadyStateSignal = null;
+  lastBlockedActionGuidance = null;
   bridgeNoteElement.textContent =
     source === "cli"
       ? `Opening ${targetRoot} from ${requestId ? "kc ui" : "the CLI"}...`
@@ -1792,6 +1827,7 @@ function syncInteractiveSessionState(state: RepoControlState): void {
       lastResult: null,
       lastError: null
     };
+    lastBlockedActionGuidance = null;
     focusedItem = null;
     contextOverrides = new Map<string, ContextOverrideMode>();
     contextOverrideHistory = [];
@@ -1808,6 +1844,10 @@ function syncInteractiveSessionState(state: RepoControlState): void {
     approvalMarkers = new Map<string, "approved" | "rejected">();
     contextOverrideVersion = 0;
     derivedTreeCache = null;
+    graphProjectionCache = null;
+    activeGraphProjection = null;
+    pendingGraphPatchPaths.clear();
+    graphPatchQueued = false;
     hydratedMachineSections.clear();
     machineHydrationActiveSections.clear();
     machineHydrationInFlight = false;
@@ -2079,6 +2119,7 @@ function toggleComposer(mode: Exclude<CommandComposerMode, null>): void {
   if (commandState.loading) {
     return;
   }
+  lastBlockedActionGuidance = null;
   if (commandState.composer === mode) {
     commandState.composer = null;
     commandState.draftValue = "";
@@ -2109,6 +2150,7 @@ async function executeKiwiCommand(
   commandState.activeCommand = command;
   commandState.lastError = null;
   commandState.lastResult = null;
+  lastBlockedActionGuidance = null;
   renderState(currentState);
 
   try {
@@ -2246,6 +2288,78 @@ function updateGraphViewportTransform(): boolean {
   return true;
 }
 
+function scheduleGraphInteractionPatch(path: string): void {
+  pendingGraphPatchPaths.add(path);
+  if (graphPatchQueued || renderQueued || centerRenderQueued) {
+    return;
+  }
+
+  graphPatchQueued = true;
+  window.requestAnimationFrame(() => {
+    graphPatchQueued = false;
+    const paths = [...pendingGraphPatchPaths];
+    pendingGraphPatchPaths.clear();
+    if (!patchGraphSurface(paths)) {
+      scheduleCenterRender();
+    }
+  });
+}
+
+function patchGraphSurface(paths: string[]): boolean {
+  if (activeView !== "graph" || paths.length === 0) {
+    return false;
+  }
+
+  const projection = activeGraphProjection ?? getGraphProjection(currentState);
+  if (!projection) {
+    return false;
+  }
+
+  const graphSurface = centerMainElement.querySelector<SVGElement>("[data-graph-canvas-root]");
+  if (!graphSurface) {
+    return false;
+  }
+
+  for (const path of paths) {
+    const selector = `[data-graph-node-wrap][data-path="${escapeSelectorValue(path)}"]`;
+    const nodeWrap = graphSurface.querySelector<SVGGElement>(selector);
+    const position = resolveProjectedNodePosition(projection, graphNodePositions, path);
+    if (nodeWrap && position) {
+      nodeWrap.setAttribute("transform", `translate(${position.x}, ${position.y})`);
+    }
+
+    const edgeSelector = [
+      `[data-graph-edge][data-from-path="${escapeSelectorValue(path)}"]`,
+      `[data-graph-edge][data-to-path="${escapeSelectorValue(path)}"]`
+    ].join(",");
+    for (const edge of graphSurface.querySelectorAll<SVGLineElement>(edgeSelector)) {
+      const fromPath = edge.dataset.fromPath;
+      const toPath = edge.dataset.toPath;
+      if (!fromPath || !toPath) {
+        continue;
+      }
+      const from = resolveProjectedNodePosition(projection, graphNodePositions, fromPath);
+      const to = resolveProjectedNodePosition(projection, graphNodePositions, toPath);
+      if (!from || !to) {
+        continue;
+      }
+      edge.setAttribute("x1", String(from.x));
+      edge.setAttribute("y1", String(from.y));
+      edge.setAttribute("x2", String(to.x));
+      edge.setAttribute("y2", String(to.y));
+    }
+  }
+
+  return true;
+}
+
+function escapeSelectorValue(value: string): string {
+  if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+    return CSS.escape(value);
+  }
+  return value.replace(/["\\]/g, "\\$&");
+}
+
 function parseKiwiCommand(commandText: string): { command: UiCommandName; args: string[] } | null {
   const tokens = tokenizeCommand(commandText);
   if (tokens.length < 2) {
@@ -2373,133 +2487,49 @@ function commitPlanStepEdit(stepId: string): void {
   scheduleRenderState();
 }
 
-function deriveGraphModel(state: RepoControlState): InteractiveGraphModel {
+function getGraphProjection(state: RepoControlState): GraphProjection {
   const tree = deriveInteractiveTree(state);
   const rootPath = state.targetRoot || "repo";
   const focusPath = graphSelectedPath ?? (focusedItem?.kind === "path" ? focusedItem.path : null);
-  const highlightedPaths = new Set(deriveHighlightedGraphPaths(state, focusPath));
-  const root: InteractiveGraphNode = {
-    path: rootPath,
-    label: getRepoLabel(rootPath) || "repo",
-    kind: "root",
-    status: "selected",
-    x: 600 + (graphNodePositions.get(rootPath)?.x ?? 0),
-    y: 360 + (graphNodePositions.get(rootPath)?.y ?? 0),
-    radius: 34,
-    tone: "tone-root",
-    importance: "high",
-    highlighted: highlightedPaths.has(rootPath)
-  };
+  const selectedAnalysis = state.kiwiControl?.fileAnalysis.selected ?? [];
 
-  const nodes: InteractiveGraphNode[] = [root];
-  const edges: InteractiveGraphEdge[] = [];
-  const summary: InteractiveGraphModel["summary"] = [];
-  const visibleTopLevel = tree.nodes.slice(0, 10);
+  if (
+    graphProjectionCache
+    && graphProjectionCache.baseTree === tree
+    && graphProjectionCache.overrideVersion === contextOverrideVersion
+    && graphProjectionCache.targetRoot === rootPath
+    && graphProjectionCache.graphDepth === graphDepth
+    && graphProjectionCache.focusPath === focusPath
+    && graphProjectionCache.selectedAnalysis === selectedAnalysis
+  ) {
+    activeGraphProjection = graphProjectionCache.projection;
+    return graphProjectionCache.projection;
+  }
 
-  visibleTopLevel.forEach((node, index) => {
-    const angle = (Math.PI * 2 * index) / Math.max(visibleTopLevel.length, 1);
-    const baseX = 600 + Math.cos(angle) * 220;
-    const baseY = 360 + Math.sin(angle) * 220;
-    const offset = graphNodePositions.get(node.path) ?? { x: 0, y: 0 };
-    const importance = deriveNodeImportance(node);
-    const graphNode: InteractiveGraphNode = {
-      path: node.path,
-      label: node.name,
-      kind: node.kind,
-      status: node.status,
-      x: baseX + offset.x,
-      y: baseY + offset.y,
-      radius: importance === "high" ? 26 : importance === "medium" ? 22 : 18,
-      tone: `tone-${node.status}`,
-      importance,
-      highlighted: highlightedPaths.has(node.path)
-    };
-    nodes.push(graphNode);
-    edges.push({
-      fromPath: root.path,
-      toPath: graphNode.path,
-      from: { x: root.x, y: root.y },
-      to: { x: graphNode.x, y: graphNode.y },
-      highlighted: highlightedPaths.has(root.path) && highlightedPaths.has(graphNode.path)
-    });
-    summary.push({
-      label: node.name,
-      kind: node.kind,
-      meta: `${node.children.length} child nodes`,
-      path: node.path
-    });
-
-    if (graphDepth < 2) {
-      return;
-    }
-
-    node.children.slice(0, graphDepth > 2 ? 6 : 4).forEach((child, childIndex) => {
-      const childAngle = angle + ((childIndex - 1.5) * 0.32);
-      const childBaseX = graphNode.x + Math.cos(childAngle) * 160;
-      const childBaseY = graphNode.y + Math.sin(childAngle) * 160;
-      const childOffset = graphNodePositions.get(child.path) ?? { x: 0, y: 0 };
-      const childImportance = deriveNodeImportance(child);
-      const childNode: InteractiveGraphNode = {
-        path: child.path,
-        label: child.name,
-        kind: child.kind,
-        status: child.status,
-        x: childBaseX + childOffset.x,
-        y: childBaseY + childOffset.y,
-        radius: childImportance === "high" ? 18 : childImportance === "medium" ? 16 : 14,
-        tone: `tone-${child.status}`,
-        importance: childImportance,
-        highlighted: highlightedPaths.has(child.path)
-      };
-      nodes.push(childNode);
-      edges.push({
-        fromPath: graphNode.path,
-        toPath: childNode.path,
-        from: { x: graphNode.x, y: graphNode.y },
-        to: { x: childNode.x, y: childNode.y },
-        highlighted: highlightedPaths.has(graphNode.path) && highlightedPaths.has(childNode.path)
-      });
-      summary.push({
-        label: child.name,
-        kind: child.kind,
-        meta: child.status,
-        path: child.path
-      });
-    });
+  const projection = deriveGraphProjection({
+    tree,
+    rootPath,
+    rootLabel: getRepoLabel(rootPath) || "repo",
+    graphDepth,
+    focusPath,
+    selectedAnalysis
   });
 
-  return { nodes, edges, summary };
+  graphProjectionCache = {
+    baseTree: tree,
+    overrideVersion: contextOverrideVersion,
+    targetRoot: rootPath,
+    graphDepth,
+    focusPath,
+    selectedAnalysis,
+    projection
+  };
+  activeGraphProjection = projection;
+  return projection;
 }
 
-function deriveNodeImportance(node: KiwiControlContextTreeNode): "low" | "medium" | "high" {
-  const analysisEntry = currentState.kiwiControl?.fileAnalysis.selected.find((entry) => entry.file === node.path);
-  if (node.status === "selected" || (analysisEntry?.score ?? 0) >= 2 || (analysisEntry?.dependencyChain?.length ?? 0) > 1) {
-    return "high";
-  }
-  if (node.status === "candidate" || node.children.some((child) => child.status === "selected")) {
-    return "medium";
-  }
-  return "low";
-}
-
-function deriveHighlightedGraphPaths(state: RepoControlState, focusPath: string | null): string[] {
-  if (!focusPath) {
-    return [];
-  }
-
-  const dependencyChain = state.kiwiControl?.fileAnalysis.selected.find((entry) => entry.file === focusPath)?.dependencyChain;
-  if (dependencyChain && dependencyChain.length > 1) {
-    return dependencyChain;
-  }
-
-  const parts = focusPath.split(/[\\/]/).filter(Boolean);
-  const segments: string[] = [];
-  let accumulator = focusPath.startsWith("/") ? "/" : "";
-  for (const part of parts) {
-    accumulator = accumulator ? `${accumulator.replace(/\/$/, "")}/${part}` : part;
-    segments.push(accumulator);
-  }
-  return segments;
+function deriveGraphModel(state: RepoControlState): InteractiveGraphModel {
+  return materializeGraphModel(getGraphProjection(state), graphNodePositions);
 }
 
 function basenameForPath(path: string): string {
@@ -2507,116 +2537,97 @@ function basenameForPath(path: string): string {
   return segments[segments.length - 1] ?? path;
 }
 
+function renderReadinessBanner(loadStatus: DesktopReadinessState): string {
+  const bannerTone =
+    loadStatus.tone === "ready"
+      ? "success"
+      : loadStatus.tone === "degraded"
+        ? "warn"
+        : loadStatus.tone === "blocked"
+          ? "blocked"
+          : "neutral";
+  return `
+    <div class="kc-view-shell">
+      <section class="kc-panel kc-command-banner tone-${bannerTone}">
+        <div class="kc-command-banner-head">
+          <div>
+            <p class="kc-section-micro">${escapeHtml(loadStatus.phase.replaceAll("_", " "))}</p>
+            <strong>${escapeHtml(loadStatus.label)}</strong>
+          </div>
+          <span class="kc-load-badge"><span class="kc-load-dot"></span>${escapeHtml(loadStatus.phase.replaceAll("_", " "))}</span>
+        </div>
+        <p>${escapeHtml(loadStatus.detail)}</p>
+        ${loadStatus.nextCommand ? `<div class="kc-command-banner-actions"><code class="kc-command-chip">${escapeHtml(loadStatus.nextCommand)}</code></div>` : ""}
+        <div class="kc-load-progress"><span class="kc-load-progress-fill" style="width:${loadStatus.progress}%"></span></div>
+      </section>
+    </div>
+  `;
+}
+
+function renderRecoveryGuidanceBanner(
+  guidance: RecoveryGuidance,
+  options: {
+    kicker: string;
+    actionLabel?: string | null;
+  }
+): string {
+  const bannerTone = guidance.tone === "blocked" ? "blocked" : "warn";
+  return `
+    <div class="kc-view-shell">
+      <section class="kc-panel kc-command-banner tone-${bannerTone}">
+        <div class="kc-command-banner-head">
+          <div>
+            <p class="kc-section-micro">${escapeHtml(options.kicker)}</p>
+            <strong>${escapeHtml(guidance.title)}</strong>
+          </div>
+          <span class="kc-load-badge"><span class="kc-load-dot"></span>${escapeHtml(guidance.tone)}</span>
+        </div>
+        <p>${escapeHtml(guidance.detail)}</p>
+        <div class="kc-command-banner-actions">
+          ${guidance.nextCommand ? `<code class="kc-command-chip">${escapeHtml(guidance.nextCommand)}</code>` : ""}
+          ${guidance.followUpCommand ? `<code class="kc-command-chip">${escapeHtml(guidance.followUpCommand)}</code>` : ""}
+          ${options.actionLabel ? `<button class="kc-secondary-button" type="button" data-reload-state>${escapeHtml(options.actionLabel)}</button>` : ""}
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function renderCommandBanner(): string {
-  if (commandState.loading) {
-    return `
-      <div class="kc-view-shell">
-        <section class="kc-panel kc-command-banner tone-neutral">
-          <div class="kc-command-banner-head">
-            <div>
-              <p class="kc-section-micro">Running</p>
-              <strong>Kiwi is executing ${escapeHtml(commandState.activeCommand ?? "a command")}</strong>
-            </div>
-            <span class="kc-load-badge"><span class="kc-load-dot"></span>working</span>
-          </div>
-          <p>Results will appear here automatically when the command finishes.</p>
-          <div class="kc-load-progress"><span class="kc-load-progress-fill" style="width:72%"></span></div>
-        </section>
-      </div>
-    `;
+  const loadStatus = buildLoadStatus(currentState);
+  const repoRecoveryGuidance = buildRepoRecoveryGuidance(currentState);
+
+  if (lastBlockedActionGuidance) {
+    return renderRecoveryGuidanceBanner(lastBlockedActionGuidance, {
+      kicker: "Action blocked"
+    });
   }
 
-  if (isLoadingRepoState) {
-    return `
-      <div class="kc-view-shell">
-        <section class="kc-panel kc-command-banner tone-neutral">
-          <div class="kc-command-banner-head">
-            <div>
-              <p class="kc-section-micro">Loading</p>
-              <strong>Kiwi is loading repo-local state</strong>
-            </div>
-            <span class="kc-load-badge"><span class="kc-load-dot"></span>hydrating</span>
-          </div>
-          <p>The app is open, and the repo is still hydrating. Panels will refresh automatically.</p>
-          <div class="kc-load-progress"><span class="kc-load-progress-fill" style="width:48%"></span></div>
-        </section>
-      </div>
-    `;
+  if (commandState.loading || isLoadingRepoState) {
+    return renderReadinessBanner(loadStatus);
   }
 
-  if (
-    isRefreshingFreshRepoState &&
-    (currentState.loadState.source === "warm-snapshot" || currentState.loadState.source === "stale-snapshot")
-  ) {
-    return `
-      <div class="kc-view-shell">
-        <section class="kc-panel kc-command-banner tone-${lastRepoLoadFailure ? "warn" : "neutral"}">
-          <div class="kc-command-banner-head">
-            <div>
-              <p class="kc-section-micro">${lastRepoLoadFailure ? "Degraded" : currentState.loadState.source === "stale-snapshot" ? "Stale Snapshot" : "Warm State"}</p>
-              <strong>${lastRepoLoadFailure ? "Kiwi is showing a recent snapshot" : currentState.loadState.source === "stale-snapshot" ? "Kiwi loaded an older repo snapshot" : "Kiwi loaded a warm repo snapshot"}</strong>
-            </div>
-            <span class="kc-load-badge"><span class="kc-load-dot"></span>${lastRepoLoadFailure ? "degraded" : "refreshing"}</span>
-          </div>
-          <p>${escapeHtml(lastRepoLoadFailure
-            ? `Fresh repo-local state could not be loaded, so Kiwi kept the recent snapshot visible: ${lastRepoLoadFailure}`
-            : currentState.loadState.detail)}</p>
-          <div class="kc-load-progress"><span class="kc-load-progress-fill" style="width:${lastRepoLoadFailure ? 74 : currentState.loadState.source === "stale-snapshot" ? 58 : 64}%"></span></div>
-        </section>
-      </div>
-    `;
+  if (repoRecoveryGuidance && (repoRecoveryGuidance.tone === "blocked" || repoRecoveryGuidance.tone === "failed" || repoRecoveryGuidance.tone === "degraded")) {
+    if (
+      loadStatus.visible
+      || repoRecoveryGuidance.tone !== "blocked"
+      || currentState.repoState.mode === "repo-not-initialized"
+      || currentState.repoState.mode === "initialized-invalid"
+    ) {
+      return renderRecoveryGuidanceBanner(repoRecoveryGuidance, {
+        kicker:
+          repoRecoveryGuidance.tone === "blocked"
+            ? "Workflow blocked"
+            : repoRecoveryGuidance.tone === "degraded"
+              ? "Using cached snapshot"
+              : "Load failed",
+        actionLabel: repoRecoveryGuidance.actionLabel ?? null
+      });
+    }
   }
 
-  if (currentState.loadState.source === "bridge-fallback" && currentTargetRoot) {
-    return `
-      <div class="kc-view-shell">
-        <section class="kc-panel kc-command-banner tone-warn">
-          <div class="kc-command-banner-head">
-            <div>
-              <p class="kc-section-micro">Load Failed</p>
-              <strong>Kiwi could not load current repo-local state</strong>
-            </div>
-            <span class="kc-load-badge"><span class="kc-load-dot"></span>degraded</span>
-          </div>
-          <p>${escapeHtml(lastRepoLoadFailure ?? currentState.loadState.detail)}</p>
-        </section>
-      </div>
-    `;
-  }
-
-  if (isRefreshingFreshRepoState && isSnapshotLoadSource(currentState.loadState.source)) {
-    return `
-      <div class="kc-view-shell">
-        <section class="kc-panel kc-command-banner tone-neutral">
-          <div class="kc-command-banner-head">
-            <div>
-              <p class="kc-section-micro">Refreshing</p>
-              <strong>Kiwi loaded a ${escapeHtml(currentState.loadState.source === "stale-snapshot" ? "stale" : "warm")} snapshot first</strong>
-            </div>
-            <span class="kc-load-badge"><span class="kc-load-dot"></span>refreshing</span>
-          </div>
-          <p>${escapeHtml(currentState.loadState.detail)}</p>
-          <div class="kc-load-progress"><span class="kc-load-progress-fill" style="width:66%"></span></div>
-        </section>
-      </div>
-    `;
-  }
-
-  if (lastReadyStateSignal && Date.now() - lastReadyStateSignal.at < READY_STATE_PULSE_MS) {
-    return `
-      <div class="kc-view-shell">
-        <section class="kc-panel kc-command-banner tone-success">
-          <div class="kc-command-banner-head">
-            <div>
-              <p class="kc-section-micro">Ready</p>
-              <strong>Fresh repo-local state is ready</strong>
-            </div>
-            <span class="kc-load-badge"><span class="kc-load-dot"></span>ready</span>
-          </div>
-          <p>${escapeHtml(machineHydrationInFlight ? `${lastReadyStateSignal.detail} ${describeMachineHydration()}` : lastReadyStateSignal.detail)}</p>
-        </section>
-      </div>
-    `;
+  if (loadStatus.visible) {
+    return renderReadinessBanner(loadStatus);
   }
 
   if (!commandState.lastResult && !commandState.lastError) {
@@ -2676,14 +2687,14 @@ function handleInteractiveClick(event: MouseEvent, target: HTMLElement): boolean
     const value = commandState.draftValue.trim();
     const constraint = deriveComposerConstraint(currentState, mode, value);
     if (constraint.blocked) {
-      commandState.lastError = constraint.nextCommand
-        ? `${constraint.reason} Next: ${constraint.nextCommand}`
-        : constraint.reason;
+      lastBlockedActionGuidance = buildBlockedActionGuidance(mode, constraint.reason, constraint.nextCommand);
+      commandState.lastError = null;
       scheduleRenderState();
       return true;
     }
     if (!value) {
       commandState.lastError = `${mode} requires a value before running.`;
+      lastBlockedActionGuidance = null;
       scheduleRenderState();
       return true;
     }
@@ -2695,6 +2706,7 @@ function handleInteractiveClick(event: MouseEvent, target: HTMLElement): boolean
   if (target.closest("[data-composer-cancel]")) {
     commandState.composer = null;
     commandState.draftValue = "";
+    lastBlockedActionGuidance = null;
     scheduleRenderState();
     return true;
   }
@@ -2880,6 +2892,9 @@ function renderState(state: RepoControlState): void {
 function renderCenterSurface(state: RepoControlState): void {
   centerMainElement.innerHTML = `${renderCommandBanner()}${renderCenterView(state)}`;
   graphViewportElement = null;
+  if (activeView !== "graph") {
+    activeGraphProjection = null;
+  }
 }
 
 function scheduleRenderState(): void {
@@ -2978,122 +2993,44 @@ function describeMachineHydration(): string {
   return `Refreshing ${labels.join(", ")}${sectionCount > 1 ? " in the background" : ""}.`;
 }
 
+function buildRepoRecoveryGuidance(state: RepoControlState): RecoveryGuidance | null {
+  return deriveRepoRecoveryGuidance(state, {
+    lastRepoLoadFailure
+  });
+}
+
+function buildReadinessEnv(state: RepoControlState): ReadinessEnv {
+  return {
+    commandState: {
+      loading: commandState.loading,
+      activeCommand: commandState.activeCommand
+    },
+    currentLoadSource,
+    currentTargetRoot,
+    isLoadingRepoState,
+    isRefreshingFreshRepoState,
+    lastRepoLoadFailure,
+    lastReadyStateSignal,
+    readyStatePulseMs: READY_STATE_PULSE_MS,
+    machineHydrationInFlight,
+    machineHydrationDetail: describeMachineHydration(),
+    activeTargetHint: buildActiveTargetHintModel(state),
+    recoveryGuidance: buildRepoRecoveryGuidance(state),
+    isMachineHeavyViewActive: isMachineHeavyView(activeView),
+    machineAdvisoryStale: state.machineAdvisory.stale
+  };
+}
+
 function buildLoadStatus(state: RepoControlState): {
   visible: boolean;
   label: string;
   detail: string;
   progress: number;
-  tone: "loading" | "running" | "ready" | "warm" | "degraded";
+  tone: "loading" | "running" | "ready" | "warm" | "degraded" | "blocked";
+  phase: DesktopReadinessState["phase"];
+  nextCommand: string | null;
 } {
-  if (commandState.loading) {
-    return {
-      visible: true,
-      label: "Running command",
-      detail: commandState.activeCommand ? `Executing ${commandState.activeCommand}...` : "Executing command...",
-      progress: 68,
-      tone: "running"
-    };
-  }
-
-  if (isLoadingRepoState && state.loadState.source !== "warm-snapshot" && state.loadState.source !== "stale-snapshot") {
-    return {
-      visible: true,
-      label: currentLoadSource === "auto" ? "Refreshing repo" : "Opening repo",
-      detail:
-        currentLoadSource === "cli"
-          ? "Desktop launched. Kiwi is loading repo-local state now."
-          : currentLoadSource === "auto"
-            ? "Refreshing repo-local state in the background."
-            : "Building the repo-local control surface.",
-      progress: currentLoadSource === "auto" ? 55 : 42,
-      tone: "loading"
-    };
-  }
-
-  if (
-    isRefreshingFreshRepoState &&
-    (state.loadState.source === "warm-snapshot" || state.loadState.source === "stale-snapshot")
-  ) {
-    return {
-      visible: true,
-      label: state.loadState.source === "stale-snapshot" ? "Older snapshot loaded" : "Warm state loaded",
-      detail: lastRepoLoadFailure
-        ? "Showing a recent snapshot. Fresh refresh failed, so Kiwi is in a degraded state."
-        : state.loadState.detail,
-      progress: lastRepoLoadFailure ? 74 : state.loadState.source === "stale-snapshot" ? 58 : 64,
-      tone: lastRepoLoadFailure ? "degraded" : "warm"
-    };
-  }
-
-  if (lastRepoLoadFailure && (state.loadState.source === "warm-snapshot" || state.loadState.source === "stale-snapshot")) {
-    return {
-      visible: true,
-      label: "Degraded",
-      detail: `Showing ${state.loadState.source === "stale-snapshot" ? "an older" : "a recent"} snapshot because fresh repo-local state could not be loaded: ${lastRepoLoadFailure}`,
-      progress: 72,
-      tone: "degraded"
-    };
-  }
-
-  if (state.loadState.source === "bridge-fallback" && currentTargetRoot) {
-    return {
-      visible: true,
-      label: "Load failed",
-      detail: lastRepoLoadFailure ?? state.loadState.detail,
-      progress: 100,
-      tone: "degraded"
-    };
-  }
-
-  if (state.loadState.source === "bridge-fallback") {
-    return {
-      visible: true,
-      label: "Failed",
-      detail: state.loadState.detail,
-      progress: 18,
-      tone: "degraded"
-    };
-  }
-
-  if (lastReadyStateSignal && Date.now() - lastReadyStateSignal.at < READY_STATE_PULSE_MS) {
-    return {
-      visible: true,
-      label: "Ready",
-      detail: machineHydrationInFlight
-        ? `${lastReadyStateSignal.detail} ${describeMachineHydration()}`
-        : lastReadyStateSignal.detail,
-      progress: 100,
-      tone: "ready"
-    };
-  }
-
-  if (currentTargetRoot && machineHydrationInFlight) {
-    return {
-      visible: true,
-      label: "Ready",
-      detail: `Fresh repo-local state is ready. ${describeMachineHydration()}`,
-      progress: 88,
-      tone: "ready"
-    };
-  }
-
-  if (currentTargetRoot && isMachineHeavyView(activeView) && state.machineAdvisory.stale) {
-    return {
-      visible: true,
-      label: "System data deferred",
-      detail: "Kiwi keeps heavy machine diagnostics off the startup path and hydrates them when this view is active.",
-      progress: 66,
-      tone: "warm"
-    };
-  }
-
-  return {
-    visible: false,
-    label: "",
-    detail: "",
-    progress: 100,
-    tone: "ready"
-  };
+  return buildLoadStatusModel(state, buildReadinessEnv(state));
 }
 
 function buildDecisionSummary(state: RepoControlState): {
@@ -3215,58 +3152,7 @@ function renderCenterView(state: RepoControlState): string {
 }
 
 function deriveReadinessSummary(state: RepoControlState): { label: string; detail: string } {
-  if (isLoadingRepoState && !isSnapshotLoadSource(state.loadState.source)) {
-    return {
-      label: "opening",
-      detail: currentLoadSource === "cli"
-        ? "The desktop is open and Kiwi is loading repo-local state."
-        : "Kiwi is opening the repo-local control surface."
-    };
-  }
-
-  if (isRefreshingFreshRepoState && isSnapshotLoadSource(state.loadState.source)) {
-    return {
-      label: lastRepoLoadFailure ? "degraded" : "warm loaded",
-      detail: lastRepoLoadFailure
-        ? `Kiwi kept a recent snapshot because fresh repo-local state failed to load: ${lastRepoLoadFailure}`
-        : state.loadState.detail
-    };
-  }
-
-  if (state.loadState.source === "bridge-fallback") {
-    return {
-      label: currentTargetRoot ? "failed" : "degraded",
-      detail: lastRepoLoadFailure ?? state.loadState.detail
-    };
-  }
-
-  if (lastReadyStateSignal && Date.now() - lastReadyStateSignal.at < READY_STATE_PULSE_MS) {
-    return {
-      label: "ready",
-      detail: machineHydrationInFlight
-        ? `${lastReadyStateSignal.detail} ${describeMachineHydration()}`
-        : lastReadyStateSignal.detail
-    };
-  }
-
-  if (currentTargetRoot && machineHydrationInFlight) {
-    return {
-      label: "refreshing",
-      detail: describeMachineHydration()
-    };
-  }
-
-  if (state.targetRoot) {
-    return {
-      label: "ready",
-      detail: buildFinalReadyDetail(state)
-    };
-  }
-
-  return {
-    label: "opening",
-    detail: "Run kc ui inside a repo to load it automatically."
-  };
+  return deriveReadinessSummaryModel(state, buildReadinessEnv(state));
 }
 
 function renderOverviewView(state: RepoControlState): string {
@@ -3274,6 +3160,7 @@ function renderOverviewView(state: RepoControlState): string {
   const interactiveTree = deriveInteractiveTree(state);
   const decision = buildDecisionSummary(state);
   const readiness = deriveReadinessSummary(state);
+  const repoRecoveryGuidance = buildRepoRecoveryGuidance(state);
   const primaryAction = kc.nextActions.actions[0] ?? null;
   const currentFocus = getPanelValue(state.continuity, "Current focus");
   const activeSpecialist = state.specialists.activeProfile?.name ?? state.specialists.activeSpecialist;
@@ -3316,6 +3203,7 @@ function renderOverviewView(state: RepoControlState): string {
               ${renderNoteRow("Current state", state.repoState.title, state.repoState.detail)}
               ${renderNoteRow("Blocking issue", decision.blockingIssue, decision.systemHealth === "blocked" ? "Resolve this before trusting execution." : "No hard blocker is currently active.")}
               ${renderNoteRow("Recommended next action", decision.nextAction, primaryAction?.command ?? kc.executionPlan.nextCommands[0] ?? "No next command is currently recorded.")}
+              ${repoRecoveryGuidance ? renderNoteRow("Do this now", repoRecoveryGuidance.title, repoRecoveryGuidance.nextCommand ?? repoRecoveryGuidance.detail) : ""}
             </div>
           </section>
           <section class="kc-subpanel">
@@ -5193,6 +5081,7 @@ function renderExecutionPlanPanel(state: RepoControlState): string {
     editingPlanDraft,
     focusedItem,
     commandState,
+    failureGuidance: deriveExecutionPlanFailureGuidance(state.kiwiControl?.executionPlan.lastError ?? null),
     helpers: {
       escapeHtml,
       escapeAttribute,
@@ -5461,46 +5350,11 @@ function getRepoLabel(targetRoot: string): string {
 }
 
 function buildActiveTargetHint(state: RepoControlState): string {
-  if (!state.targetRoot) {
-    return "Run kc ui inside a repo to load it automatically.";
-  }
-
-  if (state.loadState.source === "warm-snapshot" || state.loadState.source === "stale-snapshot") {
-    return state.loadState.detail;
-  }
-
-  switch (state.repoState.mode) {
-    case "healthy":
-      return "Repo-local state is loaded and ready.";
-    case "repo-not-initialized":
-      return "This folder is not initialized yet. Run kc init in Terminal to get started.";
-    case "initialized-invalid":
-      return "This repo needs repair before continuity is fully trustworthy.";
-    case "initialized-with-warnings":
-      return "Repo is usable with a few warnings worth addressing.";
-    case "bridge-unavailable":
-    default:
-      return BRIDGE_UNAVAILABLE_NEXT_STEP;
-  }
+  return buildActiveTargetHintModel(state);
 }
 
 function buildFinalReadyDetail(state: RepoControlState): string {
-  const repoLabel = getRepoLabel(state.targetRoot || currentTargetRoot);
-  const prefix = `Fresh repo-local state is ready for ${repoLabel}.`;
-
-  switch (state.repoState.mode) {
-    case "healthy":
-      return prefix;
-    case "initialized-invalid":
-      return `${prefix} The repo is loaded, but workflow execution is still blocked until the repo contract is repaired.`;
-    case "repo-not-initialized":
-      return `${prefix} This repo still needs kc init before the normal workflow can continue.`;
-    case "initialized-with-warnings":
-      return `${prefix} The repo is usable, but Kiwi still sees warning-level issues worth addressing.`;
-    case "bridge-unavailable":
-    default:
-      return prefix;
-  }
+  return buildFinalReadyDetailModel(state, currentTargetRoot);
 }
 
 function describeBuildSource(source: DesktopRuntimeInfo["buildSource"]): string {
@@ -5515,40 +5369,7 @@ function describeBuildSource(source: DesktopRuntimeInfo["buildSource"]): string 
 }
 
 function buildBridgeNote(state: RepoControlState, source: "cli" | "manual" | "auto" | "shell"): string {
-  const activeHint = buildActiveTargetHint(state);
-  if (!state.targetRoot) {
-    return activeHint;
-  }
-  if (state.repoState.mode === "bridge-unavailable") {
-    return BRIDGE_UNAVAILABLE_NEXT_STEP;
-  }
-  if (lastRepoLoadFailure && isSnapshotLoadSource(state.loadState.source)) {
-    return `Kiwi is in a degraded state for ${getRepoLabel(state.targetRoot)}: ${lastRepoLoadFailure}. ${activeHint}`;
-  }
-  if (lastReadyStateSignal && Date.now() - lastReadyStateSignal.at < READY_STATE_PULSE_MS) {
-    return machineHydrationInFlight
-      ? `${lastReadyStateSignal.detail} ${describeMachineHydration()} ${activeHint}`
-      : `${lastReadyStateSignal.detail} ${activeHint}`;
-  }
-  if (state.loadState.source === "stale-snapshot") {
-    return `Showing ${getRepoLabel(state.targetRoot)} from an older snapshot while Kiwi refreshes current repo-local state. ${activeHint}`;
-  }
-  if (state.loadState.source === "warm-snapshot") {
-    return `Showing ${getRepoLabel(state.targetRoot)} from a recent warm snapshot while fresh repo-local state refreshes. ${activeHint}`;
-  }
-  if (machineHydrationInFlight) {
-    return `Fresh repo-local state is ready for ${getRepoLabel(state.targetRoot)}. ${describeMachineHydration()} ${activeHint}`;
-  }
-  if (source === "cli") {
-    return `Loaded ${getRepoLabel(state.targetRoot)} from kc ui. ${activeHint}`;
-  }
-  if (source === "manual") {
-    return `Loaded ${getRepoLabel(state.targetRoot)}. ${activeHint}`;
-  }
-  if (source === "auto") {
-    return `Refreshed ${getRepoLabel(state.targetRoot)}. ${activeHint}`;
-  }
-  return activeHint;
+  return buildBridgeNoteModel(state, source, buildReadinessEnv(state));
 }
 
 async function consumeInitialLaunchRequest(): Promise<LaunchRequestPayload | null> {

@@ -1,7 +1,7 @@
 import type { ExecutionPlanPanelRenderContext } from "./contracts.js";
 
 export function renderExecutionPlanPanelView(context: ExecutionPlanPanelRenderContext): string {
-  const { state, steps, editingPlanStepId, editingPlanDraft, focusedItem, commandState, helpers } = context;
+  const { state, steps, editingPlanStepId, editingPlanDraft, focusedItem, commandState, failureGuidance, helpers } = context;
   const { escapeHtml, escapeAttribute, renderPanelHeader, renderInlineBadge, renderNoteRow, renderEmptyState, renderHeaderBadge } = helpers;
   const plan = state.kiwiControl?.executionPlan;
   if (!plan) {
@@ -22,11 +22,11 @@ export function renderExecutionPlanPanelView(context: ExecutionPlanPanelRenderCo
         ${renderInlineBadge(`risk: ${plan.risk}`)}
         ${plan.confidence ? renderInlineBadge(`confidence: ${plan.confidence}`) : ""}
       </div>
-      ${plan.lastError
+      ${failureGuidance
         ? `<div class="kc-divider"></div><div class="kc-stack-list">
-            ${renderNoteRow("Failure", plan.lastError.errorType, plan.lastError.reason)}
-            ${renderNoteRow("Fix command", plan.lastError.fixCommand, "Run this before continuing.")}
-            ${renderNoteRow("Retry command", plan.lastError.retryCommand, "Use this to retry the failed step.")}
+            ${renderNoteRow("Why it stopped", failureGuidance.title, failureGuidance.detail)}
+            ${renderNoteRow("Do this now", failureGuidance.nextCommand ?? "No fix command recorded", "Run this before continuing.")}
+            ${renderNoteRow("Then retry", failureGuidance.followUpCommand ?? "No retry command recorded", "Use this after the blocking issue is cleared.")}
           </div>`
         : ""}
       ${steps.length > 0

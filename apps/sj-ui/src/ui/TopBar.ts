@@ -115,6 +115,7 @@ export function renderTopBarView(context: TopBarRenderContext): string {
             </span>
             <strong>${escapeHtml(loadStatus.detail)}</strong>
           </div>
+          ${loadStatus.nextCommand ? `<div class="kc-action-hint is-blocked"><code class="kc-command-chip">${escapeHtml(loadStatus.nextCommand)}</code></div>` : ""}
           <div class="kc-load-progress">
             <span class="kc-load-progress-fill" style="width:${loadStatus.progress}%"></span>
           </div>

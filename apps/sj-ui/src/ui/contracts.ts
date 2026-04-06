@@ -5,6 +5,41 @@ export type RepoControlMode =
   | "initialized-with-warnings"
   | "healthy";
 
+export type DesktopReadinessPhase =
+  | "opening"
+  | "warm_loaded"
+  | "refreshing"
+  | "ready"
+  | "degraded"
+  | "failed";
+
+export type DesktopReadinessTone =
+  | "loading"
+  | "running"
+  | "ready"
+  | "warm"
+  | "degraded"
+  | "blocked";
+
+export interface DesktopReadinessState {
+  phase: DesktopReadinessPhase;
+  visible: boolean;
+  label: string;
+  detail: string;
+  progress: number;
+  tone: DesktopReadinessTone;
+  nextCommand: string | null;
+}
+
+export interface RecoveryGuidance {
+  tone: "blocked" | "degraded" | "failed";
+  title: string;
+  detail: string;
+  nextCommand: string | null;
+  followUpCommand?: string | null;
+  actionLabel?: string | null;
+}
+
 export interface KiwiControlContextTreeNode {
   name: string;
   path: string;
@@ -288,13 +323,7 @@ export interface TopBarRenderContext {
     label: string;
     detail: string;
   } | null;
-  loadStatus: {
-    visible: boolean;
-    label: string;
-    detail: string;
-    progress: number;
-    tone: "loading" | "running" | "ready" | "warm" | "degraded";
-  };
+  loadStatus: DesktopReadinessState;
   helpers: RenderHelperSet;
 }
 
@@ -324,6 +353,7 @@ export interface ExecutionPlanPanelRenderContext {
   editingPlanDraft: string;
   focusedItem: FocusedItem | null;
   commandState: CommandState;
+  failureGuidance: RecoveryGuidance | null;
   helpers: Pick<
     RenderHelperSet,
     "escapeHtml" | "escapeAttribute" | "renderPanelHeader" | "renderInlineBadge" | "renderNoteRow" | "renderEmptyState" | "renderHeaderBadge"

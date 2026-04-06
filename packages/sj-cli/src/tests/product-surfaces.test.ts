@@ -8,6 +8,7 @@ import { bootstrapTarget } from "@shrey-junior/sj-core/core/bootstrap.js";
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
 import { buildRepoControlState, loadWarmRepoControlSnapshot } from "@shrey-junior/sj-core/core/ui-state.js";
+import { failWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import { runSpecialists } from "../commands/specialists.js";
 import {
   buildDesktopLaunchCandidates,
@@ -148,7 +149,23 @@ test("ui command returns structured repo-control state in json mode", async () =
       feedback: { basedOnPastRuns: boolean; reusedPattern: string | null; similarTasks: Array<{ task: string }> };
       workflow: { steps: Array<{ stepId: string }> };
       executionTrace: { steps: Array<{ stepId: string }>; whyThisHappened: string };
-      executionPlan: { blocked: boolean; steps: Array<{ command: string; validation: string }>; nextCommands: string[] };
+      executionPlan: {
+        summary: string;
+        state: string;
+        blocked: boolean;
+        steps: Array<{ command: string; validation: string }>;
+        nextCommands: string[];
+        lastError: {
+          errorType: string;
+          retryStrategy: string;
+          reason: string;
+          fixCommand: string;
+          retryCommand: string;
+        } | null;
+        impactPreview: { likelyFiles: string[]; moduleGroups: string[] };
+        verificationLayers: Array<{ id: string; description: string }>;
+        partialResults: Array<{ stepId: string; summary: string }>;
+      };
     };
   };
 
@@ -196,8 +213,94 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(Array.isArray(payload.kiwiControl.executionTrace.steps), true);
   assert.equal(typeof payload.kiwiControl.executionTrace.whyThisHappened, "string");
   assert.equal(typeof payload.kiwiControl.executionPlan.blocked, "boolean");
+  assert.equal(typeof payload.kiwiControl.executionPlan.summary, "string");
+  assert.equal(typeof payload.kiwiControl.executionPlan.state, "string");
   assert.equal(Array.isArray(payload.kiwiControl.executionPlan.steps), true);
   assert.equal(Array.isArray(payload.kiwiControl.executionPlan.nextCommands), true);
+  assert.equal(
+    payload.kiwiControl.executionPlan.lastError === null || typeof payload.kiwiControl.executionPlan.lastError.reason === "string",
+    true
+  );
+  assert.equal(Array.isArray(payload.kiwiControl.executionPlan.impactPreview.likelyFiles), true);
+  assert.equal(Array.isArray(payload.kiwiControl.executionPlan.verificationLayers), true);
+  assert.equal(Array.isArray(payload.kiwiControl.executionPlan.partialResults), true);
+});
+
+test("ui command exposes blocked execution-plan details in json mode when workflow execution is blocked", async () => {
+  const repoRootPath = repoRoot();
+  const config = await loadCanonicalConfig(repoRootPath);
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-blocked-plan-"));
+  const target = path.join(tempDir, "blocked-plan-repo");
+  await fs.mkdir(target, { recursive: true });
+  await fs.writeFile(path.join(target, "package.json"), '{\n  "name": "blocked-plan-repo"\n}\n', "utf8");
+
+  await bootstrapTarget(
+    {
+      repoRoot: repoRootPath,
+      targetRoot: target
+    },
+    config
+  );
+
+  await failWorkflowStep(target, {
+    task: "stabilize product surface launch semantics",
+    stepId: "generate-run-packets",
+    failureReason: "Run packets could not be generated for the current repo guidance state.",
+    validation: "Generate run packets before execution can continue."
+  });
+
+  const logs: string[] = [];
+  const exitCode = await runUi({
+    repoRoot: repoRootPath,
+    targetRoot: target,
+    json: true,
+    logger: {
+      info(message: string) {
+        logs.push(message);
+      },
+      warn() {},
+      error() {}
+    } as never
+  });
+
+  assert.equal(exitCode, 0);
+  const payload = JSON.parse(logs.join("\n")) as {
+    kiwiControl: {
+      executionPlan: {
+        summary: string;
+        state: string;
+        blocked: boolean;
+        currentStepIndex: number;
+        steps: Array<{ id: string; status: string; command: string; validation: string }>;
+        nextCommands: string[];
+        lastError: {
+          errorType: string;
+          retryStrategy: string;
+          reason: string;
+          fixCommand: string;
+          retryCommand: string;
+        } | null;
+        verificationLayers: Array<{ id: string; description: string }>;
+        partialResults: Array<{ stepId: string; summary: string }>;
+      };
+    };
+  };
+
+  assert.equal(payload.kiwiControl.executionPlan.state, "blocked");
+  assert.equal(payload.kiwiControl.executionPlan.blocked, true);
+  assert.equal(payload.kiwiControl.executionPlan.currentStepIndex >= 0, true);
+  assert.equal(
+    payload.kiwiControl.executionPlan.steps.some((step) => step.id === "execute" && step.status === "failed"),
+    true
+  );
+  assert.equal(payload.kiwiControl.executionPlan.nextCommands.length > 0, true);
+  assert.equal(payload.kiwiControl.executionPlan.lastError?.errorType, "context_error");
+  assert.equal(payload.kiwiControl.executionPlan.lastError?.retryStrategy, "expand");
+  assert.match(payload.kiwiControl.executionPlan.lastError?.reason ?? "", /Run packets could not be generated/);
+  assert.equal(typeof payload.kiwiControl.executionPlan.lastError?.fixCommand, "string");
+  assert.equal(typeof payload.kiwiControl.executionPlan.lastError?.retryCommand, "string");
+  assert.equal(Array.isArray(payload.kiwiControl.executionPlan.verificationLayers), true);
+  assert.equal(Array.isArray(payload.kiwiControl.executionPlan.partialResults), true);
 });
 
 test("repo control state persists a warm snapshot and reuses it on warm open", async () => {
@@ -340,12 +443,17 @@ test("ui command reports initialized-invalid for drifted repo-local state while 
 
   assert.equal(exitCode, 0);
   const payload = JSON.parse(logs.join("\n")) as {
-    repoState: { mode: string };
+    repoState: { mode: string; detail: string; sourceOfTruthNote: string };
     validation: { errors: number };
+    specialists: { recommendedSpecialist: string; safeParallelHint: string };
   };
 
   assert.equal(payload.repoState.mode, "initialized-invalid");
+  assert.match(payload.repoState.detail, /kiwi-control check in this folder/);
+  assert.match(payload.repoState.sourceOfTruthNote, /source of truth/i);
   assert.equal(payload.validation.errors > 0, true);
+  assert.equal(payload.specialists.recommendedSpecialist, "review-specialist");
+  assert.match(payload.specialists.safeParallelHint, /Repair the repo-local contract first/i);
 });
 
 test("ui command waits for a matching ready status before reporting desktop launch success", async () => {
@@ -548,6 +656,82 @@ writeFileSync(${JSON.stringify(launchStatusPath)}, JSON.stringify({
       assert.equal(firstLaunch.targetRoot, firstTarget);
       assert.equal(secondLaunch.targetRoot, secondTarget);
       assert.notEqual(firstLaunch.requestId, secondLaunch.requestId);
+    } finally {
+      if (previousDesktopLauncher === undefined) {
+        delete process.env.KIWI_CONTROL_DESKTOP;
+      } else {
+        process.env.KIWI_CONTROL_DESKTOP = previousDesktopLauncher;
+      }
+    }
+  });
+});
+
+test("ui command ignores stale launch status entries until the matching request id reports ready", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-stale-status-"));
+  const launcherPath = path.join(tempDir, "desktop-launcher.js");
+  await withIsolatedDesktopLaunchBridge(async ({ launchRequestPath, launchStatusPath, launchLogPath }) => {
+    await fs.rm(launchRequestPath, { force: true });
+    await fs.rm(launchStatusPath, { force: true });
+    await fs.rm(launchLogPath, { force: true });
+
+    await fs.writeFile(
+      launcherPath,
+      `import { readFileSync, writeFileSync } from "node:fs";
+const request = JSON.parse(readFileSync(${JSON.stringify(launchRequestPath)}, "utf8"));
+writeFileSync(${JSON.stringify(launchStatusPath)}, JSON.stringify({
+  requestId: "stale-request-id",
+  targetRoot: "stale-target",
+  state: "ready",
+  detail: "stale ready status should be ignored",
+  launchSource: request.launchSource,
+  reportedAt: new Date().toISOString()
+}, null, 2), "utf8");
+setTimeout(() => {
+  writeFileSync(${JSON.stringify(launchStatusPath)}, JSON.stringify({
+    requestId: request.requestId,
+    targetRoot: request.targetRoot,
+    state: "ready",
+    detail: "matching ready status",
+    launchSource: request.launchSource,
+    reportedAt: new Date().toISOString()
+  }, null, 2), "utf8");
+}, 250);`,
+      "utf8"
+    );
+
+    const previousDesktopLauncher = process.env.KIWI_CONTROL_DESKTOP;
+    process.env.KIWI_CONTROL_DESKTOP = launcherPath;
+
+    try {
+      const logs: string[] = [];
+      const exitCode = await runUi({
+        repoRoot: repoRoot(),
+        targetRoot: tempDir,
+        logger: {
+          info(message: string) {
+            logs.push(message);
+          },
+          warn(message: string) {
+            logs.push(message);
+          },
+          error(message: string) {
+            logs.push(message);
+          }
+        } as never
+      });
+
+      const logPayload = await readLaunchLogEntries(launchLogPath);
+
+      assert.equal(exitCode, 0);
+      assert.equal(
+        logPayload.some((entry) => entry.event === "launch-ready" && entry.detail === "matching ready status"),
+        true
+      );
+      assert.equal(
+        logPayload.some((entry) => entry.event === "launch-ready" && entry.detail === "stale ready status should be ignored"),
+        false
+      );
+      assert.match(logs.join("\n"), /The app is visible and loading this repo now/i);
     } finally {
       if (previousDesktopLauncher === undefined) {
         delete process.env.KIWI_CONTROL_DESKTOP;
@@ -793,6 +977,69 @@ appendFileSync(${JSON.stringify(launchLogPath)}, JSON.stringify({
       assert.equal(logPayload.some((entry) => entry.event === "launch-hydrating"), true);
       assert.equal(logPayload.some((entry) => entry.event === "launch-hydrating" && entry.launchSource === "fallback-launcher"), true);
       assert.match(logs.join("\n"), /repo is still hydrating/i);
+    } finally {
+      if (previousDesktopLauncher === undefined) {
+        delete process.env.KIWI_CONTROL_DESKTOP;
+      } else {
+        process.env.KIWI_CONTROL_DESKTOP = previousDesktopLauncher;
+      }
+    }
+  });
+});
+
+test("ui command surfaces explicit desktop launch error statuses as command failures", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-launch-error-"));
+  const launcherPath = path.join(tempDir, "desktop-launcher.js");
+  await withIsolatedDesktopLaunchBridge(async ({ launchRequestPath, launchStatusPath, launchLogPath }) => {
+    await fs.rm(launchRequestPath, { force: true });
+    await fs.rm(launchStatusPath, { force: true });
+    await fs.rm(launchLogPath, { force: true });
+
+    await fs.writeFile(
+      launcherPath,
+      `import { readFileSync, writeFileSync } from "node:fs";
+const request = JSON.parse(readFileSync(${JSON.stringify(launchRequestPath)}, "utf8"));
+writeFileSync(${JSON.stringify(launchStatusPath)}, JSON.stringify({
+  requestId: request.requestId,
+  targetRoot: request.targetRoot,
+  state: "error",
+  detail: "Desktop failed to hydrate the repo state.",
+  launchSource: request.launchSource,
+  reportedAt: new Date().toISOString()
+}, null, 2), "utf8");`,
+      "utf8"
+    );
+
+    const previousDesktopLauncher = process.env.KIWI_CONTROL_DESKTOP;
+    process.env.KIWI_CONTROL_DESKTOP = launcherPath;
+
+    try {
+      const logs: string[] = [];
+      const exitCode = await runUi({
+        repoRoot: repoRoot(),
+        targetRoot: tempDir,
+        logger: {
+          info(message: string) {
+            logs.push(message);
+          },
+          warn(message: string) {
+            logs.push(message);
+          },
+          error(message: string) {
+            logs.push(message);
+          }
+        } as never
+      });
+
+      const logPayload = await readLaunchLogEntries(launchLogPath);
+
+      assert.equal(exitCode, 1);
+      assert.equal(
+        logPayload.some((entry) => entry.event === "launch-error" && entry.detail === "Desktop failed to hydrate the repo state."),
+        true
+      );
+      await assert.rejects(fs.access(launchRequestPath));
+      assert.match(logs.join("\n"), /Desktop failed to hydrate the repo state/);
     } finally {
       if (previousDesktopLauncher === undefined) {
         delete process.env.KIWI_CONTROL_DESKTOP;
