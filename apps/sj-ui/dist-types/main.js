@@ -7,6 +7,7 @@ import { renderContextTreePanel } from "./ui/ContextTreePanel.js";
 import { renderExecutionPlanPanelView } from "./ui/ExecutionPlanPanel.js";
 import { renderInspectorPanel } from "./ui/InspectorPanel.js";
 import { renderMachinePanelView } from "./ui/MachinePanel.js";
+import { buildExplainCommandEntries, buildExplainSelectionEntries, buildTerminalHelpEntries, formatCliCommand } from "./ui/command-help.js";
 import { buildDecisionSummary as buildDecisionSummaryModel, buildExecutionPlanPanelContextModel, buildInspectorContextModel } from "./ui/view-models.js";
 import { buildActiveTargetHint as buildActiveTargetHintModel, buildBridgeNote as buildBridgeNoteModel, buildFinalReadyDetail as buildFinalReadyDetailModel, buildLoadStatus as buildLoadStatusModel, deriveReadinessSummary as deriveReadinessSummaryModel } from "./ui/readiness.js";
 import { buildBlockedActionGuidance, deriveExecutionPlanFailureGuidance, deriveRepoRecoveryGuidance } from "./ui/guidance.js";
@@ -1362,7 +1363,7 @@ function summarizeCliCommandFailure(result) {
                 : "";
         const summary = failureReason || validation || detail;
         if (summary) {
-            return nextCommand ? `${summary} Next: ${nextCommand}` : summary;
+            return nextCommand ? `${summary} Next: ${formatCliCommand(nextCommand, currentTargetRoot)}` : summary;
         }
     }
     return result.stderr || result.stdout || `${result.commandLabel} failed`;
@@ -1520,6 +1521,10 @@ function parseKiwiCommand(commandText) {
         const task = rest.find((token) => !token.startsWith("--") && token !== currentTargetRoot);
         return { command: "validate", args: task ? [task] : [] };
     }
+    if (subcommand === "sync") {
+        const allowedFlags = rest.filter((token) => token === "--dry-run" || token === "--diff-summary" || token === "--backup");
+        return { command: "sync", args: allowedFlags };
+    }
     if (["guide", "next", "retry", "resume", "status", "trace"].includes(subcommand)) {
         return { command: subcommand, args: rest.includes("--json") ? ["--json"] : [] };
     }
@@ -1670,7 +1675,7 @@ function renderReadinessBanner(loadStatus) {
           <span class="kc-load-badge"><span class="kc-load-dot"></span>${escapeHtml(loadStatus.phase.replaceAll("_", " "))}</span>
         </div>
         <p>${escapeHtml(loadStatus.detail)}</p>
-        ${loadStatus.nextCommand ? `<div class="kc-command-banner-actions"><code class="kc-command-chip">${escapeHtml(loadStatus.nextCommand)}</code></div>` : ""}
+        ${loadStatus.nextCommand ? `<div class="kc-command-banner-actions"><code class="kc-command-chip">${escapeHtml(formatCliCommand(loadStatus.nextCommand, currentTargetRoot))}</code></div>` : ""}
         <div class="kc-load-progress"><span class="kc-load-progress-fill" style="width:${loadStatus.progress}%"></span></div>
       </section>
     </div>
@@ -1690,8 +1695,8 @@ function renderRecoveryGuidanceBanner(guidance, options) {
         </div>
         <p>${escapeHtml(guidance.detail)}</p>
         <div class="kc-command-banner-actions">
-          ${guidance.nextCommand ? `<code class="kc-command-chip">${escapeHtml(guidance.nextCommand)}</code>` : ""}
-          ${guidance.followUpCommand ? `<code class="kc-command-chip">${escapeHtml(guidance.followUpCommand)}</code>` : ""}
+          ${guidance.nextCommand ? `<code class="kc-command-chip">${escapeHtml(formatCliCommand(guidance.nextCommand, currentTargetRoot))}</code>` : ""}
+          ${guidance.followUpCommand ? `<code class="kc-command-chip">${escapeHtml(formatCliCommand(guidance.followUpCommand, currentTargetRoot))}</code>` : ""}
           ${options.actionLabel ? `<button class="kc-secondary-button" type="button" data-reload-state>${escapeHtml(options.actionLabel)}</button>` : ""}
         </div>
       </section>
@@ -2128,6 +2133,7 @@ function buildUiRenderHelpers() {
         escapeAttribute,
         iconSvg,
         iconLabel,
+        formatCliCommand,
         renderHeaderBadge,
         renderHeaderMeta,
         renderPanelHeader,
@@ -2183,11 +2189,23 @@ function renderOverviewView(state) {
     const readiness = deriveReadinessSummary(state);
     const repoRecoveryGuidance = buildRepoRecoveryGuidance(state);
     const primaryAction = kc.nextActions.actions[0] ?? null;
+    const primaryActionCommand = formatCliCommand(primaryAction?.command, state.targetRoot);
+    const recommendedNextCommand = primaryActionCommand || formatCliCommand(kc.executionPlan.nextCommands[0], state.targetRoot) || "No next command is currently recorded.";
     const currentFocus = getPanelValue(state.continuity, "Current focus");
     const activeSpecialist = state.specialists.activeProfile?.name ?? state.specialists.activeSpecialist;
     const selectedTask = kc.contextView.task ?? "No prepared task";
     const compatibleMcpCount = state.mcpPacks.compatibleCapabilities.length;
     const learnedFiles = kc.feedback.topBoostedFiles.slice(0, 3).map((entry) => entry.file);
+    const terminalHelpEntries = buildTerminalHelpEntries({
+        targetRoot: state.targetRoot,
+        repoMode: state.repoState.mode
+    });
+    const explainSelectionEntries = buildExplainSelectionEntries(kc.fileAnalysis.selected);
+    const explainCommandEntries = buildExplainCommandEntries({
+        targetRoot: state.targetRoot,
+        recoveryGuidance: repoRecoveryGuidance,
+        executionPlan: kc.executionPlan
+    });
     return `
     <div class="kc-view-shell">
       <section class="kc-panel kc-panel-primary">
@@ -2200,7 +2218,7 @@ function renderOverviewView(state) {
           <p>${escapeHtml(primaryAction?.reason ?? (kc.nextActions.summary || state.repoState.detail))}</p>
         </div>
         <div class="kc-primary-footer">
-          ${primaryAction?.command ? `<code class="kc-command-chip">${escapeHtml(primaryAction.command)}</code>` : ""}
+          ${primaryActionCommand ? `<code class="kc-command-chip">${escapeHtml(primaryActionCommand)}</code>` : ""}
           <span>${escapeHtml(currentFocus)}</span>
         </div>
       </section>
@@ -2222,8 +2240,8 @@ function renderOverviewView(state) {
               ${renderNoteRow("Readiness", readiness.label, readiness.detail)}
               ${renderNoteRow("Current state", state.repoState.title, state.repoState.detail)}
               ${renderNoteRow("Blocking issue", decision.blockingIssue, decision.systemHealth === "blocked" ? "Resolve this before trusting execution." : "No hard blocker is currently active.")}
-              ${renderNoteRow("Recommended next action", decision.nextAction, primaryAction?.command ?? kc.executionPlan.nextCommands[0] ?? "No next command is currently recorded.")}
-              ${repoRecoveryGuidance ? renderNoteRow("Do this now", repoRecoveryGuidance.title, repoRecoveryGuidance.nextCommand ?? repoRecoveryGuidance.detail) : ""}
+              ${renderNoteRow("Recommended next action", decision.nextAction, recommendedNextCommand)}
+              ${repoRecoveryGuidance ? renderNoteRow("Do this now", repoRecoveryGuidance.title, repoRecoveryGuidance.nextCommand ? formatCliCommand(repoRecoveryGuidance.nextCommand, state.targetRoot) : repoRecoveryGuidance.detail) : ""}
             </div>
           </section>
           <section class="kc-subpanel">
@@ -2231,6 +2249,37 @@ function renderOverviewView(state) {
               ${renderNoteRow("Execution safety", decision.executionSafety, decision.executionSafety === "ready" ? "Execution is safe to continue." : decision.executionSafety === "guarded" ? "Context or validation signals suggest caution." : "Wait for hydration or clear blockers first.")}
               ${renderNoteRow("Recent change", decision.lastChangedAt, kc.runtimeLifecycle.recentEvents[0]?.summary ?? "No recent lifecycle event is recorded.")}
               ${renderNoteRow("State trust", "repo-local", "Repo state and .agent artifacts remain authoritative. Local UI-only edits do not replace repo truth.")}
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <div class="kc-two-column">
+        <section class="kc-panel">
+          ${renderPanelHeader("Explain This Selection", "Low-latency parity with kc explain using the already-loaded repo state, file reasons, and dependency chains.")}
+          ${explainSelectionEntries.length > 0
+        ? `<div class="kc-stack-list">${explainSelectionEntries.map((entry) => renderNoteRow(entry.title, entry.metric, entry.note)).join("")}</div>`
+        : renderEmptyState("No selected-file reasoning is available yet. Run kc prepare to build a bounded working set first.")}
+        </section>
+        <section class="kc-panel">
+          ${renderPanelHeader("Terminal Recovery", "Exact commands to run next in Terminal, grounded in the current repo state instead of a second explain round-trip.")}
+          ${explainCommandEntries.length > 0
+        ? `<div class="kc-stack-list">${explainCommandEntries.map((entry) => renderNoteRow(entry.command, entry.label, entry.detail)).join("")}</div>`
+        : renderEmptyState("No repo-scoped recovery commands are recorded yet.")}
+        </section>
+      </div>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("Terminal Help", "The same command surface you would reach for from kc help, with repo-scoped commands already pinned to the active repo.")}
+        <div class="kc-two-column">
+          <section class="kc-subpanel">
+            <div class="kc-stack-list">
+              ${terminalHelpEntries.slice(0, 3).map((entry) => renderNoteRow(entry.command, entry.label, entry.detail)).join("")}
+            </div>
+          </section>
+          <section class="kc-subpanel">
+            <div class="kc-stack-list">
+              ${terminalHelpEntries.slice(3).map((entry) => renderNoteRow(entry.command, entry.label, entry.detail)).join("")}
             </div>
           </section>
         </div>
@@ -3364,6 +3413,7 @@ function renderExecutionPlanPanel(state) {
         helpers: {
             escapeHtml,
             escapeAttribute,
+            formatCliCommand,
             renderPanelHeader,
             renderInlineBadge,
             renderNoteRow,

@@ -63,6 +63,24 @@ export interface MachineHeroSummary {
   nextFixCommand: string;
 }
 
+export interface TerminalHelpEntry {
+  command: string;
+  label: string;
+  detail: string;
+}
+
+export interface ExplainSelectionEntry {
+  title: string;
+  metric: string;
+  note: string;
+}
+
+export interface ExplainCommandEntry {
+  command: string;
+  label: string;
+  detail: string;
+}
+
 export type MachineAdvisorySectionName =
   | "inventory"
   | "mcpInventory"
@@ -313,6 +331,7 @@ export type UiCommandName =
   | "guide"
   | "next"
   | "validate"
+  | "sync"
   | "retry"
   | "resume"
   | "status"
@@ -398,6 +417,7 @@ export interface RenderHelperSet {
   escapeAttribute(value: string): string;
   iconSvg(name: string): string;
   iconLabel(icon: string, label: string): string;
+  formatCliCommand(command: string | null | undefined, targetRoot?: string | null): string;
   renderHeaderBadge(
     label: string,
     tone: RepoControlMode | "critical" | "high" | "normal" | "low" | "neutral" | "success" | "warn" | "medium"
@@ -501,7 +521,7 @@ export interface ExecutionPlanPanelRenderContext {
   failureGuidance: RecoveryGuidance | null;
   helpers: Pick<
     RenderHelperSet,
-    "escapeHtml" | "escapeAttribute" | "renderPanelHeader" | "renderInlineBadge" | "renderNoteRow" | "renderEmptyState" | "renderHeaderBadge"
+    "escapeHtml" | "escapeAttribute" | "formatCliCommand" | "renderPanelHeader" | "renderInlineBadge" | "renderNoteRow" | "renderEmptyState" | "renderHeaderBadge"
   >;
 }
 

@@ -674,6 +674,19 @@ fn build_allowlisted_cli_args(
             }
             command.to_string()
         }
+        "sync" => {
+            cli_args.push(String::from("sync"));
+            if args.iter().any(|arg| arg == "--dry-run") {
+                cli_args.push(String::from("--dry-run"));
+            }
+            if args.iter().any(|arg| arg == "--diff-summary") {
+                cli_args.push(String::from("--diff-summary"));
+            }
+            if args.iter().any(|arg| arg == "--backup") {
+                cli_args.push(String::from("--backup"));
+            }
+            String::from("sync")
+        }
         "validate" => {
             cli_args.push(String::from("validate"));
             if let Some(task) = args.first().filter(|value| !value.trim().is_empty() && *value != "--json") {

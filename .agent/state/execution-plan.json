@@ -1,10 +1,15 @@
 {
   "artifactType": "kiwi-control/execution-plan",
   "version": 2,
-  "task": null,
-  "intent": null,
+  "task": "Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+  "intent": {
+    "type": "external-contract",
+    "scope": "application",
+    "expectedOutcome": "Source files in the selected scope are modified and the intended behavior is achieved.",
+    "confidenceAction": "guarded"
+  },
   "hierarchy": {
-    "goal": null,
+    "goal": "Establish the repo-local Shrey Junior contract and start from repo-aware state.",
     "subtasks": [
       {
         "id": "scope",
@@ -31,17 +36,17 @@
       }
     ]
   },
-  "state": "idle",
+  "state": "planning",
   "currentStepIndex": 0,
   "confidence": null,
   "risk": "low",
   "blocked": false,
-  "summary": "idle: Prepare bounded context.",
+  "summary": "planning: Prepare bounded context for \"Establish the repo-local Shrey Junior contract and start from repo-aware state.\".",
   "steps": [
     {
       "id": "prepare",
       "description": "Prepare bounded context",
-      "command": "kiwi-control prepare \"describe your task\"",
+      "command": "kiwi-control prepare \"Establish the repo-local Shrey Junior contract and start from repo-aware state.\"",
       "expectedOutput": "Prepared scope, instructions, token state, and context snapshot are ready.",
       "expectedOutcome": {
         "expectedFiles": [],
@@ -68,7 +73,7 @@
     {
       "id": "execute",
       "description": "Modify the selected files",
-      "command": "kiwi-control run \"describe your task\"",
+      "command": "kiwi-control run \"Establish the repo-local Shrey Junior contract and start from repo-aware state.\"",
       "expectedOutput": "Run packets or equivalent execution artifacts are ready.",
       "expectedOutcome": {
         "expectedFiles": [],
@@ -94,7 +99,7 @@
     {
       "id": "validate",
       "description": "Validate the task outcome",
-      "command": "kiwi-control validate \"describe your task\"",
+      "command": "kiwi-control validate \"Establish the repo-local Shrey Junior contract and start from repo-aware state.\"",
       "expectedOutput": "Final validation confirms scope and outcome correctness.",
       "expectedOutcome": {
         "expectedFiles": [],
@@ -126,7 +131,7 @@
       "expectedOutcome": {
         "expectedFiles": [],
         "expectedChanges": [
-          "Task outcome remains inside the selected scope."
+          "Source files in the selected scope are modified and the intended behavior is achieved."
         ]
       },
       "validation": "Checkpointing is allowed only after validation passes.",
@@ -146,12 +151,12 @@
     {
       "id": "handoff",
       "description": "Handoff the work",
-      "command": "kiwi-control handoff --to qa-specialist",
+      "command": "kiwi-control handoff --to fullstack-specialist",
       "expectedOutput": "Handoff artifacts are written for the next specialist/tool.",
       "expectedOutcome": {
         "expectedFiles": [],
         "expectedChanges": [
-          "Task outcome remains inside the selected scope."
+          "Source files in the selected scope are modified and the intended behavior is achieved."
         ]
       },
       "validation": "Handoff should happen after checkpoint captures validated progress.",
@@ -170,16 +175,16 @@
     }
   ],
   "nextCommands": [
-    "kiwi-control prepare \"describe your task\"",
-    "kiwi-control run \"describe your task\"",
-    "kiwi-control validate \"describe your task\""
+    "kiwi-control prepare \"Establish the repo-local Shrey Junior contract and start from repo-aware state.\"",
+    "kiwi-control run \"Establish the repo-local Shrey Junior contract and start from repo-aware state.\"",
+    "kiwi-control validate \"Establish the repo-local Shrey Junior contract and start from repo-aware state.\""
   ],
   "lastError": null,
   "contextSnapshot": {
     "selectedFiles": [],
     "selectedModuleGroups": [],
     "confidence": null,
-    "contextTreePath": null,
+    "contextTreePath": ".agent/context/context-tree.json",
     "dependencyChains": {},
     "forwardDependencies": [],
     "reverseDependencies": []
@@ -192,6 +197,14 @@
     {
       "id": "syntax",
       "description": "Syntax and shape validation for the selected scope."
+    },
+    {
+      "id": "behavioral",
+      "description": "Behavioral validation for the intended task outcome."
+    },
+    {
+      "id": "regression",
+      "description": "Regression check against adjacent selected scope and module groups."
     }
   ],
   "partialResults": [],
@@ -203,5 +216,5 @@
     "averageTokenCount": 0,
     "recentEntries": []
   },
-  "updatedAt": "2026-04-06T15:07:32.885Z"
+  "updatedAt": "2026-04-06T16:13:49.641Z"
 }

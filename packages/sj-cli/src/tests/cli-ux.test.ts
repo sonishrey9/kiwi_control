@@ -154,6 +154,28 @@ test("inside-folder workflow uses the current working directory by default", asy
   assert.match(guideResult.stdout, /impact preview:/);
 });
 
+test("sync dry-run works from inside the repo folder without requiring --target", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-cli-sync-inside-folder-"));
+  const repoDir = path.join(tempDir, "repo");
+  await fs.mkdir(repoDir, { recursive: true });
+  await fs.writeFile(path.join(repoDir, "package.json"), '{\n  "name": "inside-folder-sync-repo"\n}\n', "utf8");
+
+  const result = runCliInCwd(["sync", "--dry-run", "--diff-summary"], repoDir);
+  assert.equal(result.code, 0);
+  assert.match(result.stdout, /created: \.agent\/project\.yaml|updated: \.agent\/project\.yaml|unchanged: \.agent\/project\.yaml/);
+});
+
+test("doctor points missing repo-local state at a target-aware sync command", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-cli-doctor-sync-"));
+  const repoDir = path.join(tempDir, "repo");
+  await fs.mkdir(repoDir, { recursive: true });
+  await fs.writeFile(path.join(repoDir, "package.json"), '{\n  "name": "doctor-sync-repo"\n}\n', "utf8");
+
+  const result = runCli(["doctor", "--target", repoDir]);
+  assert.equal([0, 1].includes(result.code), true);
+  assert.match(result.stdout, new RegExp(`fix command: kiwi-control sync --target \"${repoDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\" --dry-run --diff-summary`));
+});
+
 test("status records an out-of-scope completion failure once and points back to prepare", async () => {
   const repoRootPath = repoRoot();
   const config = await loadCanonicalConfig(repoRootPath);

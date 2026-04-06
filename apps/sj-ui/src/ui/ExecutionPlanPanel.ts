@@ -2,7 +2,7 @@ import type { ExecutionPlanPanelRenderContext } from "./contracts.js";
 
 export function renderExecutionPlanPanelView(context: ExecutionPlanPanelRenderContext): string {
   const { state, steps, editingPlanStepId, editingPlanDraft, focusedItem, commandState, failureGuidance, helpers } = context;
-  const { escapeHtml, escapeAttribute, renderPanelHeader, renderInlineBadge, renderNoteRow, renderEmptyState, renderHeaderBadge } = helpers;
+  const { escapeHtml, escapeAttribute, formatCliCommand, renderPanelHeader, renderInlineBadge, renderNoteRow, renderEmptyState, renderHeaderBadge } = helpers;
   const plan = state.kiwiControl?.executionPlan;
   if (!plan) {
     return `
@@ -25,8 +25,8 @@ export function renderExecutionPlanPanelView(context: ExecutionPlanPanelRenderCo
       ${failureGuidance
         ? `<div class="kc-divider"></div><div class="kc-stack-list">
             ${renderNoteRow("Why it stopped", failureGuidance.title, failureGuidance.detail)}
-            ${renderNoteRow("Do this now", failureGuidance.nextCommand ?? "No fix command recorded", "Run this before continuing.")}
-            ${renderNoteRow("Then retry", failureGuidance.followUpCommand ?? "No retry command recorded", "Use this after the blocking issue is cleared.")}
+            ${renderNoteRow("Do this now", failureGuidance.nextCommand ? formatCliCommand(failureGuidance.nextCommand, state.targetRoot) : "No fix command recorded", "Run this before continuing.")}
+            ${renderNoteRow("Then retry", failureGuidance.followUpCommand ? formatCliCommand(failureGuidance.followUpCommand, state.targetRoot) : "No retry command recorded", "Use this after the blocking issue is cleared.")}
           </div>`
         : ""}
       ${steps.length > 0

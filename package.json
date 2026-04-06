@@ -12,6 +12,11 @@
   "scripts": {
     "build": "npm run build -w @shrey-junior/sj-core && npm run build -w shrey-junior && npm run build -w @shrey-junior/sj-ui",
     "test": "npm run test -w shrey-junior",
+    "test:ui": "npm run test -w @shrey-junior/sj-ui",
+    "test:core:features": "bash scripts/test-core-features.sh",
+    "test:cli:features": "bash scripts/test-cli-features.sh",
+    "test:desktop:features": "bash scripts/test-desktop-features.sh",
+    "test:product:features": "bash scripts/test-product-features.sh",
     "cli": "node scripts/run-cli.mjs",
     "audit": "npm run build && node packages/sj-cli/dist/cli.js audit",
     "check": "npm run build && node packages/sj-cli/dist/cli.js check",

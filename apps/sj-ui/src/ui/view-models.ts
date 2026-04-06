@@ -6,7 +6,6 @@ import type {
   FocusedItem,
   InspectorRenderContext,
   MachineHeroSummary,
-  RecoveryGuidance,
   UiMode
 } from "./contracts.js";
 

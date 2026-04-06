@@ -25,6 +25,7 @@ export function renderTopBarView(context: TopBarRenderContext): string {
     escapeHtml,
     escapeAttribute,
     iconSvg,
+    formatCliCommand,
     renderHeaderBadge,
     renderHeaderMeta
   } = helpers;
@@ -99,7 +100,7 @@ export function renderTopBarView(context: TopBarRenderContext): string {
           ${composerConstraint
             ? `<div class="kc-action-hint ${composerConstraint.blocked ? "is-blocked" : ""}">
                 <strong>${escapeHtml(composerConstraint.reason)}</strong>
-                ${composerConstraint.nextCommand ? `<code class="kc-command-chip">${escapeHtml(composerConstraint.nextCommand)}</code>` : ""}
+                ${composerConstraint.nextCommand ? `<code class="kc-command-chip">${escapeHtml(formatCliCommand(composerConstraint.nextCommand, currentTargetRoot))}</code>` : ""}
               </div>`
             : ""}
         `
@@ -115,7 +116,7 @@ export function renderTopBarView(context: TopBarRenderContext): string {
             </span>
             <strong>${escapeHtml(loadStatus.detail)}</strong>
           </div>
-          ${loadStatus.nextCommand ? `<div class="kc-action-hint is-blocked"><code class="kc-command-chip">${escapeHtml(loadStatus.nextCommand)}</code></div>` : ""}
+          ${loadStatus.nextCommand ? `<div class="kc-action-hint is-blocked"><code class="kc-command-chip">${escapeHtml(formatCliCommand(loadStatus.nextCommand, currentTargetRoot))}</code></div>` : ""}
           <div class="kc-load-progress">
             <span class="kc-load-progress-fill" style="width:${loadStatus.progress}%"></span>
           </div>
