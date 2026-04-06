@@ -49,7 +49,8 @@ async function main(): Promise<void> {
         ...(profileName ? { profileName } : {}),
         machineAdvisoryOptions: {
           fastMode
-        }
+        },
+        readOnly: true
       });
       process.stdout.write(`${JSON.stringify(state, null, 2)}\n`);
       return;

@@ -13,7 +13,9 @@ export async function runStatus(options: StatusOptions): Promise<number> {
   const controlState = await buildRepoControlState({
     repoRoot: options.repoRoot,
     targetRoot: options.targetRoot,
-    ...(options.profileName ? { profileName: options.profileName } : {})
+    ...(options.profileName ? { profileName: options.profileName } : {}),
+    machineAdvisoryOptions: { fastMode: true },
+    readOnly: true
   });
 
   if (options.json) {

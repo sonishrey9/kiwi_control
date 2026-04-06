@@ -11,6 +11,7 @@ import { loadExecutionLog } from "@shrey-junior/sj-core/core/execution-log.js";
 import { bootstrapTarget } from "@shrey-junior/sj-core/core/bootstrap.js";
 import { buildRepoControlState } from "@shrey-junior/sj-core/core/ui-state.js";
 import { failWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
+import { runGuide } from "../commands/guide.js";
 import { runStatus } from "../commands/status.js";
 
 function repoRoot(): string {
@@ -82,6 +83,99 @@ test("guide --json prints machine-clean json without spinner noise", () => {
   assert.equal(result.code, 0);
   assert.doesNotMatch(result.stdout, /Guide ready|✔|\u001b\[/);
   assert.doesNotThrow(() => JSON.parse(result.stdout));
+});
+
+test("status --json stays read-only and defers heavy machine advisory work", async () => {
+  const repoRootPath = repoRoot();
+  const config = await loadCanonicalConfig(repoRootPath);
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-cli-status-readonly-"));
+  const target = path.join(tempDir, "portable-repo");
+  const machineHome = path.join(tempDir, "machine-home");
+  await fs.mkdir(target, { recursive: true });
+  await fs.mkdir(machineHome, { recursive: true });
+  await fs.writeFile(path.join(target, "package.json"), '{\n  "name": "portable-repo"\n}\n', "utf8");
+
+  await bootstrapTarget(
+    {
+      repoRoot: repoRootPath,
+      targetRoot: target
+    },
+    config
+  );
+
+  const previousMachineHome = process.env.KIWI_MACHINE_HOME;
+  process.env.KIWI_MACHINE_HOME = machineHome;
+
+  try {
+    const logs: string[] = [];
+    const exitCode = await runStatus({
+      repoRoot: repoRootPath,
+      targetRoot: target,
+      json: true,
+      logger: {
+        info(message: string) {
+          logs.push(message);
+        },
+        warn() {},
+        error() {}
+      } as never
+    });
+
+    assert.equal(exitCode, 0);
+    const payload = JSON.parse(logs.join("\n")) as {
+      machineAdvisory: { note: string };
+    };
+    assert.match(payload.machineAdvisory.note, /fast mode/i);
+
+    for (const relativePath of [
+      ".agent/state/decision-logic.json",
+      ".agent/state/execution-plan.json",
+      ".agent/state/repo-control-snapshot.json"
+    ]) {
+      await assert.rejects(fs.access(path.join(target, relativePath)));
+    }
+  } finally {
+    if (previousMachineHome === undefined) {
+      delete process.env.KIWI_MACHINE_HOME;
+    } else {
+      process.env.KIWI_MACHINE_HOME = previousMachineHome;
+    }
+  }
+});
+
+test("guide stays read-only and does not persist an execution plan", async () => {
+  const repoRootPath = repoRoot();
+  const config = await loadCanonicalConfig(repoRootPath);
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-cli-guide-readonly-"));
+  const target = path.join(tempDir, "portable-repo");
+  await fs.mkdir(target, { recursive: true });
+  await fs.writeFile(path.join(target, "package.json"), '{\n  "name": "portable-repo"\n}\n', "utf8");
+
+  await bootstrapTarget(
+    {
+      repoRoot: repoRootPath,
+      targetRoot: target
+    },
+    config
+  );
+
+  const logs: string[] = [];
+  const exitCode = await runGuide({
+    repoRoot: repoRootPath,
+    targetRoot: target,
+    json: true,
+    logger: {
+      info(message: string) {
+        logs.push(message);
+      },
+      warn() {},
+      error() {}
+    } as never
+  });
+
+  assert.equal(exitCode, 0);
+  assert.doesNotThrow(() => JSON.parse(logs.join("\n")));
+  await assert.rejects(fs.access(path.join(target, ".agent", "state", "execution-plan.json")));
 });
 
 test("guide rejects stray positionals and hints when target path was likely unquoted", () => {
@@ -310,7 +404,7 @@ test("validate prints a fix-first recovery command when prepared scope drift blo
   assert.match(result.stdout, /kiwi-control validate "update README docs"/);
 });
 
-test("status records an out-of-scope completion failure once and points back to prepare", async () => {
+test("status surfaces an out-of-scope recovery path without recording execution entries", async () => {
   const repoRootPath = repoRoot();
   const config = await loadCanonicalConfig(repoRootPath);
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-cli-scope-failure-"));
@@ -376,11 +470,7 @@ test("status records an out-of-scope completion failure once and points back to 
   assert.doesNotMatch(logs.join("\n"), /Continue the active repo task/);
 
   const executionLog = await loadExecutionLog(repoDir);
-  assert.equal(executionLog.entries.length, 1);
-  assert.equal(executionLog.entries[0]?.success, false);
-  assert.deepEqual(executionLog.entries[0]?.filesTouched, ["app.ts"]);
-  assert.deepEqual(executionLog.entries[0]?.outOfScopeFiles, ["app.ts"]);
-  assert.equal(executionLog.entries[0]?.completionSource, "repo-control");
+  assert.equal(executionLog.entries.length, 0);
 
   const secondLogs: string[] = [];
   const secondExitCode = await runStatus({
@@ -399,10 +489,10 @@ test("status records an out-of-scope completion failure once and points back to 
   assert.match(secondLogs.join("\n"), /Prepare bounded context/);
 
   const executionLogAfterRepeat = await loadExecutionLog(repoDir);
-  assert.equal(executionLogAfterRepeat.entries.length, 1);
+  assert.equal(executionLogAfterRepeat.entries.length, 0);
 });
 
-test("status records a successful completion when touched files stay inside the prepared scope", async () => {
+test("status stays read-only even when touched files remain inside the prepared scope", async () => {
   const repoRootPath = repoRoot();
   const config = await loadCanonicalConfig(repoRootPath);
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-cli-scope-success-"));
@@ -465,10 +555,7 @@ test("status records a successful completion when touched files stay inside the 
   assert.doesNotMatch(logs.join("\n"), /Refresh prepared scope/);
 
   const executionLog = await loadExecutionLog(repoDir);
-  assert.equal(executionLog.entries.length, 1);
-  assert.equal(executionLog.entries[0]?.success, true);
-  assert.deepEqual(executionLog.entries[0]?.filesTouched, ["README.md"]);
-  assert.deepEqual(executionLog.entries[0]?.outOfScopeFiles ?? [], []);
+  assert.equal(executionLog.entries.length, 0);
 });
 
 test("status exposes a compact context tree and the repo state keeps docs branches expanded", async () => {

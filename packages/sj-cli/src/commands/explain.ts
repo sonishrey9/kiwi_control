@@ -13,7 +13,7 @@ export interface ExplainOptions {
 }
 
 export async function runExplain(options: ExplainOptions): Promise<number> {
-  const plan = await syncExecutionPlan(options.targetRoot);
+  const plan = await syncExecutionPlan(options.targetRoot, { persist: false });
   const tracePath = path.join(options.targetRoot, ".agent", "state", "context-trace.json");
   const trace = await loadTrace(tracePath);
   const payload = {

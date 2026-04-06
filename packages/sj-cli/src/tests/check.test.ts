@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { promises as fs } from "node:fs";
@@ -7,6 +8,17 @@ import { fileURLToPath } from "node:url";
 import { bootstrapTarget } from "@shrey-junior/sj-core/core/bootstrap.js";
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
 import { runCheck } from "../commands/check.js";
+
+test("repo contract verifier script is executable in the source repo", () => {
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
+  const result = spawnSync("bash", [path.join(repoRoot, ".agent", "scripts", "verify-contract.sh")], {
+    cwd: repoRoot,
+    encoding: "utf8"
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /portable repo contract verification passed/);
+});
 
 test("check fails for initialized repos missing required contract files", async () => {
   const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");

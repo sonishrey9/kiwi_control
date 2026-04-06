@@ -10,7 +10,7 @@ export interface NextOptions {
 }
 
 export async function runNext(options: NextOptions): Promise<number> {
-  const plan = await syncExecutionPlan(options.targetRoot);
+  const plan = await syncExecutionPlan(options.targetRoot, { persist: false });
   const step = getCurrentExecutionStep(plan);
   const payload = {
     state: plan.state,

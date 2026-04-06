@@ -12,7 +12,7 @@ export interface TraceOptions {
 
 export async function runTrace(options: TraceOptions): Promise<number> {
   const [plan, workflow] = await Promise.all([
-    syncExecutionPlan(options.targetRoot),
+    syncExecutionPlan(options.targetRoot, { persist: false }),
     loadWorkflowState(options.targetRoot)
   ]);
   const payload = {

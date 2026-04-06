@@ -14,7 +14,7 @@ export interface GuideOptions {
 export async function runGuide(options: GuideOptions): Promise<number> {
   const spinner = options.json ? null : await createSpinner(`Loading guide state for ${options.targetRoot}`);
   const [plan, preparedScope] = await Promise.all([
-    syncExecutionPlan(options.targetRoot),
+    syncExecutionPlan(options.targetRoot, { persist: false }),
     loadPreparedScope(options.targetRoot)
   ]);
   spinner?.succeed(`Guide ready for ${options.targetRoot}`);

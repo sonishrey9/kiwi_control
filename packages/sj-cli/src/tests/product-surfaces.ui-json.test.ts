@@ -183,6 +183,14 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(Array.isArray(payload.kiwiControl.executionPlan.impactPreview.likelyFiles), true);
   assert.equal(Array.isArray(payload.kiwiControl.executionPlan.verificationLayers), true);
   assert.equal(Array.isArray(payload.kiwiControl.executionPlan.partialResults), true);
+
+  for (const relativePath of [
+    ".agent/state/decision-logic.json",
+    ".agent/state/execution-plan.json",
+    ".agent/state/repo-control-snapshot.json"
+  ]) {
+    await assert.rejects(fs.access(path.join(target, relativePath)));
+  }
 });
 
 test("ui command exposes blocked execution-plan details in json mode when workflow execution is blocked", async () => {

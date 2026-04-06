@@ -496,6 +496,7 @@ export async function buildRepoControlState(options: {
   profileName?: string;
   machineAdvisoryOptions?: Parameters<typeof loadMachineAdvisory>[0];
   preferSnapshot?: boolean;
+  readOnly?: boolean;
 }): Promise<RepoControlState> {
   if (options.preferSnapshot) {
     const snapshot = await loadWarmRepoControlSnapshot(options.targetRoot);
@@ -510,9 +511,12 @@ export async function buildRepoControlState(options: {
     repoRoot: options.repoRoot,
     targetRoot: options.targetRoot,
     ...(options.machineAdvisoryOptions ? { machineAdvisoryOptions: options.machineAdvisoryOptions } : {}),
-    ...(options.profileName ? { profileName: options.profileName } : {})
+    ...(options.profileName ? { profileName: options.profileName } : {}),
+    ...(options.readOnly ? { readOnly: true } : {})
   });
-  await persistRepoControlSnapshot(options.targetRoot, state).catch(() => null);
+  if (!options.readOnly) {
+    await persistRepoControlSnapshot(options.targetRoot, state).catch(() => null);
+  }
   return state;
 }
 
@@ -522,6 +526,7 @@ export async function buildRepoControlStateFromConfig(options: {
   targetRoot: string;
   profileName?: string;
   machineAdvisoryOptions?: Parameters<typeof loadMachineAdvisory>[0];
+  readOnly?: boolean;
 }): Promise<RepoControlState> {
   const generatedAt = new Date().toISOString();
   const [
@@ -753,7 +758,9 @@ export async function buildRepoControlStateFromConfig(options: {
   });
   const repoOverview = summarizeRepoOverview();
   const ecosystem = buildEcosystemCatalog();
-  const kiwiControl = await loadKiwiControlState(options.targetRoot, validationIssues);
+  const kiwiControl = await loadKiwiControlState(options.targetRoot, validationIssues, {
+    readOnly: options.readOnly === true
+  });
   const machineGuidanceContext = buildMachineGuidanceContext({
     taskType: deriveMachineTaskType(kiwiControl),
     workflowStep: kiwiControl.workflow.currentStepId,
@@ -935,7 +942,8 @@ async function readJsonIfPresent<T>(filePath: string): Promise<T | null> {
 
 async function loadKiwiControlState(
   targetRoot: string,
-  validationIssues: ValidationIssue[]
+  validationIssues: ValidationIssue[],
+  options: { readOnly?: boolean } = {}
 ): Promise<KiwiControlState> {
   const contextSelectionPath = path.join(targetRoot, ".agent", "state", "context-selection.json");
   const contextTracePath = path.join(targetRoot, ".agent", "state", "context-trace.json");
@@ -1276,16 +1284,20 @@ async function loadKiwiControlState(
     instructionsPath: hasInstructions ? instructionsPath : null
   };
 
-  await recordPreparedScopeCompletion(targetRoot, {
-    completionSource: "repo-control",
-    confidence: contextView.confidence,
-    tokensUsed: tokenAnalytics.selectedTokens,
-    tool: PRODUCT_METADATA.cli.primaryCommand
-  }).catch(() => null);
+  if (!options.readOnly) {
+    await recordPreparedScopeCompletion(targetRoot, {
+      completionSource: "repo-control",
+      confidence: contextView.confidence,
+      tokensUsed: tokenAnalytics.selectedTokens,
+      tool: PRODUCT_METADATA.cli.primaryCommand
+    }).catch(() => null);
+  }
 
   // Load decision engine, feedback, and execution data in parallel
   const [decisionOutput, feedbackSummary, executionSummary] = await Promise.all([
-    nextActionEngine(targetRoot, validationIssues).catch(() => ({
+    nextActionEngine(targetRoot, validationIssues, {
+      persist: !options.readOnly
+    }).catch(() => ({
       nextActions: [],
       summary: "Decision engine unavailable",
       decisionLogic: {
@@ -1369,9 +1381,10 @@ async function loadKiwiControlState(
     whyThisHappened: decisionLogic.summary
   };
 
-  const executionPlan = await syncExecutionPlan(targetRoot, {
+    const executionPlan = await syncExecutionPlan(targetRoot, {
     task: contextView.task ?? workflowState.task,
-    validationIssues
+    validationIssues,
+    persist: !options.readOnly
   }).catch(() => ({
     artifactType: "kiwi-control/execution-plan" as const,
     version: 2,

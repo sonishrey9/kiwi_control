@@ -30,7 +30,8 @@ export interface DecisionLogicState {
 
 export async function nextActionEngine(
   targetRoot: string,
-  validationIssues: ValidationIssue[] = []
+  validationIssues: ValidationIssue[] = [],
+  options: { persist?: boolean } = {}
 ): Promise<DecisionEngineOutput> {
   const agentDir = path.join(targetRoot, ".agent");
   if (!(await pathExists(agentDir))) {
@@ -47,11 +48,15 @@ export async function nextActionEngine(
       `${action.action}: ${action.reason}`,
       ["repo not initialized"],
       ["Initialization is the first priority because no repo-local control plane exists yet."],
-      []
+      [],
+      options.persist !== false
     );
   }
 
-  const plan = await syncExecutionPlan(targetRoot, { validationIssues });
+  const plan = await syncExecutionPlan(targetRoot, {
+    validationIssues,
+    persist: options.persist !== false
+  });
   const nextActions = deriveCompatibilityNextActions(plan);
   const currentStep = getCurrentExecutionStep(plan);
   const summary = nextActions[0]
@@ -74,7 +79,8 @@ export async function nextActionEngine(
       currentStep ? `The active plan step is ${currentStep.id}.` : "There is no active plan step.",
       ...(plan.lastError ? [`A classified plan error exists: ${plan.lastError.errorType}.`] : [])
     ],
-    plan.lastError ? ["Ignored generic continuity hints because a classified plan error is active."] : []
+    plan.lastError ? ["Ignored generic continuity hints because a classified plan error is active."] : [],
+    options.persist !== false
   );
 }
 
@@ -84,7 +90,8 @@ async function finalizeDecisionOutput(
   summary: string,
   inputSignals: string[],
   reasoningChain: string[],
-  ignoredSignals: string[]
+  ignoredSignals: string[],
+  persist: boolean
 ): Promise<DecisionEngineOutput> {
   const topPriority = nextActions[0]?.priority ?? "low";
   const decisionLogic: DecisionLogicState = {
@@ -98,7 +105,9 @@ async function finalizeDecisionOutput(
     ignoredSignals
   };
 
-  await persistDecisionLogic(targetRoot, decisionLogic).catch(() => null);
+  if (persist) {
+    await persistDecisionLogic(targetRoot, decisionLogic).catch(() => null);
+  }
   return { nextActions, summary, decisionLogic };
 }
 

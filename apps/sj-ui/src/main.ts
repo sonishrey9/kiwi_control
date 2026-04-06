@@ -2976,6 +2976,9 @@ function renderState(state: RepoControlState): void {
   workspaceSurfaceElement.classList.toggle("is-log-open", isLogDrawerOpen);
   inspectorElement.classList.toggle("is-hidden", !isInspectorOpen);
   logDrawerElement.classList.toggle("is-hidden", !isLogDrawerOpen);
+  if (!window.__KIWI_BOOT_API__?.mounted) {
+    finalizeInitialRender();
+  }
   reportRenderProbe(state);
 }
 
@@ -5219,7 +5222,7 @@ function buildBridgeUnavailableState(targetRoot: string): RepoControlState {
     },
     machineAdvisory: {
       artifactType: "kiwi-control/machine-advisory",
-      version: 2,
+      version: 3,
       generatedBy: "kiwi-control machine-advisory",
       windowDays: 7,
       updatedAt: "",

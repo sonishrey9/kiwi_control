@@ -1,5 +1,5 @@
-<!-- SHREY-JUNIOR:FILE-START .agent/scripts/verify-contract.sh -->
 #!/usr/bin/env bash
+# SHREY-JUNIOR:FILE-START .agent/scripts/verify-contract.sh
 set -euo pipefail
 
 REPO_ROOT="$(pwd)"
@@ -195,7 +195,7 @@ else
   echo "portable push gate: Kiwi Control CLI unavailable, relying on repo-local artifact checks"
 fi
 
-mapfile -t repo_specific_commands < <(python3 - <<'PY'
+repo_specific_commands_output="$(python3 - <<'PY'
 from pathlib import Path
 
 checks_path = Path(".agent/checks.yaml")
@@ -220,15 +220,15 @@ for command in repo_specific_commands:
     if command:
         print(command)
 PY
-)
+)"
 
-for command in "${repo_specific_commands[@]}"; do
+while IFS= read -r command; do
   if [[ -z "$command" ]]; then
     continue
   fi
   echo "running repo-specific check: $command"
   bash -lc "$command"
-done
+done <<< "$repo_specific_commands_output"
 
 echo "portable repo contract verification passed"
-<!-- SHREY-JUNIOR:FILE-END .agent/scripts/verify-contract.sh -->
+# SHREY-JUNIOR:FILE-END .agent/scripts/verify-contract.sh

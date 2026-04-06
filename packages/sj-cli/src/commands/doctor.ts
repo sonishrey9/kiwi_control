@@ -25,7 +25,7 @@ export async function runDoctor(options: DoctorOptions): Promise<number> {
     config,
     await resolveProfileSelection(options.targetRoot, config)
   );
-  const plan = await syncExecutionPlan(options.targetRoot);
+  const plan = await syncExecutionPlan(options.targetRoot, { persist: false });
   const findings = issues.map((issue) => ({
     level: issue.level,
     message: issue.message,

@@ -39,6 +39,7 @@ async function main() {
   }
 
   const cargoTargetDir = await resolveCargoTargetDir();
+  await killRunningDesktopBundles(cargoTargetDir);
   await fs.rm(cargoTargetDir, { recursive: true, force: true });
 
   const npmExecutable = process.platform === "win32" ? "npm.cmd" : "npm";
@@ -119,4 +120,35 @@ async function syncBundleArtifacts(cargoTargetDir) {
   await fs.mkdir(path.dirname(repoBundleDir), { recursive: true });
   await fs.cp(stagedBundleDir, repoBundleDir, { recursive: true });
   await removeMacMetadataArtifacts(repoBundleDir);
+}
+
+async function killRunningDesktopBundles(cargoTargetDir) {
+  if (process.platform !== "darwin") {
+    return;
+  }
+
+  const stagedExecutable = path.join(
+    cargoTargetDir,
+    "release",
+    "bundle",
+    "macos",
+    "Kiwi Control.app",
+    "Contents",
+    "MacOS",
+    "sj-ui"
+  );
+  const repoExecutable = path.join(
+    repoBundleDir,
+    "macos",
+    "Kiwi Control.app",
+    "Contents",
+    "MacOS",
+    "sj-ui"
+  );
+
+  for (const executablePath of new Set([repoExecutable, stagedExecutable])) {
+    spawnSync("pkill", ["-f", executablePath], { stdio: "ignore" });
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 400));
 }

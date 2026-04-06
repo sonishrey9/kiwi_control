@@ -237,6 +237,7 @@ export async function syncExecutionPlan(
     task?: string | null;
     validationIssues?: ValidationIssue[];
     forceState?: ExecutionEngineState | null;
+    persist?: boolean;
   }
 ): Promise<ExecutionPlanState> {
   const existingPlan = await loadExecutionPlan(targetRoot);
@@ -347,7 +348,9 @@ export async function syncExecutionPlan(
     evalSummary,
     updatedAt: new Date().toISOString()
   };
-  await persistExecutionPlan(targetRoot, plan);
+  if (options?.persist !== false) {
+    await persistExecutionPlan(targetRoot, plan);
+  }
   return plan;
 }
 

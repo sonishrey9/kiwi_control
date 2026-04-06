@@ -79,7 +79,9 @@ export async function runUi(options: UiOptions): Promise<number> {
     const state = await buildRepoControlState({
       repoRoot: options.repoRoot,
       targetRoot: options.targetRoot,
-      ...(options.profileName ? { profileName: options.profileName } : {})
+      ...(options.profileName ? { profileName: options.profileName } : {}),
+      machineAdvisoryOptions: { fastMode: true },
+      readOnly: true
     });
 
     options.logger.info(JSON.stringify(state, null, 2));
