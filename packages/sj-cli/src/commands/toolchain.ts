@@ -70,7 +70,26 @@ export async function runToolchain(options: ToolchainOptions): Promise<number> {
       formatYesNo(layer.copilot)
     ])
   );
-  options.logger.info("Optimization score intentionally omitted. Kiwi reports factual-only machine advisory.");
+
+  printSection(options.logger, "SETUP SUMMARY");
+  options.logger.info(
+    `Installed tools: ${formatInteger(advisory.setupSummary.installedTools.readyCount)}/${formatInteger(advisory.setupSummary.installedTools.totalCount)}`
+  );
+  options.logger.info(
+    `Healthy configs: ${formatInteger(advisory.setupSummary.healthyConfigs.readyCount)}/${formatInteger(advisory.setupSummary.healthyConfigs.totalCount)}`
+  );
+  options.logger.info(
+    `Active token layers: ${advisory.setupSummary.activeTokenLayers.length > 0 ? advisory.setupSummary.activeTokenLayers.join(", ") : "none"}`
+  );
+  options.logger.info(
+    `Runtime readiness: planning=${formatReady(advisory.setupSummary.readyRuntimes.planning)} execution=${formatReady(advisory.setupSummary.readyRuntimes.execution)} assistant=${formatReady(advisory.setupSummary.readyRuntimes.assistant)}`
+  );
+
+  printSection(options.logger, "OPTIMIZATION HEURISTIC");
+  options.logger.info("Heuristic completeness score calculated from inspected machine signals.");
+  options.logger.info(renderOptimizationScore(advisory.optimizationScore.planning));
+  options.logger.info(renderOptimizationScore(advisory.optimizationScore.execution));
+  options.logger.info(renderOptimizationScore(advisory.optimizationScore.assistant));
 
   printSection(options.logger, "SKILLS & PLUGINS");
   options.logger.info(`Claude Code: ${formatInteger(advisory.skillsCount)} agent skills in ~/.agents/skills/`);
@@ -145,6 +164,18 @@ function formatActive(value: boolean): string {
 
 function formatYesNo(value: boolean): string {
   return value ? "yes" : "no";
+}
+
+function formatReady(value: boolean): string {
+  return value ? "ready" : "needs-work";
+}
+
+function renderOptimizationScore(score: MachineAdvisoryState["optimizationScore"]["planning"]): string {
+  return `${capitalize(score.label)} heuristic: ${formatInteger(score.earnedPoints)}/${formatInteger(score.maxPoints)} (${score.score}%)`;
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function buildUsageSummary(advisory: MachineAdvisoryState, source: "claude" | "codex"): string {

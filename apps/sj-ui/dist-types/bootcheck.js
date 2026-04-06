@@ -1,3 +1,4 @@
+import { buildBootRecoveryGuidance } from "./ui/guidance.js";
 function bootOverlay() {
     return document.querySelector("#boot-overlay");
 }
@@ -21,13 +22,17 @@ function renderError(detail) {
     if (!overlay) {
         return;
     }
+    const guidance = buildBootRecoveryGuidance(detail);
     overlay.classList.remove("is-hidden");
     overlay.innerHTML = `
     <div class="kc-boot-fallback">
       <div class="kc-boot-card">
-        <h1>Kiwi Control failed to start</h1>
-        <p>The renderer hit an error before it could mount the UI.</p>
-        <pre>${escapeHtml(detail)}</pre>
+        <h1>${escapeHtml(guidance.title)}</h1>
+        <p>${escapeHtml(guidance.intro)}</p>
+        <ol>
+          ${guidance.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}
+        </ol>
+        <pre>${escapeHtml(guidance.detail)}</pre>
       </div>
     </div>
   `;
@@ -69,4 +74,3 @@ window.setTimeout(() => {
     }
     renderError("Renderer timeout: the main UI bundle did not report a successful mount.");
 }, 3000);
-export {};

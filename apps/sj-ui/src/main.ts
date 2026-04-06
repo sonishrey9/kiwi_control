@@ -610,6 +610,17 @@ type RepoControlState = {
         note: string;
       };
     };
+    optimizationScore: {
+      planning: { label: "planning" | "execution" | "assistant"; score: number; earnedPoints: number; maxPoints: number; activeSignals: string[]; missingSignals: string[] };
+      execution: { label: "planning" | "execution" | "assistant"; score: number; earnedPoints: number; maxPoints: number; activeSignals: string[]; missingSignals: string[] };
+      assistant: { label: "planning" | "execution" | "assistant"; score: number; earnedPoints: number; maxPoints: number; activeSignals: string[]; missingSignals: string[] };
+    };
+    setupSummary: {
+      installedTools: { readyCount: number; totalCount: number };
+      healthyConfigs: { readyCount: number; totalCount: number };
+      activeTokenLayers: string[];
+      readyRuntimes: { planning: boolean; execution: boolean; assistant: boolean };
+    };
     systemHealth: {
       criticalCount: number;
       warningCount: number;
@@ -4216,6 +4227,9 @@ function renderMachineView(state: RepoControlState): string {
         ${renderStatCard("Critical", String(machine.systemHealth.criticalCount), "fix first", machine.systemHealth.criticalCount > 0 ? "critical" : "neutral")}
         ${renderStatCard("Warnings", String(machine.systemHealth.warningCount), "recommended actions", machine.systemHealth.warningCount > 0 ? "warn" : "neutral")}
         ${renderStatCard("Healthy", String(machine.systemHealth.okCount), "healthy checks", "success")}
+        ${renderStatCard("Planning Heuristic", `${machine.optimizationScore.planning.score}%`, `${machine.optimizationScore.planning.earnedPoints}/${machine.optimizationScore.planning.maxPoints} signal points`, "neutral")}
+        ${renderStatCard("Execution Heuristic", `${machine.optimizationScore.execution.score}%`, `${machine.optimizationScore.execution.earnedPoints}/${machine.optimizationScore.execution.maxPoints} signal points`, "neutral")}
+        ${renderStatCard("Assistant Heuristic", `${machine.optimizationScore.assistant.score}%`, `${machine.optimizationScore.assistant.earnedPoints}/${machine.optimizationScore.assistant.maxPoints} signal points`, "neutral")}
         ${renderStatCard("Claude MCPs", String(machine.mcpInventory.claudeTotal), "configured servers", "neutral")}
         ${renderStatCard("Codex MCPs", String(machine.mcpInventory.codexTotal), "configured servers", "neutral")}
         ${renderStatCard("Copilot MCPs", String(machine.mcpInventory.copilotTotal), "configured servers", "neutral")}
@@ -4229,6 +4243,46 @@ function renderMachineView(state: RepoControlState): string {
           ${renderNoteRow("Critical issues", String(machine.systemHealth.criticalCount), machine.systemHealth.criticalCount > 0 ? "Fix these before relying on machine hints." : "No critical machine blockers are currently active.")}
           ${renderNoteRow("Warnings", String(machine.systemHealth.warningCount), machine.systemHealth.warningCount > 0 ? "Recommended improvements are available." : "No active advisory warnings right now.")}
           ${renderNoteRow("Usage window", `${machine.windowDays} days`, machine.usage.codex.available || machine.usage.claude.available ? "Recent machine telemetry is available." : "Token tracking is currently limited.")}
+        </div>
+      </section>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("Setup Summary", "Borrowed from ai-setup-style machine completion checks, but kept repo-local and read-only.")}
+        <div class="kc-two-column">
+          <section class="kc-subpanel">
+            <div class="kc-stack-list">
+              ${renderNoteRow("Installed tools", `${machine.setupSummary.installedTools.readyCount}/${machine.setupSummary.installedTools.totalCount}`, "Machine-local toolchain presence across the tracked inventory.")}
+              ${renderNoteRow("Healthy configs", `${machine.setupSummary.healthyConfigs.readyCount}/${machine.setupSummary.healthyConfigs.totalCount}`, "Validated config and hook surfaces across Claude, Codex, and Copilot.")}
+              ${renderNoteRow("Active token layers", String(machine.setupSummary.activeTokenLayers.length), machine.setupSummary.activeTokenLayers.length > 0 ? machine.setupSummary.activeTokenLayers.join(", ") : "No token-optimization layers are currently active.")}
+            </div>
+          </section>
+          <section class="kc-subpanel">
+            <div class="kc-stack-list">
+              ${renderNoteRow("Planning runtime", machine.setupSummary.readyRuntimes.planning ? "ready" : "needs work", machine.optimizationScore.planning.activeSignals.join(", ") || "No active planning signals detected.")}
+              ${renderNoteRow("Execution runtime", machine.setupSummary.readyRuntimes.execution ? "ready" : "needs work", machine.optimizationScore.execution.activeSignals.join(", ") || "No active execution signals detected.")}
+              ${renderNoteRow("Assistant runtime", machine.setupSummary.readyRuntimes.assistant ? "ready" : "needs work", machine.optimizationScore.assistant.activeSignals.join(", ") || "No active assistant signals detected.")}
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="kc-panel">
+        ${renderPanelHeader("Optimization Heuristic", "Heuristic completeness score calculated from inspected machine signals. This is advisory only and never overrides repo-local Kiwi state.")}
+        <div class="kc-two-column">
+          <section class="kc-subpanel">
+            <div class="kc-stack-list">
+              ${renderNoteRow("Planning", `${machine.optimizationScore.planning.score}%`, `${machine.optimizationScore.planning.earnedPoints}/${machine.optimizationScore.planning.maxPoints} points · active: ${machine.optimizationScore.planning.activeSignals.join(", ") || "none"}`)}
+              ${renderNoteRow("Execution", `${machine.optimizationScore.execution.score}%`, `${machine.optimizationScore.execution.earnedPoints}/${machine.optimizationScore.execution.maxPoints} points · active: ${machine.optimizationScore.execution.activeSignals.join(", ") || "none"}`)}
+              ${renderNoteRow("Assistant", `${machine.optimizationScore.assistant.score}%`, `${machine.optimizationScore.assistant.earnedPoints}/${machine.optimizationScore.assistant.maxPoints} points · active: ${machine.optimizationScore.assistant.activeSignals.join(", ") || "none"}`)}
+            </div>
+          </section>
+          <section class="kc-subpanel">
+            <div class="kc-stack-list">
+              ${renderNoteRow("Planning gaps", String(machine.optimizationScore.planning.missingSignals.length), machine.optimizationScore.planning.missingSignals.join(", ") || "No planning gaps detected.")}
+              ${renderNoteRow("Execution gaps", String(machine.optimizationScore.execution.missingSignals.length), machine.optimizationScore.execution.missingSignals.join(", ") || "No execution gaps detected.")}
+              ${renderNoteRow("Assistant gaps", String(machine.optimizationScore.assistant.missingSignals.length), machine.optimizationScore.assistant.missingSignals.join(", ") || "No assistant gaps detected.")}
+            </div>
+          </section>
         </div>
       </section>
 
@@ -5529,13 +5583,28 @@ function buildBridgeUnavailableState(targetRoot: string): RepoControlState {
           note: "Machine-local advisory is unavailable."
         }
       },
+      optimizationScore: {
+        planning: { label: "planning", score: 0, earnedPoints: 0, maxPoints: 100, activeSignals: [], missingSignals: [] },
+        execution: { label: "execution", score: 0, earnedPoints: 0, maxPoints: 100, activeSignals: [], missingSignals: [] },
+        assistant: { label: "assistant", score: 0, earnedPoints: 0, maxPoints: 100, activeSignals: [], missingSignals: [] }
+      },
+      setupSummary: {
+        installedTools: { readyCount: 0, totalCount: 0 },
+        healthyConfigs: { readyCount: 0, totalCount: 0 },
+        activeTokenLayers: [],
+        readyRuntimes: {
+          planning: false,
+          execution: false,
+          assistant: false
+        }
+      },
       systemHealth: {
         criticalCount: 0,
         warningCount: 0,
         okCount: 0
       },
       guidance: [],
-      note: "Machine-local advisory is unavailable. Optimization score is intentionally omitted."
+      note: "Machine-local advisory is unavailable."
     },
     kiwiControl: EMPTY_KC
   };

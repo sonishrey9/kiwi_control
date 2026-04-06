@@ -99,7 +99,7 @@ test("machine advisory builds fixture-driven machine state from local configs an
   assert.equal(advisory.optimizationLayers.find((layer) => layer.name === "lean-ctx")?.codex, true);
   assert.equal(advisory.optimizationLayers.find((layer) => layer.name === "context-mode")?.codex, false);
   assert.equal(advisory.optimizationLayers.find((layer) => layer.name === "token-efficient rules")?.claude, true);
-  assert.equal(advisory.version, 2);
+  assert.equal(advisory.version, 3);
   assert.equal(advisory.generatedBy, "kiwi-control machine-advisory");
   assert.equal(advisory.windowDays, 7);
   assert.equal(advisory.setupPhases.length, 3);
@@ -111,7 +111,16 @@ test("machine advisory builds fixture-driven machine state from local configs an
   assert.equal(typeof advisory.systemHealth.criticalCount, "number");
   assert.equal(typeof advisory.systemHealth.warningCount, "number");
   assert.equal(typeof advisory.systemHealth.okCount, "number");
+  assert.equal(typeof advisory.optimizationScore.planning.score, "number");
+  assert.equal(typeof advisory.optimizationScore.execution.score, "number");
+  assert.equal(typeof advisory.optimizationScore.assistant.score, "number");
+  assert.equal(Array.isArray(advisory.optimizationScore.planning.activeSignals), true);
+  assert.equal(typeof advisory.setupSummary.installedTools.readyCount, "number");
+  assert.equal(typeof advisory.setupSummary.healthyConfigs.readyCount, "number");
+  assert.equal(Array.isArray(advisory.setupSummary.activeTokenLayers), true);
+  assert.equal(typeof advisory.setupSummary.readyRuntimes.planning, "boolean");
   assert.equal(advisory.guidance.every((entry) => typeof entry.priority === "string" && typeof entry.group === "string" && typeof entry.impact === "string"), true);
+  assert.equal(advisory.guidance.some((entry) => entry.id === "missing-ccusage"), false);
   assert.equal(advisory.usage.claude.available, true);
   assert.equal(advisory.usage.claude.totals.totalCost, 9.2257);
   assert.equal(advisory.usage.codex.available, true);
@@ -333,10 +342,12 @@ test("machine advisory command surfaces expose near-dashboard sections and riche
     assert.match(toolchainLines.join("\n"), /MCP SERVERS/);
     assert.match(toolchainLines.join("\n"), /WHAT AI-SETUP ADDED/);
     assert.match(toolchainLines.join("\n"), /CONFIG HEALTH/);
+    assert.match(toolchainLines.join("\n"), /SETUP SUMMARY/);
+    assert.match(toolchainLines.join("\n"), /OPTIMIZATION HEURISTIC/);
     assert.match(toolchainLines.join("\n"), /TOKEN USAGE/);
     assert.match(toolchainLines.join("\n"), /HEALTH SUMMARY/);
     assert.match(toolchainLines.join("\n"), /GUIDANCE/);
-    assert.match(toolchainLines.join("\n"), /Optimization score intentionally omitted/);
+    assert.match(toolchainLines.join("\n"), /Planning heuristic: /);
 
     const toolchainJsonLines: string[] = [];
     await runToolchain({
@@ -355,10 +366,14 @@ test("machine advisory command surfaces expose near-dashboard sections and riche
       generatedBy: string;
       windowDays: number;
       setupPhases: Array<{ phase: string }>;
+      optimizationScore: { planning: { score: number } };
+      setupSummary: { activeTokenLayers: string[] };
     };
     assert.equal(toolchainJson.generatedBy, "kiwi-control machine-advisory");
     assert.equal(toolchainJson.windowDays, 7);
     assert.equal(Array.isArray(toolchainJson.setupPhases), true);
+    assert.equal(typeof toolchainJson.optimizationScore.planning.score, "number");
+    assert.equal(Array.isArray(toolchainJson.setupSummary.activeTokenLayers), true);
 
     const usageLines: string[] = [];
     const usageExit = await runUsage({

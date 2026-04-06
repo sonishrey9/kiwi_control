@@ -587,7 +587,7 @@ export async function buildRepoControlStateFromConfig(options: {
     loadLatestReconcileReport(options.targetRoot),
     loadMachineAdvisory(options.machineAdvisoryOptions).catch((): MachineAdvisoryState => ({
       artifactType: "kiwi-control/machine-advisory" as const,
-      version: 2 as const,
+      version: 3 as const,
       generatedBy: "kiwi-control machine-advisory",
       windowDays: 7,
       updatedAt: new Date().toISOString(),
@@ -648,13 +648,28 @@ export async function buildRepoControlStateFromConfig(options: {
           note: "Machine advisory unavailable."
         }
       },
+      optimizationScore: {
+        planning: { label: "planning", score: 0, earnedPoints: 0, maxPoints: 100, activeSignals: [], missingSignals: [] },
+        execution: { label: "execution", score: 0, earnedPoints: 0, maxPoints: 100, activeSignals: [], missingSignals: [] },
+        assistant: { label: "assistant", score: 0, earnedPoints: 0, maxPoints: 100, activeSignals: [], missingSignals: [] }
+      },
+      setupSummary: {
+        installedTools: { readyCount: 0, totalCount: 0 },
+        healthyConfigs: { readyCount: 0, totalCount: 0 },
+        activeTokenLayers: [],
+        readyRuntimes: {
+          planning: false,
+          execution: false,
+          assistant: false
+        }
+      },
       systemHealth: {
         criticalCount: 0,
         warningCount: 0,
         okCount: 0
       },
       guidance: [],
-      note: "Machine-local advisory is unavailable. Optimization score is intentionally omitted."
+      note: "Machine-local advisory is unavailable."
     }))
   ]);
   const validationIssues = [

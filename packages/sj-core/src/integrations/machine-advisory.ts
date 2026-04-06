@@ -159,6 +159,38 @@ export interface MachineAdvisorySystemHealth {
   okCount: number;
 }
 
+export interface MachineAdvisoryOptimizationScoreRuntime {
+  label: "planning" | "execution" | "assistant";
+  score: number;
+  earnedPoints: number;
+  maxPoints: number;
+  activeSignals: string[];
+  missingSignals: string[];
+}
+
+export interface MachineAdvisoryOptimizationScore {
+  planning: MachineAdvisoryOptimizationScoreRuntime;
+  execution: MachineAdvisoryOptimizationScoreRuntime;
+  assistant: MachineAdvisoryOptimizationScoreRuntime;
+}
+
+export interface MachineAdvisorySetupSummary {
+  installedTools: {
+    readyCount: number;
+    totalCount: number;
+  };
+  healthyConfigs: {
+    readyCount: number;
+    totalCount: number;
+  };
+  activeTokenLayers: string[];
+  readyRuntimes: {
+    planning: boolean;
+    execution: boolean;
+    assistant: boolean;
+  };
+}
+
 export interface MachineGuidanceContext {
   taskType?: string | null;
   workflowStep?: string | null;
@@ -169,7 +201,7 @@ export interface MachineGuidanceContext {
 
 export interface MachineAdvisoryState {
   artifactType: "kiwi-control/machine-advisory";
-  version: 2;
+  version: 3;
   generatedBy: string;
   windowDays: number;
   updatedAt: string;
@@ -184,6 +216,8 @@ export interface MachineAdvisoryState {
   copilotPlugins: string[];
   usage: MachineAdvisoryUsage;
   systemHealth: MachineAdvisorySystemHealth;
+  optimizationScore: MachineAdvisoryOptimizationScore;
+  setupSummary: MachineAdvisorySetupSummary;
   guidance: MachineAdvisoryGuidance[];
   note: string;
 }
@@ -216,7 +250,7 @@ export async function loadMachineAdvisory(options: MachineAdvisoryBuildOptions =
   if (!options.forceRefresh && await pathExists(cachePath)) {
     try {
       const cached = await readJson<MachineAdvisoryState>(cachePath);
-      if (cached.artifactType === "kiwi-control/machine-advisory" && cached.version === 2) {
+      if (cached.artifactType === "kiwi-control/machine-advisory" && cached.version === 3) {
         const age = now.getTime() - new Date(cached.updatedAt).getTime();
         if (explicitFastMode) {
           return {
@@ -298,10 +332,24 @@ export async function buildMachineAdvisory(options: MachineAdvisoryBuildOptions 
     configHealth: configHealth.data,
     guidance
   });
+  const optimizationScore = buildOptimizationScore({
+    inventory: inventory.data,
+    mcpInventory: mcpInventory.data,
+    optimizationLayers: optimizationLayers.data,
+    configHealth: configHealth.data,
+    copilotPlugins,
+    usage: usage.data
+  });
+  const setupSummary = buildSetupSummary({
+    inventory: inventory.data,
+    configHealth: configHealth.data,
+    optimizationLayers: optimizationLayers.data,
+    optimizationScore
+  });
 
   return {
     artifactType: "kiwi-control/machine-advisory",
-    version: 2,
+    version: 3,
     generatedBy: "kiwi-control machine-advisory",
     windowDays,
     updatedAt: builtAt,
@@ -327,10 +375,12 @@ export async function buildMachineAdvisory(options: MachineAdvisoryBuildOptions 
     copilotPlugins,
     usage: usage.data,
     systemHealth,
+    optimizationScore,
+    setupSummary,
     guidance,
     note: fastMode
-      ? "Machine-local advisory was built in CI fast mode. Optimization score is intentionally omitted. Refresh in a live shell for actual machine readings."
-      : "Machine-local advisory only. Optimization score is intentionally omitted and this data never overrides repo-local Kiwi state."
+      ? "Machine-local advisory was built in CI fast mode. Refresh in a live shell for actual machine readings."
+      : "Machine-local advisory only. Optimization scores are heuristic completeness estimates calculated from inspected machine signals and never override repo-local Kiwi state."
   };
 }
 
@@ -428,7 +478,7 @@ async function loadCachedMachineSection(
   now: Date
 ): Promise<{ section: MachineAdvisorySectionName; meta: MachineAdvisorySectionState; data: unknown } | null> {
   const cached = await safeReadJson<MachineAdvisoryState>(advisoryCachePath(homeRoot));
-  if (!cached || cached.artifactType !== "kiwi-control/machine-advisory" || cached.version !== 2) {
+  if (!cached || cached.artifactType !== "kiwi-control/machine-advisory" || cached.version !== 3) {
     return null;
   }
 
@@ -606,7 +656,7 @@ function buildMachineGuidance(context: {
   const tokenServer = (name: string): MachineAdvisoryMcpTokenServer | undefined =>
     context.mcpInventory.tokenServers.find((entry) => entry.name === name);
 
-  if (!toolInstalled("ccusage") || !tokenServer("ccusage")?.claude) {
+  if (!context.usage.claude.available && (!toolInstalled("ccusage") || !tokenServer("ccusage")?.claude)) {
     guidance.push({
       id: "missing-ccusage",
       section: "usage",
@@ -1082,7 +1132,7 @@ function buildUnavailableMachineAdvisory(now: Date, note: string): MachineAdviso
   const updatedAt = now.toISOString();
   return {
     artifactType: "kiwi-control/machine-advisory",
-    version: 2,
+    version: 3,
     generatedBy: "kiwi-control machine-advisory",
     windowDays: 7,
     updatedAt,
@@ -1148,8 +1198,50 @@ function buildUnavailableMachineAdvisory(now: Date, note: string): MachineAdviso
       warningCount: 0,
       okCount: 0
     },
+    optimizationScore: {
+      planning: {
+        label: "planning",
+        score: 0,
+        earnedPoints: 0,
+        maxPoints: 100,
+        activeSignals: [],
+        missingSignals: []
+      },
+      execution: {
+        label: "execution",
+        score: 0,
+        earnedPoints: 0,
+        maxPoints: 100,
+        activeSignals: [],
+        missingSignals: []
+      },
+      assistant: {
+        label: "assistant",
+        score: 0,
+        earnedPoints: 0,
+        maxPoints: 100,
+        activeSignals: [],
+        missingSignals: []
+      }
+    },
+    setupSummary: {
+      installedTools: {
+        readyCount: 0,
+        totalCount: 0
+      },
+      healthyConfigs: {
+        readyCount: 0,
+        totalCount: 0
+      },
+      activeTokenLayers: [],
+      readyRuntimes: {
+        planning: false,
+        execution: false,
+        assistant: false
+      }
+    },
     guidance: [],
-    note: `${note} Optimization score is intentionally omitted.`
+    note
   };
 }
 
@@ -1191,6 +1283,97 @@ function buildMachineSystemHealth(context: {
     criticalCount,
     warningCount,
     okCount
+  };
+}
+
+function buildOptimizationScore(context: {
+  inventory: MachineAdvisoryTool[];
+  mcpInventory: MachineAdvisoryMcpInventory;
+  optimizationLayers: MachineAdvisoryOptimizationLayer[];
+  configHealth: MachineAdvisoryConfigHealth[];
+  copilotPlugins: string[];
+  usage: MachineAdvisoryUsage;
+}): MachineAdvisoryOptimizationScore {
+  const toolInstalled = (name: string): boolean => context.inventory.some((tool) => tool.name === name && tool.installed);
+  const configHealthy = (displayPath: string): boolean =>
+    context.configHealth.find((entry) => entry.path === displayPath)?.healthy ?? false;
+  const optimizationLayer = (name: string): MachineAdvisoryOptimizationLayer | undefined =>
+    context.optimizationLayers.find((layer) => layer.name === name);
+
+  const buildRuntimeScore = (
+    label: MachineAdvisoryOptimizationScoreRuntime["label"],
+    signals: Array<{ label: string; points: number; active: boolean }>
+  ): MachineAdvisoryOptimizationScoreRuntime => {
+    const earnedPoints = signals.reduce((sum, signal) => sum + (signal.active ? signal.points : 0), 0);
+    const maxPoints = signals.reduce((sum, signal) => sum + signal.points, 0);
+    const score = maxPoints > 0 ? Math.round((earnedPoints / maxPoints) * 100) : 0;
+    return {
+      label,
+      score,
+      earnedPoints,
+      maxPoints,
+      activeSignals: signals.filter((signal) => signal.active).map((signal) => signal.label),
+      missingSignals: signals.filter((signal) => !signal.active).map((signal) => signal.label)
+    };
+  };
+
+  return {
+    planning: buildRuntimeScore("planning", [
+      { label: "code-review-graph", points: 20, active: Boolean(context.mcpInventory.tokenServers.find((server) => server.name === "code-review-graph")?.claude) },
+      { label: "lean-ctx", points: 10, active: Boolean(optimizationLayer("lean-ctx")?.claude) },
+      { label: "repomix", points: 10, active: toolInstalled("repomix") },
+      { label: "context-mode", points: 15, active: Boolean(optimizationLayer("context-mode")?.claude) },
+      { label: "token-efficient rules", points: 15, active: Boolean(optimizationLayer("token-efficient rules")?.claude) },
+      { label: "ccusage", points: 10, active: context.usage.claude.available },
+      { label: "planning orchestration", points: 10, active: toolInstalled("omc") },
+      { label: "Claude config health", points: 10, active: configHealthy("~/.claude.json") && configHealthy("~/.claude/CLAUDE.md") }
+    ]),
+    execution: buildRuntimeScore("execution", [
+      { label: "code-review-graph", points: 20, active: Boolean(context.mcpInventory.tokenServers.find((server) => server.name === "code-review-graph")?.codex) },
+      { label: "lean-ctx", points: 15, active: Boolean(optimizationLayer("lean-ctx")?.codex) },
+      { label: "repomix", points: 10, active: toolInstalled("repomix") },
+      { label: "context-mode", points: 15, active: Boolean(optimizationLayer("context-mode")?.codex) },
+      { label: "token-efficient rules", points: 10, active: Boolean(optimizationLayer("token-efficient rules")?.codex) },
+      { label: "session telemetry", points: 10, active: context.usage.codex.available },
+      { label: "execution orchestration", points: 10, active: toolInstalled("omx") },
+      { label: "Codex config health", points: 10, active: configHealthy("~/.codex/config.toml") && configHealthy("~/.codex/AGENTS.md") }
+    ]),
+    assistant: buildRuntimeScore("assistant", [
+      { label: "code-review-graph", points: 15, active: Boolean(context.mcpInventory.tokenServers.find((server) => server.name === "code-review-graph")?.copilot) },
+      { label: "lean-ctx", points: 15, active: Boolean(optimizationLayer("lean-ctx")?.copilot) },
+      { label: "repomix", points: 10, active: toolInstalled("repomix") },
+      { label: "token-efficient rules", points: 15, active: Boolean(optimizationLayer("token-efficient rules")?.copilot) },
+      { label: "usage telemetry", points: 10, active: context.usage.copilot.available },
+      { label: "assistant runtime", points: 15, active: toolInstalled("copilot") },
+      { label: "Copilot config health", points: 10, active: configHealthy("~/.copilot/mcp-config.json") && configHealthy("~/.copilot/config.json") },
+      { label: "Copilot plugins", points: 10, active: context.copilotPlugins.length > 0 }
+    ])
+  };
+}
+
+function buildSetupSummary(context: {
+  inventory: MachineAdvisoryTool[];
+  configHealth: MachineAdvisoryConfigHealth[];
+  optimizationLayers: MachineAdvisoryOptimizationLayer[];
+  optimizationScore: MachineAdvisoryOptimizationScore;
+}): MachineAdvisorySetupSummary {
+  return {
+    installedTools: {
+      readyCount: context.inventory.filter((tool) => tool.installed).length,
+      totalCount: context.inventory.length
+    },
+    healthyConfigs: {
+      readyCount: context.configHealth.filter((entry) => entry.healthy).length,
+      totalCount: context.configHealth.length
+    },
+    activeTokenLayers: context.optimizationLayers
+      .filter((layer) => layer.claude || layer.codex || layer.copilot)
+      .map((layer) => layer.name),
+    readyRuntimes: {
+      planning: context.optimizationScore.planning.score >= 70,
+      execution: context.optimizationScore.execution.score >= 70,
+      assistant: context.optimizationScore.assistant.score >= 60
+    }
   };
 }
 
