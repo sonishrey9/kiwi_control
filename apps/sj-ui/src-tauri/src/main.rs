@@ -16,6 +16,8 @@ const DESKTOP_APP_NAME: &str = "Kiwi Control";
 const DESKTOP_APP_BUNDLE_ID: &str = "com.kiwicontrol.desktop";
 const BRIDGE_UNAVAILABLE_NEXT_STEP: &str = "Confirm kiwi-control works in Terminal, then run kc ui again.";
 const MACHINE_ADVISORY_FAST_ENV: &str = "KIWI_MACHINE_ADVISORY_FAST";
+const RENDER_PROBE_FILE_ENV: &str = "KIWI_CONTROL_RENDER_PROBE_FILE";
+const RENDER_PROBE_VIEW_ENV: &str = "KIWI_CONTROL_RENDER_PROBE_VIEW";
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -75,6 +77,7 @@ struct DesktopRuntimeInfo {
     bundle_id: String,
     executable_path: String,
     build_source: String,
+    render_probe_view: Option<String>,
 }
 
 #[derive(Default)]
@@ -177,7 +180,29 @@ fn get_desktop_runtime_info() -> Result<DesktopRuntimeInfo, String> {
         bundle_id: DESKTOP_APP_BUNDLE_ID.to_string(),
         executable_path: current_desktop_executable_path(),
         build_source: infer_runtime_build_source(),
+        render_probe_view: resolve_render_probe_view(),
     })
+}
+
+#[tauri::command]
+fn write_render_probe(payload: serde_json::Value) -> Result<(), String> {
+    let Some(probe_path) = resolve_render_probe_path() else {
+        return Ok(());
+    };
+
+    if let Some(parent) = probe_path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|error| format!("failed to create render probe directory: {error}"))?;
+    }
+
+    let serialized = serde_json::to_vec_pretty(&payload)
+        .map_err(|error| format!("failed to serialize render probe payload: {error}"))?;
+    let temp_path = probe_path.with_extension("tmp");
+    fs::write(&temp_path, serialized)
+        .map_err(|error| format!("failed to write render probe file: {error}"))?;
+    fs::rename(&temp_path, &probe_path)
+        .map_err(|error| format!("failed to finalize render probe file: {error}"))?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -424,6 +449,7 @@ fn main() {
             load_repo_control_state,
             load_machine_advisory_section,
             get_desktop_runtime_info,
+            write_render_probe,
             run_cli_command,
             open_path,
             ack_launch_request,
@@ -1046,6 +1072,20 @@ fn resolve_launch_bridge_dir() -> PathBuf {
     match std::env::var("KIWI_CONTROL_DESKTOP_BRIDGE_DIR") {
         Ok(path) if !path.trim().is_empty() => PathBuf::from(path),
         _ => std::env::temp_dir().join("kiwi-control"),
+    }
+}
+
+fn resolve_render_probe_path() -> Option<PathBuf> {
+    match std::env::var(RENDER_PROBE_FILE_ENV) {
+        Ok(path) if !path.trim().is_empty() => Some(PathBuf::from(path)),
+        _ => None,
+    }
+}
+
+fn resolve_render_probe_view() -> Option<String> {
+    match std::env::var(RENDER_PROBE_VIEW_ENV) {
+        Ok(view) if !view.trim().is_empty() => Some(view),
+        _ => None,
     }
 }
 

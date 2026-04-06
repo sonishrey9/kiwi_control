@@ -1,4 +1,5 @@
 import type {
+  BlockedWorkflowEntry,
   ExplainCommandEntry,
   ExplainSelectionEntry,
   RecoveryGuidance,
@@ -154,6 +155,68 @@ export function buildExplainCommandEntries(params: {
   ]
     .filter((entry): entry is ExplainCommandEntry => Boolean(entry))
     .filter((entry, index, items) => items.findIndex((candidate) => candidate.command === entry.command) === index);
+}
+
+export function buildBlockedWorkflowEntries(params: {
+  targetRoot: string;
+  recoveryGuidance: RecoveryGuidance | null;
+  executionPlan: {
+    blocked: boolean;
+    currentStepIndex: number;
+    steps: Array<{ id: string; command: string; validation: string; status: string }>;
+    lastError: { reason: string; fixCommand: string; retryCommand: string } | null;
+    nextCommands: string[];
+  };
+}): BlockedWorkflowEntry[] {
+  if (!params.executionPlan.blocked && params.recoveryGuidance?.tone !== "blocked") {
+    return [];
+  }
+
+  const entries: BlockedWorkflowEntry[] = [];
+  const seen = new Set<string>();
+  const failedStep =
+    params.executionPlan.steps.find((step) => step.status === "failed")
+    ?? params.executionPlan.steps[params.executionPlan.currentStepIndex]
+    ?? null;
+
+  const pushEntry = (title: string, command: string | null | undefined, detail: string) => {
+    const formatted = formatCliCommand(command, params.targetRoot);
+    if (!formatted || seen.has(formatted)) {
+      return;
+    }
+    seen.add(formatted);
+    entries.push({ title, command: formatted, detail });
+  };
+
+  pushEntry(
+    "Inspect the blocker",
+    params.executionPlan.lastError?.fixCommand ?? params.recoveryGuidance?.nextCommand,
+    params.executionPlan.lastError?.reason ?? params.recoveryGuidance?.detail ?? "Review the current workflow blocker before changing repo-local state."
+  );
+
+  if (failedStep) {
+    pushEntry(
+      failedStep.status === "failed" ? `Re-run ${failedStep.id}` : `Run ${failedStep.id}`,
+      failedStep.command,
+      failedStep.validation || "Run the blocked workflow step again after reviewing the blocker."
+    );
+  }
+
+  pushEntry(
+    "Then retry",
+    params.executionPlan.lastError?.retryCommand,
+    "Use this after the blocking issue is cleared."
+  );
+
+  for (const [index, command] of params.executionPlan.nextCommands.entries()) {
+    pushEntry(
+      index === 0 ? "Continue with the next planned step" : `Continue with planned step ${index + 1}`,
+      command,
+      "Resume the remaining workflow once the blocker is resolved."
+    );
+  }
+
+  return entries.slice(0, 4);
 }
 
 function tokenizeCommand(value: string): string[] {

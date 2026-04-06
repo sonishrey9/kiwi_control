@@ -15,6 +15,7 @@
     "test:ui": "npm run test -w @shrey-junior/sj-ui",
     "test:core:features": "bash scripts/test-core-features.sh",
     "test:cli:features": "bash scripts/test-cli-features.sh",
+    "test:desktop:rendered": "node scripts/verify-rendered-desktop.mjs",
     "test:desktop:features": "bash scripts/test-desktop-features.sh",
     "test:product:features": "bash scripts/test-product-features.sh",
     "cli": "node scripts/run-cli.mjs",

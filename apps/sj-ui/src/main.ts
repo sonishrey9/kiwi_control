@@ -8,6 +8,7 @@ import { renderExecutionPlanPanelView } from "./ui/ExecutionPlanPanel.js";
 import { renderInspectorPanel } from "./ui/InspectorPanel.js";
 import { renderMachinePanelView } from "./ui/MachinePanel.js";
 import {
+  buildBlockedWorkflowEntries,
   buildExplainCommandEntries,
   buildExplainSelectionEntries,
   buildTerminalHelpEntries,
@@ -667,6 +668,7 @@ type DesktopRuntimeInfo = {
   bundleId: string;
   executablePath: string;
   buildSource: "source-bundle" | "installed-bundle" | "fallback-launcher";
+  renderProbeView?: string | null;
 };
 
 type MachineSectionName =
@@ -945,6 +947,7 @@ let lastReadyStateSignal:
       detail: string;
     }
   | null = null;
+let lastRenderProbeFingerprint = "";
 let readyStateTimer: number | null = null;
 let commandState: CommandState = {
   activeCommand: null,
@@ -1264,6 +1267,7 @@ function finalizeInitialRender(): void {
       bootApi.mounted = true;
     }
     bootApi?.hide();
+    reportRenderProbe(currentState);
   });
 }
 
@@ -1369,6 +1373,10 @@ async function loadDesktopRuntimeInfo(): Promise<void> {
 
   try {
     desktopRuntimeInfo = await invoke<DesktopRuntimeInfo>("get_desktop_runtime_info");
+    const probeView = normalizeRenderProbeView(desktopRuntimeInfo.renderProbeView);
+    if (probeView) {
+      activeView = probeView;
+    }
     scheduleRenderState();
   } catch {
     desktopRuntimeInfo = null;
@@ -2901,6 +2909,59 @@ function commandRequiresJson(command: UiCommandName): boolean {
   return ["guide", "next", "validate", "status", "trace"].includes(command);
 }
 
+function normalizeRenderProbeView(view: string | null | undefined): NavView | null {
+  if (!view) {
+    return null;
+  }
+  const normalized = view.trim().toLowerCase();
+  return NAV_ITEMS.some((item) => item.id === normalized) ? (normalized as NavView) : null;
+}
+
+function reportRenderProbe(state: RepoControlState): void {
+  if (!isTauriBridgeAvailable()) {
+    return;
+  }
+
+  const bootVisible = Boolean(bootOverlay && !bootOverlay.classList.contains("is-hidden"));
+  const loadStatus = buildLoadStatus(state);
+  const visibleSections = [...document.querySelectorAll<HTMLElement>("[data-render-section]")]
+    .map((element) => element.dataset.renderSection ?? "")
+    .filter((value): value is string => value.length > 0);
+  const visibleCommands = [...document.querySelectorAll<HTMLElement>("[data-ui-command]")]
+    .map((element) => element.dataset.uiCommand ?? "")
+    .filter((value): value is string => value.length > 0);
+  const executionPlan = state.kiwiControl?.executionPlan;
+  const currentStep =
+    executionPlan?.steps[executionPlan.currentStepIndex]?.id
+    ?? state.kiwiControl?.workflow.currentStepId
+    ?? null;
+
+  const payload = {
+    mounted: Boolean(window.__KIWI_BOOT_API__?.mounted),
+    bootVisible,
+    activeView,
+    targetRoot: state.targetRoot,
+    repoMode: state.repoState.mode,
+    executionState: executionPlan?.state ?? "unknown",
+    currentStep,
+    loadPhase: loadStatus.phase,
+    loadLabel: loadStatus.label,
+    loadDetail: loadStatus.detail,
+    visibleSections,
+    visibleCommands
+  };
+
+  const fingerprint = JSON.stringify(payload);
+  if (fingerprint === lastRenderProbeFingerprint) {
+    return;
+  }
+
+  lastRenderProbeFingerprint = fingerprint;
+  void invoke("write_render_probe", { payload }).catch(() => {
+    // Probe reporting is opt-in and must never affect the product flow.
+  });
+}
+
 function renderState(state: RepoControlState): void {
   currentState = state;
   syncInteractiveSessionState(state);
@@ -2915,6 +2976,7 @@ function renderState(state: RepoControlState): void {
   workspaceSurfaceElement.classList.toggle("is-log-open", isLogDrawerOpen);
   inspectorElement.classList.toggle("is-hidden", !isInspectorOpen);
   logDrawerElement.classList.toggle("is-hidden", !isLogDrawerOpen);
+  reportRenderProbe(state);
 }
 
 function renderCenterSurface(state: RepoControlState): void {
@@ -3161,6 +3223,11 @@ function renderOverviewView(state: RepoControlState): string {
     recoveryGuidance: repoRecoveryGuidance,
     executionPlan: kc.executionPlan
   });
+  const blockedWorkflowEntries = buildBlockedWorkflowEntries({
+    targetRoot: state.targetRoot,
+    recoveryGuidance: repoRecoveryGuidance,
+    executionPlan: kc.executionPlan
+  });
 
   return `
     <div class="kc-view-shell">
@@ -3188,7 +3255,7 @@ function renderOverviewView(state: RepoControlState): string {
         ${renderStatCard("Skills", String(kc.skills.activeSkills.length), kc.skills.activeSkills.length > 0 ? kc.skills.activeSkills.map((skill) => skill.name).join(", ") : "none active", "neutral")}
       </div>
 
-      <section class="kc-panel">
+      <section class="kc-panel" data-render-section="guided-operation">
         ${renderPanelHeader("Guided Operation", "What is happening, what is wrong, and what to do next.")}
         <div class="kc-two-column">
           <section class="kc-subpanel">
@@ -3210,14 +3277,25 @@ function renderOverviewView(state: RepoControlState): string {
         </div>
       </section>
 
+      ${blockedWorkflowEntries.length > 0
+        ? `
+          <section class="kc-panel" data-render-section="blocked-workflow-fix">
+            ${renderPanelHeader("How To Unblock Workflow", "A concrete recovery workflow derived from the current blocked execution plan and repo-local recovery state.")}
+            <div class="kc-stack-list">
+              ${blockedWorkflowEntries.map((entry, index) => renderNoteRow(`${index + 1}. ${entry.title}`, entry.command, entry.detail)).join("")}
+            </div>
+          </section>
+        `
+        : ""}
+
       <div class="kc-two-column">
-        <section class="kc-panel">
+        <section class="kc-panel" data-render-section="explain-selection">
           ${renderPanelHeader("Explain This Selection", "Low-latency parity with kc explain using the already-loaded repo state, file reasons, and dependency chains.")}
           ${explainSelectionEntries.length > 0
             ? `<div class="kc-stack-list">${explainSelectionEntries.map((entry) => renderNoteRow(entry.title, entry.metric, entry.note)).join("")}</div>`
             : renderEmptyState("No selected-file reasoning is available yet. Run kc prepare to build a bounded working set first.")}
         </section>
-        <section class="kc-panel">
+        <section class="kc-panel" data-render-section="terminal-recovery">
           ${renderPanelHeader("Terminal Recovery", "Exact commands to run next in Terminal, grounded in the current repo state instead of a second explain round-trip.")}
           ${explainCommandEntries.length > 0
             ? `<div class="kc-stack-list">${explainCommandEntries.map((entry) => renderNoteRow(entry.command, entry.label, entry.detail)).join("")}</div>`
@@ -3225,7 +3303,7 @@ function renderOverviewView(state: RepoControlState): string {
         </section>
       </div>
 
-      <section class="kc-panel">
+      <section class="kc-panel" data-render-section="terminal-help">
         ${renderPanelHeader("Terminal Help", "The same command surface you would reach for from kc help, with repo-scoped commands already pinned to the active repo.")}
         <div class="kc-two-column">
           <section class="kc-subpanel">

@@ -3,6 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildBlockedWorkflowEntries,
   buildExplainCommandEntries,
   buildExplainSelectionEntries,
   buildTerminalHelpEntries,
@@ -83,4 +84,38 @@ test("buildExplainCommandEntries deduplicates repeated commands and keeps target
   assert.equal(entries[0]?.command, "kc explain --target /tmp/repo");
   assert.equal(entries.some((entry) => entry.command === "kc validate --target /tmp/repo"), true);
   assert.equal(entries.filter((entry) => entry.command === "kc explain --target /tmp/repo").length, 1);
+});
+
+test("buildBlockedWorkflowEntries gives a concrete unblock workflow from the blocked plan", () => {
+  const entries = buildBlockedWorkflowEntries({
+    targetRoot: "/tmp/repo",
+    recoveryGuidance: {
+      tone: "blocked",
+      title: "Repo opened, workflow blocked",
+      detail: "Prepared scope violated by touched files.",
+      nextCommand: "kc explain",
+      followUpCommand: null
+    },
+    executionPlan: {
+      blocked: true,
+      currentStepIndex: 2,
+      steps: [
+        { id: "prepare", command: 'kc prepare "task"', validation: "Prepare bounded scope first.", status: "success" },
+        { id: "execute", command: 'kc run "task"', validation: "Make the selected change.", status: "pending" },
+        { id: "validate", command: 'kc validate "task"', validation: "Re-check the selected files after the fix.", status: "failed" }
+      ],
+      lastError: {
+        reason: "Prepared scope violated by touched files.",
+        fixCommand: "kc explain",
+        retryCommand: 'kc validate "task"'
+      },
+      nextCommands: ['kc validate "task"', 'kc checkpoint "validated-progress"']
+    }
+  });
+
+  assert.equal(entries.length >= 3, true);
+  assert.equal(entries[0]?.title, "Inspect the blocker");
+  assert.equal(entries[0]?.command, "kc explain --target /tmp/repo");
+  assert.equal(entries.some((entry) => entry.command.includes("kc validate") && entry.command.includes("--target /tmp/repo")), true);
+  assert.equal(entries.some((entry) => entry.command.includes("kc checkpoint") && entry.command.includes("--target /tmp/repo")), true);
 });

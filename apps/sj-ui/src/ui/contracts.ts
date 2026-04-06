@@ -81,6 +81,12 @@ export interface ExplainCommandEntry {
   detail: string;
 }
 
+export interface BlockedWorkflowEntry {
+  title: string;
+  command: string;
+  detail: string;
+}
+
 export type MachineAdvisorySectionName =
   | "inventory"
   | "mcpInventory"

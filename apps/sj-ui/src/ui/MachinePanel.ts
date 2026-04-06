@@ -89,7 +89,7 @@ export function renderMachinePanelView(context: MachinePanelRenderContext): stri
         ${renderHeaderBadge(machine.stale ? "stale" : "fresh", machine.stale ? "warn" : "success")}
       </section>
 
-      <section class="kc-panel kc-panel-primary">
+      <section class="kc-panel kc-panel-primary" data-render-section="machine-setup-readiness">
         <div class="kc-panel-heading">
           <div class="kc-panel-kicker">
             ${iconLabel(iconSvg("system"), "Setup Readiness")}

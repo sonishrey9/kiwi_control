@@ -7,7 +7,7 @@ import { renderContextTreePanel } from "./ui/ContextTreePanel.js";
 import { renderExecutionPlanPanelView } from "./ui/ExecutionPlanPanel.js";
 import { renderInspectorPanel } from "./ui/InspectorPanel.js";
 import { renderMachinePanelView } from "./ui/MachinePanel.js";
-import { buildExplainCommandEntries, buildExplainSelectionEntries, buildTerminalHelpEntries, formatCliCommand } from "./ui/command-help.js";
+import { buildBlockedWorkflowEntries, buildExplainCommandEntries, buildExplainSelectionEntries, buildTerminalHelpEntries, formatCliCommand } from "./ui/command-help.js";
 import { buildDecisionSummary as buildDecisionSummaryModel, buildExecutionPlanPanelContextModel, buildInspectorContextModel } from "./ui/view-models.js";
 import { buildActiveTargetHint as buildActiveTargetHintModel, buildBridgeNote as buildBridgeNoteModel, buildFinalReadyDetail as buildFinalReadyDetailModel, buildLoadStatus as buildLoadStatusModel, deriveReadinessSummary as deriveReadinessSummaryModel } from "./ui/readiness.js";
 import { buildBlockedActionGuidance, deriveExecutionPlanFailureGuidance, deriveRepoRecoveryGuidance } from "./ui/guidance.js";
@@ -255,6 +255,7 @@ let pendingShellRenderAfterInteraction = false;
 let lastGraphInteractionAt = 0;
 let activeInteractiveTargetRoot = "";
 let lastReadyStateSignal = null;
+let lastRenderProbeFingerprint = "";
 let readyStateTimer = null;
 let commandState = {
     activeCommand: null,
@@ -526,6 +527,7 @@ function finalizeInitialRender() {
             bootApi.mounted = true;
         }
         bootApi?.hide();
+        reportRenderProbe(currentState);
     });
 }
 function detectPlatform() {
@@ -620,6 +622,10 @@ async function loadDesktopRuntimeInfo() {
     }
     try {
         desktopRuntimeInfo = await invoke("get_desktop_runtime_info");
+        const probeView = normalizeRenderProbeView(desktopRuntimeInfo.renderProbeView);
+        if (probeView) {
+            activeView = probeView;
+        }
         scheduleRenderState();
     }
     catch {
@@ -1975,6 +1981,52 @@ function handleInteractiveClick(event, target) {
 function commandRequiresJson(command) {
     return ["guide", "next", "validate", "status", "trace"].includes(command);
 }
+function normalizeRenderProbeView(view) {
+    if (!view) {
+        return null;
+    }
+    const normalized = view.trim().toLowerCase();
+    return NAV_ITEMS.some((item) => item.id === normalized) ? normalized : null;
+}
+function reportRenderProbe(state) {
+    if (!isTauriBridgeAvailable()) {
+        return;
+    }
+    const bootVisible = Boolean(bootOverlay && !bootOverlay.classList.contains("is-hidden"));
+    const loadStatus = buildLoadStatus(state);
+    const visibleSections = [...document.querySelectorAll("[data-render-section]")]
+        .map((element) => element.dataset.renderSection ?? "")
+        .filter((value) => value.length > 0);
+    const visibleCommands = [...document.querySelectorAll("[data-ui-command]")]
+        .map((element) => element.dataset.uiCommand ?? "")
+        .filter((value) => value.length > 0);
+    const executionPlan = state.kiwiControl?.executionPlan;
+    const currentStep = executionPlan?.steps[executionPlan.currentStepIndex]?.id
+        ?? state.kiwiControl?.workflow.currentStepId
+        ?? null;
+    const payload = {
+        mounted: Boolean(window.__KIWI_BOOT_API__?.mounted),
+        bootVisible,
+        activeView,
+        targetRoot: state.targetRoot,
+        repoMode: state.repoState.mode,
+        executionState: executionPlan?.state ?? "unknown",
+        currentStep,
+        loadPhase: loadStatus.phase,
+        loadLabel: loadStatus.label,
+        loadDetail: loadStatus.detail,
+        visibleSections,
+        visibleCommands
+    };
+    const fingerprint = JSON.stringify(payload);
+    if (fingerprint === lastRenderProbeFingerprint) {
+        return;
+    }
+    lastRenderProbeFingerprint = fingerprint;
+    void invoke("write_render_probe", { payload }).catch(() => {
+        // Probe reporting is opt-in and must never affect the product flow.
+    });
+}
 function renderState(state) {
     currentState = state;
     syncInteractiveSessionState(state);
@@ -1987,6 +2039,7 @@ function renderState(state) {
     workspaceSurfaceElement.classList.toggle("is-log-open", isLogDrawerOpen);
     inspectorElement.classList.toggle("is-hidden", !isInspectorOpen);
     logDrawerElement.classList.toggle("is-hidden", !isLogDrawerOpen);
+    reportRenderProbe(state);
 }
 function renderCenterSurface(state) {
     centerMainElement.innerHTML = `${renderCommandBanner()}${renderCenterView(state)}`;
@@ -2206,6 +2259,11 @@ function renderOverviewView(state) {
         recoveryGuidance: repoRecoveryGuidance,
         executionPlan: kc.executionPlan
     });
+    const blockedWorkflowEntries = buildBlockedWorkflowEntries({
+        targetRoot: state.targetRoot,
+        recoveryGuidance: repoRecoveryGuidance,
+        executionPlan: kc.executionPlan
+    });
     return `
     <div class="kc-view-shell">
       <section class="kc-panel kc-panel-primary">
@@ -2232,7 +2290,7 @@ function renderOverviewView(state) {
         ${renderStatCard("Skills", String(kc.skills.activeSkills.length), kc.skills.activeSkills.length > 0 ? kc.skills.activeSkills.map((skill) => skill.name).join(", ") : "none active", "neutral")}
       </div>
 
-      <section class="kc-panel">
+      <section class="kc-panel" data-render-section="guided-operation">
         ${renderPanelHeader("Guided Operation", "What is happening, what is wrong, and what to do next.")}
         <div class="kc-two-column">
           <section class="kc-subpanel">
@@ -2254,14 +2312,25 @@ function renderOverviewView(state) {
         </div>
       </section>
 
+      ${blockedWorkflowEntries.length > 0
+        ? `
+          <section class="kc-panel" data-render-section="blocked-workflow-fix">
+            ${renderPanelHeader("How To Unblock Workflow", "A concrete recovery workflow derived from the current blocked execution plan and repo-local recovery state.")}
+            <div class="kc-stack-list">
+              ${blockedWorkflowEntries.map((entry, index) => renderNoteRow(`${index + 1}. ${entry.title}`, entry.command, entry.detail)).join("")}
+            </div>
+          </section>
+        `
+        : ""}
+
       <div class="kc-two-column">
-        <section class="kc-panel">
+        <section class="kc-panel" data-render-section="explain-selection">
           ${renderPanelHeader("Explain This Selection", "Low-latency parity with kc explain using the already-loaded repo state, file reasons, and dependency chains.")}
           ${explainSelectionEntries.length > 0
         ? `<div class="kc-stack-list">${explainSelectionEntries.map((entry) => renderNoteRow(entry.title, entry.metric, entry.note)).join("")}</div>`
         : renderEmptyState("No selected-file reasoning is available yet. Run kc prepare to build a bounded working set first.")}
         </section>
-        <section class="kc-panel">
+        <section class="kc-panel" data-render-section="terminal-recovery">
           ${renderPanelHeader("Terminal Recovery", "Exact commands to run next in Terminal, grounded in the current repo state instead of a second explain round-trip.")}
           ${explainCommandEntries.length > 0
         ? `<div class="kc-stack-list">${explainCommandEntries.map((entry) => renderNoteRow(entry.command, entry.label, entry.detail)).join("")}</div>`
@@ -2269,7 +2338,7 @@ function renderOverviewView(state) {
         </section>
       </div>
 
-      <section class="kc-panel">
+      <section class="kc-panel" data-render-section="terminal-help">
         ${renderPanelHeader("Terminal Help", "The same command surface you would reach for from kc help, with repo-scoped commands already pinned to the active repo.")}
         <div class="kc-two-column">
           <section class="kc-subpanel">

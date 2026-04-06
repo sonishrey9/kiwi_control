@@ -19,3 +19,6 @@ node --test \
 
 echo "[desktop] packaging desktop bundle"
 npm run ui:desktop:build
+
+echo "[desktop] verifying rendered desktop state"
+npm run test:desktop:rendered
