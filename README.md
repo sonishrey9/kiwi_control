@@ -41,6 +41,13 @@ kiwi-control --help
 kc --help
 ```
 
+Current public beta defaults:
+
+- GitHub Releases is the source of truth for installable artifacts
+- Windows desktop is the first public install target
+- macOS desktop follows after trust/signing steps are complete
+- See [docs/beta-limitations.md](./docs/beta-limitations.md) for current beta caveats
+
 ### First repo flow
 
 ```bash

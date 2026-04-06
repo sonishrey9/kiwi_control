@@ -6,7 +6,13 @@ Kiwi Control now has three explicit usage tracks:
 - installed desktop users
 - source contributors
 
-For `0.2.0-beta.1`, GitHub Releases is the primary public install path. Homebrew and winget templates are ready, but those channels should not be treated as live until they are actually published.
+For `0.2.0-beta.1`, GitHub Releases is the primary public install path. Homebrew and winget templates are prepared, but those channels should not be treated as live until they are actually published.
+
+Public beta install priority:
+
+1. Windows desktop + CLI
+2. macOS desktop + CLI
+3. Linux CLI and contributor flows
 
 ## Installed CLI users
 
@@ -83,6 +89,8 @@ Download the desktop bundle from the same GitHub Release as your CLI install:
 - Windows: Kiwi Control MSI
 - Linux: Kiwi Control AppImage bundle
 
+Windows is the first external desktop install target for the public beta. macOS follows immediately after the Windows install path is stable and signed/notarized correctly.
+
 After install, you can:
 
 - open `Kiwi Control` from your OS application launcher
@@ -93,6 +101,10 @@ After install, you can:
 If the desktop app is not available yet, the command fails clearly and tells you the next exact step.
 
 If your platform install does not register a CLI-launchable desktop app, set `KIWI_CONTROL_DESKTOP` to the installed launcher path so `kiwi-control ui` has a deterministic local desktop target.
+
+## Public beta support note
+
+See [docs/beta-limitations.md](/Volumes/shrey%20ssd/shrey-junior/docs/beta-limitations.md) before treating the desktop app as a fully trusted general-availability install.
 
 ### What the desktop app shows
 
@@ -122,6 +134,10 @@ Platform notes:
 - macOS: Xcode command line tools
 - Windows: Visual Studio C++ build tools
 - Linux: WebKitGTK and related Tauri native dependencies
+
+Contributor caveat:
+
+- On some external macOS volumes, AppleDouble `._*` files can appear inside `.git` and break large clones or Git pack indexes. If that happens, move the repo to internal storage or clean the `._*` files inside `.git` before continuing.
 
 ### Exact contributor commands
 
@@ -186,4 +202,4 @@ Prepared but not yet published:
 - winget for installed CLI users
 - macOS, Windows, and Linux desktop bundles via Tauri
 
-See [docs/release-packaging.md](/Volumes/shrey%20ssd/shrey-junior/docs/release-packaging.md) for release artifact details and [packaging/signing/README.md](/Volumes/shrey%20ssd/shrey-junior/packaging/signing/README.md) for manual trust steps.
+See [docs/release-packaging.md](/Volumes/shrey%20ssd/shrey-junior/docs/release-packaging.md) for release artifact details, [docs/beta-limitations.md](/Volumes/shrey%20ssd/shrey-junior/docs/beta-limitations.md) for beta caveats, and [packaging/signing/README.md](/Volumes/shrey%20ssd/shrey-junior/packaging/signing/README.md) for manual trust steps.

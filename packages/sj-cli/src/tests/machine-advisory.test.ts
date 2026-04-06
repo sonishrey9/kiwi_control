@@ -104,7 +104,7 @@ test("machine advisory builds fixture-driven machine state from local configs an
   assert.equal(advisory.windowDays, 7);
   assert.equal(advisory.setupPhases.length, 3);
   assert.equal(advisory.setupPhases[0]?.phase, "Phase 1 — Core");
-  assert.equal(advisory.setupPhases.some((phase) => phase.items.some((item) => item.name === "oh-my-codex (OMX)" && item.active)), true);
+  assert.equal(advisory.setupPhases.some((phase) => phase.items.some((item) => item.name === "execution orchestration layer" && item.active)), true);
   assert.equal(advisory.setupPhases.some((phase) => phase.items.some((item) => item.name === "context-mode" && item.active)), true);
   assert.equal(advisory.skillsCount, 1);
   assert.deepEqual(advisory.copilotPlugins, ["project-planning", "frontend-web-dev"]);

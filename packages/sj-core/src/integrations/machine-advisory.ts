@@ -11,8 +11,8 @@ const MACHINE_FAST_ENV = "KIWI_MACHINE_ADVISORY_FAST";
 const CACHE_TTL_MS = 60_000;
 const DEFAULT_TOOLS: Array<{ name: string; description: string; phase: string; versionArgs?: string[] }> = [
   { name: "code-review-graph", description: "Graph-based code search", phase: "Phase 1" },
-  { name: "omc", description: "Claude Code orchestration", phase: "Phase 1" },
-  { name: "omx", description: "Codex orchestration", phase: "Phase 1" },
+  { name: "omc", description: "Planning orchestration layer", phase: "Phase 1" },
+  { name: "omx", description: "Execution orchestration layer", phase: "Phase 1" },
   { name: "lean-ctx", description: "Shell output compression", phase: "Phase 2" },
   { name: "repomix", description: "Codebase summarizer", phase: "Phase 2" },
   { name: "context-mode", description: "Tool output sandboxing", phase: "Phase 2" },
@@ -981,15 +981,15 @@ async function buildSetupPhases(context: {
           active: toolInstalled("code-review-graph") && Boolean(tokenServer("code-review-graph")?.claude || tokenServer("code-review-graph")?.codex || tokenServer("code-review-graph")?.copilot)
         },
         {
-          name: "oh-my-claudecode (OMC)",
-          description: "19-agent orchestration for Claude Code",
-          location: "Global CLAUDE.md + skills",
+          name: "planning orchestration layer",
+          description: "Multi-agent planning and review coordination",
+          location: "Planner instructions + skill inventory",
           active: toolInstalled("omc") && configHealthy("~/.claude.json") && configHealthy("~/.claude/CLAUDE.md")
         },
         {
-          name: "oh-my-codex (OMX)",
-          description: "Multi-agent orchestration for Codex",
-          location: "Global config.toml + AGENTS.md",
+          name: "execution orchestration layer",
+          description: "Multi-agent execution coordination",
+          location: "Execution config + instruction contract",
           active: toolInstalled("omx") && configHealthy("~/.codex/config.toml") && configHealthy("~/.codex/AGENTS.md")
         },
         {

@@ -1,5 +1,7 @@
 # Support
 
+Kiwi Control is currently a public beta. Support expectations should stay explicit and modest.
+
 ## Before opening an issue
 
 Please include:
@@ -15,6 +17,14 @@ Please include:
 - bugs and reproducible regressions: GitHub Issues
 - roadmap and product discussion: GitHub Discussions once enabled
 - security-sensitive reports: use private reporting instead of public issues
+
+## Public beta expectations
+
+- Issues are welcome, but response time is best-effort during beta.
+- GitHub Releases is the source of truth for installable artifacts.
+- Desktop signing/notarization status should always be checked against the release notes.
+- If you are running from source, mention that explicitly in any report.
+- If you are using an external macOS volume, mention that too, because AppleDouble `._*` files can corrupt Git metadata on some drives.
 
 ## Scope reminders
 

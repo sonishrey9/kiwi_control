@@ -9,6 +9,7 @@ The release surface must look like a finished Kiwi Control product:
 - short alias: `kc`
 - desktop app name: `Kiwi Control`
 - GitHub Releases as the primary public beta distribution path
+- Cloudflare Pages as the public landing/docs/download discovery surface
 
 Internal package boundaries remain `sj-core`, `sj-cli`, and `sj-ui`. Repo-local schema and artifact IDs remain `shrey-junior/*` for beta compatibility.
 
@@ -31,6 +32,7 @@ npm test
 bash scripts/smoke-test.sh
 npm run ui:build
 node scripts/prepare-release-manifest.mjs
+node scripts/generate-release-checksums.mjs
 ```
 
 For desktop packaging on a machine with the native toolchain installed:
@@ -45,6 +47,12 @@ npm run ui:desktop:build
 
 1. writes `dist/release/release-manifest.json`
 2. stages a public CLI bundle at `dist/release/cli-bundle`
+
+Release checksums are generated separately by:
+
+```bash
+node scripts/generate-release-checksums.mjs
+```
 
 The staged CLI bundle contains:
 
@@ -93,11 +101,14 @@ For the first beta, public docs should teach this exact order:
 
 Do not lead end users to contributor scripts such as `scripts/install-global.sh`.
 
+The public install and docs surface should be hosted on Cloudflare Pages and should point users to GitHub Releases for actual binaries and checksums.
+
 ## Distribution targets
 
 Prepared channels:
 
 - GitHub Releases
+- Cloudflare Pages for landing/docs/download discovery
 - Homebrew formula publication for installed CLI users
 - winget manifest publication for installed CLI users
 - macOS, Windows, and Linux desktop bundle publication
@@ -119,6 +130,27 @@ They are beta-ready in the following sense:
 - they assume the staged CLI bundle layout produced by `prepare-release-manifest`
 
 They still need live release URLs and real SHA256 values at publish time.
+
+## Public site and domain rollout
+
+Recommended public-beta hosting split:
+
+- Route 53 remains the domain registrar
+- Cloudflare becomes the authoritative DNS provider
+- Cloudflare Pages hosts:
+  - landing page
+  - install page
+  - beta limitations page
+  - docs and release discovery pages
+- GitHub Releases remains the artifact backend
+
+Recommended domain flow:
+
+1. keep registration in Route 53
+2. point nameservers to Cloudflare
+3. attach apex and `www` to Cloudflare Pages
+4. add redirects for `www`, docs, and install URLs
+5. publish GitHub Release links and checksums through the Pages site
 
 ## Desktop packaging prerequisites
 
@@ -187,6 +219,7 @@ Before a public beta release:
 6. Confirm Homebrew and winget templates match the actual artifact names and command aliases.
 7. State explicitly which bundles are signed and which are not.
 8. Do not enable updater claims until updater signing inputs are active.
+9. Verify the Cloudflare-hosted install/download pages point at the correct GitHub Release assets.
 
 ## Compatibility note
 

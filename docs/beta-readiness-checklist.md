@@ -7,6 +7,7 @@ This checklist is for a local-first public beta. It is intentionally honest abou
 - `GO` if the workspace builds, tests pass, smoke test passes, and the installed command story is clearly `kiwi-control` / `kc`.
 - `GO` if the desktop path is documented clearly enough that an installed user understands `kiwi-control ui` auto-loads the current repo and a contributor understands `npm run ui:dev`.
 - `GO` if release manifest generation, artifact naming, Homebrew templates, and winget templates all match the visible Kiwi Control brand.
+- `GO` if the public install/docs surface is live on Cloudflare Pages and points at the correct GitHub Release assets.
 - `NO-GO` if repo-local artifacts stop being the source of truth.
 - `NO-GO` if the desktop app starts owning hidden authoritative state.
 - `NO-GO` if the release docs imply universal MCP/runtime parity or strict Copilot orchestration.
@@ -41,6 +42,7 @@ This checklist is for a local-first public beta. It is intentionally honest abou
 - desktop web assets via `npm run build -w @shrey-junior/sj-ui`
 - desktop packaging preflight via `npm run ui:desktop:build`
 - release manifest via `node scripts/prepare-release-manifest.mjs`
+- release checksums via `node scripts/generate-release-checksums.mjs`
 
 Desktop bundle generation still requires Rust/Cargo and the platform-native desktop toolchain.
 
@@ -52,6 +54,7 @@ Desktop bundle generation still requires Rust/Cargo and the platform-native desk
 - complete Windows Authenticode signing
 - generate and configure updater signing keys
 - fill in real release URLs and checksums for Homebrew and winget publication
+- verify the public Cloudflare Pages install/download surface before announcing the beta
 
 ## First command for a new installed user
 
@@ -74,3 +77,4 @@ npm install && npm run build
 - internal package boundaries remain `sj-core`, `sj-cli`, and `sj-ui`
 - repo-local schema and artifact IDs remain `shrey-junior/*` during beta for backward compatibility
 - compatibility CLI aliases `shrey-junior` and `sj` still exist, but user-facing docs and commands should prefer `kiwi-control` and `kc`
+- Route 53 should remain registrar only, while Cloudflare serves as authoritative DNS and public web host

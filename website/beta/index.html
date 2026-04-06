@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kiwi Control Beta Limitations</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <nav class="nav">
+        <div class="brand">Kiwi Control</div>
+        <div class="nav-links">
+          <a href="/">Home</a>
+          <a href="/install/">Install</a>
+          <a href="https://github.com/sonishrey9/shrey-junior/blob/main/docs/beta-limitations.md">Repo doc</a>
+        </div>
+      </nav>
+
+      <section class="hero">
+        <div class="eyebrow">Beta limitations</div>
+        <h1>What is still rough</h1>
+        <p>Kiwi Control is a public beta. Core local-first repo control is real, but desktop trust, some UX flows, and platform distribution polish are still in progress.</p>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h2>Desktop trust</h2>
+          <p class="warn">Windows signing and macOS notarization may still be incomplete for some beta releases. Check release notes and checksums before trusting an installer.</p>
+        </article>
+        <article class="panel">
+          <h2>Workflow blocks</h2>
+          <p>Blocked validation, checkpoint, and handoff states are often real repo-state problems, not UI failures. Kiwi should explain recovery commands, but it will not silently bypass repo-local truth.</p>
+        </article>
+        <article class="panel">
+          <h2>Tool/runtime parity</h2>
+          <p>Do not assume universal parity across every editor, assistant, or hosted runtime. Kiwi is repo-first and local-first by design.</p>
+        </article>
+        <article class="panel">
+          <h2>Contributor caveat</h2>
+          <p class="danger">Some external macOS volumes create <code>._*</code> files inside <code>.git</code>. That can corrupt large clones and break Git pack indexes.</p>
+        </article>
+      </section>
+    </div>
+  </body>
+</html>

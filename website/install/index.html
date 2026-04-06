@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Install Kiwi Control</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <nav class="nav">
+        <div class="brand">Kiwi Control</div>
+        <div class="nav-links">
+          <a href="/">Home</a>
+          <a href="/beta/">Beta</a>
+          <a href="https://github.com/sonishrey9/shrey-junior/releases/latest">Downloads</a>
+        </div>
+      </nav>
+
+      <section class="hero">
+        <div class="eyebrow">Install</div>
+        <h1>Install Kiwi Control</h1>
+        <p>GitHub Releases is the source of truth for public beta binaries. Windows desktop is the first external install target, followed by macOS desktop.</p>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h2>CLI</h2>
+          <div class="list">
+            <div>1. Download the CLI bundle from <a href="https://github.com/sonishrey9/shrey-junior/releases/latest">GitHub Releases</a>.</div>
+            <div>2. Run <code>install.sh</code> or <code>install.ps1</code>.</div>
+            <div>3. Use <code>kiwi-control --help</code> or <code>kc --help</code>.</div>
+          </div>
+        </article>
+        <article class="panel">
+          <h2>Desktop</h2>
+          <div class="list">
+            <div>1. Download the matching desktop bundle from the same release.</div>
+            <div>2. Install it normally for your platform.</div>
+            <div>3. In a repo, run <code>kiwi-control ui</code>.</div>
+          </div>
+        </article>
+        <article class="panel">
+          <h2>First repo flow</h2>
+          <div class="list">
+            <div><code>kiwi-control init</code></div>
+            <div><code>kiwi-control status</code></div>
+            <div><code>kiwi-control prepare "your real task"</code></div>
+            <div><code>kiwi-control validate</code></div>
+          </div>
+        </article>
+        <article class="panel">
+          <h2>Beta warning</h2>
+          <p class="danger">If signing/notarization is incomplete for your platform, expect system trust warnings. Always check release notes and checksums.</p>
+        </article>
+      </section>
+    </div>
+  </body>
+</html>
