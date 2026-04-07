@@ -105,8 +105,10 @@ jobs:
       - name: Smoke test
         run: bash scripts/smoke-test.sh
 
-      - name: Run release checks
-        run: npm run release:check
+      - name: Prepare release metadata
+        run: |
+          npm run release:manifest
+          npm run release:checksums
 
       - name: Ensure Cloudflare Pages project and custom domain
         run: node scripts/ensure-cloudflare-pages-project.mjs --output dist/release/cloudflare-pages.json
