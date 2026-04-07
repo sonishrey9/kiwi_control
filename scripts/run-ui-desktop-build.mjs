@@ -111,7 +111,20 @@ function withDefaultDesktopBundleArgs(args) {
     return args;
   }
 
-  return [...args, "--", "--bundles", "app"];
+  return [...args, "--", "--bundles", defaultBundleForPlatform()];
+}
+
+function defaultBundleForPlatform() {
+  switch (process.platform) {
+    case "darwin":
+      return "app";
+    case "win32":
+      return "msi";
+    case "linux":
+      return "appimage";
+    default:
+      return "app";
+  }
 }
 
 async function syncBundleArtifacts(cargoTargetDir) {
