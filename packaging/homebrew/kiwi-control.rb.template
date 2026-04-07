@@ -10,8 +10,6 @@ class KiwiControl < Formula
     libexec.install Dir["*"]
     bin.install_symlink libexec/"bin/kiwi-control" => "kiwi-control"
     bin.install_symlink libexec/"bin/kc" => "kc"
-    bin.install_symlink libexec/"bin/shrey-junior" => "shrey-junior"
-    bin.install_symlink libexec/"bin/sj" => "sj"
   end
 
   test do

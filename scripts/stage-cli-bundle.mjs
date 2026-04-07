@@ -31,19 +31,18 @@ export async function stageCliBundle(options = {}) {
   await cp(path.join(resolvedRepoRoot, "packages", "sj-core", "package.json"), path.join(sjCorePackageDir, "package.json"));
   await cp(path.join(resolvedRepoRoot, "node_modules", "yaml"), yamlPackageDir, { recursive: true });
 
-  const posixLaunchers = [
+  const publicLaunchers = [
     PRODUCT_METADATA.cli.primaryCommand,
-    PRODUCT_METADATA.cli.shortCommand,
-    ...PRODUCT_METADATA.cli.compatibilityCommands
+    PRODUCT_METADATA.cli.shortCommand
   ];
 
-  for (const launcherName of posixLaunchers) {
+  for (const launcherName of publicLaunchers) {
     const launcherPath = path.join(binDir, launcherName);
     await writeFile(launcherPath, renderPosixCliLauncher(), "utf8");
     await chmod(launcherPath, 0o755);
   }
 
-  for (const launcherName of posixLaunchers) {
+  for (const launcherName of publicLaunchers) {
     await writeFile(path.join(binDir, `${launcherName}.cmd`), renderWindowsCliLauncher(), "utf8");
   }
 
@@ -147,10 +146,6 @@ This bundle installs the public Kiwi Control commands:
 - ${PRODUCT_METADATA.cli.primaryCommand}
 - ${PRODUCT_METADATA.cli.shortCommand}
 
-Beta compatibility aliases are also included:
-
-- ${PRODUCT_METADATA.cli.compatibilityCommands.join("\n- ")}
-
 ## Install on macOS or Linux
 
 Run:
@@ -201,23 +196,11 @@ resolve_default_global_home() {
     return
   fi
 
-  if [[ -n "\${SHREY_JUNIOR_HOME:-}" ]]; then
-    printf '%s\\n' "$SHREY_JUNIOR_HOME"
-    return
-  fi
-
-  local kiwi_control_home="$HOME/.kiwi-control"
-  local legacy_home="$HOME/.shrey-junior"
-  if [[ -d "$kiwi_control_home" || ! -d "$legacy_home" ]]; then
-    printf '%s\\n' "$kiwi_control_home"
-    return
-  fi
-
-  printf '%s\\n' "$legacy_home"
+  printf '%s\\n' "$HOME/.kiwi-control"
 }
 
 GLOBAL_HOME="$(resolve_default_global_home)"
-PATH_BIN="\${KIWI_CONTROL_PATH_BIN:-\${SHREY_JUNIOR_PATH_BIN:-$HOME/.local/bin}}"
+PATH_BIN="\${KIWI_CONTROL_PATH_BIN:-$HOME/.local/bin}"
 INSTALL_ROOT="$GLOBAL_HOME/releases/${PRODUCT_METADATA.release.artifactPrefix}-${version}"
 PREFERRED_NODE="\${KIWI_CONTROL_NODE_ABSOLUTE:-\${KIWI_CONTROL_NODE:-\${SHREY_JUNIOR_NODE:-}}}"
 
@@ -230,7 +213,7 @@ mkdir -p "$GLOBAL_HOME/releases" "$PATH_BIN"
 rm -rf "$INSTALL_ROOT"
 cp -R "$BUNDLE_ROOT" "$INSTALL_ROOT"
 
-chmod +x "$INSTALL_ROOT/bin/${PRODUCT_METADATA.cli.primaryCommand}" "$INSTALL_ROOT/bin/${PRODUCT_METADATA.cli.shortCommand}" "$INSTALL_ROOT/bin/${PRODUCT_METADATA.cli.compatibilityCommands[0]}" "$INSTALL_ROOT/bin/${PRODUCT_METADATA.cli.compatibilityCommands[1]}"
+chmod +x "$INSTALL_ROOT/bin/${PRODUCT_METADATA.cli.primaryCommand}" "$INSTALL_ROOT/bin/${PRODUCT_METADATA.cli.shortCommand}"
 
 is_path_dir_on_path() {
   case ":$PATH:" in
@@ -358,13 +341,10 @@ PY
 
 write_wrapper "$PATH_BIN/${PRODUCT_METADATA.cli.primaryCommand}"
 write_wrapper "$PATH_BIN/${PRODUCT_METADATA.cli.shortCommand}"
-write_wrapper "$PATH_BIN/${PRODUCT_METADATA.cli.compatibilityCommands[0]}"
-write_wrapper "$PATH_BIN/${PRODUCT_METADATA.cli.compatibilityCommands[1]}"
 
 printf '%s\\n' "${PRODUCT_METADATA.displayName} CLI installed."
 printf '%s\\n' "Primary command: $PATH_BIN/${PRODUCT_METADATA.cli.primaryCommand}"
 printf '%s\\n' "Short alias: $PATH_BIN/${PRODUCT_METADATA.cli.shortCommand}"
-printf '%s\\n' "Compatibility aliases: $PATH_BIN/${PRODUCT_METADATA.cli.compatibilityCommands[0]}, $PATH_BIN/${PRODUCT_METADATA.cli.compatibilityCommands[1]}"
 if is_path_dir_on_path; then
   printf '%s\\n' "PATH already includes $PATH_BIN"
 else
@@ -380,8 +360,8 @@ function renderCliBundleInstallerPs1(version) {
   return `param()
 
 $BundleRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$GlobalHome = if ($env:KIWI_CONTROL_HOME) { $env:KIWI_CONTROL_HOME } elseif ($env:SHREY_JUNIOR_HOME) { $env:SHREY_JUNIOR_HOME } else { Join-Path $HOME ".kiwi-control" }
-$PathBin = if ($env:KIWI_CONTROL_PATH_BIN) { $env:KIWI_CONTROL_PATH_BIN } elseif ($env:SHREY_JUNIOR_PATH_BIN) { $env:SHREY_JUNIOR_PATH_BIN } else { Join-Path $GlobalHome "bin" }
+$GlobalHome = if ($env:KIWI_CONTROL_HOME) { $env:KIWI_CONTROL_HOME } else { Join-Path $HOME ".kiwi-control" }
+$PathBin = if ($env:KIWI_CONTROL_PATH_BIN) { $env:KIWI_CONTROL_PATH_BIN } else { Join-Path $GlobalHome "bin" }
 $InstallRoot = Join-Path $GlobalHome "releases\\${PRODUCT_METADATA.release.artifactPrefix}-${version}"
 $PreferredNode = if ($env:KIWI_CONTROL_NODE_ABSOLUTE) { $env:KIWI_CONTROL_NODE_ABSOLUTE } elseif ($env:KIWI_CONTROL_NODE) { $env:KIWI_CONTROL_NODE } elseif ($env:SHREY_JUNIOR_NODE) { $env:SHREY_JUNIOR_NODE } else { $null }
 
@@ -417,8 +397,6 @@ node "$EscapedInstallRoot\\lib\\cli.js" %*
 
 Set-Content -Path (Join-Path $PathBin "${PRODUCT_METADATA.cli.primaryCommand}.cmd") -Value $Wrapper -NoNewline
 Set-Content -Path (Join-Path $PathBin "${PRODUCT_METADATA.cli.shortCommand}.cmd") -Value $Wrapper -NoNewline
-Set-Content -Path (Join-Path $PathBin "${PRODUCT_METADATA.cli.compatibilityCommands[0]}.cmd") -Value $Wrapper -NoNewline
-Set-Content -Path (Join-Path $PathBin "${PRODUCT_METADATA.cli.compatibilityCommands[1]}.cmd") -Value $Wrapper -NoNewline
 
 $CurrentUserPath = [Environment]::GetEnvironmentVariable("Path", "User")
 $PathEntries = if ($CurrentUserPath) { $CurrentUserPath -split ';' | Where-Object { $_ } } else { @() }
@@ -433,7 +411,6 @@ if ($PathEntries -notcontains $PathBin) {
 Write-Host "${PRODUCT_METADATA.displayName} CLI installed."
 Write-Host "Primary command: $PathBin\\${PRODUCT_METADATA.cli.primaryCommand}.cmd"
 Write-Host "Short alias: $PathBin\\${PRODUCT_METADATA.cli.shortCommand}.cmd"
-Write-Host "Compatibility aliases: $PathBin\\${PRODUCT_METADATA.cli.compatibilityCommands[0]}.cmd, $PathBin\\${PRODUCT_METADATA.cli.compatibilityCommands[1]}.cmd"
 Write-Host $PathUpdateMessage
 Write-Host "Next step: open a new terminal window."
 `;

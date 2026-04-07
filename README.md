@@ -2,8 +2,8 @@
 
 Kiwi Control is a repo-local control plane for coding agents. It keeps authority inside the repository, exposes a practical CLI for day-to-day work, and ships a Tauri desktop shell for visibility, interaction, and review.
 
-![Kiwi Control Overview](./docs/assets/overview-placeholder.png)
-![Kiwi Control Graph](./docs/assets/graph-placeholder.png)
+![Kiwi Control Overview](./docs/media/kiwi-overview.png)
+![Kiwi Control Graph](./docs/media/kiwi-graph.png)
 
 ## Why Kiwi
 
@@ -97,6 +97,15 @@ The desktop shell currently includes:
 - center workspace with execution plan, context tree, graph view, and operator cards
 - right inspector for reasoning, validation, and control actions
 - interactive command bar wired to Kiwi CLI flows
+
+## Created By
+
+Kiwi Control is created by Shrey Soni.
+
+- GitHub: https://github.com/sonishrey9
+- LinkedIn: https://www.linkedin.com/in/shreykumarsoni/
+- Email: sonishrey9@gmail.com
+- Phone: +91 8109542640
 
 ## Architecture
 

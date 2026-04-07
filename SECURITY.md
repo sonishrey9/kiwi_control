@@ -24,6 +24,7 @@ Current private contact route for the public beta:
 
 - sonishrey9@gmail.com
 - LinkedIn DM: https://www.linkedin.com/in/shreykumarsoni/
+- Phone / Signal / WhatsApp: +91 8109542640
 
 If no private channel is listed yet, open a minimal issue asking for a private reporting route without disclosing the vulnerability details.
 

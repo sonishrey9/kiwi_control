@@ -29,7 +29,7 @@ const cliArtifacts = [
     platform: "macos",
     arch: "aarch64",
     artifactType: "cli",
-    description: "Installable Kiwi Control CLI bundle with kiwi-control, kc, and beta compatibility aliases",
+    description: "Installable Kiwi Control CLI bundle with kiwi-control and kc",
     fileName: `${artifactPrefix}-cli-${version}-macos-aarch64.tar.gz`,
     sourcePath: cliBundleRelativePath,
     checksumAlgorithm: "sha256"
@@ -38,7 +38,7 @@ const cliArtifacts = [
     platform: "macos",
     arch: "x64",
     artifactType: "cli",
-    description: "Installable Kiwi Control CLI bundle with kiwi-control, kc, and beta compatibility aliases",
+    description: "Installable Kiwi Control CLI bundle with kiwi-control and kc",
     fileName: `${artifactPrefix}-cli-${version}-macos-x64.tar.gz`,
     sourcePath: cliBundleRelativePath,
     checksumAlgorithm: "sha256"
@@ -47,7 +47,7 @@ const cliArtifacts = [
     platform: "linux",
     arch: "x64",
     artifactType: "cli",
-    description: "Installable Kiwi Control CLI bundle with kiwi-control, kc, and beta compatibility aliases",
+    description: "Installable Kiwi Control CLI bundle with kiwi-control and kc",
     fileName: `${artifactPrefix}-cli-${version}-linux-x64.tar.gz`,
     sourcePath: cliBundleRelativePath,
     checksumAlgorithm: "sha256"
@@ -56,7 +56,7 @@ const cliArtifacts = [
     platform: "windows",
     arch: "x64",
     artifactType: "cli",
-    description: "Installable Kiwi Control CLI bundle with kiwi-control, kc, and beta compatibility aliases",
+    description: "Installable Kiwi Control CLI bundle with kiwi-control and kc",
     fileName: `${artifactPrefix}-cli-${version}-windows-x64.zip`,
     sourcePath: cliBundleRelativePath,
     checksumAlgorithm: "sha256"
@@ -101,15 +101,13 @@ const platformBundles = [
 const manifest = {
   product: artifactPrefix,
   displayName: PRODUCT_METADATA.displayName,
-  repoCompatibilityName: PRODUCT_METADATA.repoCompatibilityName,
   version,
   channel,
   generatedAt: new Date().toISOString(),
   commands: {
     primary: PRODUCT_METADATA.cli.primaryCommand,
     aliases: [
-      PRODUCT_METADATA.cli.shortCommand,
-      ...PRODUCT_METADATA.cli.compatibilityCommands
+      PRODUCT_METADATA.cli.shortCommand
     ]
   },
   artifactNaming: {
@@ -149,8 +147,7 @@ const manifest = {
       formulaName: PRODUCT_METADATA.release.homebrewFormula,
       binaryName: PRODUCT_METADATA.cli.primaryCommand,
       compatibilityAliases: [
-        PRODUCT_METADATA.cli.shortCommand,
-        ...PRODUCT_METADATA.cli.compatibilityCommands
+        PRODUCT_METADATA.cli.shortCommand
       ]
     },
     winget: {
@@ -197,7 +194,7 @@ const manifest = {
     ],
     verificationNotes: [
       "Core operation stays local-first and repo-first with no mandatory cloud backend.",
-      "Repo-local artifact schemas remain backward compatible as shrey-junior/* during the beta rebrand.",
+      "Repo-local artifact schemas remain backward compatible during the beta rebrand.",
       "The public CLI bundle stays Node-backed during beta, so end-user install docs must state the Node 22+ requirement honestly."
     ]
   }
@@ -355,23 +352,11 @@ resolve_default_global_home() {
     return
   fi
 
-  if [[ -n "\${SHREY_JUNIOR_HOME:-}" ]]; then
-    printf '%s\\n' "$SHREY_JUNIOR_HOME"
-    return
-  fi
-
-  local kiwi_control_home="$HOME/.kiwi-control"
-  local legacy_home="$HOME/.shrey-junior"
-  if [[ -d "$kiwi_control_home" || ! -d "$legacy_home" ]]; then
-    printf '%s\\n' "$kiwi_control_home"
-    return
-  fi
-
-  printf '%s\\n' "$legacy_home"
+  printf '%s\\n' "$HOME/.kiwi-control"
 }
 
 GLOBAL_HOME="$(resolve_default_global_home)"
-PATH_BIN="\${KIWI_CONTROL_PATH_BIN:-\${SHREY_JUNIOR_PATH_BIN:-$HOME/.local/bin}}"
+PATH_BIN="\${KIWI_CONTROL_PATH_BIN:-$HOME/.local/bin}"
 INSTALL_ROOT="$GLOBAL_HOME/releases/${artifactPrefix}-${version}"
 
 if ! command -v node >/dev/null 2>&1; then

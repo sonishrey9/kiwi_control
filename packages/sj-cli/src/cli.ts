@@ -529,11 +529,6 @@ Contributor source usage:
   npm run build
   ${PRODUCT_METADATA.cli.sourceLauncher} status
   ${PRODUCT_METADATA.cli.sourceDesktopLauncher}
-
-Compatibility:
-  repo-local schema and artifact IDs remain ${PRODUCT_METADATA.compatibility.schemaPrefix}/*
-  legacy compatibility aliases remain available during migration
-  primary public commands: ${primaryCommand} | ${PRODUCT_METADATA.cli.shortCommand}
 `);
 }
 

@@ -7,11 +7,6 @@ Public commands remain:
 - `kiwi-control`
 - `kc`
 
-Temporary beta compatibility aliases remain:
-
-- `shrey-junior`
-- `sj`
-
 ## What is already true
 
 - The CLI, runtime assets, and desktop shell can be built from source without hidden remote services.

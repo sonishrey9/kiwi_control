@@ -691,6 +691,13 @@ type CliInstallResult = {
   usedBundledNode: boolean;
 };
 
+type BrowserPreviewPayload = {
+  state: RepoControlState;
+  runtimeInfo?: DesktopRuntimeInfo | null;
+  activeView?: NavView | null;
+  activeMode?: UiMode | null;
+};
+
 type MachineSectionName =
   | "inventory"
   | "mcpInventory"
@@ -1342,6 +1349,10 @@ function buildShellHtml(): string {
 }
 
 async function boot(): Promise<void> {
+  if (await loadBrowserPreview()) {
+    return;
+  }
+
   await loadDesktopRuntimeInfo();
   await registerLaunchRequestListener();
 
@@ -1370,6 +1381,50 @@ async function boot(): Promise<void> {
       void maybeAutoRefreshState();
     }
   });
+}
+
+function resolveBrowserPreviewRequest(): { fixturePath: string } | null {
+  if (isTauriBridgeAvailable()) {
+    return null;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const preview = params.get("preview");
+  if (!preview) {
+    return null;
+  }
+
+  return {
+    fixturePath: params.get("fixture") ?? `/preview/${preview}.json`
+  };
+}
+
+async function loadBrowserPreview(): Promise<boolean> {
+  const previewRequest = resolveBrowserPreviewRequest();
+  if (!previewRequest) {
+    return false;
+  }
+
+  const response = await fetch(previewRequest.fixturePath, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Preview fixture failed to load: ${previewRequest.fixturePath}`);
+  }
+
+  const payload = await response.json() as BrowserPreviewPayload;
+  currentState = payload.state;
+  currentTargetRoot = payload.state.targetRoot;
+  desktopRuntimeInfo = payload.runtimeInfo ?? null;
+  if (payload.activeView) {
+    activeView = payload.activeView;
+  }
+  if (payload.activeMode) {
+    activeMode = payload.activeMode;
+  }
+
+  bridgeNoteElement.textContent = payload.state.repoState.detail;
+  renderState(payload.state);
+  noteReadyState(`Preview loaded for ${payload.activeView ?? "overview"}.`);
+  return true;
 }
 
 async function registerLaunchRequestListener(): Promise<void> {

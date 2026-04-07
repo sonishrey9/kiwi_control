@@ -21,6 +21,7 @@ Please include:
 - GitHub: https://github.com/sonishrey9
 - LinkedIn: https://www.linkedin.com/in/shreykumarsoni/
 - Email: sonishrey9@gmail.com
+- Phone: +91 8109542640
 
 ## Public beta expectations
 

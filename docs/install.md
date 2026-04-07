@@ -65,11 +65,6 @@ After install, the public commands are:
 - `kiwi-control`
 - `kc`
 
-Temporary beta compatibility aliases are also installed:
-
-- `shrey-junior`
-- `sj`
-
 ### First installed CLI flow
 
 ```bash
@@ -136,7 +131,7 @@ On Windows, the in-app CLI install writes wrappers to `%USERPROFILE%\\.kiwi-cont
 
 ## Public beta support note
 
-See [docs/beta-limitations.md](/Volumes/shrey%20ssd/shrey-junior/docs/beta-limitations.md) before treating the desktop app as a fully trusted general-availability install.
+See [beta limitations](./beta-limitations.md) before treating the desktop app as a fully trusted general-availability install.
 
 ### What the desktop app shows
 
@@ -221,8 +216,7 @@ bash scripts/smoke-test.sh
 This beta keeps backward compatibility in place while moving the visible product to Kiwi Control:
 
 - internal packages remain `sj-core`, `sj-cli`, and `sj-ui`
-- repo-local schema and artifact IDs remain `shrey-junior/*`
-- `sj` and `shrey-junior` still work temporarily
+- repo-local schema and artifact IDs remain backward compatible during beta
 - `kiwi-control` and `kc` are the primary public commands
 
 ## Distribution status
@@ -234,4 +228,4 @@ Prepared but not yet published:
 - winget for standalone CLI users
 - macOS, Windows, and Linux desktop bundles via Tauri
 
-See [docs/release-packaging.md](/Volumes/shrey%20ssd/shrey-junior/docs/release-packaging.md) for release artifact details, [docs/beta-limitations.md](/Volumes/shrey%20ssd/shrey-junior/docs/beta-limitations.md) for beta caveats, and [packaging/signing/README.md](/Volumes/shrey%20ssd/shrey-junior/packaging/signing/README.md) for manual trust steps.
+See [release packaging](./release-packaging.md) for artifact details, [beta limitations](./beta-limitations.md) for beta caveats, and [packaging/signing/README.md](../packaging/signing/README.md) for manual trust steps.

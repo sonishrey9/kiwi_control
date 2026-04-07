@@ -14,9 +14,5 @@ Installers:
         PortableCommandAlias: kiwi-control
       - RelativeFilePath: bin/kc.cmd
         PortableCommandAlias: kc
-      - RelativeFilePath: bin/shrey-junior.cmd
-        PortableCommandAlias: shrey-junior
-      - RelativeFilePath: bin/sj.cmd
-        PortableCommandAlias: sj
 ManifestType: installer
 ManifestVersion: 1.6.0

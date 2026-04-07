@@ -11,7 +11,7 @@ The release surface must look like a finished Kiwi Control product:
 - GitHub Releases as the primary public beta distribution path
 - Cloudflare Pages as the public landing/docs/download discovery surface
 
-Internal package boundaries remain `sj-core`, `sj-cli`, and `sj-ui`. Repo-local schema and artifact IDs remain `shrey-junior/*` for beta compatibility.
+Internal package boundaries remain `sj-core`, `sj-cli`, and `sj-ui`. Repo-local schema and artifact IDs remain backward compatible during beta.
 
 ## Versioning
 
@@ -58,8 +58,6 @@ The staged CLI bundle contains:
 
 - `bin/kiwi-control`
 - `bin/kc`
-- `bin/shrey-junior`
-- `bin/sj`
 - Windows `.cmd` launchers for the same commands
 - `install.sh`
 - `install.ps1`
@@ -142,7 +140,6 @@ They are beta-ready in the following sense:
 
 - they point at Kiwi Control release artifact names
 - they install `kiwi-control` and `kc` as the primary commands
-- they preserve `shrey-junior` and `sj` as temporary beta compatibility aliases
 - they assume the staged CLI bundle layout produced by `prepare-release-manifest`
 
 They still need live release URLs and real SHA256 values at publish time.
@@ -193,9 +190,9 @@ The CI workflow installs Linux prerequisites and Rust so tagged builds have a co
 
 The public beta release set should include:
 
-- [docs/privacy-policy.md](/Volumes/shrey%20ssd/shrey-junior/docs/privacy-policy.md)
-- [docs/terms-and-conditions.md](/Volumes/shrey%20ssd/shrey-junior/docs/terms-and-conditions.md)
-- [docs/security-and-trust.md](/Volumes/shrey%20ssd/shrey-junior/docs/security-and-trust.md)
+- [privacy-policy.md](./privacy-policy.md)
+- [terms-and-conditions.md](./terms-and-conditions.md)
+- [security-and-trust.md](./security-and-trust.md)
 
 These pages should stay honest about the current beta:
 
@@ -223,7 +220,7 @@ Public release trust still requires manual setup for:
 - Windows signing
 - Tauri updater signing
 
-See [packaging/signing/README.md](/Volumes/shrey%20ssd/shrey-junior/packaging/signing/README.md).
+See [packaging/signing/README.md](../packaging/signing/README.md).
 
 ## Release verification checklist
 
@@ -246,8 +243,7 @@ Before a public beta release:
 ## Compatibility note
 
 - internal packages remain `sj-core`, `sj-cli`, `sj-ui`
-- repo-local schema and artifact IDs remain `shrey-junior/*`
-- `sj` and `shrey-junior` still work temporarily
+- repo-local schema and artifact IDs remain backward compatible during beta
 - `kiwi-control` and `kc` are the primary public commands
 
 ## Honesty rules
@@ -255,5 +251,5 @@ Before a public beta release:
 - do not claim signed desktop trust until platform signing was actually applied
 - do not claim updater support until signed updater metadata is shipping
 - do not claim Homebrew or winget availability until those channels are published
-- do not imply repo-local schema renaming; beta compatibility still uses `shrey-junior/*`
+- do not imply repo-local schema or artifact rewrites as part of the public beta
 - do not hide the Node 22+ requirement for the beta CLI bundle
