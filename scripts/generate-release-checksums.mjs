@@ -54,6 +54,9 @@ async function collectFilesFromDir(dirPath) {
   const entries = await fs.readdir(dirPath, { withFileTypes: true });
   const files = [];
   for (const entry of entries) {
+    if (isMacMetadataArtifact(entry.name)) {
+      continue;
+    }
     const entryPath = path.join(dirPath, entry.name);
     if (entry.isDirectory()) {
       files.push(...await collectFilesFromDir(entryPath));
@@ -69,4 +72,8 @@ async function sha256(filePath) {
   const buffer = await fs.readFile(filePath);
   hash.update(buffer);
   return hash.digest("hex");
+}
+
+function isMacMetadataArtifact(name) {
+  return name === ".DS_Store" || name.startsWith("._");
 }

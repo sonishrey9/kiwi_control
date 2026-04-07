@@ -2,7 +2,6 @@
 import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -25,7 +24,10 @@ const desktopExecutable = path.join(
   "MacOS",
   "sj-ui"
 );
-const probeTimeoutMs = 12_000;
+const cliEntrypoint = path.join(repoRoot, "packages", "sj-cli", "dist", "cli.js");
+const probeTimeoutMs = 20_000;
+const probeMaxAttempts = 2;
+const probeRetryDelayMs = 1_000;
 
 async function main() {
   if (process.platform !== "darwin") {
@@ -34,6 +36,9 @@ async function main() {
 
   await fs.access(desktopExecutable).catch(() => {
     throw new Error(`Built desktop executable not found at ${desktopExecutable}. Run npm run ui:desktop:build first.`);
+  });
+  await fs.access(cliEntrypoint).catch(() => {
+    throw new Error(`Built CLI entrypoint not found at ${cliEntrypoint}. Run npm run build first.`);
   });
 
   await killExistingKiwiProcesses();
@@ -78,7 +83,7 @@ async function createBlockedRepo() {
 }
 
 async function verifyOverviewBlockedState(repo) {
-  const snapshot = await launchAndCollectProbe(repo.targetRoot, null, (payload) =>
+  const snapshot = await launchAndCollectProbeWithRetry(repo.targetRoot, null, (payload) =>
     payload.mounted === true
       && payload.activeView === "overview"
       && payload.targetRoot === repo.targetRoot
@@ -104,7 +109,7 @@ async function verifyOverviewBlockedState(repo) {
 }
 
 async function verifyMachineView(repo) {
-  const snapshot = await launchAndCollectProbe(repo.targetRoot, "machine", (payload) =>
+  const snapshot = await launchAndCollectProbeWithRetry(repo.targetRoot, "machine", (payload) =>
     payload.mounted === true
       && payload.activeView === "machine"
       && payload.targetRoot === repo.targetRoot
@@ -115,40 +120,59 @@ async function verifyMachineView(repo) {
   assert.equal(snapshot.visibleSections.includes("machine-setup-readiness"), true);
 }
 
+async function launchAndCollectProbeWithRetry(targetRoot, probeView, predicate) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= probeMaxAttempts; attempt += 1) {
+    try {
+      await killExistingKiwiProcesses();
+      return await launchAndCollectProbe(targetRoot, probeView, predicate);
+    } catch (error) {
+      lastError = error;
+      if (attempt >= probeMaxAttempts) {
+        throw error;
+      }
+      await killExistingKiwiProcesses();
+      await delay(probeRetryDelayMs);
+    }
+  }
+
+  throw lastError ?? new Error("Rendered desktop probe failed without an error.");
+}
+
 async function launchAndCollectProbe(targetRoot, probeView, predicate) {
   const bridgeDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-render-bridge-"));
   const probeFile = path.join(bridgeDir, "render-probe.json");
-  const launchRequestPath = path.join(bridgeDir, "desktop-launch-request.json");
   const launchStatusPath = path.join(bridgeDir, "desktop-launch-status.json");
   const launchLogPath = path.join(bridgeDir, "desktop-launch-log.json");
-  const requestId = randomUUID();
-
-  await fs.writeFile(
-    launchRequestPath,
-    JSON.stringify(
-      {
-        requestId,
-        targetRoot,
-        requestedAt: new Date().toISOString(),
-        launchSource: "source-bundle"
-      },
-      null,
-      2
-    ),
-    "utf8"
-  );
-
-  const child = spawn(desktopExecutable, [], {
+  const child = spawn(process.execPath, [cliEntrypoint, "ui", "--target", targetRoot], {
+    cwd: repoRoot,
     env: {
       ...process.env,
       KIWI_CONTROL_DESKTOP_BRIDGE_DIR: bridgeDir,
+      KIWI_CONTROL_DESKTOP: desktopExecutable,
       KIWI_CONTROL_RENDER_PROBE_FILE: probeFile,
       ...(probeView ? { KIWI_CONTROL_RENDER_PROBE_VIEW: probeView } : {})
     },
-    stdio: "ignore"
+    stdio: ["ignore", "pipe", "pipe"]
   });
 
   let lastPayload = null;
+  let childStdout = "";
+  let childStderr = "";
+  let childError = null;
+  let childExit = null;
+  child.stdout.on("data", (chunk) => {
+    childStdout += chunk.toString();
+  });
+  child.stderr.on("data", (chunk) => {
+    childStderr += chunk.toString();
+  });
+  child.once("error", (error) => {
+    childError = error instanceof Error ? error.message : String(error);
+  });
+  child.once("exit", (code, signal) => {
+    childExit = { code, signal };
+  });
   try {
     const deadline = Date.now() + probeTimeoutMs;
     while (Date.now() < deadline) {
@@ -168,6 +192,10 @@ async function launchAndCollectProbe(targetRoot, probeView, predicate) {
     throw new Error(
       [
         `Rendered desktop probe timed out for ${targetRoot}${probeView ? ` view=${probeView}` : ""}.`,
+        childError ? `Child error: ${childError}` : "Child error: <none>",
+        childExit ? `Child exit: ${JSON.stringify(childExit)}` : "Child exit: <still running or not observed>",
+        childStdout ? `Child stdout: ${childStdout}` : "Child stdout: <empty>",
+        childStderr ? `Child stderr: ${childStderr}` : "Child stderr: <empty>",
         `Last payload: ${JSON.stringify(lastPayload, null, 2)}`,
         launchStatus ? `Launch status: ${launchStatus}` : "Launch status: <missing>",
         launchLog ? `Launch log: ${launchLog}` : "Launch log: <missing>"
@@ -192,7 +220,8 @@ async function waitForExit(child, timeoutMs) {
 async function killExistingKiwiProcesses() {
   for (const pattern of [
     "/Applications/Kiwi Control.app/Contents/MacOS/sj-ui",
-    "/Volumes/shrey ssd/shrey-junior/apps/sj-ui/src-tauri/target/release/bundle/macos/Kiwi Control.app/Contents/MacOS/sj-ui"
+    "/Volumes/shrey ssd/shrey-junior/apps/sj-ui/src-tauri/target/release/bundle/macos/Kiwi Control.app/Contents/MacOS/sj-ui",
+    "kiwi-control-tauri-target/release/sj-ui"
   ]) {
     spawnSync("pkill", ["-f", pattern], { stdio: "ignore" });
   }

@@ -1,6 +1,7 @@
 import path from "node:path";
 import { cp, mkdir, rm } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { removeMacMetadataArtifacts } from "./remove-macos-metadata.mjs";
 
 const [, , destinationArg] = process.argv;
 
@@ -22,3 +23,5 @@ for (const relativePath of ["configs", "docs", "examples", "prompts", "scripts",
     filter: (entry) => !path.basename(entry).startsWith("._")
   });
 }
+
+await removeMacMetadataArtifacts(destinationRoot);

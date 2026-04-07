@@ -116,7 +116,7 @@ const ESTIMATE_NOTE =
 const SKIPPED_DIR_SCAN_LIMIT = 400;
 
 const SKIP_DIRS = new Set([
-  "node_modules", ".git", "dist", "build", ".next", ".output",
+  "node_modules", ".git", "dist", "dist-types", "build", ".next", ".output",
   "__pycache__", ".venv", "venv", "coverage", ".turbo",
   ".nyc_output", ".cache", "target", ".agent",
   ".pnpm", ".parcel-cache", ".svelte-kit", ".nuxt",
@@ -477,7 +477,7 @@ async function buildTokenBreakdown(
   skippedDirectories: string[]
 ): Promise<TokenBreakdownState> {
   const nodeModulesDirs = skippedDirectories.filter((directory) => path.basename(directory) === "node_modules");
-  const distDirs = skippedDirectories.filter((directory) => ["dist", "build", ".next", ".output"].includes(path.basename(directory)));
+  const distDirs = skippedDirectories.filter((directory) => ["dist", "dist-types", "build", ".next", ".output"].includes(path.basename(directory)));
   const otherSkippedDirs = skippedDirectories.filter(
     (directory) => !nodeModulesDirs.includes(directory) && !distDirs.includes(directory)
   );

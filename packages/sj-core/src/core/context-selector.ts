@@ -159,7 +159,7 @@ const EXCLUDED_DIRECTORIES = new Set([
   // Version control
   ".git", ".svn", ".hg",
   // Build outputs
-  "dist", "build", "out", ".output", "_build", "lib-esm", "lib-cjs",
+  "dist", "dist-types", "build", "out", ".output", "_build", "lib-esm", "lib-cjs",
   // Framework caches & outputs
   ".next", ".nuxt", ".svelte-kit", ".vercel", ".netlify", ".turbo",
   ".parcel-cache", ".webpack", ".rollup.cache", ".vite",

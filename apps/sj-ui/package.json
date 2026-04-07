@@ -8,8 +8,8 @@
     "@tauri-apps/api": "^2.0.0"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && vite build && node ../../scripts/remove-macos-metadata.mjs dist",
-    "test": "tsc -p tsconfig.json && node --test dist-types/ui/*.test.js",
+    "build": "node -e \"const fs=require('node:fs');fs.rmSync('dist-types',{recursive:true,force:true});fs.rmSync('dist',{recursive:true,force:true});fs.rmSync('tsconfig.test.tsbuildinfo',{force:true});\" && tsc --noEmit -p tsconfig.json && vite build && node ../../scripts/remove-macos-metadata.mjs dist-types dist",
+    "test": "node -e \"const fs=require('node:fs');fs.rmSync('dist-types',{recursive:true,force:true});fs.rmSync('tsconfig.test.tsbuildinfo',{force:true});\" && tsc -p tsconfig.test.json && node ../../scripts/remove-macos-metadata.mjs dist-types && node --test dist-types/ui/*.test.js",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"
   },

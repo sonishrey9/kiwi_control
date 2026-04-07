@@ -421,3 +421,19 @@ test("token estimator flags docs as optional during implementation tasks", async
 
   assert.ok(estimate.wastedFiles.files.some((item) => item.file === "README.md"));
 });
+
+test("token estimator skips generated dist-types output and counts it as dist savings", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-token-dist-types-"));
+  await fs.mkdir(path.join(tempDir, "apps", "sj-ui", "src"), { recursive: true });
+  await fs.mkdir(path.join(tempDir, "apps", "sj-ui", "dist-types"), { recursive: true });
+  await fs.writeFile(path.join(tempDir, "apps", "sj-ui", "src", "main.ts"), "export const source = true;\n", "utf8");
+  await fs.writeFile(path.join(tempDir, "apps", "sj-ui", "dist-types", "main.js"), "export const generated = 'x'.repeat(2000);\n", "utf8");
+
+  const estimate = await estimateTokens(tempDir, ["apps/sj-ui/src/main.ts"], "fix ui readiness");
+
+  assert.equal(estimate.fileBreakdown.some((entry) => entry.file.includes("dist-types")), false);
+  assert.ok(
+    estimate.tokenBreakdown.categories.some((entry) => entry.category === "dist" && entry.file_count > 0),
+    "dist-types should contribute to dist token savings"
+  );
+});

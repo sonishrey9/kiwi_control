@@ -233,18 +233,24 @@ test("context trace records why files were selected and the dependency chain whe
   assert.deepEqual(dependent?.dependencyChain, ["helper.ts", "main.ts"]);
 });
 
-test("context selector excludes node_modules and dist paths", async () => {
+test("context selector excludes node_modules and generated output paths", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ctx-exclude-"));
   await runCommand("git", ["init"], tempDir);
   await fs.mkdir(path.join(tempDir, "node_modules", "lib"), { recursive: true });
+  await fs.mkdir(path.join(tempDir, "dist-types"), { recursive: true });
+  await fs.mkdir(path.join(tempDir, "apps", "sj-ui", "dist-types"), { recursive: true });
   await fs.writeFile(path.join(tempDir, "node_modules", "lib", "index.js"), "module.exports = {};\n", "utf8");
+  await fs.writeFile(path.join(tempDir, "dist-types", "bundle.js"), "export const bundle = true;\n", "utf8");
+  await fs.writeFile(path.join(tempDir, "apps", "sj-ui", "dist-types", "main.js"), "export const generated = true;\n", "utf8");
   await fs.writeFile(path.join(tempDir, "src.ts"), "export const x = 1;\n", "utf8");
   await runCommand("git", ["add", "src.ts"], tempDir);
 
   const result = await contextSelector("update x", tempDir);
 
   const hasNodeModules = result.include.some((f) => f.includes("node_modules"));
+  const hasDistTypes = result.include.some((f) => f.includes("dist-types"));
   assert.equal(hasNodeModules, false, "node_modules files should never be in include list");
+  assert.equal(hasDistTypes, false, "generated dist-types files should never be in include list");
 });
 
 test("context selector includes selective repo-local .agent state without scanning the full .agent tree", async () => {

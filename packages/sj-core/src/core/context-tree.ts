@@ -30,6 +30,7 @@ const EXCLUDED_DIRECTORIES = new Set([
   "node_modules",
   ".pnpm",
   "dist",
+  "dist-types",
   "build",
   "out",
   ".next",

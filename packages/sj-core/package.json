@@ -32,7 +32,7 @@
     "./runtime/*": "./dist/runtime/*"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && node ../../scripts/copy-runtime-assets.mjs packages/sj-core/dist/runtime"
+    "build": "node -e \"const fs=require('node:fs');fs.rmSync('dist',{recursive:true,force:true});fs.rmSync('tsconfig.tsbuildinfo',{force:true});\" && tsc -p tsconfig.json && node ../../scripts/copy-runtime-assets.mjs packages/sj-core/dist/runtime && node ../../scripts/remove-macos-metadata.mjs dist"
   },
   "dependencies": {
     "yaml": "^2.8.1"
