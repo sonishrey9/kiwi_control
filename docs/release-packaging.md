@@ -148,8 +148,8 @@ They still need live release URLs and real SHA256 values at publish time.
 
 Recommended public-beta hosting split:
 
-- Route 53 remains the domain registrar
-- Cloudflare becomes the authoritative DNS provider
+- Route 53 remains authoritative for `kiwi-ai.in`
+- Cloudflare Pages remains the web host
 - Cloudflare Pages hosts:
   - landing page
   - install page
@@ -159,10 +159,10 @@ Recommended public-beta hosting split:
 
 Recommended domain flow:
 
-1. keep registration in Route 53
-2. point nameservers to Cloudflare
-3. attach apex and `www` to Cloudflare Pages
-4. add redirects for `www`, docs, and install URLs
+1. keep the public hosted zone in Route 53
+2. create or confirm the Cloudflare Pages project and attach the custom domain
+3. UPSERT a Route 53 `CNAME` for `kiwi-control.kiwi-ai.in` that targets the Pages subdomain
+4. add redirects for downloads, docs, and install URLs through the Pages site
 5. publish GitHub Release links and checksums through the Pages site
 
 ## Desktop packaging prerequisites

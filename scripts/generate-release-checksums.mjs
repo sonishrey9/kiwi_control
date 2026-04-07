@@ -4,18 +4,13 @@ import { fileURLToPath } from "node:url";
 import { promises as fs } from "node:fs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const args = parseArgs(process.argv.slice(2));
 const releaseDir = path.join(repoRoot, "dist", "release");
-const outputPath = path.join(releaseDir, "SHA256SUMS.txt");
+const outputPath = path.resolve(args.output ?? path.join(releaseDir, "SHA256SUMS.txt"));
 
-await fs.mkdir(releaseDir, { recursive: true });
+await fs.mkdir(path.dirname(outputPath), { recursive: true });
 
-const candidateRoots = [
-  path.join(repoRoot, "dist", "release", "cli-bundle"),
-  path.join(repoRoot, "dist", "release", "release-manifest.json"),
-  path.join(repoRoot, "packages", "sj-core", "dist", "runtime"),
-  path.join(repoRoot, "apps", "sj-ui", "dist"),
-  path.join(repoRoot, "apps", "sj-ui", "src-tauri", "target", "release", "bundle")
-];
+const candidateRoots = (args.roots.length > 0 ? args.roots : defaultCandidateRoots()).map((candidate) => path.resolve(repoRoot, candidate));
 
 const files = await collectFiles(candidateRoots);
 const lines = [];
@@ -32,6 +27,38 @@ for (const filePath of files) {
 lines.sort((left, right) => left.localeCompare(right));
 await fs.writeFile(outputPath, `${lines.join("\n")}\n`, "utf8");
 console.log(`wrote SHA256 checksums to ${outputPath}`);
+
+function parseArgs(argv) {
+  const parsed = {
+    output: undefined,
+    roots: []
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (token === "--output") {
+      parsed.output = argv[index + 1];
+      index += 1;
+      continue;
+    }
+    if (token === "--root") {
+      parsed.roots.push(argv[index + 1]);
+      index += 1;
+    }
+  }
+
+  return parsed;
+}
+
+function defaultCandidateRoots() {
+  return [
+    path.join("dist", "release", "cli-bundle"),
+    path.join("dist", "release", "release-manifest.json"),
+    path.join("packages", "sj-core", "dist", "runtime"),
+    path.join("apps", "sj-ui", "dist"),
+    path.join("apps", "sj-ui", "src-tauri", "target", "release", "bundle")
+  ];
+}
 
 async function collectFiles(roots) {
   const files = [];

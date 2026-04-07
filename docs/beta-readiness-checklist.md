@@ -77,4 +77,4 @@ npm install && npm run build
 - internal package boundaries remain `sj-core`, `sj-cli`, and `sj-ui`
 - repo-local schema and artifact IDs remain `shrey-junior/*` during beta for backward compatibility
 - compatibility CLI aliases `shrey-junior` and `sj` still exist, but user-facing docs and commands should prefer `kiwi-control` and `kc`
-- Route 53 should remain registrar only, while Cloudflare serves as authoritative DNS and public web host
+- Route 53 should remain authoritative for `kiwi-ai.in`, while Cloudflare Pages serves as the public web host through an external CNAME

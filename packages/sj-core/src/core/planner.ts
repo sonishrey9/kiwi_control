@@ -6,7 +6,7 @@ import type { ContinuitySnapshot } from "./state.js";
 import { renderTaskPacket } from "./packets.js";
 import type { RoutingDecision, TemplateContext } from "./router.js";
 import type { SpecialistSelection } from "./specialists.js";
-import { readText, renderTemplate, slugify } from "../utils/fs.js";
+import { normalizeRepoPath, readText, renderTemplate, slugify } from "../utils/fs.js";
 
 export interface TaskPacket {
   logicalName: string;
@@ -53,7 +53,7 @@ export async function buildRunPackets(
 
       return {
         logicalName: `.agent/tasks/run-${timestamp}-${slug}/${tool}.md`,
-        relativePath: path.join(config.routing.task_packets.directory, `run-${timestamp}-${slug}`, `${tool}.md`),
+        relativePath: normalizeRepoPath(path.join(config.routing.task_packets.directory, `run-${timestamp}-${slug}`, `${tool}.md`)),
         content
       };
     })
@@ -95,7 +95,7 @@ export async function buildFanoutPackets(
 
       return {
         logicalName: `.agent/tasks/fanout-${timestamp}-${slug}/${role}.md`,
-        relativePath: path.join(config.routing.task_packets.directory, `fanout-${timestamp}-${slug}`, `${role}.md`),
+        relativePath: normalizeRepoPath(path.join(config.routing.task_packets.directory, `fanout-${timestamp}-${slug}`, `${role}.md`)),
         content
       };
     })

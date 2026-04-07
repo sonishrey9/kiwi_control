@@ -115,8 +115,12 @@ export function slugify(input: string): string {
     .slice(0, 48) || "task";
 }
 
+export function normalizeRepoPath(filePath: string): string {
+  return filePath.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
 export function relativeFrom(root: string, filePath: string): string {
-  return path.relative(root, filePath) || ".";
+  return normalizeRepoPath(path.relative(root, filePath) || ".");
 }
 
 export function renderDisplayPath(root: string, filePath: string): string {
@@ -133,7 +137,7 @@ export function renderDisplayPath(root: string, filePath: string): string {
   if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
     return filePath;
   }
-  return relativePath;
+  return normalizeRepoPath(relativePath);
 }
 
 export function isIgnoredArtifactName(name: string): boolean {
