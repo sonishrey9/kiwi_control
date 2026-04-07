@@ -7,6 +7,7 @@ on:
     paths:
       - "website/**"
       - "scripts/ensure-cloudflare-pages-project.mjs"
+      - "scripts/run-ui-desktop-build.mjs"
       - "scripts/upsert-route53-pages-record.mjs"
       - ".github/workflows/deploy-site.yml"
       - ".github/workflows/ci.yml"
