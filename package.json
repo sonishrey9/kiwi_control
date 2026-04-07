@@ -28,6 +28,7 @@
     "smoke": "npm run build && bash scripts/smoke-test.sh",
     "release:manifest": "npm run build -w @shrey-junior/sj-core && node scripts/prepare-release-manifest.mjs",
     "release:checksums": "node scripts/generate-release-checksums.mjs",
+    "release:package-assets": "node scripts/package-release-assets.mjs",
     "release:check": "npm run test:product:features && npm run release:manifest && npm run release:checksums",
     "ui:dev": "node scripts/run-ui-dev.mjs",
     "ui:build": "npm run build -w @shrey-junior/sj-ui",

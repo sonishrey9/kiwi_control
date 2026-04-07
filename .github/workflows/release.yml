@@ -6,6 +6,9 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
   package:
     strategy:
@@ -15,17 +18,18 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
+
       - name: Install Linux desktop prerequisites
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
             librsvg2-dev \
             patchelf \
             build-essential \
@@ -35,45 +39,122 @@ jobs:
             libxdo-dev \
             libssl-dev \
             libayatana-appindicator3-dev
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-      - run: npm ci
-      - run: npm run build
-      - run: npm test
-      - run: npm run ui:build
-      - run: node scripts/prepare-release-manifest.mjs
-      - run: node scripts/generate-release-checksums.mjs
-      - name: Upload staged CLI bundle
-        uses: actions/upload-artifact@v4
-        with:
-          name: kiwi-control-cli-${{ matrix.os }}
-          path: dist/release/cli-bundle
-      - name: Upload runtime assets
-        uses: actions/upload-artifact@v4
-        with:
-          name: kiwi-control-runtime-${{ matrix.os }}
-          path: packages/sj-core/dist/runtime
-      - name: Upload UI web bundle
-        uses: actions/upload-artifact@v4
-        with:
-          name: kiwi-control-ui-web-${{ matrix.os }}
-          path: apps/sj-ui/dist
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Remove macOS metadata junk
+        run: node scripts/remove-macos-metadata.mjs .
+
+      - name: Build workspace
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Smoke test
+        run: bash scripts/smoke-test.sh
+
+      - name: Build UI web bundle
+        run: npm run ui:build
+
+      - name: Prepare release manifest
+        run: node scripts/prepare-release-manifest.mjs
+
+      - name: Generate local checksums
+        run: node scripts/generate-release-checksums.mjs
+
       - name: Build desktop bundle
         if: startsWith(github.ref, 'refs/tags/v')
         run: npm run ui:desktop:build
-      - name: Upload release manifest
+
+      - name: Package release assets
+        run: node scripts/package-release-assets.mjs
+
+      - name: Upload packaged release assets
         uses: actions/upload-artifact@v4
         with:
-          name: kiwi-control-release-manifest-${{ matrix.os }}
+          name: release-assets-${{ matrix.os }}
+          path: dist/release/assets
+          if-no-files-found: error
+
+      - name: Upload canonical release manifest
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-manifest-ubuntu
           path: dist/release/release-manifest.json
-      - name: Upload release checksums
-        uses: actions/upload-artifact@v4
+          if-no-files-found: error
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
         with:
-          name: kiwi-control-checksums-${{ matrix.os }}
-          path: dist/release/SHA256SUMS.txt
-      - name: Upload desktop bundles
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v4
-        with:
-          name: kiwi-control-desktop-${{ matrix.os }}
-          path: apps/sj-ui/src-tauri/target/release/bundle
+          path: dist/release/downloads
+
+      - name: Consolidate packaged assets
+        run: |
+          mkdir -p dist/release/publish
+          shopt -s nullglob
+          for dir in dist/release/downloads/release-assets-*; do
+            cp -R "$dir"/. dist/release/publish/
+          done
+          cp dist/release/downloads/release-manifest-ubuntu/release-manifest.json dist/release/publish/release-manifest.json
+
+      - name: Generate consolidated checksums
+        run: |
+          node scripts/generate-release-checksums.mjs \
+            --root dist/release/publish \
+            --output dist/release/publish/SHA256SUMS.txt
+
+      - name: Write release notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          cat > dist/release/release-notes.md <<EOF
+          Kiwi Control ${RELEASE_TAG}
+
+          Public beta assets are attached here. GitHub Releases remains the source of truth for downloads, and the public site points to this release stream through /releases/latest.
+
+          Trust notes:
+          - macOS signing and notarization remain manual unless explicitly completed for this tag
+          - Windows code signing remains manual unless explicitly completed for this tag
+          - auto-update metadata is still disabled until signed updater inputs are configured
+          EOF
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          release_title="Kiwi Control ${RELEASE_TAG}"
+          if ! gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release create "${RELEASE_TAG}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "${release_title}" \
+              --notes-file dist/release/release-notes.md
+          fi
+          release_id="$(gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" --json databaseId --jq '.databaseId')"
+          jq -n \
+            --arg name "${release_title}" \
+            --rawfile body dist/release/release-notes.md \
+            '{name: $name, body: $body, draft: false, prerelease: false, make_latest: "true"}' \
+            > dist/release/release-update.json
+          gh api \
+            --method PATCH \
+            --header "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/releases/${release_id}" \
+            --input dist/release/release-update.json
+          gh release upload "${RELEASE_TAG}" dist/release/publish/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --clobber

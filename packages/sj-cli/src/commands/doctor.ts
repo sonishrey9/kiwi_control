@@ -5,6 +5,7 @@ import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js"
 import { PRODUCT_METADATA } from "@shrey-junior/sj-core";
 import { buildMachineDoctorFindings, loadMachineAdvisory } from "@shrey-junior/sj-core/integrations/machine-advisory.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { renderDisplayPath } from "@shrey-junior/sj-core/utils/fs.js";
 import { selectPrimaryPlanCommand } from "./execution-plan-recovery.js";
 
 export interface DoctorOptions {
@@ -45,7 +46,9 @@ export async function runDoctor(options: DoctorOptions): Promise<number> {
     options.logger.info(`next command: ${payload.nextCommand}`);
   } else {
     for (const finding of groupRepoFindings(findings, options.targetRoot)) {
-      options.logger.info(`${finding.level}: ${finding.message}${finding.filePath ? ` (${finding.filePath})` : ""}`);
+      options.logger.info(
+        `${finding.level}: ${finding.message}${finding.filePath ? ` (${renderDisplayPath(options.targetRoot, finding.filePath)})` : ""}`
+      );
       options.logger.info(`fix command: ${finding.fixCommand}`);
     }
     options.logger.info(`next command: ${payload.nextCommand}`);

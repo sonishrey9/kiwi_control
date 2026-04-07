@@ -10,6 +10,7 @@ import { renderCopilotBody } from "../adapters/copilot.js";
 import {
   applyWritePlan,
   fileContainsManagedFile,
+  normalizeRepoPath,
   pathExists,
   planCreateOnlyFile,
   planManagedBlock,
@@ -96,7 +97,7 @@ export async function writeTaskPackets(targetRoot: string, packets: TaskPacket[]
 
 export function summarizeWrites(results: WriteResult[], targetRoot: string, options: Pick<WriteExecutionOptions, "diffSummary" | "dryRun"> = {}): string {
   const lines = results.map((result) => {
-    const relativePath = path.relative(targetRoot, result.path) || ".";
+    const relativePath = relativeFrom(targetRoot, result.path) || ".";
     const diff = options.diffSummary || options.dryRun ? `, +${result.addedLines ?? 0}/-${result.removedLines ?? 0}` : "";
     const backup = result.backupPath ? `, backup=${relativeFrom(targetRoot, result.backupPath)}` : "";
     return `- ${result.status}: ${relativePath} (${result.detail}${diff}${backup})`;
@@ -136,7 +137,7 @@ async function applyPlans(targetRoot: string, plans: WritePlan[], options: Write
 
     const backupPath =
       backupRoot && plan.currentContent !== undefined && plan.status !== "unchanged" && plan.status !== "conflict"
-        ? path.join(backupRoot, relativeFrom(targetRoot, plan.path))
+        ? path.join(backupRoot, normalizeRepoPath(relativeFrom(targetRoot, plan.path)))
         : undefined;
     results.push(await applyWritePlan(plan, backupPath ? { backupPath } : undefined));
   }
