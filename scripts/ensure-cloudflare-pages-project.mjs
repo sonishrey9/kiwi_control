@@ -42,12 +42,6 @@ if (!customDomain) {
   });
 }
 
-if (customDomain.validation_data?.method === "http") {
-  throw new Error(
-    `Cloudflare returned HTTP validation for ${customDomainName}, which cannot be completed through Route 53 DNS automation alone.`
-  );
-}
-
 const payload = {
   ok: true,
   created,

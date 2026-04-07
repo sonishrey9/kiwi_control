@@ -25,10 +25,6 @@ const domainValidationRecords = normalizeDomainValidationRecords(
   cloudflarePayload?.customDomain?.verificationData ?? null
 );
 
-if (domainValidationRecords.method === "http") {
-  throw new Error("Cloudflare custom-domain validation requires HTTP verification, which this Route 53 automation cannot satisfy.");
-}
-
 const hostedZoneId = stripHostedZoneId(
   process.env.ROUTE53_HOSTED_ZONE_ID || (await discoverHostedZoneId(zoneName))
 );
