@@ -334,6 +334,7 @@ export interface RepoControlState {
 export type ThemeMode = "dark" | "light";
 export type UiMode = "execution" | "inspection";
 export type UiCommandName =
+  | "init"
   | "guide"
   | "next"
   | "validate"

@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { PRODUCT_METADATA } from "./core/product.js";
 
 function hasCanonicalConfigs(root: string): boolean {
   return existsSync(path.join(root, "configs", "global.yaml"));
@@ -74,4 +75,78 @@ export function isSourceProductCheckout(productRoot = resolveShreyJuniorProductR
     existsSync(resolveSourceUiDevEntrypoint(productRoot)) &&
     existsSync(path.join(productRoot, "apps", "sj-ui", "package.json"))
   );
+}
+
+export type DesktopLaunchMode = "installed-user" | "developer-source";
+
+export function resolveGlobalHomeRoot(): string {
+  for (const envName of PRODUCT_METADATA.compatibility.globalHomeEnvVars) {
+    const value = process.env[envName]?.trim();
+    if (value) {
+      return path.resolve(value);
+    }
+  }
+
+  const homeDir = process.env.HOME?.trim()
+    || process.env.USERPROFILE?.trim()
+    || ".";
+  const kiwiControlHome = path.join(homeDir, ".kiwi-control");
+  const legacyHome = path.join(homeDir, ".shrey-junior");
+  if (existsSync(kiwiControlHome) || !existsSync(legacyHome)) {
+    return kiwiControlHome;
+  }
+
+  return legacyHome;
+}
+
+export function resolvePathBinRoot(globalHomeRoot = resolveGlobalHomeRoot()): string {
+  for (const envName of PRODUCT_METADATA.compatibility.pathBinEnvVars) {
+    const value = process.env[envName]?.trim();
+    if (value) {
+      return path.resolve(value);
+    }
+  }
+
+  if (process.platform === "win32") {
+    return path.join(globalHomeRoot, "bin");
+  }
+
+  const homeDir = process.env.HOME?.trim()
+    || process.env.USERPROFILE?.trim()
+    || ".";
+  return path.join(homeDir, ".local", "bin");
+}
+
+export function resolveDesktopInstallReceiptPath(globalHomeRoot = resolveGlobalHomeRoot()): string {
+  for (const envName of PRODUCT_METADATA.compatibility.desktopReceiptEnvVars) {
+    const value = process.env[envName]?.trim();
+    if (value) {
+      return path.resolve(value);
+    }
+  }
+
+  return path.join(globalHomeRoot, PRODUCT_METADATA.desktop.installReceiptFileName);
+}
+
+export function resolveDesktopLaunchMode(productRoot = resolveShreyJuniorProductRoot()): DesktopLaunchMode {
+  const override = resolveDesktopLaunchPreferenceOverride();
+  if (override === "installed") {
+    return "installed-user";
+  }
+  if (override === "source") {
+    return "developer-source";
+  }
+
+  return isSourceProductCheckout(productRoot) ? "developer-source" : "installed-user";
+}
+
+export function resolveDesktopLaunchPreferenceOverride(): "installed" | "source" | null {
+  for (const envName of PRODUCT_METADATA.compatibility.desktopPreferenceEnvVars) {
+    const value = process.env[envName]?.trim().toLowerCase();
+    if (value === "installed" || value === "source") {
+      return value;
+    }
+  }
+
+  return null;
 }

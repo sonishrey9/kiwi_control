@@ -5,6 +5,10 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
+  resolveDesktopInstallReceiptPath,
+  resolveDesktopLaunchMode,
+  resolveGlobalHomeRoot,
+  resolvePathBinRoot,
   findNearestSourceProductCheckout,
   isSourceProductCheckout,
   resolveShreyJuniorProductRoot,
@@ -120,6 +124,64 @@ test("runtime resolver honors the Kiwi Control product root override env var", a
       delete process.env.KIWI_CONTROL_PRODUCT_ROOT;
     } else {
       process.env.KIWI_CONTROL_PRODUCT_ROOT = previousOverride;
+    }
+  }
+});
+
+test("runtime helpers resolve desktop receipt and path roots from user-global defaults", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-runtime-global-home-"));
+  const previousHome = process.env.KIWI_CONTROL_HOME;
+  const previousPathBin = process.env.KIWI_CONTROL_PATH_BIN;
+  const previousReceipt = process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH;
+  delete process.env.KIWI_CONTROL_PATH_BIN;
+  delete process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH;
+  process.env.KIWI_CONTROL_HOME = tempDir;
+
+  try {
+    assert.equal(resolveGlobalHomeRoot(), tempDir);
+    assert.equal(resolveDesktopInstallReceiptPath(), path.join(tempDir, "desktop-install.json"));
+    if (process.platform === "win32") {
+      assert.equal(resolvePathBinRoot(), path.join(tempDir, "bin"));
+    } else {
+      assert.equal(resolvePathBinRoot().endsWith(path.join(".local", "bin")), true);
+    }
+  } finally {
+    if (previousHome === undefined) {
+      delete process.env.KIWI_CONTROL_HOME;
+    } else {
+      process.env.KIWI_CONTROL_HOME = previousHome;
+    }
+    if (previousPathBin === undefined) {
+      delete process.env.KIWI_CONTROL_PATH_BIN;
+    } else {
+      process.env.KIWI_CONTROL_PATH_BIN = previousPathBin;
+    }
+    if (previousReceipt === undefined) {
+      delete process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH;
+    } else {
+      process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH = previousReceipt;
+    }
+  }
+});
+
+test("desktop launch mode defaults to installed-user but can be forced to source or installed", async () => {
+  const previousPreference = process.env.KIWI_CONTROL_DESKTOP_PREFERENCE;
+  const sourceCheckout = repoRoot();
+
+  try {
+    delete process.env.KIWI_CONTROL_DESKTOP_PREFERENCE;
+    assert.equal(resolveDesktopLaunchMode(sourceCheckout), "developer-source");
+
+    process.env.KIWI_CONTROL_DESKTOP_PREFERENCE = "installed";
+    assert.equal(resolveDesktopLaunchMode(sourceCheckout), "installed-user");
+
+    process.env.KIWI_CONTROL_DESKTOP_PREFERENCE = "source";
+    assert.equal(resolveDesktopLaunchMode(sourceCheckout), "developer-source");
+  } finally {
+    if (previousPreference === undefined) {
+      delete process.env.KIWI_CONTROL_DESKTOP_PREFERENCE;
+    } else {
+      process.env.KIWI_CONTROL_DESKTOP_PREFERENCE = previousPreference;
     }
   }
 });

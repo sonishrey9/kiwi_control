@@ -8,7 +8,9 @@ use std::process::Command;
 use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
+use tauri_plugin_dialog::DialogExt;
 
 const DESKTOP_LAUNCH_EVENT: &str = "desktop-launch-request";
 const DESKTOP_WINDOW_LABEL: &str = "main";
@@ -18,6 +20,11 @@ const BRIDGE_UNAVAILABLE_NEXT_STEP: &str = "Confirm kiwi-control works in Termin
 const MACHINE_ADVISORY_FAST_ENV: &str = "KIWI_MACHINE_ADVISORY_FAST";
 const RENDER_PROBE_FILE_ENV: &str = "KIWI_CONTROL_RENDER_PROBE_FILE";
 const RENDER_PROBE_VIEW_ENV: &str = "KIWI_CONTROL_RENDER_PROBE_VIEW";
+const DESKTOP_INSTALL_RECEIPT_FILE: &str = "desktop-install.json";
+const DESKTOP_CLI_RESOURCE_DIR: &str = "desktop/cli-bundle";
+const DESKTOP_NODE_RESOURCE_DIR: &str = "desktop/node";
+const DESKTOP_RUNTIME_MODE_INSTALLED: &str = "installed-user";
+const DESKTOP_RUNTIME_MODE_SOURCE: &str = "developer-source";
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -77,7 +84,40 @@ struct DesktopRuntimeInfo {
     bundle_id: String,
     executable_path: String,
     build_source: String,
+    runtime_mode: String,
+    receipt_path: String,
+    cli: DesktopCliStatus,
     render_probe_view: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopCliStatus {
+    bundled_installer_available: bool,
+    bundled_node_path: Option<String>,
+    install_bin_dir: String,
+    installed: bool,
+    installed_command_path: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CliInstallResult {
+    detail: String,
+    install_bin_dir: String,
+    installed_command_path: Option<String>,
+    used_bundled_node: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopInstallReceipt {
+    app_version: String,
+    bundle_id: String,
+    executable_path: String,
+    build_source: String,
+    runtime_mode: String,
+    updated_at: String,
 }
 
 #[derive(Default)]
@@ -87,7 +127,7 @@ struct LaunchBridgeState {
 }
 
 #[tauri::command]
-fn load_repo_control_state(target_root: String, prefer_snapshot: Option<bool>) -> Result<serde_json::Value, String> {
+fn load_repo_control_state(app: AppHandle, target_root: String, prefer_snapshot: Option<bool>) -> Result<serde_json::Value, String> {
     append_launch_log(&DesktopLaunchLogEntry {
         event: String::from("desktop-repo-state-requested"),
         reported_at: timestamp_now(),
@@ -98,7 +138,7 @@ fn load_repo_control_state(target_root: String, prefer_snapshot: Option<bool>) -
     })
     .ok();
 
-    let output = run_ui_bridge_repo_state(&target_root, prefer_snapshot.unwrap_or(false)).map_err(|error| {
+    let output = run_ui_bridge_repo_state(&app, &target_root, prefer_snapshot.unwrap_or(false)).map_err(|error| {
         let detail = format!("failed to invoke Kiwi Control runtime bridge: {error}");
         append_launch_log(&DesktopLaunchLogEntry {
             event: String::from("desktop-repo-state-failed"),
@@ -151,8 +191,8 @@ fn load_repo_control_state(target_root: String, prefer_snapshot: Option<bool>) -
 }
 
 #[tauri::command]
-fn load_machine_advisory_section(section: String, refresh: Option<bool>) -> Result<serde_json::Value, String> {
-    let output = run_ui_bridge_machine_section(&section, refresh.unwrap_or(false)).map_err(|error| {
+fn load_machine_advisory_section(app: AppHandle, section: String, refresh: Option<bool>) -> Result<serde_json::Value, String> {
+    let output = run_ui_bridge_machine_section(&app, &section, refresh.unwrap_or(false)).map_err(|error| {
         format!("failed to invoke Kiwi Control machine advisory bridge: {error}")
     })?;
 
@@ -174,12 +214,27 @@ fn load_machine_advisory_section(section: String, refresh: Option<bool>) -> Resu
 }
 
 #[tauri::command]
-fn get_desktop_runtime_info() -> Result<DesktopRuntimeInfo, String> {
+fn get_desktop_runtime_info(app: AppHandle) -> Result<DesktopRuntimeInfo, String> {
+    let build_source = infer_runtime_build_source();
+    let installed_command_path = resolve_installed_cli_paths()
+        .into_iter()
+        .find(|path| path.exists())
+        .map(|path| path.to_string_lossy().to_string());
+    let bundled_node_path = resolve_bundled_node_binary(&app).map(|path| path.to_string_lossy().to_string());
     Ok(DesktopRuntimeInfo {
         app_version: env!("CARGO_PKG_VERSION").to_string(),
         bundle_id: DESKTOP_APP_BUNDLE_ID.to_string(),
         executable_path: current_desktop_executable_path(),
-        build_source: infer_runtime_build_source(),
+        build_source: build_source.clone(),
+        runtime_mode: infer_runtime_mode(&build_source),
+        receipt_path: resolve_desktop_install_receipt_path().to_string_lossy().to_string(),
+        cli: DesktopCliStatus {
+            bundled_installer_available: resolve_bundled_cli_installer_path(&app).is_some(),
+            bundled_node_path: bundled_node_path.clone(),
+            install_bin_dir: resolve_path_bin_root().to_string_lossy().to_string(),
+            installed: installed_command_path.is_some(),
+            installed_command_path,
+        },
         render_probe_view: resolve_render_probe_view(),
     })
 }
@@ -207,6 +262,7 @@ fn write_render_probe(payload: serde_json::Value) -> Result<(), String> {
 
 #[tauri::command]
 fn run_cli_command(
+    app: AppHandle,
     command: String,
     args: Vec<String>,
     target_root: String,
@@ -218,7 +274,7 @@ fn run_cli_command(
     }
 
     let (command_label, cli_args) = build_allowlisted_cli_args(&command, &args, trimmed_target_root)?;
-    let output = run_cli_process(&cli_args, trimmed_target_root)
+    let output = run_cli_process(&app, &cli_args, trimmed_target_root)
         .map_err(|error| format!("failed to run Kiwi Control CLI command: {error}"))?;
 
     let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -241,6 +297,56 @@ fn run_cli_command(
         json_payload,
         command_label,
     })
+}
+
+#[tauri::command]
+fn install_bundled_cli(app: AppHandle) -> Result<CliInstallResult, String> {
+    let installer_path = resolve_bundled_cli_installer_path(&app)
+        .ok_or_else(|| String::from("bundled Kiwi Control CLI installer is not available in this desktop build"))?;
+    let bundled_node_path = resolve_bundled_node_binary(&app);
+    let output = run_bundled_cli_installer(&installer_path, bundled_node_path.as_ref())
+        .map_err(|error| format!("failed to run bundled CLI installer: {error}"))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    if !output.status.success() {
+        return Err(if !stderr.is_empty() {
+            stderr
+        } else if !stdout.is_empty() {
+            stdout
+        } else {
+            String::from("Kiwi Control CLI installer exited without success output.")
+        });
+    }
+
+    let installed_command_path = resolve_installed_cli_paths()
+        .into_iter()
+        .find(|path| path.exists())
+        .map(|path| path.to_string_lossy().to_string());
+
+    Ok(CliInstallResult {
+        detail: if !stdout.is_empty() { stdout } else { String::from("Kiwi Control CLI installed.") },
+        install_bin_dir: resolve_path_bin_root().to_string_lossy().to_string(),
+        installed_command_path,
+        used_bundled_node: bundled_node_path.is_some(),
+    })
+}
+
+#[tauri::command]
+fn pick_repo_directory(app: AppHandle) -> Result<Option<String>, String> {
+    let (tx, rx) = std::sync::mpsc::sync_channel(1);
+    app.dialog()
+        .file()
+        .set_title("Choose a repo to open in Kiwi Control")
+        .pick_folder(move |selection| {
+            let selected_path = selection
+                .and_then(|selection| selection.into_path().ok())
+                .map(|path| path.to_string_lossy().to_string());
+            let _ = tx.send(selected_path);
+        });
+
+    rx.recv_timeout(Duration::from_secs(300))
+        .map_err(|_| String::from("repo picker did not return a selection in time"))
 }
 
 #[tauri::command]
@@ -375,6 +481,7 @@ fn main() {
 
     #[cfg(desktop)]
     {
+        builder = builder.plugin(tauri_plugin_dialog::init());
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Ok(Some(request)) = read_launch_request() {
                 let _ = handle_launch_request(app, request, "single-instance", true);
@@ -395,6 +502,17 @@ fn main() {
                     launch_source: None,
                 });
                 return Err(error.into());
+            }
+
+            if let Err(error) = write_desktop_install_receipt(app.handle()) {
+                let _ = append_launch_log(&DesktopLaunchLogEntry {
+                    event: String::from("desktop-install-receipt-failed"),
+                    reported_at: timestamp_now(),
+                    request_id: None,
+                    target_root: None,
+                    detail: Some(error),
+                    launch_source: None,
+                });
             }
 
             let _ = append_launch_log(&DesktopLaunchLogEntry {
@@ -451,6 +569,8 @@ fn main() {
             get_desktop_runtime_info,
             write_render_probe,
             run_cli_command,
+            install_bundled_cli,
+            pick_repo_directory,
             open_path,
             ack_launch_request,
             append_ui_launch_log
@@ -644,7 +764,7 @@ fn activate_app_on_macos() -> Result<(), String> {
     Ok(())
 }
 
-fn run_ui_bridge_repo_state(target_root: &str, prefer_snapshot: bool) -> Result<std::process::Output, std::io::Error> {
+fn run_ui_bridge_repo_state(app: &AppHandle, target_root: &str, prefer_snapshot: bool) -> Result<std::process::Output, std::io::Error> {
     let mut args = vec![
         "repo-state",
         "--target-root",
@@ -654,20 +774,34 @@ fn run_ui_bridge_repo_state(target_root: &str, prefer_snapshot: bool) -> Result<
     if prefer_snapshot {
         args.push("--prefer-snapshot");
     }
-    run_ui_bridge_command(&args, true)
+    run_ui_bridge_command(app, &args, true)
 }
 
-fn run_ui_bridge_machine_section(section: &str, refresh: bool) -> Result<std::process::Output, std::io::Error> {
+fn run_ui_bridge_machine_section(app: &AppHandle, section: &str, refresh: bool) -> Result<std::process::Output, std::io::Error> {
     let mut args = vec!["machine-advisory-section", "--section", section];
     if refresh {
         args.push("--refresh");
     }
-    run_ui_bridge_command(&args, false)
+    run_ui_bridge_command(app, &args, false)
 }
 
-fn run_ui_bridge_command(args: &[&str], fast_mode: bool) -> Result<std::process::Output, std::io::Error> {
+fn run_ui_bridge_command(app: &AppHandle, args: &[&str], fast_mode: bool) -> Result<std::process::Output, std::io::Error> {
     if let Some(script_path) = resolve_source_ui_bridge_script() {
-        if let Some(node_binary) = resolve_node_binary() {
+        if let Some(node_binary) = resolve_node_binary(None) {
+            let mut command = Command::new(node_binary);
+            command.arg(script_path);
+            for arg in args {
+                command.arg(arg);
+            }
+            if fast_mode {
+                command.env(MACHINE_ADVISORY_FAST_ENV, "1");
+            }
+            return command.output();
+        }
+    }
+
+    if let Some(script_path) = resolve_bundled_ui_bridge_script(app) {
+        if let Some(node_binary) = resolve_node_binary(resolve_bundled_node_binary(app)) {
             let mut command = Command::new(node_binary);
             command.arg(script_path);
             for arg in args {
@@ -693,7 +827,7 @@ fn build_allowlisted_cli_args(
 ) -> Result<(String, Vec<String>), String> {
     let mut cli_args: Vec<String> = Vec::new();
     let command_label = match command {
-        "guide" | "next" | "retry" | "resume" | "status" | "trace" => {
+        "guide" | "next" | "retry" | "resume" | "status" | "trace" | "init" => {
             cli_args.push(command.to_string());
             if args.iter().any(|arg| arg == "--json") {
                 cli_args.push(String::from("--json"));
@@ -762,9 +896,21 @@ fn build_allowlisted_cli_args(
     Ok((command_label, cli_args))
 }
 
-fn run_cli_process(args: &[String], target_root: &str) -> Result<std::process::Output, std::io::Error> {
+fn run_cli_process(app: &AppHandle, args: &[String], target_root: &str) -> Result<std::process::Output, std::io::Error> {
     if let Some(script_path) = resolve_source_cli_script() {
-        if let Some(node_binary) = resolve_node_binary() {
+        if let Some(node_binary) = resolve_node_binary(None) {
+            let mut command = Command::new(node_binary);
+            command.current_dir(target_root);
+            command.arg(script_path);
+            for arg in args {
+                command.arg(arg);
+            }
+            return command.output();
+        }
+    }
+
+    if let Some(script_path) = resolve_bundled_cli_script(app) {
+        if let Some(node_binary) = resolve_node_binary(resolve_bundled_node_binary(app)) {
             let mut command = Command::new(node_binary);
             command.current_dir(target_root);
             command.arg(script_path);
@@ -870,8 +1016,13 @@ fn resolve_path_bin_root() -> PathBuf {
         }
     }
 
+    if cfg!(target_os = "windows") {
+        return resolve_global_home_root().join("bin");
+    }
+
     let home_dir = std::env::var("HOME")
         .map(PathBuf::from)
+        .or_else(|_| std::env::var("USERPROFILE").map(PathBuf::from))
         .unwrap_or_else(|_| PathBuf::from("."));
     home_dir.join(".local").join("bin")
 }
@@ -888,7 +1039,11 @@ fn command_path_variants(root: &PathBuf, command: &str) -> Vec<PathBuf> {
     candidates
 }
 
-fn resolve_node_binary() -> Option<PathBuf> {
+fn resolve_node_binary(preferred: Option<PathBuf>) -> Option<PathBuf> {
+    if let Some(candidate) = preferred.filter(|candidate| candidate.exists()) {
+        return Some(candidate);
+    }
+
     for env_name in ["KIWI_CONTROL_NODE", "SHREY_JUNIOR_NODE"] {
         if let Ok(value) = std::env::var(env_name) {
             let trimmed = value.trim();
@@ -920,6 +1075,75 @@ fn resolve_node_binary() -> Option<PathBuf> {
     }
 
     None
+}
+
+fn resolve_bundled_cli_script(app: &AppHandle) -> Option<PathBuf> {
+    app.path()
+        .resolve(&format!("{DESKTOP_CLI_RESOURCE_DIR}/lib/cli.js"), BaseDirectory::Resource)
+        .ok()
+        .filter(|path| path.exists())
+}
+
+fn resolve_bundled_ui_bridge_script(app: &AppHandle) -> Option<PathBuf> {
+    app.path()
+        .resolve(
+            &format!("{DESKTOP_CLI_RESOURCE_DIR}/node_modules/@shrey-junior/sj-core/dist/runtime/ui-bridge.js"),
+            BaseDirectory::Resource,
+        )
+        .ok()
+        .filter(|path| path.exists())
+}
+
+fn resolve_bundled_cli_installer_path(app: &AppHandle) -> Option<PathBuf> {
+    let relative_path = if cfg!(target_os = "windows") {
+        format!("{DESKTOP_CLI_RESOURCE_DIR}/install.ps1")
+    } else {
+        format!("{DESKTOP_CLI_RESOURCE_DIR}/install.sh")
+    };
+
+    app.path()
+        .resolve(&relative_path, BaseDirectory::Resource)
+        .ok()
+        .filter(|path| path.exists())
+}
+
+fn resolve_bundled_node_binary(app: &AppHandle) -> Option<PathBuf> {
+    let binary_name = if cfg!(target_os = "windows") { "node.exe" } else { "node" };
+    app.path()
+        .resolve(&format!("{DESKTOP_NODE_RESOURCE_DIR}/{binary_name}"), BaseDirectory::Resource)
+        .ok()
+        .filter(|path| path.exists())
+}
+
+fn run_bundled_cli_installer(
+    installer_path: &PathBuf,
+    bundled_node_path: Option<&PathBuf>,
+) -> Result<std::process::Output, std::io::Error> {
+    let mut command = if cfg!(target_os = "windows") {
+        let mut command = Command::new("powershell.exe");
+        command
+            .arg("-NoProfile")
+            .arg("-ExecutionPolicy")
+            .arg("Bypass")
+            .arg("-File")
+            .arg(installer_path);
+        command
+    } else {
+        let mut command = Command::new("/bin/bash");
+        command.arg(installer_path);
+        command
+    };
+
+    command.current_dir(
+        installer_path
+            .parent()
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from(".")),
+    );
+    if let Some(node_path) = bundled_node_path {
+        command.env("KIWI_CONTROL_NODE_ABSOLUTE", node_path);
+    }
+    command.output()
 }
 
 fn resolve_source_cli_script() -> Option<PathBuf> {
@@ -1116,10 +1340,65 @@ fn infer_runtime_build_source() -> String {
     if executable_path.contains("/Applications/") && executable_path.contains(".app/Contents/MacOS/") {
         return String::from("installed-bundle");
     }
+    let normalized_path = executable_path.to_lowercase();
+    if normalized_path.contains("\\program files\\")
+        || normalized_path.contains("\\appdata\\local\\programs\\")
+        || normalized_path.contains("/program files/")
+        || normalized_path.contains("/appdata/local/programs/")
+    {
+        return String::from("installed-bundle");
+    }
     if executable_path.contains("/src-tauri/target/release/bundle/macos/") {
         return String::from("source-bundle");
     }
     String::from("fallback-launcher")
+}
+
+fn infer_runtime_mode(build_source: &str) -> String {
+    if build_source == "source-bundle" {
+        return String::from(DESKTOP_RUNTIME_MODE_SOURCE);
+    }
+    String::from(DESKTOP_RUNTIME_MODE_INSTALLED)
+}
+
+fn resolve_desktop_install_receipt_path() -> PathBuf {
+    for env_name in ["KIWI_CONTROL_DESKTOP_RECEIPT_PATH", "SHREY_JUNIOR_DESKTOP_RECEIPT_PATH"] {
+        if let Ok(value) = std::env::var(env_name) {
+            let trimmed = value.trim();
+            if !trimmed.is_empty() {
+                return PathBuf::from(trimmed);
+            }
+        }
+    }
+
+    resolve_global_home_root().join(DESKTOP_INSTALL_RECEIPT_FILE)
+}
+
+fn write_desktop_install_receipt(_app: &AppHandle) -> Result<(), String> {
+    let receipt_path = resolve_desktop_install_receipt_path();
+    if let Some(parent) = receipt_path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|error| format!("failed to create desktop install receipt directory: {error}"))?;
+    }
+
+    let build_source = infer_runtime_build_source();
+    let receipt = DesktopInstallReceipt {
+        app_version: env!("CARGO_PKG_VERSION").to_string(),
+        bundle_id: DESKTOP_APP_BUNDLE_ID.to_string(),
+        executable_path: current_desktop_executable_path(),
+        build_source: build_source.clone(),
+        runtime_mode: infer_runtime_mode(&build_source),
+        updated_at: timestamp_now(),
+    };
+
+    let serialized = serde_json::to_vec_pretty(&receipt)
+        .map_err(|error| format!("failed to serialize desktop install receipt: {error}"))?;
+    let temp_path = receipt_path.with_extension("tmp");
+    fs::write(&temp_path, serialized)
+        .map_err(|error| format!("failed to write desktop install receipt: {error}"))?;
+    fs::rename(&temp_path, &receipt_path)
+        .map_err(|error| format!("failed to finalize desktop install receipt: {error}"))?;
+    Ok(())
 }
 
 fn timestamp_now() -> String {

@@ -12,6 +12,9 @@ export interface ProductMetadata {
     appName: string;
     windowTitle: string;
     bundleIdentifier: string;
+    installReceiptFileName: string;
+    bundledCliResourceDir: string;
+    bundledNodeResourceDir: string;
   };
   release: {
     artifactPrefix: string;
@@ -25,9 +28,12 @@ export interface ProductMetadata {
     pathBinEnvVars: string[];
     cliEnvVars: string[];
     desktopEnvVars: string[];
+    desktopPreferenceEnvVars: string[];
+    desktopReceiptEnvVars: string[];
     productRootEnvVars: string[];
     globalHomeDefault: string;
     pathBinDefault: string;
+    windowsPathBinDefault: string;
     legacyDesktopBridgeEnv: string;
   };
 }
@@ -45,7 +51,10 @@ export const PRODUCT_METADATA: ProductMetadata = {
   desktop: {
     appName: "Kiwi Control",
     windowTitle: "Kiwi Control",
-    bundleIdentifier: "com.kiwicontrol.desktop"
+    bundleIdentifier: "com.kiwicontrol.desktop",
+    installReceiptFileName: "desktop-install.json",
+    bundledCliResourceDir: "desktop/cli-bundle",
+    bundledNodeResourceDir: "desktop/node"
   },
   release: {
     artifactPrefix: "kiwi-control",
@@ -59,9 +68,12 @@ export const PRODUCT_METADATA: ProductMetadata = {
     pathBinEnvVars: ["KIWI_CONTROL_PATH_BIN", "SHREY_JUNIOR_PATH_BIN"],
     cliEnvVars: ["KIWI_CONTROL_BIN", "SHREY_JUNIOR_BIN", "KIWI_CONTROL_CLI", "SHREY_JUNIOR_CLI"],
     desktopEnvVars: ["KIWI_CONTROL_DESKTOP", "SHREY_JUNIOR_DESKTOP"],
+    desktopPreferenceEnvVars: ["KIWI_CONTROL_DESKTOP_PREFERENCE", "SHREY_JUNIOR_DESKTOP_PREFERENCE"],
+    desktopReceiptEnvVars: ["KIWI_CONTROL_DESKTOP_RECEIPT_PATH", "SHREY_JUNIOR_DESKTOP_RECEIPT_PATH"],
     productRootEnvVars: ["KIWI_CONTROL_PRODUCT_ROOT", "SHREY_JUNIOR_PRODUCT_ROOT"],
     globalHomeDefault: "~/.kiwi-control",
     pathBinDefault: "~/.local/bin",
+    windowsPathBinDefault: "%USERPROFILE%\\.kiwi-control\\bin",
     legacyDesktopBridgeEnv: "SHREY_JUNIOR_CLI"
   }
 };

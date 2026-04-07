@@ -1,4 +1,4 @@
-import { existsSync, promises as fs, readdirSync, realpathSync } from "node:fs";
+import { existsSync, promises as fs, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
@@ -7,6 +7,8 @@ import {
   PRODUCT_METADATA,
   findNearestSourceProductCheckout,
   isSourceProductCheckout,
+  resolveDesktopInstallReceiptPath,
+  resolveDesktopLaunchMode,
   resolveSourceUiDesktopBundlePath
 } from "@shrey-junior/sj-core";
 import { buildRepoControlState } from "@shrey-junior/sj-core/core/ui-state.js";
@@ -21,6 +23,16 @@ export interface UiOptions {
 }
 
 type DesktopLaunchSource = "source-bundle" | "installed-bundle" | "fallback-launcher";
+type DesktopLaunchMode = "installed-user" | "developer-source";
+
+interface DesktopInstallReceipt {
+  appVersion: string;
+  bundleId: string;
+  executablePath: string;
+  buildSource: DesktopLaunchSource;
+  runtimeMode: DesktopLaunchMode;
+  updatedAt: string;
+}
 
 interface DesktopLaunchCandidate {
   command: string;
@@ -88,7 +100,7 @@ export async function runUi(options: UiOptions): Promise<number> {
     return 0;
   }
 
-  await warmDesktopRegistration();
+  await warmDesktopRegistration(options.repoRoot, options.targetRoot);
 
   const launchRequest: DesktopLaunchRequest = {
     requestId: randomUUID(),
@@ -158,12 +170,12 @@ export async function runUi(options: UiOptions): Promise<number> {
   return 0;
 }
 
-async function warmDesktopRegistration(): Promise<void> {
+async function warmDesktopRegistration(repoRoot?: string, targetRoot?: string): Promise<void> {
   if (process.platform !== "darwin") {
     return;
   }
 
-  const installedBundle = buildDesktopLaunchCandidates()
+  const installedBundle = buildDesktopLaunchCandidates(repoRoot, targetRoot)
     .find((candidate) => candidate.command === "open" && candidate.args[0]?.endsWith(".app"));
   if (!installedBundle) {
     return;
@@ -183,7 +195,7 @@ async function warmDesktopRegistration(): Promise<void> {
 }
 
 export function buildDesktopUnavailableMessage(repoRoot: string): string {
-  if (isSourceProductCheckout(repoRoot)) {
+  if (resolveDesktopLaunchMode(repoRoot) === "developer-source") {
     return `${PRODUCT_METADATA.desktop.appName} desktop is not installed from this source checkout. Run \`${PRODUCT_METADATA.cli.sourceDesktopLauncher}\`.`;
   }
 
@@ -201,6 +213,7 @@ export function buildDesktopLaunchTimeoutMessage(repoRoot: string): string {
 export function buildDesktopLaunchCandidates(repoRoot?: string, targetRoot?: string): DesktopLaunchCandidate[] {
   const candidates: DesktopLaunchCandidate[] = [];
   let hasExplicitDesktopOverride = false;
+  const launchMode = resolveDesktopLaunchMode(repoRoot);
 
   for (const envName of PRODUCT_METADATA.compatibility.desktopEnvVars) {
     const value = process.env[envName]?.trim();
@@ -216,44 +229,35 @@ export function buildDesktopLaunchCandidates(repoRoot?: string, targetRoot?: str
     return candidates;
   }
 
-  const discoveredSourceRoots = dedupeResolvedPaths([
-    repoRoot,
-    findNearestSourceProductCheckout(process.cwd()),
-    targetRoot ? findNearestSourceProductCheckout(targetRoot) : null
-  ]);
-
-  const sourceCandidates: DesktopLaunchCandidate[] = [];
-  for (const sourceRoot of discoveredSourceRoots) {
-    const sourceBundlePath = resolveSourceDesktopLaunchBundle(sourceRoot);
-    if (!sourceBundlePath) {
-      continue;
-    }
-
-    const sourceBundleExecutable = resolveMacOsBundleExecutable(sourceBundlePath);
-    if (sourceBundleExecutable) {
-      sourceCandidates.push({
-        command: sourceBundleExecutable,
-        args: [],
-        launchSource: "source-bundle"
-      });
-    }
-    sourceCandidates.push(buildDesktopCandidateFromEnvValue(sourceBundlePath, "source-bundle"));
+  const installedCandidates = buildInstalledDesktopCandidates();
+  if (launchMode === "installed-user") {
+    candidates.push(...installedCandidates);
   }
 
-  const preferSourceBundle = sourceCandidates.length > 0;
+  if (launchMode === "developer-source") {
+    const discoveredSourceRoots = dedupeResolvedPaths([
+      repoRoot,
+      findNearestSourceProductCheckout(process.cwd()),
+      targetRoot ? findNearestSourceProductCheckout(targetRoot) : null
+    ]);
 
-  if (preferSourceBundle) {
-    candidates.push(...sourceCandidates);
-  }
+    for (const sourceRoot of discoveredSourceRoots) {
+      const sourceBundlePath = resolveSourceDesktopLaunchBundle(sourceRoot);
+      if (!sourceBundlePath) {
+        continue;
+      }
 
-  if (process.platform === "darwin") {
-    for (const installedBundlePath of buildInstalledMacOsDesktopBundlePaths()) {
-      candidates.push(buildDesktopCandidateFromEnvValue(installedBundlePath, "installed-bundle"));
+      const sourceBundleExecutable = resolveMacOsBundleExecutable(sourceBundlePath);
+      if (sourceBundleExecutable) {
+        candidates.push({
+          command: sourceBundleExecutable,
+          args: [],
+          launchSource: "source-bundle"
+        });
+      }
+      candidates.push(buildDesktopCandidateFromEnvValue(sourceBundlePath, "source-bundle"));
     }
-  }
-
-  if (!preferSourceBundle) {
-    candidates.push(...sourceCandidates);
+    candidates.push(...installedCandidates);
   }
 
   if (process.platform === "darwin") {
@@ -272,7 +276,114 @@ export function buildDesktopLaunchCandidates(repoRoot?: string, targetRoot?: str
     });
   }
 
-  return candidates;
+  return dedupeDesktopLaunchCandidates(candidates);
+}
+
+function buildInstalledDesktopCandidates(): DesktopLaunchCandidate[] {
+  const candidates: DesktopLaunchCandidate[] = [];
+  const receipt = loadDesktopInstallReceipt();
+  const receiptCandidate = buildDesktopCandidateFromInstallReceipt(receipt);
+  if (receiptCandidate) {
+    candidates.push(receiptCandidate);
+  }
+
+  if (process.platform === "darwin") {
+    for (const installedBundlePath of buildInstalledMacOsDesktopBundlePaths()) {
+      candidates.push(buildDesktopCandidateFromEnvValue(installedBundlePath, "installed-bundle"));
+    }
+  }
+
+  if (process.platform === "win32") {
+    for (const installedExecutablePath of buildInstalledWindowsDesktopExecutablePaths()) {
+      candidates.push({
+        command: installedExecutablePath,
+        args: [],
+        launchSource: "installed-bundle"
+      });
+    }
+  }
+
+  return dedupeDesktopLaunchCandidates(candidates);
+}
+
+function loadDesktopInstallReceipt(): DesktopInstallReceipt | null {
+  const receiptPath = resolveDesktopInstallReceiptPath();
+  if (!existsSync(receiptPath)) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(readFileSync(receiptPath, "utf8")) as Partial<DesktopInstallReceipt>;
+    if (
+      typeof payload.executablePath !== "string"
+      || typeof payload.buildSource !== "string"
+      || typeof payload.runtimeMode !== "string"
+    ) {
+      return null;
+    }
+
+    return {
+      appVersion: typeof payload.appVersion === "string" ? payload.appVersion : "unknown",
+      bundleId: typeof payload.bundleId === "string" ? payload.bundleId : PRODUCT_METADATA.desktop.bundleIdentifier,
+      executablePath: payload.executablePath,
+      buildSource: payload.buildSource as DesktopLaunchSource,
+      runtimeMode: payload.runtimeMode as DesktopLaunchMode,
+      updatedAt: typeof payload.updatedAt === "string" ? payload.updatedAt : ""
+    };
+  } catch {
+    return null;
+  }
+}
+
+function buildDesktopCandidateFromInstallReceipt(receipt: DesktopInstallReceipt | null): DesktopLaunchCandidate | null {
+  if (!receipt || receipt.runtimeMode !== "installed-user" || !existsSync(receipt.executablePath)) {
+    return null;
+  }
+
+  if (process.platform === "darwin") {
+    const bundlePath = resolveMacOsAppBundlePathFromExecutable(receipt.executablePath);
+    if (bundlePath) {
+      return buildDesktopCandidateFromEnvValue(bundlePath, "installed-bundle");
+    }
+  }
+
+  return {
+    command: receipt.executablePath,
+    args: [],
+    launchSource: "installed-bundle"
+  };
+}
+
+function resolveMacOsAppBundlePathFromExecutable(executablePath: string): string | null {
+  const segments = executablePath.split(`${path.sep}Contents${path.sep}MacOS${path.sep}`);
+  return segments.length === 2 ? segments[0] ?? null : null;
+}
+
+function buildInstalledWindowsDesktopExecutablePaths(): string[] {
+  const executableName = `${PRODUCT_METADATA.desktop.appName}.exe`;
+  const candidates = [
+    process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, "Programs", PRODUCT_METADATA.desktop.appName, executableName) : null,
+    process.env.ProgramFiles ? path.join(process.env.ProgramFiles, PRODUCT_METADATA.desktop.appName, executableName) : null,
+    process.env["ProgramFiles(x86)"] ? path.join(process.env["ProgramFiles(x86)"], PRODUCT_METADATA.desktop.appName, executableName) : null
+  ];
+
+  return dedupeResolvedPaths(candidates);
+}
+
+function dedupeDesktopLaunchCandidates(candidates: DesktopLaunchCandidate[]): DesktopLaunchCandidate[] {
+  const seen = new Set<string>();
+  const deduped: DesktopLaunchCandidate[] = [];
+
+  for (const candidate of candidates) {
+    const comparable = [candidate.command, ...candidate.args].map((part) => resolveComparablePath(part)).join("::");
+    if (seen.has(comparable)) {
+      continue;
+    }
+    seen.add(comparable);
+    deduped.push(candidate);
+  }
+
+  return deduped;
 }
 
 function dedupeResolvedPaths(candidates: Array<string | null | undefined>): string[] {
@@ -320,6 +431,10 @@ function describeDesktopLaunchCandidate(candidate: DesktopLaunchCandidate): stri
     && (firstArg.startsWith("/Applications/") || firstArg.includes("/Applications/"))
   ) {
     return firstArg;
+  }
+
+  if (process.platform === "win32" && candidate.launchSource === "installed-bundle") {
+    return `${PRODUCT_METADATA.desktop.appName} installed app`;
   }
 
   if (candidate.command === "open" && firstArg === "-a") {
@@ -467,6 +582,16 @@ function inferDesktopLaunchSourceFromValue(
 
   if (value.includes(`${path.sep}src-tauri${path.sep}target${path.sep}release${path.sep}bundle${path.sep}macos${path.sep}`)) {
     return "source-bundle";
+  }
+
+  if (
+    process.platform === "win32"
+    && (
+      value.toLowerCase().includes(`${path.sep}program files${path.sep}`)
+      || value.toLowerCase().includes(`${path.sep}appdata${path.sep}local${path.sep}programs${path.sep}`)
+    )
+  ) {
+    return "installed-bundle";
   }
 
   if (value.endsWith(".app") && (value.startsWith("/Applications/") || value.includes(`${path.sep}Applications${path.sep}`))) {

@@ -136,6 +136,35 @@ p {
   padding-left: 18px;
 }
 
+.site-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.site-footer strong {
+  display: block;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.site-footer span {
+  display: block;
+  max-width: 520px;
+  line-height: 1.5;
+}
+
+.footer-links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 code {
   background: #0b1421;
   border: 1px solid var(--border);

@@ -28,24 +28,22 @@ Most agent tools either hide their reasoning in an editor plugin or centralize e
 
 ### Install
 
-From a release bundle:
+For normal users on Windows and macOS:
+
+1. Install the Kiwi Control desktop app from the GitHub Release.
+2. Launch the app once.
+3. Use the onboarding flow to install `kc`, choose a repo, and initialize it if needed.
+
+For standalone CLI users, the beta CLI bundle still supports:
 
 ```bash
 ./install.sh
 ```
 
-After install:
-
-```bash
-kiwi-control --help
-kc --help
-```
-
 Current public beta defaults:
 
 - GitHub Releases is the source of truth for installable artifacts
-- Windows desktop is the first public install target
-- macOS desktop follows after trust/signing steps are complete
+- Windows and macOS desktop installs are the normal-user product path
 - See [docs/beta-limitations.md](./docs/beta-limitations.md) for current beta caveats
 
 ### First repo flow
@@ -74,7 +72,7 @@ cd /path/to/repo
 kc ui
 ```
 
-If the desktop bundle is installed, Kiwi Control opens it and loads the current repo automatically.
+If the installed desktop app is available, Kiwi Control opens it and loads the current repo automatically. Installed-user mode now prefers the installed app by default; source-bundle preference is reserved for explicit developer flows.
 
 ## Core commands
 

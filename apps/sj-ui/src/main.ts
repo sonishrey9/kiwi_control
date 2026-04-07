@@ -8,6 +8,10 @@ import { renderExecutionPlanPanelView } from "./ui/ExecutionPlanPanel.js";
 import { renderInspectorPanel } from "./ui/InspectorPanel.js";
 import { renderMachinePanelView } from "./ui/MachinePanel.js";
 import {
+  buildOnboardingPanelModel,
+  renderOnboardingPanelView
+} from "./ui/OnboardingPanel.js";
+import {
   buildBlockedWorkflowEntries,
   buildExplainCommandEntries,
   buildExplainSelectionEntries,
@@ -668,7 +672,23 @@ type DesktopRuntimeInfo = {
   bundleId: string;
   executablePath: string;
   buildSource: "source-bundle" | "installed-bundle" | "fallback-launcher";
+  runtimeMode: "installed-user" | "developer-source";
+  receiptPath: string;
+  cli: {
+    bundledInstallerAvailable: boolean;
+    bundledNodePath: string | null;
+    installBinDir: string;
+    installed: boolean;
+    installedCommandPath: string | null;
+  };
   renderProbeView?: string | null;
+};
+
+type CliInstallResult = {
+  detail: string;
+  installBinDir: string;
+  installedCommandPath: string | null;
+  usedBundledNode: boolean;
 };
 
 type MachineSectionName =
@@ -1380,6 +1400,53 @@ async function loadDesktopRuntimeInfo(): Promise<void> {
     scheduleRenderState();
   } catch {
     desktopRuntimeInfo = null;
+  }
+}
+
+async function installBundledCli(): Promise<void> {
+  if (!isTauriBridgeAvailable() || commandState.loading) {
+    return;
+  }
+
+  commandState.loading = true;
+  commandState.activeCommand = null;
+  commandState.lastError = null;
+  commandState.lastResult = null;
+  renderState(currentState);
+
+  try {
+    const result = await invoke<CliInstallResult>("install_bundled_cli");
+    await loadDesktopRuntimeInfo();
+    commandState.lastResult = {
+      ok: true,
+      exitCode: 0,
+      stdout: result.detail,
+      stderr: "",
+      commandLabel: "install kc"
+    };
+  } catch (error) {
+    commandState.lastError = error instanceof Error ? error.message : String(error);
+  } finally {
+    commandState.loading = false;
+    renderState(currentState);
+  }
+}
+
+async function chooseRepoDirectory(): Promise<void> {
+  if (!isTauriBridgeAvailable() || commandState.loading) {
+    return;
+  }
+
+  try {
+    const selected = await invoke<string | null>("pick_repo_directory");
+    if (!selected) {
+      return;
+    }
+
+    await loadAndRenderTarget(selected, "manual", undefined, { preferSnapshot: false });
+  } catch (error) {
+    commandState.lastError = error instanceof Error ? error.message : String(error);
+    renderState(currentState);
   }
 }
 
@@ -2421,6 +2488,9 @@ function parseKiwiCommand(commandText: string): { command: UiCommandName; args: 
     const task = rest.find((token) => !token.startsWith("--") && token !== currentTargetRoot);
     return { command: "validate", args: task ? [task] : [] };
   }
+  if (subcommand === "init") {
+    return { command: "init", args: [] };
+  }
   if (subcommand === "sync") {
     const allowedFlags = rest.filter((token) => token === "--dry-run" || token === "--diff-summary" || token === "--backup");
     return { command: "sync", args: allowedFlags };
@@ -2698,6 +2768,19 @@ function renderCommandBanner(): string {
 }
 
 function handleInteractiveClick(event: MouseEvent, target: HTMLElement): boolean {
+  const onboardingAction = target.closest<HTMLElement>("[data-onboarding-action]");
+  if (onboardingAction?.dataset.onboardingAction) {
+    const action = onboardingAction.dataset.onboardingAction;
+    if (action === "install-cli") {
+      void installBundledCli();
+    } else if (action === "choose-repo") {
+      void chooseRepoDirectory();
+    } else if (action === "init-repo" && currentTargetRoot) {
+      void executeKiwiCommand("init", [], { expectJson: false });
+    }
+    return true;
+  }
+
   const directCommandButton = target.closest<HTMLElement>("[data-ui-command]");
   if (directCommandButton?.dataset.uiCommand) {
     const command = directCommandButton.dataset.uiCommand as UiCommandName;
@@ -3231,6 +3314,11 @@ function renderOverviewView(state: RepoControlState): string {
     recoveryGuidance: repoRecoveryGuidance,
     executionPlan: kc.executionPlan
   });
+  const onboarding = buildOnboardingPanelModel({
+    runtimeInfo: desktopRuntimeInfo,
+    targetRoot: state.targetRoot,
+    repoMode: state.repoState.mode
+  });
 
   return `
     <div class="kc-view-shell">
@@ -3248,6 +3336,8 @@ function renderOverviewView(state: RepoControlState): string {
           <span>${escapeHtml(currentFocus)}</span>
         </div>
       </section>
+
+      ${onboarding ? renderOnboardingPanelView(onboarding, buildUiRenderHelpers()) : ""}
 
       <div class="kc-stat-grid">
         ${renderStatCard("Repo Health", state.repoState.title, state.validation.ok ? "passing" : `${state.validation.errors + state.validation.warnings} issues`, state.validation.ok ? "success" : "warn")}

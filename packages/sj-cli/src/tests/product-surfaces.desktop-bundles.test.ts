@@ -84,7 +84,7 @@ test("ui command prefers the local source bundle before installed app bundles wh
   }
 });
 
-test("ui command still offers installed app bundles after the current workspace source bundle", async () => {
+test("installed-user launch mode ignores a source checkout in the current workspace when the CLI itself is installed", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-source-cwd-bundle-"));
   const sourceRepo = path.join(tempDir, "repo");
   const installedRoot = path.join(tempDir, "installed-cli-root");
@@ -125,23 +125,18 @@ test("ui command still offers installed app bundles after the current workspace 
     const candidates = buildDesktopLaunchCandidates(installedRoot, path.join(tempDir, "target-repo"));
 
     if (process.platform === "darwin") {
-      assert.equal(candidates[0]?.args.length, 0);
-      assert.equal(candidates[0]?.launchSource, "source-bundle");
-      assert.equal(await fs.realpath(candidates[0]?.command ?? ""), await fs.realpath(bundleExecutablePath ?? ""));
-      assert.equal(candidates[1]?.command, "open");
-      assert.equal(candidates[1]?.args.length, 1);
-      assert.equal(candidates[1]?.launchSource, "source-bundle");
-      assert.equal(await fs.realpath(candidates[1]?.args[0] ?? ""), await fs.realpath(bundlePath ?? ""));
-      assert.deepEqual(candidates[2], {
+      assert.deepEqual(candidates[0], {
         command: "open",
         args: ["/Applications/Kiwi Control.app"],
         launchSource: "installed-bundle"
       });
-      assert.deepEqual(candidates[3], {
+      assert.deepEqual(candidates[1], {
         command: "open",
         args: [path.join(os.homedir(), "Applications", "Kiwi Control.app")],
         launchSource: "installed-bundle"
       });
+      assert.equal(candidates.some((candidate) => candidate.command === bundleExecutablePath), false);
+      assert.equal(candidates.some((candidate) => candidate.args[0] === bundlePath), false);
     } else {
       assert.equal(candidates.some((candidate) => candidate.args.includes("Kiwi Control.app")), false);
     }
@@ -201,4 +196,86 @@ test("desktop unavailable messaging distinguishes contributor checkouts from ins
 
   assert.match(contributorMessage, /npm run ui:dev/);
   assert.match(installedMessage, /Install the matching Kiwi Control desktop bundle from the GitHub Release/);
+});
+
+test("installed-user preference uses the installed desktop receipt before source bundle candidates", async () => {
+  if (process.platform !== "darwin") {
+    return;
+  }
+
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-installed-preference-"));
+  const sourceRepo = path.join(tempDir, "repo");
+  const installedApp = path.join(tempDir, "Applications", "Kiwi Control.app");
+  const installedExecutable = path.join(installedApp, "Contents", "MacOS", "Kiwi Control");
+  const sourceBundle = path.join(sourceRepo, "apps", "sj-ui", "src-tauri", "target", "release", "bundle", "macos", "Kiwi Control.app");
+  const sourceExecutable = path.join(sourceBundle, "Contents", "MacOS", "Kiwi Control");
+  const receiptPath = path.join(tempDir, "desktop-install.json");
+  const previousPreference = process.env.KIWI_CONTROL_DESKTOP_PREFERENCE;
+  const previousReceipt = process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH;
+  const previousDesktopLauncher = process.env.KIWI_CONTROL_DESKTOP;
+  const previousLegacyDesktopLauncher = process.env.SHREY_JUNIOR_DESKTOP;
+  const previousCwd = process.cwd();
+
+  await fs.mkdir(path.join(sourceRepo, "configs"), { recursive: true });
+  await fs.mkdir(path.join(sourceRepo, "packages", "sj-cli"), { recursive: true });
+  await fs.mkdir(path.join(sourceRepo, "scripts"), { recursive: true });
+  await fs.mkdir(path.join(sourceRepo, "apps", "sj-ui"), { recursive: true });
+  await fs.writeFile(path.join(sourceRepo, "configs", "global.yaml"), "version: 2\n", "utf8");
+  await fs.writeFile(path.join(sourceRepo, "packages", "sj-cli", "package.json"), "{}\n", "utf8");
+  await fs.writeFile(path.join(sourceRepo, "scripts", "run-ui-dev.mjs"), "", "utf8");
+  await fs.writeFile(path.join(sourceRepo, "apps", "sj-ui", "package.json"), "{}\n", "utf8");
+  await fs.mkdir(path.dirname(sourceExecutable), { recursive: true });
+  await fs.mkdir(path.dirname(installedExecutable), { recursive: true });
+  await fs.writeFile(sourceExecutable, "", "utf8");
+  await fs.writeFile(installedExecutable, "", "utf8");
+  await fs.writeFile(
+    receiptPath,
+    JSON.stringify({
+      appVersion: "0.2.0-beta.1",
+      bundleId: "com.kiwicontrol.desktop",
+      executablePath: installedExecutable,
+      buildSource: "installed-bundle",
+      runtimeMode: "installed-user",
+      updatedAt: new Date().toISOString()
+    }),
+    "utf8"
+  );
+
+  process.chdir(sourceRepo);
+  process.env.KIWI_CONTROL_DESKTOP_PREFERENCE = "installed";
+  process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH = receiptPath;
+  delete process.env.KIWI_CONTROL_DESKTOP;
+  delete process.env.SHREY_JUNIOR_DESKTOP;
+
+  try {
+    const candidates = buildDesktopLaunchCandidates(sourceRepo, path.join(tempDir, "user-repo"));
+    assert.deepEqual(candidates[0], {
+      command: "open",
+      args: [installedApp],
+      launchSource: "installed-bundle"
+    });
+    assert.equal(candidates.some((candidate) => candidate.command === sourceExecutable), false);
+  } finally {
+    process.chdir(previousCwd);
+    if (previousPreference === undefined) {
+      delete process.env.KIWI_CONTROL_DESKTOP_PREFERENCE;
+    } else {
+      process.env.KIWI_CONTROL_DESKTOP_PREFERENCE = previousPreference;
+    }
+    if (previousReceipt === undefined) {
+      delete process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH;
+    } else {
+      process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH = previousReceipt;
+    }
+    if (previousDesktopLauncher === undefined) {
+      delete process.env.KIWI_CONTROL_DESKTOP;
+    } else {
+      process.env.KIWI_CONTROL_DESKTOP = previousDesktopLauncher;
+    }
+    if (previousLegacyDesktopLauncher === undefined) {
+      delete process.env.SHREY_JUNIOR_DESKTOP;
+    } else {
+      process.env.SHREY_JUNIOR_DESKTOP = previousLegacyDesktopLauncher;
+    }
+  }
 });

@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { removeMacMetadataArtifacts } from "./remove-macos-metadata.mjs";
+import { stageDesktopInstallerResources } from "./stage-cli-bundle.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cliEntrypoint = path.join(repoRoot, "packages", "sj-cli", "dist", "cli.js");
@@ -12,6 +13,7 @@ const uiRoot = path.join(repoRoot, "apps", "sj-ui");
 const tauriRoot = path.join(uiRoot, "src-tauri");
 const repoTargetDir = path.join(tauriRoot, "target");
 const repoBundleDir = path.join(repoTargetDir, "release", "bundle");
+const installerResourcesDir = path.join(tauriRoot, "resources", "desktop");
 
 await main();
 
@@ -37,6 +39,12 @@ async function main() {
   if (removedMetadataCount > 0) {
     console.log(`Sanitized ${removedMetadataCount} macOS metadata artifact${removedMetadataCount === 1 ? "" : "s"} before building Kiwi Control.`);
   }
+
+  await stageDesktopInstallerResources({
+    repoRoot,
+    resourcesRoot: installerResourcesDir,
+    nodeBinaryPath: process.execPath
+  });
 
   const cargoTargetDir = await resolveCargoTargetDir();
   await killRunningDesktopBundles(cargoTargetDir);

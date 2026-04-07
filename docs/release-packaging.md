@@ -86,20 +86,36 @@ The generated manifest is written to:
 
 - `dist/release/release-manifest.json`
 
+The desktop packaging flow also stages installer resources under `apps/sj-ui/src-tauri/resources/desktop/` during `npm run ui:desktop:build`. That staged resource set now includes:
+
+- the reusable CLI bundle
+- desktop-first install scripts for `kc`
+- an embedded Node runtime used by the installed desktop product during beta
+
 ## Public install story
 
 For the first beta, public docs should teach this exact order:
 
-1. download the Kiwi Control CLI bundle from GitHub Releases
-2. extract it
-3. run `install.sh` or `install.ps1`
-4. `cd /path/to/repo`
-5. run `kiwi-control init`
-6. optionally install the matching Kiwi Control desktop bundle and run `kiwi-control ui`
+1. download the Kiwi Control desktop installer from GitHub Releases
+2. install the desktop app
+3. launch Kiwi Control once
+4. use the onboarding flow to install `kc`, choose a repo, and initialize it if needed
+5. use `kc ui` from Terminal after first launch when you want repo-to-desktop handoff
+
+The standalone CLI bundle remains available, but the normal-user path on Windows and macOS should now start from the desktop installer.
 
 `kiwi-control ui` should launch Kiwi Control, bring it forward on macOS, and load the current repo automatically. Do not teach manual repo pasting as the normal desktop path.
 
 Do not lead end users to contributor scripts such as `scripts/install-global.sh`.
+
+Installed-user `kc ui` should now prefer:
+
+1. explicit desktop launcher override env vars
+2. the install receipt written by the installed app
+3. normal installed-app OS locations
+4. platform fallback launcher
+
+Source bundle preference is now a developer-mode behavior, not the default for installed-user flows.
 
 The public install and docs surface should be hosted on Cloudflare Pages and should point users to GitHub Releases for actual binaries and checksums.
 
@@ -164,6 +180,8 @@ Recommended domain flow:
 - Rust/Cargo
 - MSVC build tools
 
+The Windows beta desktop installer stays MSI-based in this slice. The highest-value change here is the bundled `kc` install and installed-user launch preference, not a bundler rewrite.
+
 ### Linux
 
 - Rust/Cargo
@@ -213,11 +231,15 @@ Before a public beta release:
 
 1. Run the local verification commands.
 2. Build the desktop bundle on each target platform.
-3. Generate `dist/release/release-manifest.json`.
-4. Verify `dist/release/cli-bundle` contains the public command wrappers and install helpers.
-5. Publish SHA256 checksums for every artifact.
-6. Confirm Homebrew and winget templates match the actual artifact names and command aliases.
-7. State explicitly which bundles are signed and which are not.
+3. Verify the installed-user flow:
+   - installed desktop app preference
+   - bundled `kc` install
+   - first-run onboarding presence
+4. Generate `dist/release/release-manifest.json`.
+5. Verify `dist/release/cli-bundle` contains the public command wrappers and install helpers.
+6. Publish SHA256 checksums for every artifact.
+7. Confirm Homebrew and winget templates match the actual artifact names and command aliases.
+8. State explicitly which bundles are signed and which are not.
 8. Do not enable updater claims until updater signing inputs are active.
 9. Verify the Cloudflare-hosted install/download pages point at the correct GitHub Release assets.
 

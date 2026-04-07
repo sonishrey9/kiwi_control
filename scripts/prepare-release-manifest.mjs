@@ -1,6 +1,7 @@
 import path from "node:path";
 import { chmod, cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { stageCliBundle as stagePublicCliBundle } from "./stage-cli-bundle.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const rootPackage = JSON.parse(await readFile(path.join(repoRoot, "package.json"), "utf8"));
@@ -17,7 +18,7 @@ const cliBundleRelativePath = "dist/release/cli-bundle";
 const cliBundlePath = path.join(repoRoot, cliBundleRelativePath);
 
 await mkdir(releaseDir, { recursive: true });
-await stageCliBundle({
+await stagePublicCliBundle({
   bundlePath: cliBundlePath,
   version,
   repoRoot

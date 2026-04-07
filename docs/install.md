@@ -2,23 +2,37 @@
 
 Kiwi Control now has three explicit usage tracks:
 
-- installed CLI users
 - installed desktop users
+- installed CLI users
 - source contributors
 
 For `0.2.0-beta.1`, GitHub Releases is the primary public install path. Homebrew and winget templates are prepared, but those channels should not be treated as live until they are actually published.
 
 Public beta install priority:
 
-1. Windows desktop + CLI
-2. macOS desktop + CLI
+1. Windows desktop + `kc`
+2. macOS desktop + `kc`
 3. Linux CLI and contributor flows
+
+## Recommended normal-user install
+
+For normal users on Windows and macOS:
+
+1. Download the desktop installer from the GitHub Release.
+2. Install Kiwi Control like a normal desktop app.
+3. Launch Kiwi Control once.
+4. Use the onboarding flow to:
+   - install `kc`
+   - choose the repo you want to open
+   - initialize repo control if needed
+
+The installed desktop app now writes a local install receipt on first launch. After that, `kc ui` prefers the installed app by default instead of a source bundle.
 
 ## Installed CLI users
 
 ### Prerequisites
 
-- Node.js 22 or newer
+- Node.js 22 or newer when you are installing the standalone beta CLI bundle yourself
 
 The beta CLI bundle is still Node-backed. That is an honest implementation detail, not a hidden runtime dependency.
 
@@ -89,18 +103,36 @@ Download the desktop bundle from the same GitHub Release as your CLI install:
 - Windows: Kiwi Control MSI
 - Linux: Kiwi Control AppImage bundle
 
-Windows is the first external desktop install target for the public beta. macOS follows immediately after the Windows install path is stable and signed/notarized correctly.
+Windows and macOS are the normal-user beta install targets. Linux desktop bundles remain evaluation-only for now.
 
 After install, you can:
 
 - open `Kiwi Control` from your OS application launcher
+- use the onboarding flow to install `kc`, choose a repo, and initialize it if needed
 - `cd /path/to/repo && kiwi-control ui`
 
-`kiwi-control ui` launches the desktop app when the desktop bundle is installed or otherwise CLI-launchable, brings it forward on macOS, and loads the repo you are standing in automatically. Manual repo switching stays available inside the app only when you want a different folder.
+`kiwi-control ui` now prefers the installed desktop app in the normal installed-user flow, brings it forward on macOS, and loads the repo you are standing in automatically.
 
 If the desktop app is not available yet, the command fails clearly and tells you the next exact step.
 
-If your platform install does not register a CLI-launchable desktop app, set `KIWI_CONTROL_DESKTOP` to the installed launcher path so `kiwi-control ui` has a deterministic local desktop target.
+Power-user overrides still exist:
+
+- `KIWI_CONTROL_DESKTOP` / `SHREY_JUNIOR_DESKTOP` to force an exact launcher path
+- `KIWI_CONTROL_DESKTOP_PREFERENCE=installed|source` to force installed-user or developer-source launch behavior
+
+### What first launch now does
+
+The first-run flow is intentionally small:
+
+- explains that Kiwi is a repo-local control surface
+- shows desktop status, CLI status, and repo status
+- lets you install `kc` without a manual terminal installer step
+- lets you choose a repo folder from a native folder picker
+- lets you initialize repo control when the selected repo is not initialized
+
+On macOS, the in-app CLI install writes wrappers to `~/.local/bin` and updates your shell profile for future terminals.
+
+On Windows, the in-app CLI install writes wrappers to `%USERPROFILE%\\.kiwi-control\\bin` and updates the user PATH for future terminals.
 
 ## Public beta support note
 
@@ -198,8 +230,8 @@ This beta keeps backward compatibility in place while moving the visible product
 Prepared but not yet published:
 
 - GitHub Releases
-- Homebrew for installed CLI users
-- winget for installed CLI users
+- Homebrew for standalone CLI users
+- winget for standalone CLI users
 - macOS, Windows, and Linux desktop bundles via Tauri
 
 See [docs/release-packaging.md](/Volumes/shrey%20ssd/shrey-junior/docs/release-packaging.md) for release artifact details, [docs/beta-limitations.md](/Volumes/shrey%20ssd/shrey-junior/docs/beta-limitations.md) for beta caveats, and [packaging/signing/README.md](/Volumes/shrey%20ssd/shrey-junior/packaging/signing/README.md) for manual trust steps.

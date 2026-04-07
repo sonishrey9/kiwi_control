@@ -20,6 +20,11 @@ Instead:
 2. describe impact, affected files, and required privileges
 3. send the report privately to the maintainers through the project’s private contact channel
 
+Current private contact route for the public beta:
+
+- sonishrey9@gmail.com
+- LinkedIn DM: https://www.linkedin.com/in/shreykumarsoni/
+
 If no private channel is listed yet, open a minimal issue asking for a private reporting route without disclosing the vulnerability details.
 
 ## What to include
