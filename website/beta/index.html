@@ -3,54 +3,87 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kiwi Control Beta Limitations</title>
+    <title>Kiwi Control Beta Notes</title>
     <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
   </head>
   <body>
     <div class="shell">
       <nav class="nav">
         <div class="brand">Kiwi Control</div>
         <div class="nav-links">
-          <a href="/">Home</a>
-          <a href="/install/">Install</a>
-          <a href="https://github.com/sonishrey9/kiwi-control/blob/main/docs/beta-limitations.md">Repo doc</a>
+          <a href="/">Download</a>
+          <a href="/install/">Install guide</a>
+          <a href="/support/">Support</a>
+          <a href="/downloads">All downloads</a>
         </div>
       </nav>
 
       <section class="hero">
-        <div class="eyebrow">Beta limitations</div>
-        <h1>What is still rough</h1>
-        <p>Kiwi Control is a public beta. Core local-first repo control is real, but desktop trust, some UX flows, and platform distribution polish are still in progress.</p>
+        <div class="eyebrow">Beta notes</div>
+        <div class="release-chip" data-release-badge>Latest release: v0.2.0-beta.1</div>
+        <h1>What to know before you install the public beta.</h1>
+        <p>
+          Kiwi Control is already usable for repo-first local control, but release trust and platform polish are still in progress. Use this page as the quick pre-install reality check.
+        </p>
       </section>
 
       <section class="grid">
         <article class="panel">
           <h2>Desktop trust</h2>
-          <p class="warn">Windows signing and macOS notarization may still be incomplete for some beta releases. Check release notes and checksums before trusting an installer.</p>
+          <p class="warn">Signing and notarization are release-by-release checks. Always open release notes and checksums before you trust an installer.</p>
         </article>
         <article class="panel">
-          <h2>Workflow blocks</h2>
-          <p>Blocked validation, checkpoint, and handoff states are often real repo-state problems, not UI failures. Kiwi should explain recovery commands, but it will not silently bypass repo-local truth.</p>
+          <h2>GitHub Releases</h2>
+          <p>GitHub Releases is still the source of truth for binaries, release notes, and checksums. The website is an installer-first shell around that source.</p>
         </article>
         <article class="panel">
-          <h2>Tool/runtime parity</h2>
-          <p>Do not assume universal parity across every editor, assistant, or hosted runtime. Kiwi is repo-first and local-first by design.</p>
+          <h2>Runtime parity</h2>
+          <p>Do not assume feature parity across every editor, assistant, or hosted runtime. Kiwi Control is intentionally local-first and repo-first.</p>
         </article>
         <article class="panel">
-          <h2>Contributor caveat</h2>
-          <p class="danger">Some external macOS volumes create <code>._*</code> files inside <code>.git</code>. That can corrupt large clones and break Git pack indexes.</p>
+          <h2>External volume warning</h2>
+          <p class="danger">Some external macOS volumes can create <code>._*</code> sidecars inside <code>.git</code>. That can corrupt Git pack indexes and break large clones.</p>
+        </article>
+      </section>
+
+      <section class="details-layout">
+        <article class="panel detail-panel">
+          <div class="eyebrow">If you hit trouble</div>
+          <h2>Support expectations</h2>
+          <div class="list">
+            <div>Response time is best-effort during beta.</div>
+            <div>Include your OS, shell, and whether you installed from source or release artifacts.</div>
+            <div>If you are on an external macOS volume, mention that immediately in bug reports.</div>
+          </div>
+          <p class="detail-link-row">
+            <a href="/support/">Open support</a>
+            <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-notes>Open release notes</a>
+          </p>
+        </article>
+
+        <article class="panel detail-panel">
+          <div class="eyebrow">Fallback</div>
+          <h2>Need the raw release data?</h2>
+          <p>
+            Use <a href="/downloads">all downloads</a> for the complete latest-release asset list, or go straight to the source-of-truth release page.
+          </p>
+          <p class="detail-link-row">
+            <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-source>GitHub Releases source of truth</a>
+            <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-checksums>Checksums</a>
+          </p>
         </article>
       </section>
 
       <footer class="site-footer">
         <div>
           <strong>Created by Shrey Soni</strong>
-          <span>Beta releases, notes, and downloads will live in the public Kiwi Control repository.</span>
+          <span>Beta notes stay close to the release stream so users can install with eyes open.</span>
         </div>
         <div class="footer-links">
           <a href="https://github.com/sonishrey9/kiwi-control">GitHub</a>
-          <a href="https://www.linkedin.com/in/shreykumarsoni/">LinkedIn</a>
-          <a href="mailto:sonishrey9@gmail.com">sonishrey9@gmail.com</a>
+          <a href="/install/">Install guide</a>
+          <a href="/support/">Support</a>
         </div>
       </footer>
     </div>

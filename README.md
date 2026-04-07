@@ -1,52 +1,55 @@
 # Kiwi Control
 
-Kiwi Control is a repo-local control plane for coding agents. It keeps authority inside the repository, exposes a practical CLI for day-to-day work, and ships a Tauri desktop shell for visibility, interaction, and review.
+Kiwi Control is a local-first, repo-first control plane for coding agents. It keeps workflow authority inside the repository, exposes a practical CLI for day-to-day work, and ships a Tauri desktop app for visibility, validation, and review.
 
 ![Kiwi Control Overview](./docs/media/kiwi-overview.png)
 ![Kiwi Control Graph](./docs/media/kiwi-graph.png)
 
+## Quick links
+
+- Website: [kiwi-control.kiwi-ai.in](https://kiwi-control.kiwi-ai.in/)
+- Downloads: [GitHub Releases](https://github.com/sonishrey9/kiwi-control/releases/latest)
+- Install guide: [docs/install.md](./docs/install.md)
+- Support: [SUPPORT.md](./SUPPORT.md)
+- Security: [SECURITY.md](./SECURITY.md)
+- Contributing: [CONTRIBUTING.md](./CONTRIBUTING.md)
+- Public docs index: [docs/README.md](./docs/README.md)
+
 ## Why Kiwi
 
-Most agent tools either hide their reasoning in an editor plugin or centralize execution behind a cloud service. Kiwi takes the opposite approach:
+Most agent tooling either hides workflow logic in an editor integration or centralizes control behind a cloud service. Kiwi takes the opposite approach:
 
-- the repo is the source of truth
-- `.agent/` artifacts are explicit and portable
-- the backend is deterministic and inspectable
-- the CLI is the real operational surface
-- the desktop app is a thin shell over repo-local state, not a parallel runtime
+- the repository remains the source of truth
+- repo-local artifacts are explicit and inspectable
+- the CLI is the primary operational surface
+- the desktop app reflects repo state instead of inventing hidden state
+- GitHub Releases remains the source of truth for public beta binaries
 
-## Features
+## Install
 
-- Repo-local execution planning and validation
-- Context trees, context authority, and bounded file selection
-- Checkpoints, handoffs, and continuity artifacts
-- Machine advisory for toolchain, MCP, and usage health
-- Cross-platform desktop shell via Tauri
-- CLI-driven workflows for guide, next step, retry, validate, trace, and auto-run
+### Desktop-first public beta
 
-## Quickstart
+For most users, the fastest path is:
 
-### Install
+1. Download Kiwi Control from [GitHub Releases](https://github.com/sonishrey9/kiwi-control/releases/latest) or the [installer-first website](https://kiwi-control.kiwi-ai.in/).
+2. Install the desktop app for macOS or Windows.
+3. Launch Kiwi Control once.
+4. Use onboarding to install `kc`, choose a repo, and initialize it if needed.
 
-For normal users on Windows and macOS:
+### CLI path
 
-1. Install the Kiwi Control desktop app from the GitHub Release.
-2. Launch the app once.
-3. Use the onboarding flow to install `kc`, choose a repo, and initialize it if needed.
+The standalone CLI bundle remains available from GitHub Releases.
 
-For standalone CLI users, the beta CLI bundle still supports:
+After install:
 
 ```bash
-./install.sh
+kiwi-control --help
+kc status
 ```
 
-Current public beta defaults:
+See [docs/install.md](./docs/install.md) for the detailed desktop, CLI, and contributor paths.
 
-- GitHub Releases is the source of truth for installable artifacts
-- Windows and macOS desktop installs are the normal-user product path
-- See [docs/beta-limitations.md](./docs/beta-limitations.md) for current beta caveats
-
-### First repo flow
+## First repo flow
 
 ```bash
 cd /path/to/repo
@@ -56,7 +59,7 @@ kc check
 kc guide
 ```
 
-### Continue work
+Continue work:
 
 ```bash
 kc next
@@ -65,81 +68,60 @@ kc checkpoint "ready for qa"
 kc handoff --to qa-specialist
 ```
 
-### Open the desktop app
+Open the desktop app:
 
 ```bash
-cd /path/to/repo
 kc ui
 ```
 
-If the installed desktop app is available, Kiwi Control opens it and loads the current repo automatically. Installed-user mode now prefers the installed app by default; source-bundle preference is reserved for explicit developer flows.
+## Current public beta shape
 
-## Core commands
+- GitHub Releases is the source of truth for installable artifacts
+- the website is installer-first and release-aware
+- Windows and macOS are the primary desktop install targets
+- signing and notarization status must be checked release by release
+- internal package names such as `sj-core`, `sj-cli`, and `sj-ui` remain implementation details
 
-```bash
-kc guide --target /path/to/repo
-kc next --target /path/to/repo
-kc retry --target /path/to/repo
-kc resume --target /path/to/repo
-kc status --target /path/to/repo
-kc trace --target /path/to/repo
-kc validate --target /path/to/repo
-kc run --auto "stabilize auth flow" --target /path/to/repo
-```
+See [docs/beta-limitations.md](./docs/beta-limitations.md) for the current beta limits and trust notes.
 
-Use `--json` when you need machine-readable output.
+## Features
 
-## Desktop usage
+- Repo-local planning, validation, checkpoints, and handoffs
+- Context trees, bounded file selection, and execution-plan state
+- Machine advisory for toolchain, MCP, and usage health
+- Cross-platform desktop shell via Tauri
+- CLI-driven workflows for guide, next step, retry, validate, trace, and auto-run
 
-The desktop shell currently includes:
+## Repository map
 
-- left rail navigation for Overview, Context, Graph, Tokens, Feedback, MCPs, Specialists, System, Validation, and Machine
-- center workspace with execution plan, context tree, graph view, and operator cards
-- right inspector for reasoning, validation, and control actions
-- interactive command bar wired to Kiwi CLI flows
-
-## Created By
-
-Kiwi Control is created by Shrey Soni.
-
-- GitHub: https://github.com/sonishrey9
-- LinkedIn: https://www.linkedin.com/in/shreykumarsoni/
-- Email: sonishrey9@gmail.com
-
-## Architecture
-
-Kiwi Control is a 3-layer monorepo:
-
-- `packages/sj-core` — repo-local engine, planning, selection, eval, validation, repo-state aggregation
+- `packages/sj-core` — repo-local engine, planning, selection, validation, and repo-state aggregation
 - `packages/sj-cli` — installable CLI over `sj-core`
-- `apps/sj-ui` — Tauri desktop shell over repo and CLI state
+- `apps/sj-ui` — Tauri desktop shell
+- `configs/`, `prompts/`, `templates/` — canonical product authority
+- `.agent/` — generated repo-local state and continuity artifacts
 
-```text
-repo files + .agent artifacts
-          |
-          v
-      packages/sj-core
-          |
-   +------+------+
-   |             |
-   v             v
-packages/sj-cli  runtime/ui-bridge
-   |             |
-   +------+------+
-          |
-          v
-   apps/sj-ui (Tauri desktop)
-```
-
-For the contributor-oriented version, read [ARCHITECTURE.md](./ARCHITECTURE.md).
+For a deeper architectural view, read [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Development
+
+Requirements:
+
+- Node.js 22+
+- npm 10+
+- Rust/Cargo for desktop builds
+
+Default local verification loop:
 
 ```bash
 npm install
 npm run build
 npm test
 bash scripts/smoke-test.sh
+```
+
+Desktop development:
+
+```bash
 npm run ui:dev
 ```
 
@@ -148,6 +130,14 @@ Desktop production build:
 ```bash
 npm run ui:desktop:build
 ```
+
+If you are on an external macOS volume, run:
+
+```bash
+npm run clean:macos-sidecars
+```
+
+before or after heavy Git operations if AppleDouble `._*` files start appearing.
 
 ## Project goals
 
@@ -166,9 +156,13 @@ It is intentionally not:
 - a cloud-required control plane
 - a destructive “auto-fix everything” tool
 
-## Contributing
+## Created by
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md).
+Kiwi Control is created by Shrey Soni.
+
+- GitHub: https://github.com/sonishrey9
+- LinkedIn: https://www.linkedin.com/in/shreykumarsoni/
+- Email: sonishrey9@gmail.com
 
 ## License
 

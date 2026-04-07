@@ -5,65 +5,99 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Install Kiwi Control</title>
     <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
   </head>
   <body>
     <div class="shell">
       <nav class="nav">
         <div class="brand">Kiwi Control</div>
         <div class="nav-links">
-          <a href="/">Home</a>
+          <a href="/">Download</a>
           <a href="/beta/">Beta</a>
-          <a href="https://github.com/sonishrey9/kiwi-control/releases/latest">Downloads</a>
+          <a href="/support/">Support</a>
+          <a href="/downloads">All downloads</a>
         </div>
       </nav>
 
       <section class="hero">
-        <div class="eyebrow">Install</div>
-        <h1>Install Kiwi Control</h1>
-        <p>GitHub Releases is the source of truth for public beta binaries. Windows and macOS desktop installs are the normal-user product path.</p>
+        <div class="eyebrow">Install guide</div>
+        <div class="release-chip" data-release-badge>Latest release: v0.2.0-beta.1</div>
+        <h1>Install Kiwi Control with the desktop app first, CLI second.</h1>
+        <p>
+          The homepage is now the installer-first landing page. Use this page when you want the full manual breakdown, CLI bundle instructions, or repo-first onboarding details.
+        </p>
+        <div class="cta-row">
+          <a class="button button-primary" href="/" data-download-link data-platform="macos" data-primary-label="Back to downloads" data-fallback-label="Back to downloads">Back to downloads</a>
+          <a class="button" href="/downloads">Open all release assets</a>
+        </div>
       </section>
 
       <section class="grid">
         <article class="panel">
-          <h2>CLI</h2>
+          <h2>Desktop install</h2>
           <div class="list">
-            <div>1. Download the CLI bundle from <a href="https://github.com/sonishrey9/kiwi-control/releases/latest">GitHub Releases</a>.</div>
+            <div>1. Download the macOS or Windows installer from the homepage or <a href="/downloads">all downloads</a>.</div>
+            <div>2. Install Kiwi Control normally for your platform.</div>
+            <div>3. Launch the app once and let onboarding install <code>kc</code>.</div>
+            <div>4. Choose a repo and initialize it if needed.</div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>CLI install</h2>
+          <div class="list">
+            <div>1. Download the CLI bundle from <a href="/downloads">GitHub Releases</a>.</div>
             <div>2. Run <code>install.sh</code> or <code>install.ps1</code>.</div>
-            <div>3. Use <code>kiwi-control --help</code> or <code>kc --help</code>.</div>
+            <div>3. Verify with <code>kiwi-control --help</code>.</div>
+            <div>4. Continue with <code>kc init</code>, <code>kc status</code>, and <code>kc check</code>.</div>
           </div>
         </article>
+
         <article class="panel">
-          <h2>Desktop</h2>
+          <h2>Latest release metadata</h2>
           <div class="list">
-            <div>1. Download the matching desktop bundle from the same release.</div>
-            <div>2. Install it normally for your platform.</div>
-            <div>3. Launch Kiwi once and use the onboarding flow to install <code>kc</code> and choose a repo.</div>
+            <div>Current version: <strong data-release-version>0.2.0-beta.1</strong></div>
+            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-notes>Release notes</a></div>
+            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-checksums>Checksums</a></div>
+            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-source>GitHub Releases source of truth</a></div>
           </div>
         </article>
-        <article class="panel">
-          <h2>First repo flow</h2>
+      </section>
+
+      <section class="details-layout">
+        <article class="panel detail-panel">
+          <div class="eyebrow">First repo flow</div>
+          <h2>After install</h2>
           <div class="list">
+            <div><code>cd /path/to/repo</code></div>
             <div><code>kc init</code> if the repo is not initialized</div>
-            <div><code>kiwi-control status</code></div>
-            <div><code>kiwi-control prepare "your real task"</code></div>
-            <div><code>kiwi-control validate</code></div>
+            <div><code>kc status</code></div>
+            <div><code>kc check</code></div>
+            <div><code>kc guide</code></div>
           </div>
         </article>
-        <article class="panel">
-          <h2>Beta warning</h2>
-          <p class="danger">If signing/notarization is incomplete for your platform, expect system trust warnings. Always check release notes and checksums.</p>
+
+        <article class="panel detail-panel">
+          <div class="eyebrow">Fallback</div>
+          <h2>If the direct installer does not match your machine</h2>
+          <p data-release-fallback hidden>
+            Direct asset resolution can fall back to the latest release page if GitHub’s release API is unavailable in your browser session.
+          </p>
+          <p>
+            Use <a href="/downloads">all downloads</a> to choose the exact release asset manually. The release page remains the canonical list of binaries, checksums, and notes.
+          </p>
         </article>
       </section>
 
       <footer class="site-footer">
         <div>
           <strong>Created by Shrey Soni</strong>
-          <span>Questions, support, and product updates stay tied to the Kiwi Control public repo.</span>
+          <span>Kiwi Control keeps the install path simple up front and the repo-first detail below.</span>
         </div>
         <div class="footer-links">
+          <a href="/beta/">Beta</a>
+          <a href="/support/">Support</a>
           <a href="https://github.com/sonishrey9/kiwi-control">GitHub</a>
-          <a href="https://www.linkedin.com/in/shreykumarsoni/">LinkedIn</a>
-          <a href="mailto:sonishrey9@gmail.com">sonishrey9@gmail.com</a>
         </div>
       </footer>
     </div>

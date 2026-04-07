@@ -22,6 +22,7 @@
     "test:desktop:rendered": "node scripts/verify-rendered-desktop.mjs",
     "test:desktop:features": "bash scripts/test-desktop-features.sh",
     "test:product:features": "bash scripts/test-product-features.sh",
+    "clean:macos-sidecars": "bash scripts/clean-macos-sidecars.sh",
     "cli": "node scripts/run-cli.mjs",
     "audit": "npm run build && node packages/sj-cli/dist/cli.js audit",
     "check": "npm run build && node packages/sj-cli/dist/cli.js check",

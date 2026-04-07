@@ -1,24 +1,45 @@
 # Contributing to Kiwi Control
 
-## Development principles
+Kiwi Control is a public beta. Contributions should improve the product without weakening its repo-first, local-first model.
 
-Kiwi Control is a repo-local control plane. Keep these rules intact:
+## Before you start
 
-- repo-local artifacts are authoritative
-- `sj-core` owns decision logic
-- `sj-cli` stays thin where possible
-- `sj-ui` stays a shell, not a second source of truth
-- additive changes beat rewrites
-- generic repos stay quiet unless explicitly initialized
+Read these first:
 
-## Environment setup
+- [README.md](./README.md)
+- [ARCHITECTURE.md](./ARCHITECTURE.md)
+- [SUPPORT.md](./SUPPORT.md)
+- [SECURITY.md](./SECURITY.md)
+- [docs/README.md](./docs/README.md)
+
+## Contribution priorities
+
+The highest-value public contributions are:
+
+- installer and release quality
+- repo-local workflow clarity
+- desktop polish and test coverage
+- CLI output consistency
+- documentation that helps users install, trust, and debug the product honestly
+
+Avoid broad speculative rewrites.
+
+## Guardrails
+
+- preserve repo-local authority boundaries
+- keep diffs targeted and reviewable
+- do not add heavy dependencies casually
+- keep file and command surfaces explicit
+- do not weaken path validation or desktop command allowlists
+- do not over-claim release trust, signing, or runtime parity
+
+## Setup
 
 Requirements:
 
 - Node.js 22+
 - npm 10+
-- Rust toolchain for Tauri desktop work
-- platform prerequisites for Tauri on macOS, Windows, or Linux
+- Rust/Cargo for desktop builds
 
 Install dependencies:
 
@@ -28,7 +49,7 @@ npm install
 
 ## Verification
 
-Use this as the default local loop:
+Default local loop:
 
 ```bash
 npm run build
@@ -36,7 +57,7 @@ npm test
 bash scripts/smoke-test.sh
 ```
 
-Desktop dev:
+Desktop development:
 
 ```bash
 npm run ui:dev
@@ -48,79 +69,35 @@ Desktop production build:
 npm run ui:desktop:build
 ```
 
-## Repository map
+macOS sidecar cleanup:
 
-- `packages/sj-core` — planning, selection, validation, eval, repo-state aggregation
-- `packages/sj-cli` — command surface over `sj-core`
-- `apps/sj-ui` — Tauri desktop shell
-- `configs/`, `prompts/`, `templates/` — canonical product authority
-- `.agent/` — generated repo-local state and continuity artifacts
+```bash
+npm run clean:macos-sidecars
+```
 
-Start with:
-
-- [README.md](./README.md)
-- [ARCHITECTURE.md](./ARCHITECTURE.md)
-
-## Coding standards
-
-- keep diffs minimal and targeted
-- avoid speculative cleanup
-- preserve repo-local authority boundaries
-- do not add heavy dependencies casually
-- keep command surfaces explicit
-- keep desktop-native operations allowlisted and path-safe
-
-## High-value contribution areas
-
-### 1. UI modularization
-
-The desktop renderer still has too much logic concentrated in `apps/sj-ui/src/main.ts`.
-
-Helpful work:
-
-- split more view/state logic into focused modules
-- improve event handling boundaries
-- improve keyboard and focus behavior
-
-### 2. Frontend tests
-
-The backend and CLI are much better tested than the desktop app.
-
-Helpful work:
-
-- renderer interaction tests
-- Tauri invoke contract tests
-- desktop smoke verification
-
-### 3. CLI output normalization
-
-Some commands are polished, others still feel like internal logs.
-
-Helpful work:
-
-- shared CLI output helpers
-- consistent sections, tables, statuses, and JSON behavior
-
-### 4. Build hygiene
-
-Helpful work:
-
-- stop `._*` macOS metadata junk from polluting working trees
-- keep generated artifacts isolated
-- improve local and CI parity for Tauri builds
+If you are on an external macOS volume and Git starts failing with `non-monotonic index ... ._pack-*.idx`, run the cleanup command again or move the repo to internal storage.
 
 ## Pull requests
 
 Please include:
 
-- problem statement
+- the problem statement
 - user-facing impact
-- repo-local contract impact, if any
-- build/test/smoke results
+- release/install impact, if any
+- exact verification commands run
+- exact results
 - platform(s) exercised for desktop changes
 - remaining limitations or follow-up work
 
-## Security and trust
+## Public beta expectations
+
+- GitHub Releases is the source of truth for installable artifacts
+- the website should stay aligned with the release flow
+- support response time is best-effort during beta
+- user-facing docs should prefer `kiwi-control` and `kc`
+- internal compatibility names should stay implementation details unless they matter for contributor work
+
+## Security-sensitive areas
 
 Be extra careful when touching:
 
@@ -132,7 +109,7 @@ Be extra careful when touching:
 
 Never weaken:
 
-- path boundary checks
+- path-boundary checks
 - explicit command allowlists
 - repo-local authority rules
 - read-only machine advisory guarantees

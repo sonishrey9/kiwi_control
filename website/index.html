@@ -3,68 +3,164 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kiwi Control</title>
+    <title>Download Kiwi Control</title>
+    <meta
+      name="description"
+      content="Download Kiwi Control for macOS or Windows. GitHub Releases is the source of truth for the current public beta installers and checksums."
+    />
     <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
   </head>
   <body>
     <div class="shell">
       <nav class="nav">
         <div class="brand">Kiwi Control</div>
         <div class="nav-links">
-          <a href="/install/">Install</a>
-          <a href="/beta/">Beta</a>
-          <a href="https://github.com/sonishrey9/kiwi-control">GitHub</a>
-          <a href="https://github.com/sonishrey9/kiwi-control/releases/latest">Downloads</a>
+          <a href="/install/">Install guide</a>
+          <a href="/beta/">Beta notes</a>
+          <a href="/support/">Support</a>
+          <a href="/downloads">All downloads</a>
         </div>
       </nav>
 
-      <section class="hero">
-        <div class="eyebrow">Local-first public beta</div>
-        <h1>Repo-local control for coding agents</h1>
-        <p>
-          Kiwi Control is a thin repo-local control plane for coding agents. It keeps authority in the repository,
-          exposes an operator-friendly CLI, and ships a Tauri desktop shell for visibility, validation, and workflow control.
-        </p>
-        <div class="cta-row">
-          <a class="button" href="https://github.com/sonishrey9/kiwi-control/releases/latest">Download from GitHub Releases</a>
-          <a class="button" href="/install/">Read install guide</a>
+      <section class="hero hero-download">
+        <div class="hero-copy">
+          <div class="eyebrow">Public beta installer</div>
+          <div class="release-chip" data-release-badge>Latest release: v0.2.0-beta.1</div>
+          <h1>Download Kiwi Control and start with the desktop app.</h1>
+          <p class="hero-text">
+            The fastest path is the desktop installer. GitHub Releases stays the source of truth for binaries, release notes, and checksums.
+          </p>
+          <p class="recommendation" data-recommended-banner>Choose the installer that matches your desktop OS.</p>
+          <div class="release-links">
+            <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-notes>Release notes</a>
+            <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-checksums>Checksums</a>
+            <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-source>GitHub Releases source of truth</a>
+          </div>
         </div>
-        <div class="badge-row">
-          <span class="badge">Windows-first desktop beta</span>
-          <span class="badge">macOS desktop beta next</span>
-          <span class="badge">GitHub Releases is the artifact source of truth</span>
+
+        <div class="download-grid">
+          <article class="download-card" data-download-card data-platform="macos">
+            <div class="download-card-top">
+              <span class="download-platform">macOS</span>
+              <span class="download-recommended" data-recommended-chip hidden>Recommended</span>
+            </div>
+            <h2 data-download-heading>Download for macOS</h2>
+            <p>Apple silicon and Intel desktop installers are resolved from the latest GitHub Release.</p>
+            <a
+              class="button button-primary"
+              href="https://github.com/sonishrey9/kiwi-control/releases/latest"
+              data-download-link
+              data-platform="macos"
+              data-primary-label="Download for macOS"
+              data-fallback-label="View macOS release assets"
+            >
+              Download for macOS
+            </a>
+          </article>
+
+          <article class="download-card" data-download-card data-platform="windows">
+            <div class="download-card-top">
+              <span class="download-platform">Windows</span>
+              <span class="download-recommended" data-recommended-chip hidden>Recommended</span>
+            </div>
+            <h2 data-download-heading>Download for Windows</h2>
+            <p>Recommended for most users. The latest MSI is pulled from GitHub Releases when available.</p>
+            <a
+              class="button button-primary"
+              href="https://github.com/sonishrey9/kiwi-control/releases/latest"
+              data-download-link
+              data-platform="windows"
+              data-primary-label="Download for Windows"
+              data-fallback-label="View Windows release assets"
+            >
+              Download for Windows
+            </a>
+          </article>
         </div>
       </section>
 
-      <section class="grid">
+      <section class="status-strip panel panel-inline">
+        <div>
+          <strong>Version</strong>
+          <span data-release-version>0.2.0-beta.1</span>
+        </div>
+        <div>
+          <strong>Recommended path</strong>
+          <span data-download-meta>GitHub Releases remains the source of truth for every installer and checksum.</span>
+        </div>
+        <div>
+          <strong>Fallback</strong>
+          <span>Use the full <a href="/downloads">downloads page</a> if the direct installer buttons do not match your machine.</span>
+        </div>
+      </section>
+
+      <section class="grid grid-compact">
         <article class="panel">
-          <h2>What Kiwi is</h2>
-          <p>Repo-local authority, explicit artifacts, deterministic CLI workflows, and a desktop shell that reflects repo state instead of inventing hidden state.</p>
+          <h2>Install in three steps</h2>
+          <div class="list">
+            <div>1. Download the desktop installer for macOS or Windows.</div>
+            <div>2. Install Kiwi Control normally for your platform.</div>
+            <div>3. Launch the app and let onboarding install <code>kc</code> for the repo flow.</div>
+          </div>
         </article>
         <article class="panel">
-          <h2>What Kiwi is not</h2>
-          <p>Not a hidden cloud runtime, not a generic autonomous agent platform, and not a product that silently overrides repo-local truth.</p>
+          <h2>Prefer CLI?</h2>
+          <p>
+            The CLI bundle is still available from GitHub Releases. Manual CLI install instructions live on the
+            <a href="/install/">install page</a>, below the desktop-first flow.
+          </p>
         </article>
         <article class="panel">
-          <h2>Install path</h2>
-          <p>Use the CLI and desktop bundles from GitHub Releases. Use <code>kiwi-control</code> and <code>kc</code> as the primary commands.</p>
+          <h2>Beta trust posture</h2>
+          <p class="warn">Always check release notes and checksums before trusting an installer. Signing and notarization status may vary by release.</p>
         </article>
-        <article class="panel">
-          <h2>Beta trust</h2>
-          <p class="warn">Desktop signing and notarization status must be checked in each release. Do not assume every artifact is fully trusted yet.</p>
+      </section>
+
+      <section class="details-layout">
+        <article class="panel detail-panel">
+          <div class="eyebrow">Detailed install</div>
+          <h2>CLI and manual setup</h2>
+          <p>Desktop is the primary path, but the CLI bundle still works when you want a direct shell-based install.</p>
+          <div class="list">
+            <div>1. Open <a href="/downloads">all downloads</a> or the latest <a href="https://github.com/sonishrey9/kiwi-control/releases/latest">release page</a>.</div>
+            <div>2. Download the CLI bundle for your OS.</div>
+            <div>3. Run <code>install.sh</code> or <code>install.ps1</code>.</div>
+            <div>4. Use <code>kiwi-control --help</code> or <code>kc --help</code>.</div>
+          </div>
+          <p class="detail-link-row">
+            <a href="/install/">Open full install guide</a>
+          </p>
+        </article>
+
+        <article class="panel detail-panel">
+          <div class="eyebrow">Before you install</div>
+          <h2>Know the current beta limits</h2>
+          <p>
+            Kiwi Control is already useful for local-first repo control, but platform trust, signing, and some polish items are still in progress.
+          </p>
+          <div class="list">
+            <div>Desktop signing and notarization are still release-specific checks.</div>
+            <div>GitHub Releases is the authoritative artifact source.</div>
+            <div>Repo-local state remains the product truth, even when the app looks polished.</div>
+          </div>
+          <p class="detail-link-row">
+            <a href="/beta/">Read beta notes</a>
+            <a href="/support/">Get support</a>
+          </p>
         </article>
       </section>
 
       <footer class="site-footer">
         <div>
           <strong>Created by Shrey Soni</strong>
-          <span>Kiwi Control is published as a local-first repo control product.</span>
+          <span>Kiwi Control stays local-first, repo-first, and GitHub Release-backed for public beta distribution.</span>
         </div>
         <div class="footer-links">
           <a href="https://github.com/sonishrey9">GitHub</a>
           <a href="https://www.linkedin.com/in/shreykumarsoni/">LinkedIn</a>
           <a href="mailto:sonishrey9@gmail.com">sonishrey9@gmail.com</a>
-          <a href="/install/">Install</a>
+          <a href="/support/">Support</a>
         </div>
       </footer>
     </div>
