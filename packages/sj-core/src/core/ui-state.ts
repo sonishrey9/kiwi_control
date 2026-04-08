@@ -5,9 +5,11 @@ import { PRODUCT_METADATA } from "./product.js";
 import { compileRepoContext } from "./context.js";
 import { syncExecutionPlan } from "./execution-plan.js";
 import type { ExecutionPlanState } from "./execution-plan.js";
+import { loadExecutionState, type ExecutionStateRecord } from "./execution-state.js";
 import { getMemoryPaths, loadOpenRisks } from "./memory.js";
 import { inspectBootstrapTarget } from "./project-detect.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "./profiles.js";
+import { deriveRepoReadiness, type RepoReadiness } from "./repo-readiness.js";
 import { getMcpPackDefinition, listMcpPacks, recommendMcpPack } from "./recommendations.js";
 import { loadLatestReconcileReport } from "./reconcile.js";
 import {
@@ -82,6 +84,20 @@ export interface RepoControlLoadState {
   snapshotSavedAt: string | null;
   snapshotAgeMs: number | null;
   detail: string;
+}
+
+export interface RepoControlExecutionState {
+  revision: number;
+  operationId: string | null;
+  task: string | null;
+  sourceCommand: string | null;
+  lifecycle: ExecutionStateRecord["lifecycle"];
+  reason: string | null;
+  nextCommand: string | null;
+  blockedBy: string[];
+  lastUpdatedAt: string | null;
+  artifacts: ExecutionStateRecord["artifacts"];
+  lastEvent: ExecutionStateRecord["lastEvent"];
 }
 
 export interface KiwiControlContextView {
@@ -363,6 +379,8 @@ export interface RepoControlState {
   executionMode: string;
   projectType: string;
   repoState: RepoControlStatus;
+  executionState: RepoControlExecutionState;
+  readiness: RepoReadiness;
   repoOverview: RepoControlPanelItem[];
   continuity: RepoControlPanelItem[];
   memoryBank: RepoMemoryBankEntry[];
@@ -583,7 +601,8 @@ export async function buildRepoControlStateFromConfig(options: {
     openRisks,
     latestTaskPacketSet,
     latestReconcile,
-    machineAdvisory
+    machineAdvisory,
+    executionState
   ] = await Promise.all([
     validateControlPlane(options.repoRoot, options.config),
     validateTargetRepo(options.targetRoot, options.config, selection),
@@ -675,7 +694,8 @@ export async function buildRepoControlStateFromConfig(options: {
       },
       guidance: [],
       note: "Machine-local advisory is unavailable."
-    }))
+    })),
+    loadExecutionState(options.targetRoot)
   ]);
   const validationIssues = [
     ...controlPlaneIssues,
@@ -733,6 +753,11 @@ export async function buildRepoControlStateFromConfig(options: {
     inspection,
     validation
   });
+  const readiness = deriveRepoReadiness({
+    repoState,
+    validation,
+    executionState
+  });
   const fallbackNextCommand = buildFallbackNextCommand(repoState.mode, options.targetRoot);
   const fallbackNextFile = buildFallbackNextFile(inspection.existingAuthorityFiles);
   const defaultRecommendedSpecialist =
@@ -777,6 +802,20 @@ export async function buildRepoControlStateFromConfig(options: {
     executionMode,
     projectType: inspection.projectType,
     repoState,
+    executionState: {
+      revision: executionState.revision,
+      operationId: executionState.operationId,
+      task: executionState.task,
+      sourceCommand: executionState.sourceCommand,
+      lifecycle: executionState.lifecycle,
+      reason: executionState.reason,
+      nextCommand: executionState.nextCommand,
+      blockedBy: executionState.blockedBy,
+      lastUpdatedAt: executionState.lastUpdatedAt,
+      artifacts: executionState.artifacts,
+      lastEvent: executionState.lastEvent
+    },
+    readiness,
     repoOverview,
     continuity: continuityItems,
     memoryBank,
@@ -821,6 +860,10 @@ export async function buildRepoControlStateFromConfig(options: {
       {
         label: "Next command",
         value: activeRoleHints?.nextSuggestedCommand ?? continuity.currentFocus?.nextSuggestedCommand ?? fallbackNextCommand
+      },
+      {
+        label: "Execution lifecycle",
+        value: executionState.lifecycle
       },
       { label: "Validation state", value: summarizeValidation(validationIssues) },
       {

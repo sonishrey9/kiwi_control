@@ -14,6 +14,16 @@ type RepoGuidanceState = {
   validation: {
     errors: number;
   };
+  executionState: {
+    lifecycle: "idle" | "packet-created" | "queued" | "running" | "blocked" | "failed" | "completed";
+    reason: string | null;
+    nextCommand: string | null;
+  };
+  readiness: {
+    label: string;
+    detail: string;
+    nextCommand: string | null;
+  };
   kiwiControl?: {
     executionPlan?: {
       blocked?: boolean;
@@ -63,8 +73,17 @@ export function deriveRepoRecoveryGuidance(
   if (state.repoState.mode === "initialized-invalid" || state.validation.errors > 0 || Boolean(state.kiwiControl?.executionPlan?.blocked)) {
     return {
       tone: "blocked",
-      title: "Repo opened, workflow blocked",
-      detail: "Kiwi loaded the repo, but repo-local control files or validation gates are blocking execution.",
+      title: state.readiness.label,
+      detail: state.readiness.detail,
+      nextCommand: selectRecoveryCommand(state)
+    };
+  }
+
+  if (state.executionState.lifecycle === "blocked" || state.executionState.lifecycle === "failed") {
+    return {
+      tone: state.executionState.lifecycle === "failed" ? "failed" : "blocked",
+      title: state.readiness.label,
+      detail: state.readiness.detail,
       nextCommand: selectRecoveryCommand(state)
     };
   }
@@ -142,7 +161,9 @@ export function buildBootRecoveryGuidance(detail: string): {
 }
 
 function selectRecoveryCommand(state: RepoGuidanceState): string {
-  return state.kiwiControl?.executionPlan?.lastError?.fixCommand
+  return state.executionState.nextCommand
+    ?? state.readiness.nextCommand
+    ?? state.kiwiControl?.executionPlan?.lastError?.fixCommand
     ?? state.kiwiControl?.executionPlan?.lastError?.retryCommand
     ?? state.kiwiControl?.executionPlan?.nextCommands?.[0]
     ?? `kiwi-control validate --target "${state.targetRoot}"`

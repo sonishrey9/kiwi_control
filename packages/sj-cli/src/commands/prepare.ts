@@ -6,6 +6,7 @@ import { generateInstructions, persistInstructions } from "@shrey-junior/sj-core
 import type { GeneratedInstructions } from "@shrey-junior/sj-core/core/instruction-generator.js";
 import { matchSkillsForTask } from "@shrey-junior/sj-core/core/skills-registry.js";
 import type { SkillRegistryState } from "@shrey-junior/sj-core/core/skills-registry.js";
+import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
 import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import type { MeasuredUsageState } from "@shrey-junior/sj-core/core/token-intelligence.js";
@@ -13,7 +14,7 @@ import type { TokenBreakdownState, TokenEstimate } from "@shrey-junior/sj-core/c
 import { estimateTokens, persistTokenUsage } from "@shrey-junior/sj-core/core/token-estimator.js";
 import { executeWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
-import { pathExists, readJson } from "@shrey-junior/sj-core/utils/fs.js";
+import { pathExists, readJson, relativeFrom } from "@shrey-junior/sj-core/utils/fs.js";
 
 export interface PrepareOptions {
   repoRoot: string;
@@ -120,6 +121,16 @@ export async function runPrepare(options: PrepareOptions): Promise<number> {
   });
 
   if (!workflowExecution.ok || !selection || !instructions || !instructionPath || !tokenEstimate) {
+    await recordExecutionState(targetRoot, {
+      type: "prepare-failed",
+      lifecycle: "blocked",
+      task,
+      sourceCommand: `kiwi-control prepare "${task}"${options.expand ? " --expand" : ""}`,
+      reason: workflowExecution.failureReason ?? `Prepare failed for "${task}".`,
+      nextCommand: workflowExecution.retryCommand ?? `kiwi-control prepare "${task}"`,
+      blockedBy: [workflowExecution.failureReason ?? workflowExecution.validation],
+      reuseOperation: false
+    }).catch(() => null);
     await recordRuntimeProgress(targetRoot, {
       type: "prepare_completed",
       stage: "blocked",
@@ -165,6 +176,21 @@ export async function runPrepare(options: PrepareOptions): Promise<number> {
   await syncExecutionPlan(targetRoot, {
     task,
     forceState: "ready"
+  }).catch(() => null);
+  await recordExecutionState(targetRoot, {
+    type: "prepare-completed",
+    lifecycle: "packet-created",
+    task,
+    sourceCommand: `kiwi-control prepare "${task}"${options.expand ? " --expand" : ""}`,
+    reason: `Prepared ${finalSelection.include.length} selected files for "${task}".`,
+    nextCommand: `kiwi-control run "${task}"`,
+    blockedBy: [],
+    artifacts: {
+      instructions: [relativeFrom(targetRoot, finalInstructionPath)],
+      contextSelection: [".agent/state/context-selection.json"],
+      tokenUsage: [".agent/state/token-usage.json"]
+    },
+    reuseOperation: false
   }).catch(() => null);
   const contextTrace = await readJson<ContextTraceState>(path.join(targetRoot, ".agent", "state", "context-trace.json"));
   const indexing = await readJson<IndexingState>(path.join(targetRoot, ".agent", "state", "indexing.json"));

@@ -512,6 +512,23 @@ type RepoControlState = {
     detail: string;
     sourceOfTruthNote: string;
   };
+  executionState: {
+    revision: number;
+    operationId: string | null;
+    task: string | null;
+    sourceCommand: string | null;
+    lifecycle: "idle" | "packet-created" | "queued" | "running" | "blocked" | "failed" | "completed";
+    reason: string | null;
+    nextCommand: string | null;
+    blockedBy: string[];
+    lastUpdatedAt: string | null;
+  };
+  readiness: {
+    label: string;
+    tone: "ready" | "blocked" | "failed";
+    detail: string;
+    nextCommand: string | null;
+  };
   repoOverview: PanelItem[];
   continuity: PanelItem[];
   memoryBank: Array<{ label: string; path: string; present: boolean }>;
@@ -665,6 +682,11 @@ type LaunchRequestPayload = {
   requestId: string;
   targetRoot: string;
   launchSource?: "source-bundle" | "installed-bundle" | "fallback-launcher";
+};
+
+type RepoStateChangedPayload = {
+  targetRoot: string;
+  revision: number;
 };
 
 type DesktopRuntimeInfo = {
@@ -952,6 +974,7 @@ let currentTargetRoot = "";
 let isLoadingRepoState = false;
 let isRefreshingFreshRepoState = false;
 let queuedLaunchRequest: LaunchRequestPayload | null = null;
+let queuedRepoStateChange: RepoStateChangedPayload | null = null;
 let lastHandledLaunchRequestId = "";
 let machineHydrationRound = 0;
 let machineHydrationInFlight = false;
@@ -1367,20 +1390,6 @@ async function boot(): Promise<void> {
   window.setInterval(() => {
     void pollPendingLaunchRequest();
   }, 250);
-
-  window.setInterval(() => {
-    void maybeAutoRefreshState();
-  }, AUTO_REFRESH_INTERVAL_MS);
-
-  window.addEventListener("focus", () => {
-    void maybeAutoRefreshState();
-  });
-
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) {
-      void maybeAutoRefreshState();
-    }
-  });
 }
 
 function resolveBrowserPreviewRequest(): { fixturePath: string } | null {
@@ -1436,9 +1445,29 @@ async function registerLaunchRequestListener(): Promise<void> {
     await listen<LaunchRequestPayload>("desktop-launch-request", (event) => {
       void handleLaunchRequest(event.payload);
     });
+    await listen<RepoStateChangedPayload>("repo-state-changed", (event) => {
+      void handleRepoStateChange(event.payload);
+    });
   } catch {
     // Browser-only contexts do not need live retarget listeners.
   }
+}
+
+async function handleRepoStateChange(payload: RepoStateChangedPayload): Promise<void> {
+  if (!payload.targetRoot || payload.targetRoot !== currentTargetRoot) {
+    return;
+  }
+
+  if (payload.revision <= currentState.executionState.revision) {
+    return;
+  }
+
+  if (isLoadingRepoState || isRefreshingFreshRepoState || commandState.loading) {
+    queuedRepoStateChange = payload;
+    return;
+  }
+
+  await loadAndRenderTarget(payload.targetRoot, "auto", undefined, { preferSnapshot: false });
 }
 
 async function loadDesktopRuntimeInfo(): Promise<void> {
@@ -1560,10 +1589,11 @@ async function loadAndRenderTarget(
   renderState(currentState);
 
   try {
-    const state = await loadRepoControlState(targetRoot, options.preferSnapshot ?? (source !== "auto"));
+    const state = await loadRepoControlState(targetRoot, options.preferSnapshot ?? false);
     currentTargetRoot = state.targetRoot || targetRoot;
     currentState = state;
     lastRepoRefreshAt = Date.now();
+    await setActiveRepoTarget(currentTargetRoot, state.executionState.revision);
     renderState(state);
     bridgeNoteElement.textContent = buildBridgeNote(state, source);
     await logUiEvent("ui-repo-state-rendered", requestId, state.targetRoot || targetRoot, `${state.repoState.mode}:${state.loadState.source}`);
@@ -1631,6 +1661,7 @@ async function loadAndRenderTarget(
 
     if (!isRefreshingFreshRepoState) {
       await flushQueuedLaunchRequest(requestId);
+      await flushQueuedRepoStateChange();
     }
   }
 }
@@ -1664,6 +1695,7 @@ async function refreshFreshRepoState(targetRoot: string, requestId?: string): Pr
     currentState = freshState;
     lastRepoRefreshAt = Date.now();
     lastRepoLoadFailure = null;
+    await setActiveRepoTarget(currentTargetRoot, freshState.executionState.revision);
     if (shouldDeferShellRenderForGraphInteraction()) {
       scheduleNonCriticalShellRender();
     } else {
@@ -1690,6 +1722,7 @@ async function refreshFreshRepoState(targetRoot: string, requestId?: string): Pr
   } finally {
     isRefreshingFreshRepoState = false;
     await flushQueuedLaunchRequest(requestId);
+    await flushQueuedRepoStateChange();
   }
 }
 
@@ -1704,11 +1737,22 @@ async function flushQueuedLaunchRequest(currentRequestId?: string): Promise<void
   queuedLaunchRequest = null;
 }
 
+async function flushQueuedRepoStateChange(): Promise<void> {
+  if (!queuedRepoStateChange) {
+    return;
+  }
+
+  const nextChange = queuedRepoStateChange;
+  queuedRepoStateChange = null;
+  await handleRepoStateChange(nextChange);
+}
+
 async function acknowledgeLaunchRequest(
   requestId: string,
   targetRoot: string,
   status: "ready" | "error" | "hydrating",
-  detail?: string
+  detail?: string,
+  revision = currentState.executionState.revision
 ): Promise<void> {
   const resolvedDetail = detail ?? (status === "ready"
     ? `Loaded repo-local state for ${targetRoot}.`
@@ -1722,7 +1766,7 @@ async function acknowledgeLaunchRequest(
 
   try {
     await logUiEvent("ui-ack-attempt", requestId, targetRoot, status);
-    await invoke("ack_launch_request", { requestId, targetRoot, status, detail: resolvedDetail });
+    await invoke("ack_launch_request", { requestId, targetRoot, status, detail: resolvedDetail, revision });
     await logUiEvent("ui-ack-succeeded", requestId, targetRoot, status);
   } catch (error) {
     bridgeNoteElement.textContent = "Kiwi Control loaded this repo, but the desktop launch acknowledgement did not complete yet.";
@@ -2231,7 +2275,9 @@ function deriveComposerConstraint(
   const plan = state.kiwiControl?.executionPlan;
   const validateStep = plan?.steps.find((step) => step.id === "validate");
   const validateFixCommand =
-    validateStep?.fixCommand
+    state.executionState.nextCommand
+    ?? state.readiness.nextCommand
+    ?? validateStep?.fixCommand
     ?? validateStep?.retryCommand
     ?? plan?.lastError?.fixCommand
     ?? plan?.lastError?.retryCommand
@@ -2246,7 +2292,7 @@ function deriveComposerConstraint(
     };
   }
 
-  if (mode === "checkpoint" && (plan?.state === "blocked" || validateStep?.status === "failed" || state.validation.errors > 0)) {
+  if (mode === "checkpoint" && (state.executionState.lifecycle === "blocked" || state.executionState.lifecycle === "failed" || validateStep?.status === "failed" || state.validation.errors > 0)) {
     return {
       blocked: true,
       reason: "Checkpoint is blocked until validation passes.",
@@ -2254,7 +2300,7 @@ function deriveComposerConstraint(
     };
   }
 
-  if (mode === "handoff" && (plan?.state === "blocked" || validateStep?.status === "failed" || state.validation.errors > 0)) {
+  if (mode === "handoff" && (state.executionState.lifecycle === "blocked" || state.executionState.lifecycle === "failed" || validateStep?.status === "failed" || state.validation.errors > 0)) {
     return {
       blocked: true,
       reason: "Handoff is blocked until validation passes.",
@@ -3080,7 +3126,8 @@ function reportRenderProbe(state: RepoControlState): void {
     activeView,
     targetRoot: state.targetRoot,
     repoMode: state.repoState.mode,
-    executionState: executionPlan?.state ?? "unknown",
+    executionState: state.executionState.lifecycle,
+    executionRevision: state.executionState.revision,
     currentStep,
     loadPhase: loadStatus.phase,
     loadLabel: loadStatus.label,
@@ -3399,7 +3446,7 @@ function renderOverviewView(state: RepoControlState): string {
         ${renderStatCard("Task", selectedTask, kc.contextView.confidenceDetail ?? "no prepared scope", "neutral")}
         ${renderStatCard("Selected", String(interactiveTree.selectedCount), "files Kiwi chose", "neutral")}
         ${renderStatCard("Ignored", String(interactiveTree.excludedCount), "files Kiwi filtered out", "warn")}
-        ${renderStatCard("Lifecycle", kc.runtimeLifecycle.currentStage, kc.runtimeLifecycle.nextRecommendedAction ?? "runtime stage not recorded yet", "neutral")}
+        ${renderStatCard("Lifecycle", state.executionState.lifecycle, state.executionState.reason ?? state.readiness.detail, state.executionState.lifecycle === "blocked" || state.executionState.lifecycle === "failed" ? "warn" : "neutral")}
         ${renderStatCard("Skills", String(kc.skills.activeSkills.length), kc.skills.activeSkills.length > 0 ? kc.skills.activeSkills.map((skill) => skill.name).join(", ") : "none active", "neutral")}
       </div>
 
@@ -4283,7 +4330,7 @@ function renderSystemView(state: RepoControlState): string {
         ${renderStatCard("Failures", String(failures), "recorded scope or completion failures", failures > 0 ? "warn" : "success")}
         ${renderStatCard("Success Rate", `${kc.execution.successRate}%`, "real completion history", kc.execution.successRate >= 80 ? "success" : "warn")}
         ${renderStatCard("Feedback Strength", kc.feedback.adaptationLevel, `${kc.feedback.totalRuns} successful runs`, kc.feedback.adaptationLevel === "active" ? "success" : "neutral")}
-        ${renderStatCard("Lifecycle", kc.runtimeLifecycle.currentStage, kc.runtimeLifecycle.validationStatus ?? "no validation status", "neutral")}
+        ${renderStatCard("Lifecycle", state.executionState.lifecycle, state.executionState.reason ?? state.readiness.detail, state.executionState.lifecycle === "blocked" || state.executionState.lifecycle === "failed" ? "warn" : "neutral")}
         ${renderStatCard("Workflow", kc.workflow.status, kc.workflow.currentStepId ?? "no current step", kc.workflow.status === "failed" ? "warn" : "neutral")}
       </div>
 
@@ -4332,7 +4379,7 @@ function renderSystemView(state: RepoControlState): string {
         <section class="kc-panel">
           ${renderPanelHeader("Task Lifecycle", "A lightweight runtime trail from prepare to packet generation, checkpoint, and handoff.")}
           <div class="kc-stack-list">
-            ${renderNoteRow("Current stage", kc.runtimeLifecycle.currentStage, kc.runtimeLifecycle.nextRecommendedAction ?? "No next runtime action is recorded yet.")}
+            ${renderNoteRow("Current stage", state.executionState.lifecycle, state.executionState.reason ?? state.readiness.detail)}
             ${renderNoteRow("Validation", kc.runtimeLifecycle.validationStatus ?? "unknown", kc.runtimeLifecycle.nextSuggestedCommand ?? "No suggested command is recorded yet.")}
             ${renderNoteRow("Task", kc.runtimeLifecycle.currentTask ?? "none recorded", kc.runtimeLifecycle.recentEvents[0]?.summary ?? "No lifecycle events are recorded yet.")}
           </div>
@@ -5291,6 +5338,18 @@ async function loadRepoControlState(targetRoot: string, preferSnapshot = false):
   return await invoke<RepoControlState>("load_repo_control_state", { targetRoot, preferSnapshot });
 }
 
+async function setActiveRepoTarget(targetRoot: string, revision: number): Promise<void> {
+  if (!isTauriBridgeAvailable() || !targetRoot) {
+    return;
+  }
+
+  try {
+    await invoke("set_active_repo_target", { targetRoot, revision });
+  } catch {
+    // Watch registration is best-effort and must never interrupt the product flow.
+  }
+}
+
 function buildBridgeUnavailableState(targetRoot: string): RepoControlState {
   const hasTargetRoot = targetRoot.trim().length > 0;
   const resolvedTargetRoot = hasTargetRoot ? targetRoot : "";
@@ -5318,6 +5377,25 @@ function buildBridgeUnavailableState(targetRoot: string): RepoControlState {
         : "Run kc ui inside a repo to load it automatically.",
       sourceOfTruthNote:
         "Repo-local artifacts under .agent/ and promoted repo instruction files remain the source of truth. The desktop app never replaces that state."
+    },
+    executionState: {
+      revision: 0,
+      operationId: null,
+      task: null,
+      sourceCommand: null,
+      lifecycle: "failed",
+      reason: hasTargetRoot ? "Kiwi Control could not read repo-local execution state for this folder yet." : "No repo is loaded yet.",
+      nextCommand: hasTargetRoot ? "kc ui" : "kc init",
+      blockedBy: hasTargetRoot ? ["Repo-local execution state is unavailable."] : [],
+      lastUpdatedAt: null
+    },
+    readiness: {
+      label: hasTargetRoot ? "Desktop bridge unavailable" : "Open a repo",
+      tone: "failed",
+      detail: hasTargetRoot
+        ? "Kiwi Control could not read repo-local execution state for this folder yet."
+        : "Run kc ui inside a repo to load it automatically.",
+      nextCommand: hasTargetRoot ? "kc ui" : "kc init"
     },
     repoOverview: [
       { label: "Project type", value: hasTargetRoot ? "unknown (awaiting repo bridge)" : "no repo loaded", ...(hasTargetRoot ? { tone: "warn" as const } : {}) },

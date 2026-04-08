@@ -9,6 +9,7 @@ import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } fro
 import { PRODUCT_METADATA } from "@shrey-junior/sj-core/core/product.js";
 import { recommendMcpPack } from "@shrey-junior/sj-core/core/recommendations.js";
 import { isKnownSpecialistId, normalizeSpecialistId, recommendNextSpecialist } from "@shrey-junior/sj-core/core/specialists.js";
+import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
 import { loadActiveRoleHints, loadCurrentPhase, loadLatestCheckpoint, updateActiveRoleHints, writeHandoffArtifacts } from "@shrey-junior/sj-core/core/state.js";
 import { buildTemplateContext, selectPortableContract } from "@shrey-junior/sj-core/core/router.js";
 import { recordPreparedScopeCompletion } from "@shrey-junior/sj-core/core/execution-log.js";
@@ -104,6 +105,16 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
         status: "blocked" as const
       }
     : baseHandoff;
+  await recordExecutionState(options.targetRoot, {
+    type: "handoff-started",
+    lifecycle: "running",
+    task: currentPhase?.goal ?? null,
+    sourceCommand: `${PRODUCT_METADATA.cli.primaryCommand} handoff --to ${targetSpecialistId} --tool ${handoffTool}`,
+    reason: `Recording handoff to ${targetSpecialistId}.`,
+    nextCommand: handoff.nextCommand,
+    blockedBy: [],
+    reuseOperation: true
+  }).catch(() => null);
   const baseName = buildHandoffBaseName(handoff);
   const contract = selectPortableContract(
     config,
@@ -219,6 +230,29 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
   await syncExecutionPlan(options.targetRoot, {
     task: currentPhase?.goal ?? null,
     forceState: workflowExecution.ok ? "completed" : "blocked"
+  }).catch(() => null);
+  await recordExecutionState(options.targetRoot, {
+    type: workflowExecution.ok ? "handoff-completed" : "handoff-failed",
+    lifecycle: workflowExecution.ok ? "completed" : "blocked",
+    task: currentPhase?.goal ?? null,
+    sourceCommand: `${PRODUCT_METADATA.cli.primaryCommand} handoff --to ${targetSpecialistId} --tool ${handoffTool}`,
+    reason: workflowExecution.ok
+      ? `Handoff to ${targetSpecialistId} recorded successfully.`
+      : workflowExecution.failureReason ?? `Handoff to ${targetSpecialistId} failed.`,
+    nextCommand: workflowExecution.ok ? handoff.nextCommand : workflowExecution.retryCommand,
+    blockedBy: workflowExecution.ok ? [] : [workflowExecution.failureReason ?? workflowExecution.validation],
+    ...(workflowExecution.ok && workflowExecution.result
+      ? {
+          artifacts: {
+            handoff: [
+              ".agent/state/handoff/latest.json",
+              ".agent/state/handoff/latest.md",
+              ".agent/state/handoff/latest.brief.md"
+            ]
+          }
+        }
+      : {}),
+    reuseOperation: true
   }).catch(() => null);
   if (!workflowExecution.ok || !workflowExecution.result) {
     options.logger.error(workflowExecution.failureReason ?? `Handoff to ${targetSpecialistId} failed.`);

@@ -77,6 +77,8 @@ test("ui command returns structured repo-control state in json mode", async () =
 
   assert.equal(exitCode, 0);
   const payload = JSON.parse(logs.join("\n")) as {
+    executionState: { revision: number; lifecycle: string; nextCommand: string | null };
+    readiness: { label: string; detail: string; nextCommand: string | null };
     repoState: { mode: string };
     repoOverview: Array<{ label: string }>;
     continuity: Array<{ label: string }>;
@@ -129,6 +131,9 @@ test("ui command returns structured repo-control state in json mode", async () =
   };
 
   assert.equal(payload.repoState.mode, "healthy");
+  assert.equal(typeof payload.executionState.revision, "number");
+  assert.equal(payload.executionState.lifecycle, "packet-created");
+  assert.equal(typeof payload.readiness.label, "string");
   assert.equal(payload.repoOverview.some((entry) => entry.label === "Project type"), true);
   assert.equal(payload.continuity.some((entry) => entry.label === "Latest checkpoint"), true);
   assert.equal(payload.memoryBank.some((entry) => entry.label === "Repo Facts" && entry.present), true);
@@ -232,6 +237,8 @@ test("ui command exposes blocked execution-plan details in json mode when workfl
 
   assert.equal(exitCode, 0);
   const payload = JSON.parse(logs.join("\n")) as {
+    executionState: { lifecycle: string; nextCommand: string | null };
+    readiness: { label: string; detail: string };
     kiwiControl: {
       executionPlan: {
         summary: string;
@@ -253,6 +260,8 @@ test("ui command exposes blocked execution-plan details in json mode when workfl
     };
   };
 
+  assert.equal(payload.executionState.lifecycle, "blocked");
+  assert.match(payload.readiness.label, /blocked/i);
   assert.equal(payload.kiwiControl.executionPlan.state, "blocked");
   assert.equal(payload.kiwiControl.executionPlan.blocked, true);
   assert.equal(payload.kiwiControl.executionPlan.currentStepIndex >= 0, true);

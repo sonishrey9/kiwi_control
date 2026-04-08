@@ -28,3 +28,6 @@ node "$ROOT/scripts/verify-bundled-cli-install.mjs" --platform macos
 node "$ROOT/scripts/verify-bundled-cli-install.mjs" --platform windows
 
 echo "[desktop] rendered desktop probe is available separately via npm run test:desktop:rendered"
+
+echo "[desktop] verifying canonical CLI/UI execution truth on a clean external repo"
+node "$ROOT/scripts/verify-cli-ui-truth.mjs" --external-temp-repo

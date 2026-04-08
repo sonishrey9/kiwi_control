@@ -223,6 +223,23 @@ export interface RepoControlState {
     title: string;
     detail: string;
   };
+  executionState: {
+    revision: number;
+    operationId: string | null;
+    task: string | null;
+    sourceCommand: string | null;
+    lifecycle: "idle" | "packet-created" | "queued" | "running" | "blocked" | "failed" | "completed";
+    reason: string | null;
+    nextCommand: string | null;
+    blockedBy: string[];
+    lastUpdatedAt: string | null;
+  };
+  readiness: {
+    label: string;
+    tone: "ready" | "blocked" | "failed";
+    detail: string;
+    nextCommand: string | null;
+  };
   validation: {
     errors: number;
     warnings: number;

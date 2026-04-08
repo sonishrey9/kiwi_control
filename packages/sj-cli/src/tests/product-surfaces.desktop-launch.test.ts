@@ -33,7 +33,8 @@ writeFileSync(statusPath, JSON.stringify({
   state: "ready",
   detail: "visible window shown",
   launchSource: request.launchSource,
-  reportedAt: new Date().toISOString()
+  reportedAt: new Date().toISOString(),
+  revision: 1
 }, null, 2), "utf8");`,
       "utf8"
     );
@@ -105,7 +106,8 @@ writeFileSync(${JSON.stringify(launchStatusPath)}, JSON.stringify({
   state: "ready",
   detail: "persistent launcher ready",
   launchSource: request.launchSource,
-  reportedAt: new Date().toISOString()
+  reportedAt: new Date().toISOString(),
+  revision: 1
 }, null, 2), "utf8");
 setInterval(() => {}, 1_000);`,
       "utf8"
@@ -169,7 +171,8 @@ writeFileSync(${JSON.stringify(launchStatusPath)}, JSON.stringify({
   targetRoot: request.targetRoot,
   state: "ready",
   detail: "retargeted window",
-  reportedAt: new Date().toISOString()
+  reportedAt: new Date().toISOString(),
+  revision: 1
 }, null, 2), "utf8");`,
       "utf8"
     );
@@ -239,7 +242,8 @@ writeFileSync(${JSON.stringify(launchStatusPath)}, JSON.stringify({
   state: "ready",
   detail: "stale ready status should be ignored",
   launchSource: request.launchSource,
-  reportedAt: new Date().toISOString()
+  reportedAt: new Date().toISOString(),
+  revision: 1
 }, null, 2), "utf8");
 setTimeout(() => {
   writeFileSync(${JSON.stringify(launchStatusPath)}, JSON.stringify({
@@ -248,7 +252,8 @@ setTimeout(() => {
     state: "ready",
     detail: "matching ready status",
     launchSource: request.launchSource,
-    reportedAt: new Date().toISOString()
+    reportedAt: new Date().toISOString(),
+    revision: 2
   }, null, 2), "utf8");
 }, 250);`,
       "utf8"
@@ -374,7 +379,8 @@ writeFileSync(${JSON.stringify(launchStatusPath)}, JSON.stringify({
   state: "error",
   detail: "Desktop failed to hydrate the repo state.",
   launchSource: request.launchSource,
-  reportedAt: new Date().toISOString()
+  reportedAt: new Date().toISOString(),
+  revision: 0
 }, null, 2), "utf8");`,
       "utf8"
     );

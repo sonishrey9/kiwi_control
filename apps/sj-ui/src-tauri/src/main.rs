@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod state_watch;
+
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
@@ -11,6 +13,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_dialog::DialogExt;
+use state_watch::{set_active_repo_target as update_active_repo_target, start_repo_state_watcher, RepoStateWatchState};
 
 const DESKTOP_LAUNCH_EVENT: &str = "desktop-launch-request";
 const DESKTOP_WINDOW_LABEL: &str = "main";
@@ -63,6 +66,7 @@ struct DesktopLaunchStatus {
     state: String,
     detail: String,
     reported_at: String,
+    revision: u64,
     launch_source: Option<String>,
 }
 
@@ -387,6 +391,7 @@ fn ack_launch_request(
     target_root: String,
     status: String,
     detail: Option<String>,
+    revision: u64,
 ) -> Result<(), String> {
     let trimmed_status = status.trim();
     if trimmed_status != "ready" && trimmed_status != "error" && trimmed_status != "hydrating" {
@@ -407,6 +412,7 @@ fn ack_launch_request(
             }
         }),
         reported_at: timestamp_now(),
+        revision,
         launch_source: resolve_launch_source(&state, &request_id),
     };
 
@@ -476,6 +482,15 @@ fn append_ui_launch_log(
     })
 }
 
+#[tauri::command]
+fn set_active_repo_target(
+    state: State<RepoStateWatchState>,
+    target_root: String,
+    revision: u64,
+) -> Result<(), String> {
+    update_active_repo_target(&state, target_root, revision)
+}
+
 fn main() {
     let mut builder = tauri::Builder::default();
 
@@ -491,6 +506,7 @@ fn main() {
 
     builder
         .manage(LaunchBridgeState::default())
+        .manage(RepoStateWatchState::default())
         .setup(|app| {
             if let Err(error) = ensure_main_window(app.handle()) {
                 let _ = append_launch_log(&DesktopLaunchLogEntry {
@@ -560,6 +576,7 @@ fn main() {
             }
 
             start_launch_request_watcher(app.handle().clone());
+            start_repo_state_watcher(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -573,6 +590,7 @@ fn main() {
             pick_repo_directory,
             open_path,
             ack_launch_request,
+            set_active_repo_target,
             append_ui_launch_log
         ])
         .run(tauri::generate_context!())

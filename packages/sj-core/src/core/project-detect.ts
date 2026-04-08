@@ -38,7 +38,7 @@ export async function inspectBootstrapTarget(
     projectType = explicitProjectType;
     projectTypeSource = "explicit";
   } else if (!missingTarget) {
-    const detected = detectProjectTypeFromEntries(visibleEntries);
+    const detected = await detectProjectType(targetRoot, visibleEntries);
     projectType = detected;
     projectTypeSource = detected === "generic" ? "fallback" : "detected";
   }
@@ -64,6 +64,15 @@ function resolveTargetKind(entries: Dirent[], missingTarget: boolean): TargetKin
 
   const hasGit = entries.some((entry) => entry.name === ".git");
   return hasGit ? "existing-repo" : "existing-project";
+}
+
+async function detectProjectType(targetRoot: string, entries: Dirent[]): Promise<ProjectType> {
+  const direct = detectProjectTypeFromEntries(entries);
+  if (direct !== "generic") {
+    return direct;
+  }
+
+  return detectNestedProjectType(targetRoot, entries);
 }
 
 function detectProjectTypeFromEntries(entries: Dirent[]): ProjectType {
@@ -94,6 +103,26 @@ function detectProjectTypeFromEntries(entries: Dirent[]): ProjectType {
     return "docs";
   }
   return "generic";
+}
+
+async function detectNestedProjectType(targetRoot: string, entries: Dirent[]): Promise<ProjectType> {
+  const nestedProjectTypes = new Map<ProjectType, number>();
+  const candidateDirs = entries.filter((entry) => entry.isDirectory() && !entry.name.startsWith("."));
+
+  for (const entry of candidateDirs) {
+    try {
+      const nestedEntries = await fs.readdir(path.join(targetRoot, entry.name), { withFileTypes: true });
+      const detected = detectProjectTypeFromEntries(nestedEntries.filter((nested) => !isIgnoredArtifactName(nested.name)));
+      if (detected !== "generic") {
+        nestedProjectTypes.set(detected, (nestedProjectTypes.get(detected) ?? 0) + 1);
+      }
+    } catch {
+      // Ignore unreadable nested directories.
+    }
+  }
+
+  const ranked = [...nestedProjectTypes.entries()].sort((left, right) => right[1] - left[1]);
+  return ranked[0]?.[0] ?? "generic";
 }
 
 async function findExistingAuthorityFiles(targetRoot: string, config: LoadedConfig): Promise<string[]> {

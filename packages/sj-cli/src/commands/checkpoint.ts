@@ -12,6 +12,7 @@ import { recommendMcpPack } from "@shrey-junior/sj-core/core/recommendations.js"
 import { assessGoalRisk } from "@shrey-junior/sj-core/core/risk.js";
 import { buildTemplateContext, resolveRoutingDecision, selectPortableContract } from "@shrey-junior/sj-core/core/router.js";
 import { recommendNextSpecialist } from "@shrey-junior/sj-core/core/specialists.js";
+import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
 import { buildPhaseId, loadActiveRoleHints, loadLatestCheckpoint, parseCsvFlag, type CheckpointRecord, type PhaseStatus, type PhaseRecord, updateActiveRoleHints, writeCheckpointArtifacts, writePhaseRecord } from "@shrey-junior/sj-core/core/state.js";
 import { loadCurrentPhase } from "@shrey-junior/sj-core/core/state.js";
 import { recordPreparedScopeCompletion } from "@shrey-junior/sj-core/core/execution-log.js";
@@ -189,6 +190,16 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
         : record.status === "complete"
         ? `${PRODUCT_METADATA.cli.primaryCommand} push-check`
           : `${PRODUCT_METADATA.cli.primaryCommand} handoff --to ${nextRecommendedSpecialist} --tool ${decision.reviewTool}`;
+  await recordExecutionState(options.targetRoot, {
+    type: "checkpoint-started",
+    lifecycle: "running",
+    task: goal,
+    sourceCommand: `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "${options.label}"`,
+    reason: `Recording checkpoint "${options.label}".`,
+    nextCommand: nextSuggestedCommand,
+    blockedBy: [],
+    reuseOperation: true
+  }).catch(() => null);
   const workflowExecution = await executeWorkflowStep(options.targetRoot, {
     task: goal,
     stepId: "checkpoint-progress",
@@ -346,6 +357,28 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
   await syncExecutionPlan(options.targetRoot, {
     task: goal,
     forceState: workflowExecution.ok ? "ready" : "blocked"
+  }).catch(() => null);
+  await recordExecutionState(options.targetRoot, {
+    type: workflowExecution.ok ? "checkpoint-completed" : "checkpoint-failed",
+    lifecycle: workflowExecution.ok ? "completed" : "blocked",
+    task: goal,
+    sourceCommand: `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "${options.label}"`,
+    reason: workflowExecution.ok
+      ? `Checkpoint "${options.label}" recorded successfully.`
+      : workflowExecution.failureReason ?? `Checkpoint "${options.label}" failed.`,
+    nextCommand: workflowExecution.ok ? nextSuggestedCommand : workflowExecution.retryCommand,
+    blockedBy: workflowExecution.ok ? [] : [workflowExecution.failureReason ?? workflowExecution.validation],
+    ...(workflowExecution.ok && workflowExecution.result
+      ? {
+          artifacts: {
+            checkpoint: [
+              relativeFrom(options.targetRoot, workflowExecution.result.checkpointArtifacts.latestJsonPath),
+              relativeFrom(options.targetRoot, workflowExecution.result.paths.currentPhasePath)
+            ]
+          }
+        }
+      : {}),
+    reuseOperation: true
   }).catch(() => null);
   if (!workflowExecution.ok || !workflowExecution.result) {
     options.logger.error(workflowExecution.failureReason ?? `Checkpoint "${options.label}" failed.`);

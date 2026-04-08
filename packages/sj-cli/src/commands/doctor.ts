@@ -1,12 +1,8 @@
-import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
-import { validateTargetRepo } from "@shrey-junior/sj-core/core/validator.js";
-import { resolveProfileSelection } from "@shrey-junior/sj-core/core/profiles.js";
-import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import { PRODUCT_METADATA } from "@shrey-junior/sj-core";
+import { buildRepoControlState } from "@shrey-junior/sj-core/core/ui-state.js";
 import { buildMachineDoctorFindings, loadMachineAdvisory } from "@shrey-junior/sj-core/integrations/machine-advisory.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 import { renderDisplayPath } from "@shrey-junior/sj-core/utils/fs.js";
-import { selectPrimaryPlanCommand } from "./execution-plan-recovery.js";
 
 export interface DoctorOptions {
   repoRoot: string;
@@ -20,23 +16,33 @@ export async function runDoctor(options: DoctorOptions): Promise<number> {
   if (options.machine) {
     return runMachineDoctor(options);
   }
-  const config = await loadCanonicalConfig(options.repoRoot);
-  const issues = await validateTargetRepo(
-    options.targetRoot,
-    config,
-    await resolveProfileSelection(options.targetRoot, config)
-  );
-  const plan = await syncExecutionPlan(options.targetRoot, { persist: false });
-  const findings = issues.map((issue) => ({
+  const controlState = await buildRepoControlState({
+    repoRoot: options.repoRoot,
+    targetRoot: options.targetRoot,
+    machineAdvisoryOptions: { fastMode: true },
+    readOnly: true
+  });
+  const findings = controlState.validation.issues.map((issue) => ({
     level: issue.level,
     message: issue.message,
     filePath: issue.filePath ?? null,
     fixCommand: suggestFixCommand(issue.message, options.targetRoot)
   }));
+  if (
+    (controlState.executionState.lifecycle === "blocked" || controlState.executionState.lifecycle === "failed")
+    && controlState.executionState.reason
+  ) {
+    findings.push({
+      level: controlState.executionState.lifecycle === "failed" ? "error" : "warn",
+      message: controlState.executionState.reason,
+      filePath: null,
+      fixCommand: controlState.executionState.nextCommand ?? `${PRODUCT_METADATA.cli.primaryCommand} doctor --target "${options.targetRoot}"`
+    });
+  }
   const payload = {
     ok: findings.every((finding) => finding.level !== "error"),
     findings,
-    nextCommand: selectPrimaryPlanCommand(plan, "kiwi-control status")
+    nextCommand: controlState.readiness.nextCommand ?? `${PRODUCT_METADATA.cli.primaryCommand} status --target "${options.targetRoot}"`
   };
 
   if (options.json) {

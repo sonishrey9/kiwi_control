@@ -1,5 +1,6 @@
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
 import { bootstrapTarget } from "@shrey-junior/sj-core/core/bootstrap.js";
+import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
 import { summarizeWrites } from "@shrey-junior/sj-core/core/executor.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 
@@ -24,6 +25,15 @@ export async function runInit(options: InitOptions): Promise<number> {
     options.logger.warn(`repo authority requests repo-local-only behavior; init stood down (${plan.inspection.authorityOptOut})`);
     return 0;
   }
+  await recordExecutionState(options.targetRoot, {
+    type: "repo-init",
+    lifecycle: "idle",
+    sourceCommand: `${plan.results.some((result) => result.status === "conflict") ? "kiwi-control init" : "kiwi-control init"}`,
+    reason: "Repo-local control surfaces were initialized.",
+    nextCommand: "kiwi-control status",
+    clearTask: true,
+    reuseOperation: false
+  }).catch(() => null);
   options.logger.info(summarizeWrites(plan.results, options.targetRoot));
   return plan.results.some((result) => result.status === "conflict") ? 1 : 0;
 }

@@ -20,6 +20,18 @@ type RepoControlReadinessState = {
     title: string;
     detail: string;
   };
+  executionState: {
+    revision: number;
+    lifecycle: "idle" | "packet-created" | "queued" | "running" | "blocked" | "failed" | "completed";
+    reason: string | null;
+    nextCommand: string | null;
+  };
+  readiness: {
+    label: string;
+    tone: "ready" | "blocked" | "failed";
+    detail: string;
+    nextCommand: string | null;
+  };
 };
 
 export interface ReadinessEnv {
@@ -112,11 +124,11 @@ export function buildLoadStatus(
     return {
       phase: "failed",
       visible: true,
-      label: "Failed",
-      detail: env.lastRepoLoadFailure ?? state.loadState.detail,
+      label: state.readiness.label,
+      detail: env.lastRepoLoadFailure ?? state.readiness.detail,
       progress: 18,
-      tone: "degraded",
-      nextCommand: env.recoveryGuidance?.nextCommand ?? null
+      tone: state.readiness.tone === "failed" ? "degraded" : "blocked",
+      nextCommand: state.readiness.nextCommand
     };
   }
 
@@ -124,13 +136,13 @@ export function buildLoadStatus(
     return {
       phase: "ready",
       visible: true,
-      label: env.recoveryGuidance?.tone === "blocked" ? env.recoveryGuidance.title : "Ready",
+      label: state.readiness.label,
       detail: env.machineHydrationInFlight
         ? `${env.lastReadyStateSignal.detail} ${env.machineHydrationDetail}`
-        : env.lastReadyStateSignal.detail,
+        : state.readiness.detail,
       progress: 100,
-      tone: env.recoveryGuidance?.tone === "blocked" ? "blocked" : "ready",
-      nextCommand: env.recoveryGuidance?.nextCommand ?? null
+      tone: state.readiness.tone === "blocked" ? "blocked" : state.readiness.tone === "failed" ? "degraded" : "ready",
+      nextCommand: state.readiness.nextCommand
     };
   }
 
@@ -138,13 +150,13 @@ export function buildLoadStatus(
     return {
       phase: "refreshing",
       visible: true,
-      label: env.recoveryGuidance?.tone === "blocked" ? env.recoveryGuidance.title : "Ready",
-      detail: env.recoveryGuidance?.tone === "blocked"
-        ? env.recoveryGuidance.detail
-        : `Fresh repo-local state is ready. ${env.machineHydrationDetail}`,
+      label: state.readiness.label,
+      detail: state.readiness.tone === "blocked"
+        ? state.readiness.detail
+        : `${state.readiness.detail} ${env.machineHydrationDetail}`,
       progress: 88,
-      tone: env.recoveryGuidance?.tone === "blocked" ? "blocked" : "ready",
-      nextCommand: env.recoveryGuidance?.nextCommand ?? null
+      tone: state.readiness.tone === "blocked" ? "blocked" : state.readiness.tone === "failed" ? "degraded" : "ready",
+      nextCommand: state.readiness.nextCommand
     };
   }
 
@@ -185,8 +197,8 @@ export function deriveReadinessSummary(
 
   if (state.targetRoot) {
     return {
-      label: env.recoveryGuidance?.tone === "blocked" ? env.recoveryGuidance.title : "ready",
-      detail: env.recoveryGuidance?.detail ?? buildFinalReadyDetail(state, env.currentTargetRoot)
+      label: state.readiness.label,
+      detail: state.readiness.detail
     };
   }
 
@@ -220,6 +232,9 @@ export function buildFinalReadyDetail(
   state: RepoControlReadinessState,
   currentTargetRoot: string
 ): string {
+  if (state.readiness.detail) {
+    return state.readiness.detail;
+  }
   const repoLabel = getRepoLabel(state.targetRoot || currentTargetRoot);
   const prefix = `Fresh repo-local state is ready for ${repoLabel}.`;
 
@@ -252,6 +267,10 @@ export function buildBridgeNote(
   if (env.recoveryGuidance) {
     const suffix = env.recoveryGuidance.nextCommand ? ` Do this now: ${env.recoveryGuidance.nextCommand}.` : "";
     return `${env.recoveryGuidance.detail}${suffix} ${env.activeTargetHint}`;
+  }
+  if (state.readiness.detail) {
+    const suffix = state.readiness.nextCommand ? ` Do this now: ${state.readiness.nextCommand}.` : "";
+    return `${state.readiness.detail}${suffix} ${env.activeTargetHint}`;
   }
   if (env.lastReadyStateSignal && Date.now() - env.lastReadyStateSignal.at < env.readyStatePulseMs) {
     return env.machineHydrationInFlight

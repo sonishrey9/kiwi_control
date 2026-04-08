@@ -14,7 +14,9 @@ test("repo recovery guidance prefers a degraded cached snapshot message when fre
       targetRoot: "/tmp/repo",
       loadState: { source: "warm-snapshot" },
       repoState: { mode: "healthy", detail: "ok" },
-      validation: { errors: 0 }
+      validation: { errors: 0 },
+      executionState: { lifecycle: "idle", reason: null, nextCommand: null },
+      readiness: { label: "Queued", detail: "Cached repo state is loaded.", nextCommand: null }
     },
     { lastRepoLoadFailure: "bridge timed out" }
   );
@@ -31,6 +33,8 @@ test("repo recovery guidance uses fix command for blocked execution plans", () =
       loadState: { source: "fresh" },
       repoState: { mode: "healthy", detail: "ok" },
       validation: { errors: 0 },
+      executionState: { lifecycle: "blocked", reason: "Prepared scope drifted.", nextCommand: "kc explain" },
+      readiness: { label: "Workflow blocked", detail: "Prepared scope drifted.", nextCommand: "kc explain" },
       kiwiControl: {
         executionPlan: {
           blocked: true,

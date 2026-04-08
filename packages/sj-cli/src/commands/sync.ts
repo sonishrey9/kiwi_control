@@ -1,6 +1,7 @@
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
 import { initOrSyncTarget, summarizeWrites } from "@shrey-junior/sj-core/core/executor.js";
 import { prepareBootstrapContext, syncRepoAwareBootstrapArtifacts } from "@shrey-junior/sj-core/core/bootstrap.js";
+import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
 import { buildBootstrapNextSuggestedCommand } from "@shrey-junior/sj-core/core/guidance.js";
 import { selectPortableContract } from "@shrey-junior/sj-core/core/router.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
@@ -53,5 +54,16 @@ export async function runSync(options: SyncOptions): Promise<number> {
       ...(options.dryRun !== undefined ? { dryRun: options.dryRun } : {})
     })
   );
+  if (!options.dryRun) {
+    await recordExecutionState(options.targetRoot, {
+      type: "repo-sync",
+      lifecycle: "idle",
+      sourceCommand: "kiwi-control sync",
+      reason: "Repo-local control surfaces were synchronized.",
+      nextCommand: buildBootstrapNextSuggestedCommand(options.targetRoot),
+      clearTask: true,
+      reuseOperation: false
+    }).catch(() => null);
+  }
   return [...results, ...repoAwareResults].some((result) => result.status === "conflict") ? 1 : 0;
 }

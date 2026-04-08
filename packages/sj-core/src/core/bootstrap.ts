@@ -7,7 +7,7 @@ import { inspectBootstrapTarget, type BootstrapInspection } from "./project-dete
 import { PRODUCT_METADATA } from "./product.js";
 import { loadProjectOverlay, resolveExecutionMode, type ProfileSelection } from "./profiles.js";
 import { buildTemplateContext, selectPortableContract, type TemplateContext } from "./router.js";
-import { updateActiveRoleHints } from "./state.js";
+import { loadActiveRoleHints, updateActiveRoleHints } from "./state.js";
 import type { WriteResult } from "../utils/fs.js";
 
 export interface BootstrapOptions {
@@ -322,15 +322,26 @@ export async function syncRepoAwareBootstrapArtifacts(
       nextSuggestedCommand: options.nextSuggestedCommand
     })
   );
+  const existingHints = await loadActiveRoleHints(targetRoot).catch(() => null);
+  const preserveContinuity = Boolean(
+    existingHints?.latestTaskPacket
+      || existingHints?.latestHandoff
+      || existingHints?.latestDispatchManifest
+      || existingHints?.latestReconcile
+  );
   await updateActiveRoleHints(targetRoot, {
-    activeRole: options.activeRole,
+    activeRole: preserveContinuity ? existingHints?.activeRole ?? options.activeRole : options.activeRole,
     authoritySource: options.profileSource,
-    projectType: String(options.projectType),
-    nextFileToRead: ".agent/context/context-tree.json",
-    nextSuggestedCommand: options.nextSuggestedCommand,
-    nextAction: buildBootstrapNextAction(),
-    nextRecommendedSpecialist: options.nextRecommendedSpecialist,
-    nextSuggestedMcpPack: options.recommendedMcpPack,
+    projectType:
+      preserveContinuity && existingHints?.projectType && existingHints.projectType !== "generic"
+        ? existingHints.projectType
+        : String(options.projectType),
+    nextFileToRead: preserveContinuity ? existingHints?.nextFileToRead ?? ".agent/context/context-tree.json" : ".agent/context/context-tree.json",
+    nextSuggestedCommand: preserveContinuity ? existingHints?.nextSuggestedCommand ?? options.nextSuggestedCommand : options.nextSuggestedCommand,
+    nextAction: preserveContinuity ? existingHints?.nextAction ?? buildBootstrapNextAction() : buildBootstrapNextAction(),
+    nextRecommendedSpecialist:
+      preserveContinuity ? existingHints?.nextRecommendedSpecialist ?? options.nextRecommendedSpecialist : options.nextRecommendedSpecialist,
+    nextSuggestedMcpPack: preserveContinuity ? existingHints?.nextSuggestedMcpPack ?? options.recommendedMcpPack : options.recommendedMcpPack,
     latestMemoryFocus: ".agent/memory/current-focus.json"
   }).catch(() => null);
   return [...treeResults, ...memoryResults];

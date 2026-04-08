@@ -53,6 +53,7 @@ interface DesktopLaunchStatus {
   state: "ready" | "hydrating" | "error";
   detail: string;
   reportedAt: string;
+  revision: number;
   launchSource?: DesktopLaunchSource;
 }
 
@@ -121,7 +122,7 @@ export async function runUi(options: UiOptions): Promise<number> {
   }
 
   const launchStatus = await waitForDesktopLaunchStatus(launchRequest.requestId, DESKTOP_LAUNCH_WAIT_TIMEOUT_MS);
-  if (launchStatus?.state === "ready") {
+  if (launchStatus?.state === "ready" && "revision" in launchStatus && launchStatus.revision > 0) {
     await appendDesktopLaunchLog({
       event: "launch-ready",
       requestId: launchStatus.requestId,
@@ -643,7 +644,20 @@ async function waitForDesktopLaunchStatus(requestId: string, timeoutMs: number):
 async function readDesktopLaunchStatus(): Promise<DesktopLaunchStatus | null> {
   try {
     const payload = await fs.readFile(resolveDesktopLaunchStatusPath(), "utf8");
-    return JSON.parse(payload) as DesktopLaunchStatus;
+    const parsed = JSON.parse(payload) as Partial<DesktopLaunchStatus>;
+    if (
+      parsed == null
+      || parsed.requestId == null
+      || parsed.targetRoot == null
+      || parsed.state == null
+      || parsed.detail == null
+      || parsed.reportedAt == null
+      || typeof parsed.revision !== "number"
+    ) {
+      return null;
+    }
+
+    return parsed as DesktopLaunchStatus;
   } catch (error) {
     if (isMissingFileError(error)) {
       return null;
@@ -667,21 +681,6 @@ async function readDesktopLaunchObservation(requestId: string): Promise<DesktopL
       const entry = entries[index];
       if (!entry) {
         continue;
-      }
-
-      if (entry.event === "ui-repo-state-rendered" || entry.event === "desktop-repo-state-ready") {
-        const readyObservation: DesktopLaunchObservation = {
-          requestId,
-          targetRoot: entry.targetRoot ?? "",
-          state: "ready",
-          detail: entry.detail ? `Repo state rendered (${entry.detail}).` : "Repo state rendered in the desktop app.",
-          reportedAt: entry.reportedAt
-        };
-        const launchSource = inferLaunchSourceForRequest(entries, index);
-        if (launchSource) {
-          readyObservation.launchSource = launchSource;
-        }
-        return readyObservation;
       }
 
       if (

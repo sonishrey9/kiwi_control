@@ -1,0 +1,135 @@
+{
+  "artifactType": "kiwi-control/token-usage",
+  "version": 4,
+  "timestamp": "2026-04-07T21:52:02.591Z",
+  "task": "update README docs",
+  "selected_tokens": 176613,
+  "full_repo_tokens": 598393,
+  "savings_percent": 70,
+  "file_count_selected": 43,
+  "file_count_total": 327,
+  "estimation_method": "rough estimate (chars/4 heuristic)",
+  "estimate_note": "Estimated token counts use a chars/4 heuristic. File counts are measured directly; token counts and savings percentages are approximate, and pricing is intentionally not shown.",
+  "top_directories": [
+    {
+      "directory": "packages/sj-core/src/core",
+      "tokens": 160180,
+      "fileCount": 49
+    },
+    {
+      "directory": "apps/sj-ui/src-tauri/gen/schemas",
+      "tokens": 75228,
+      "fileCount": 4
+    },
+    {
+      "directory": "packages/sj-cli/src/tests",
+      "tokens": 66301,
+      "fileCount": 32
+    },
+    {
+      "directory": "apps/sj-ui/src",
+      "tokens": 62832,
+      "fileCount": 3
+    },
+    {
+      "directory": "packages/sj-cli/src/commands",
+      "tokens": 51828,
+      "fileCount": 37
+    },
+    {
+      "directory": "scripts",
+      "tokens": 35679,
+      "fileCount": 31
+    },
+    {
+      "directory": "apps/sj-ui/src/ui",
+      "tokens": 32388,
+      "fileCount": 18
+    },
+    {
+      "directory": "docs",
+      "tokens": 25614,
+      "fileCount": 42
+    },
+    {
+      "directory": "packages/sj-core/src/integrations",
+      "tokens": 20225,
+      "fileCount": 8
+    },
+    {
+      "directory": "apps/sj-ui/src-tauri/src",
+      "tokens": 13116,
+      "fileCount": 2
+    }
+  ],
+  "wasted_files": [
+    {
+      "file": "apps/sj-ui/src/main.ts",
+      "tokens": 52115,
+      "reason": "Large file (52K tokens) — verify it is needed"
+    },
+    {
+      "file": "packages/sj-core/src/core/ui-state.ts",
+      "tokens": 15393,
+      "reason": "Large file (15K tokens) — verify it is needed"
+    },
+    {
+      "file": "apps/sj-ui/src-tauri/src/main.rs",
+      "tokens": 12353,
+      "reason": "Large file (12K tokens) — verify it is needed"
+    },
+    {
+      "file": "packages/sj-cli/src/commands/ui.ts",
+      "tokens": 7367,
+      "reason": "Large file (7K tokens) — verify it is needed"
+    },
+    {
+      "file": "packages/sj-core/src/core/router.ts",
+      "tokens": 6791,
+      "reason": "Large file (7K tokens) — verify it is needed"
+    },
+    {
+      "file": "packages/sj-core/src/core/context.ts",
+      "tokens": 5696,
+      "reason": "Large file (6K tokens) — verify it is needed"
+    },
+    {
+      "file": "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
+      "tokens": 4679,
+      "reason": "Test file outside a testing task — verify it is needed"
+    },
+    {
+      "file": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+      "tokens": 4649,
+      "reason": "Test file outside a testing task — verify it is needed"
+    },
+    {
+      "file": "packages/sj-cli/src/tests/sync.test.ts",
+      "tokens": 1858,
+      "reason": "Test file outside a testing task — verify it is needed"
+    },
+    {
+      "file": "packages/sj-cli/src/tests/execution-state.test.ts",
+      "tokens": 1092,
+      "reason": "Test file outside a testing task — verify it is needed"
+    }
+  ],
+  "wasted_tokens_total": 114647,
+  "wasted_removal_savings_percent": 65,
+  "heavy_directories": [
+    {
+      "directory": "packages/sj-core/src/core",
+      "tokens": 160180,
+      "fileCount": 49,
+      "percentOfRepo": 27,
+      "suggestion": "Contains 27% of repo tokens — consider adding to exclude patterns"
+    }
+  ],
+  "measured_usage": {
+    "available": true,
+    "source": "ccusage-session",
+    "total_tokens": 38284534098,
+    "total_runs": 40,
+    "note": "Measured run usage came from Codex session logs using a ccusage-compatible parser. Per-file measured attribution is only available when execution-log entries include non-zero token totals."
+  }
+}

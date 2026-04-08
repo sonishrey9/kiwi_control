@@ -1,4 +1,5 @@
 import { loadExecutionPlan, recordPlanStepResult, syncExecutionPlan, type ExecutionPlanStepId } from "@shrey-junior/sj-core/core/execution-plan.js";
+import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 import { runPrepare } from "./prepare.js";
 import { runRun } from "./run.js";
@@ -20,6 +21,19 @@ export async function runExecutionPlanStep(
 ): Promise<number> {
   const plan = await syncExecutionPlan(options.targetRoot);
   const task = plan.task ?? "describe your task";
+  const currentStep = plan.steps[plan.currentStepIndex] ?? null;
+  if (currentStep) {
+    await recordExecutionState(options.targetRoot, {
+      type: "execution-step-started",
+      lifecycle: "running",
+      task,
+      sourceCommand: currentStep.command,
+      reason: `Executing ${currentStep.id}.`,
+      nextCommand: currentStep.command,
+      blockedBy: [],
+      reuseOperation: true
+    }).catch(() => null);
+  }
   switch (stepId) {
     case "prepare":
       return runPrepare({

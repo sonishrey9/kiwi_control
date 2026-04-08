@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
 import { initOrSyncTarget } from "@shrey-junior/sj-core/core/executor.js";
 import { buildTemplateContext } from "@shrey-junior/sj-core/core/router.js";
+import { updateActiveRoleHints, writeLatestTaskPacketSet } from "@shrey-junior/sj-core/core/state.js";
 import { runSync } from "../commands/sync.js";
 
 test("sync dry-run previews writes and backup mode stores touched files", async () => {
@@ -112,4 +113,52 @@ test("sync stands down when repo authority explicitly opts out", async () => {
     .then(() => true)
     .catch(() => false);
   assert.equal(projectExists, false);
+});
+
+test("sync preserves active execution continuity when task packets already exist", async () => {
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
+  const config = await loadCanonicalConfig(repoRoot);
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-sync-continuity-"));
+  const target = path.join(tempDir, "python-collection");
+  await fs.mkdir(path.join(target, "service-a"), { recursive: true });
+  await fs.writeFile(path.join(target, "service-a", "requirements.txt"), "fastapi\n", "utf8");
+  await fs.writeFile(path.join(target, "AGENTS.md"), "Repo root for python services.\n", "utf8");
+
+  const context = buildTemplateContext(target, config, {
+    profileName: "product-build",
+    executionMode: "assisted",
+    projectType: "python",
+    profileSource: "project-type"
+  });
+
+  await initOrSyncTarget(repoRoot, target, config, context, {});
+  await writeLatestTaskPacketSet(target, [".agent/tasks/run-1/codex.md"]);
+  await updateActiveRoleHints(target, {
+    activeRole: "python-specialist",
+    authoritySource: "project-type",
+    projectType: "python",
+    nextFileToRead: ".agent/state/latest-task-packets.json",
+    nextSuggestedCommand: 'kiwi-control validate "real task"',
+    nextAction: "Execute the generated codex packet before validating the outcome.",
+    nextRecommendedSpecialist: "python-specialist",
+    nextSuggestedMcpPack: "aws-pack"
+  });
+
+  const exitCode = await runSync({
+    repoRoot,
+    targetRoot: target,
+    backup: false,
+    logger: {
+      info() {},
+      warn() {},
+      error() {}
+    } as never
+  });
+
+  assert.equal(exitCode, 0);
+  const activeRoleHints = JSON.parse(await fs.readFile(path.join(target, ".agent", "state", "active-role-hints.json"), "utf8"));
+  assert.equal(activeRoleHints.activeRole, "python-specialist");
+  assert.equal(activeRoleHints.projectType, "python");
+  assert.equal(activeRoleHints.nextSuggestedCommand, 'kiwi-control validate "real task"');
+  assert.equal(activeRoleHints.latestTaskPacket, ".agent/state/latest-task-packets.json");
 });

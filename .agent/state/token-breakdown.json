@@ -1,0 +1,40 @@
+{
+  "artifactType": "kiwi-control/token-breakdown",
+  "version": 1,
+  "timestamp": "2026-04-07T21:52:02.591Z",
+  "task": "update README docs",
+  "selected_tokens": 176613,
+  "full_repo_tokens": 598393,
+  "savings_percent": 70,
+  "partial_scan": true,
+  "categories": [
+    {
+      "category": "selection filter",
+      "estimated_tokens_avoided": 421780,
+      "file_count": 0,
+      "basis": "measured",
+      "note": "Measured reduction from selecting a bounded working set instead of every scanned file."
+    },
+    {
+      "category": "node_modules",
+      "estimated_tokens_avoided": 6884853,
+      "file_count": 361,
+      "basis": "heuristic",
+      "note": "Heuristic estimate from 361 source-like file(s) under skipped directories."
+    },
+    {
+      "category": "dist",
+      "estimated_tokens_avoided": 599795,
+      "file_count": 400,
+      "basis": "heuristic",
+      "note": "Heuristic estimate from a partial sample of 400 file(s) across skipped directories."
+    },
+    {
+      "category": "skipped dirs",
+      "estimated_tokens_avoided": 335860,
+      "file_count": 400,
+      "basis": "heuristic",
+      "note": "Heuristic estimate from a partial sample of 400 file(s) across skipped directories."
+    }
+  ]
+}

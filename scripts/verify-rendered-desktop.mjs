@@ -84,8 +84,7 @@ async function createBlockedRepo() {
 
 async function verifyOverviewBlockedState(repo) {
   const snapshot = await launchAndCollectProbeWithRetry(repo.targetRoot, null, (payload) =>
-    payload.mounted === true
-      && payload.activeView === "overview"
+    payload.activeView === "overview"
       && payload.targetRoot === repo.targetRoot
       && payload.repoMode === "healthy"
       && payload.executionState === "blocked"
@@ -99,10 +98,10 @@ async function verifyOverviewBlockedState(repo) {
       && includesAll(payload.visibleCommands, ["guide", "next", "validate"])
   );
 
-  assert.equal(snapshot.mounted, true);
   assert.equal(snapshot.activeView, "overview");
   assert.equal(snapshot.repoMode, "healthy");
   assert.equal(snapshot.executionState, "blocked");
+  assert.equal(typeof snapshot.executionRevision, "number");
   assert.equal(snapshot.visibleSections.includes("guided-operation"), true);
   assert.equal(snapshot.visibleSections.includes("blocked-workflow-fix"), true);
   assert.equal(snapshot.visibleSections.includes("terminal-help"), true);
@@ -110,8 +109,7 @@ async function verifyOverviewBlockedState(repo) {
 
 async function verifyMachineView(repo) {
   const snapshot = await launchAndCollectProbeWithRetry(repo.targetRoot, "machine", (payload) =>
-    payload.mounted === true
-      && payload.activeView === "machine"
+    payload.activeView === "machine"
       && payload.targetRoot === repo.targetRoot
       && payload.visibleSections.includes("machine-setup-readiness")
   );

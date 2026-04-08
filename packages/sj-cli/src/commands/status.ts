@@ -33,7 +33,8 @@ export async function runStatus(options: StatusOptions): Promise<number> {
   options.logger.info(
     [
       `repo status: ${controlState.repoState.title} — ${controlState.repoState.detail}`,
-      `execution state: ${controlState.kiwiControl.executionPlan.state}`,
+      `execution state: ${controlState.executionState.lifecycle}`,
+      `readiness: ${controlState.readiness.label} — ${controlState.readiness.detail}`,
       `current step: ${currentStep?.id ?? "none"}`,
       `next action: ${nextActionSummary}`,
       `token summary: ${tokenSummary}`,

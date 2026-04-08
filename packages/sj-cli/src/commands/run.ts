@@ -13,6 +13,7 @@ import { inspectBootstrapTarget } from "@shrey-junior/sj-core/core/project-detec
 import { PRODUCT_METADATA } from "@shrey-junior/sj-core/core/product.js";
 import { loadContinuitySnapshot, updateActiveRoleHints } from "@shrey-junior/sj-core/core/state.js";
 import { resolveSpecialist } from "@shrey-junior/sj-core/core/specialists.js";
+import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
 import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import { executeWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
@@ -129,6 +130,19 @@ export async function runRun(options: RunOptions): Promise<number> {
     })
   });
   if (!workflowExecution.ok) {
+    await recordExecutionState(options.targetRoot, {
+      type: "run-packet-generation-failed",
+      lifecycle: "blocked",
+      task: options.goal,
+      sourceCommand: `${PRODUCT_METADATA.cli.primaryCommand} run "${options.goal}"`,
+      reason: workflowExecution.failureReason ?? "Run packet generation failed.",
+      nextCommand: workflowExecution.retryCommand ?? `${PRODUCT_METADATA.cli.primaryCommand} prepare "${options.goal}"`,
+      blockedBy: [workflowExecution.failureReason ?? workflowExecution.validation],
+      artifacts: {
+        packets: packets.map((packet) => packet.relativePath).slice(0, 12)
+      },
+      reuseOperation: false
+    }).catch(() => null);
     await recordRuntimeProgress(options.targetRoot, {
       type: "packets_generated",
       stage: "blocked",
@@ -197,6 +211,19 @@ export async function runRun(options: RunOptions): Promise<number> {
   await syncExecutionPlan(options.targetRoot, {
     task: options.goal,
     forceState: "ready"
+  }).catch(() => null);
+  await recordExecutionState(options.targetRoot, {
+    type: "run-packetized",
+    lifecycle: "queued",
+    task: options.goal,
+    sourceCommand: `${PRODUCT_METADATA.cli.primaryCommand} run "${options.goal}"`,
+    reason: `Generated ${results.length} task packet${results.length === 1 ? "" : "s"} for "${options.goal}".`,
+    nextCommand: `${PRODUCT_METADATA.cli.primaryCommand} validate "${options.goal}"`,
+    blockedBy: [],
+    artifacts: {
+      packets: [".agent/state/latest-task-packets.json", ...packets.map((packet) => packet.relativePath).slice(0, 12)]
+    },
+    reuseOperation: false
   }).catch(() => null);
   options.logger.info(summarizeWrites(results, options.targetRoot));
   return 0;

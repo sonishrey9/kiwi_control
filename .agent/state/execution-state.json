@@ -1,0 +1,47 @@
+{
+  "artifactType": "kiwi-control/execution-state",
+  "version": 1,
+  "revision": 9,
+  "operationId": "cb6b1283-d9e0-4612-be97-2dd24a5181c6",
+  "task": "update README docs",
+  "sourceCommand": "kiwi-control prepare \"update README docs\"",
+  "lifecycle": "packet-created",
+  "reason": "Prepared 43 selected files for \"update README docs\".",
+  "nextCommand": "kiwi-control run \"update README docs\"",
+  "blockedBy": [],
+  "lastUpdatedAt": "2026-04-07T21:52:02.653Z",
+  "artifacts": {
+    "instructions": [
+      ".agent/context/generated-instructions.md"
+    ],
+    "contextSelection": [
+      ".agent/state/context-selection.json"
+    ],
+    "tokenUsage": [
+      ".agent/state/token-usage.json"
+    ]
+  },
+  "lastEvent": {
+    "revision": 9,
+    "operationId": "cb6b1283-d9e0-4612-be97-2dd24a5181c6",
+    "type": "prepare-completed",
+    "lifecycle": "packet-created",
+    "task": "update README docs",
+    "sourceCommand": "kiwi-control prepare \"update README docs\"",
+    "reason": "Prepared 43 selected files for \"update README docs\".",
+    "nextCommand": "kiwi-control run \"update README docs\"",
+    "blockedBy": [],
+    "artifacts": {
+      "instructions": [
+        ".agent/context/generated-instructions.md"
+      ],
+      "contextSelection": [
+        ".agent/state/context-selection.json"
+      ],
+      "tokenUsage": [
+        ".agent/state/token-usage.json"
+      ]
+    },
+    "recordedAt": "2026-04-07T21:52:02.653Z"
+  }
+}

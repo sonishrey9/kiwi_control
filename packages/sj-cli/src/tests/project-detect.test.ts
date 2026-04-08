@@ -59,6 +59,17 @@ test("project detection prefers app-monorepo signals over docs folders", async (
   assert.equal(inspection.projectType, "node");
 });
 
+test("project detection infers python from nested project folders when the root is only a container", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-detect-nested-python-"));
+  await fs.mkdir(path.join(tempDir, "service-a"), { recursive: true });
+  await fs.mkdir(path.join(tempDir, "service-b"), { recursive: true });
+  await fs.writeFile(path.join(tempDir, "service-a", "requirements.txt"), "fastapi\n", "utf8");
+  await fs.writeFile(path.join(tempDir, "service-b", "requirements.txt"), "pytest\n", "utf8");
+
+  const inspection = await inspectBootstrapTarget(tempDir, buildConfig());
+  assert.equal(inspection.projectType, "python");
+});
+
 test("project detection notices repo-local opt-out directives", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-detect-"));
   await fs.writeFile(

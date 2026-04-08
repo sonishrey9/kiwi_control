@@ -1,4 +1,5 @@
 import { inspectGitState } from "@shrey-junior/sj-core/core/git.js";
+import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
 import { evaluateFinalValidation, syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import { recordEvalEntry } from "@shrey-junior/sj-core/core/eval.js";
 import { executeWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
@@ -21,6 +22,16 @@ export async function runValidate(options: ValidateOptions): Promise<number> {
     ...(options.task ? { task: options.task } : {})
   });
   const task = options.task ?? plan.task ?? "describe your task";
+  await recordExecutionState(options.targetRoot, {
+    type: "validation-started",
+    lifecycle: "running",
+    task,
+    sourceCommand: `kiwi-control validate "${task}"`,
+    reason: `Validating "${task}".`,
+    nextCommand: `kiwi-control validate "${task}"`,
+    blockedBy: [],
+    reuseOperation: true
+  }).catch(() => null);
   const [gitState, preparedScope, selection] = await Promise.all([
     inspectGitState(options.targetRoot),
     loadPreparedScope(options.targetRoot),
@@ -57,6 +68,19 @@ export async function runValidate(options: ValidateOptions): Promise<number> {
   const nextCommand = execution.ok
     ? 'kiwi-control checkpoint "validated-progress"'
     : recoveryFixCommand ?? recoveryRetryCommand;
+  await recordExecutionState(options.targetRoot, {
+    type: execution.ok ? "validation-completed" : "validation-failed",
+    lifecycle: execution.ok ? "completed" : updatedPlan?.state === "failed" ? "failed" : "blocked",
+    task,
+    sourceCommand: `kiwi-control validate "${task}"`,
+    reason: execution.ok ? `Validation passed for "${task}".` : (execution.failureReason ?? `Validation failed for "${task}".`),
+    nextCommand,
+    blockedBy: execution.ok ? [] : [execution.failureReason ?? execution.validation],
+    artifacts: {
+      changedFiles: gitState.changedFiles.slice(0, 12)
+    },
+    reuseOperation: true
+  }).catch(() => null);
 
   await recordRuntimeProgress(options.targetRoot, {
     type: "validation_completed",
