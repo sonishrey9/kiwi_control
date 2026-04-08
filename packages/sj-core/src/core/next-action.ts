@@ -1,7 +1,8 @@
 import path from "node:path";
-import { deriveCompatibilityNextActions, getCurrentExecutionStep, syncExecutionPlan } from "./execution-plan.js";
 import type { ValidationIssue } from "./validator.js";
 import { pathExists, writeText } from "../utils/fs.js";
+import { getRuntimeSnapshot } from "../runtime/client.js";
+import { runtimeDecisionFromSnapshot } from "./runtime-decision.js";
 
 export interface NextAction {
   action: string;
@@ -53,33 +54,41 @@ export async function nextActionEngine(
     );
   }
 
-  const plan = await syncExecutionPlan(targetRoot, {
-    validationIssues,
-    persist: options.persist !== false
-  });
-  const nextActions = deriveCompatibilityNextActions(plan);
-  const currentStep = getCurrentExecutionStep(plan);
+  const runtimeSnapshot = await getRuntimeSnapshot(targetRoot);
+  const runtimeDecision = runtimeDecisionFromSnapshot(runtimeSnapshot);
+  const liveValidationAction = buildLiveValidationAction(validationIssues);
+  const nextActions = liveValidationAction
+    ? [liveValidationAction]
+    : runtimeDecision.nextAction
+      ? [{
+          ...runtimeDecision.nextAction,
+          file: null
+        }]
+      : [];
   const summary = nextActions[0]
     ? `${nextActions[0].action}: ${nextActions[0].reason}`
-    : plan.summary;
+    : runtimeDecision.recovery?.reason ?? runtimeDecision.readinessDetail;
 
   return finalizeDecisionOutput(
     targetRoot,
     nextActions,
     summary,
     [
-      `execution state: ${plan.state}`,
-      `current step index: ${plan.currentStepIndex}`,
-      `risk: ${plan.risk}`,
-      ...(plan.confidence ? [`confidence: ${plan.confidence}`] : []),
+      `execution lifecycle: ${runtimeSnapshot.lifecycle}`,
+      `current step: ${runtimeDecision.currentStepId}`,
+      `decision source: ${runtimeDecision.decisionSource}`,
       `${validationIssues.length} validation issue(s)`
     ],
     [
-      "ExecutionPlan is the canonical source of truth for next-step decisions.",
-      currentStep ? `The active plan step is ${currentStep.id}.` : "There is no active plan step.",
-      ...(plan.lastError ? [`A classified plan error exists: ${plan.lastError.errorType}.`] : [])
+      "Runtime decision state is the canonical source of truth for next-step decisions.",
+      ...(liveValidationAction ? ["Live repo validation errors override calm runtime execution state."] : []),
+      `The active runtime step is ${runtimeDecision.currentStepId}.`,
+      ...(runtimeDecision.recovery ? [`A canonical runtime recovery is active: ${runtimeDecision.recovery.kind}.`] : [])
     ],
-    plan.lastError ? ["Ignored generic continuity hints because a classified plan error is active."] : [],
+    [
+      ...(runtimeDecision.recovery ? ["Ignored compatibility plan hints because runtime recovery is active."] : []),
+      ...(liveValidationAction ? ["Ignored runtime next-action defaults because repo validation is currently failing."] : [])
+    ],
     options.persist !== false
   );
 }
@@ -118,4 +127,19 @@ async function persistDecisionLogic(
   const statePath = path.join(targetRoot, ".agent", "state", "decision-logic.json");
   await writeText(statePath, `${JSON.stringify(logic, null, 2)}\n`);
   return statePath;
+}
+
+function buildLiveValidationAction(validationIssues: ValidationIssue[]): NextAction | null {
+  const blockingIssue = validationIssues.find((issue) => issue.level === "error");
+  if (!blockingIssue) {
+    return null;
+  }
+
+  return {
+    action: "Fix the blocking execution issue",
+    file: blockingIssue.filePath ?? null,
+    command: "kiwi-control doctor",
+    reason: blockingIssue.message,
+    priority: "critical"
+  };
 }

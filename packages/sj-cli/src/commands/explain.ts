@@ -1,7 +1,9 @@
 import path from "node:path";
 import { readJson, pathExists } from "@shrey-junior/sj-core/utils/fs.js";
 import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
+import { runtimeDecisionFromSnapshot } from "@shrey-junior/sj-core/core/runtime-decision.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { getRuntimeSnapshot } from "@shrey-junior/sj-core/runtime/client.js";
 import type { ContextTraceState } from "@shrey-junior/sj-core/core/context-trace.js";
 import { buildPlanRecoveryWorkflow, selectPrimaryPlanCommand } from "./execution-plan-recovery.js";
 
@@ -13,7 +15,11 @@ export interface ExplainOptions {
 }
 
 export async function runExplain(options: ExplainOptions): Promise<number> {
-  const plan = await syncExecutionPlan(options.targetRoot, { persist: false });
+  const [plan, runtimeSnapshot] = await Promise.all([
+    syncExecutionPlan(options.targetRoot, { persist: false }),
+    getRuntimeSnapshot(options.targetRoot)
+  ]);
+  const runtimeDecision = runtimeDecisionFromSnapshot(runtimeSnapshot);
   const tracePath = path.join(options.targetRoot, ".agent", "state", "context-trace.json");
   const trace = await loadTrace(tracePath);
   const payload = {
@@ -24,12 +30,12 @@ export async function runExplain(options: ExplainOptions): Promise<number> {
     forwardDependencies: plan.contextSnapshot.forwardDependencies,
     reverseDependencies: plan.contextSnapshot.reverseDependencies,
     reasoning: trace?.expansionSteps ?? [],
-    nextCommand: selectPrimaryPlanCommand(plan, "kiwi-control next"),
-    ...(plan.lastError
+    nextCommand: runtimeDecision.recovery?.fixCommand ?? runtimeDecision.nextCommand ?? selectPrimaryPlanCommand(plan, "kiwi-control next"),
+    ...(runtimeDecision.recovery || plan.lastError
       ? {
-          fixCommand: plan.lastError.fixCommand,
-          retryCommand: plan.lastError.retryCommand,
-          blockedWorkflow: buildPlanRecoveryWorkflow(plan)
+          fixCommand: runtimeDecision.recovery?.fixCommand ?? plan.lastError?.fixCommand,
+          retryCommand: runtimeDecision.recovery?.retryCommand ?? plan.lastError?.retryCommand,
+          blockedWorkflow: runtimeDecision.recovery ? [] : buildPlanRecoveryWorkflow(plan)
         }
       : {})
   };
@@ -51,14 +57,20 @@ export async function runExplain(options: ExplainOptions): Promise<number> {
     if (payload.forwardDependencies.length > 0) {
       options.logger.info(`forward dependencies: ${payload.forwardDependencies.slice(0, 10).join(", ")}`);
     }
-    if (plan.lastError) {
-      options.logger.info(`blocking issue: ${plan.lastError.errorType} (${plan.lastError.retryStrategy})`);
-      options.logger.info(`reason: ${plan.lastError.reason}`);
-      options.logger.info(`fix command: ${plan.lastError.fixCommand}`);
-      options.logger.info(`retry command: ${plan.lastError.retryCommand}`);
-      for (const [index, entry] of buildPlanRecoveryWorkflow(plan).entries()) {
-        options.logger.info(`${index + 1}. ${entry.title}: ${entry.command}`);
-        options.logger.info(`   ${entry.detail}`);
+    if (runtimeDecision.recovery || plan.lastError) {
+      options.logger.info(`blocking issue: ${runtimeDecision.recovery?.kind ?? plan.lastError?.errorType ?? "blocked"} (${plan.lastError?.retryStrategy ?? "runtime"})`);
+      options.logger.info(`reason: ${runtimeDecision.recovery?.reason ?? plan.lastError?.reason ?? runtimeDecision.readinessDetail}`);
+      if (runtimeDecision.recovery?.fixCommand ?? plan.lastError?.fixCommand) {
+        options.logger.info(`fix command: ${runtimeDecision.recovery?.fixCommand ?? plan.lastError?.fixCommand}`);
+      }
+      if (runtimeDecision.recovery?.retryCommand ?? plan.lastError?.retryCommand) {
+        options.logger.info(`retry command: ${runtimeDecision.recovery?.retryCommand ?? plan.lastError?.retryCommand}`);
+      }
+      if (!runtimeDecision.recovery) {
+        for (const [index, entry] of buildPlanRecoveryWorkflow(plan).entries()) {
+          options.logger.info(`${index + 1}. ${entry.title}: ${entry.command}`);
+          options.logger.info(`   ${entry.detail}`);
+        }
       }
     }
     options.logger.info(`next command: ${payload.nextCommand ?? "kiwi-control next"}`);

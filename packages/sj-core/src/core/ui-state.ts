@@ -6,6 +6,7 @@ import { compileRepoContext } from "./context.js";
 import { syncExecutionPlan } from "./execution-plan.js";
 import type { ExecutionPlanState } from "./execution-plan.js";
 import { loadExecutionState, type ExecutionStateRecord } from "./execution-state.js";
+import { openRuntimeTarget, type RuntimeDecision, type RuntimeSnapshot } from "../runtime/client.js";
 import { getMemoryPaths, loadOpenRisks } from "./memory.js";
 import { inspectBootstrapTarget } from "./project-detect.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "./profiles.js";
@@ -37,9 +38,10 @@ import { nextActionEngine } from "./next-action.js";
 import type { DecisionLogicState, NextAction } from "./next-action.js";
 import { buildFeedbackSummary } from "./context-feedback.js";
 import type { FeedbackSummary } from "./context-feedback.js";
-import { buildExecutionSummary, recordPreparedScopeCompletion } from "./execution-log.js";
+import { buildExecutionSummary } from "./execution-log.js";
 import type { ExecutionSummary } from "./execution-log.js";
 import { loadPreparedScope, validateTouchedFilesAgainstAllowedFiles } from "./prepared-scope.js";
+import { runtimeDecisionFromSnapshot } from "./runtime-decision.js";
 import { classifyFileArea, deriveTaskArea } from "./task-intent.js";
 import { loadWorkflowState } from "./workflow-engine.js";
 import type { WorkflowState } from "./workflow-engine.js";
@@ -381,6 +383,7 @@ export interface RepoControlState {
   repoState: RepoControlStatus;
   executionState: RepoControlExecutionState;
   readiness: RepoReadiness;
+  runtimeDecision: RuntimeDecision;
   repoOverview: RepoControlPanelItem[];
   continuity: RepoControlPanelItem[];
   memoryBank: RepoMemoryBankEntry[];
@@ -602,7 +605,7 @@ export async function buildRepoControlStateFromConfig(options: {
     latestTaskPacketSet,
     latestReconcile,
     machineAdvisory,
-    executionState
+    runtimeSnapshot
   ] = await Promise.all([
     validateControlPlane(options.repoRoot, options.config),
     validateTargetRepo(options.targetRoot, options.config, selection),
@@ -695,7 +698,14 @@ export async function buildRepoControlStateFromConfig(options: {
       guidance: [],
       note: "Machine-local advisory is unavailable."
     })),
-    loadExecutionState(options.targetRoot)
+    openRuntimeTarget({
+      targetRoot: options.targetRoot,
+      projectType: inspection.projectType,
+      profileName: selection.profileName
+    }).catch(async (): Promise<RuntimeSnapshot> => {
+      const executionState = await loadExecutionState(options.targetRoot);
+      return runtimeFallbackSnapshot(options.targetRoot, executionState);
+    })
   ]);
   const validationIssues = [
     ...controlPlaneIssues,
@@ -753,11 +763,14 @@ export async function buildRepoControlStateFromConfig(options: {
     inspection,
     validation
   });
+  const canonicalExecutionState = runtimeSnapshotToExecutionStateRecord(runtimeSnapshot);
+  const executionState = runtimeSnapshotToExecutionState(runtimeSnapshot);
   const readiness = deriveRepoReadiness({
     repoState,
     validation,
-    executionState
+    executionState: canonicalExecutionState
   });
+  const runtimeDecision = runtimeDecisionFromSnapshot(runtimeSnapshot);
   const fallbackNextCommand = buildFallbackNextCommand(repoState.mode, options.targetRoot);
   const fallbackNextFile = buildFallbackNextFile(inspection.existingAuthorityFiles);
   const defaultRecommendedSpecialist =
@@ -784,7 +797,7 @@ export async function buildRepoControlStateFromConfig(options: {
   const repoOverview = summarizeRepoOverview();
   const ecosystem = buildEcosystemCatalog();
   const kiwiControl = await loadKiwiControlState(options.targetRoot, validationIssues, {
-    readOnly: options.readOnly === true
+    readOnly: true
   });
   const machineGuidanceContext = buildMachineGuidanceContext({
     taskType: deriveMachineTaskType(kiwiControl),
@@ -802,20 +815,14 @@ export async function buildRepoControlStateFromConfig(options: {
     executionMode,
     projectType: inspection.projectType,
     repoState,
-    executionState: {
-      revision: executionState.revision,
-      operationId: executionState.operationId,
-      task: executionState.task,
-      sourceCommand: executionState.sourceCommand,
-      lifecycle: executionState.lifecycle,
-      reason: executionState.reason,
-      nextCommand: executionState.nextCommand,
-      blockedBy: executionState.blockedBy,
-      lastUpdatedAt: executionState.lastUpdatedAt,
-      artifacts: executionState.artifacts,
-      lastEvent: executionState.lastEvent
+    executionState,
+    readiness: {
+      label: runtimeDecision.readinessLabel,
+      tone: runtimeDecision.readinessTone,
+      detail: runtimeDecision.readinessDetail,
+      nextCommand: runtimeDecision.nextCommand
     },
-    readiness,
+    runtimeDecision,
     repoOverview,
     continuity: continuityItems,
     memoryBank,
@@ -886,6 +893,198 @@ function deriveMachineTaskType(state: KiwiControlState): string | null {
     return "docs";
   }
   return "implementation";
+}
+
+function runtimeSnapshotToExecutionState(snapshot: RuntimeSnapshot): RepoControlExecutionState {
+  return {
+    revision: snapshot.revision,
+    operationId: snapshot.operationId,
+    task: snapshot.task,
+    sourceCommand: snapshot.sourceCommand,
+    lifecycle: fromRuntimeLifecycle(snapshot.lifecycle),
+    reason: snapshot.reason,
+    nextCommand: snapshot.nextCommand,
+    blockedBy: snapshot.blockedBy,
+    lastUpdatedAt: snapshot.lastUpdatedAt,
+    artifacts: snapshot.artifacts,
+    lastEvent: snapshot.lastEvent
+      ? {
+          revision: snapshot.lastEvent.revision,
+          operationId: snapshot.lastEvent.operationId,
+          type: snapshot.lastEvent.eventType,
+          lifecycle: fromRuntimeLifecycle(snapshot.lastEvent.lifecycle),
+          task: snapshot.lastEvent.task,
+          sourceCommand: snapshot.lastEvent.sourceCommand,
+          reason: snapshot.lastEvent.reason,
+          nextCommand: snapshot.lastEvent.nextCommand,
+          blockedBy: snapshot.lastEvent.blockedBy,
+          artifacts: snapshot.lastEvent.artifacts,
+          recordedAt: snapshot.lastEvent.recordedAt
+        }
+      : null
+  };
+}
+
+function runtimeSnapshotToExecutionStateRecord(snapshot: RuntimeSnapshot): ExecutionStateRecord {
+  return {
+    artifactType: "kiwi-control/execution-state",
+    version: 1,
+    revision: snapshot.revision,
+    operationId: snapshot.operationId,
+    task: snapshot.task,
+    sourceCommand: snapshot.sourceCommand,
+    lifecycle: fromRuntimeLifecycle(snapshot.lifecycle),
+    reason: snapshot.reason,
+    nextCommand: snapshot.nextCommand,
+    blockedBy: snapshot.blockedBy,
+    lastUpdatedAt: snapshot.lastUpdatedAt,
+    artifacts: snapshot.artifacts,
+    lastEvent: snapshot.lastEvent
+      ? {
+          revision: snapshot.lastEvent.revision,
+          operationId: snapshot.lastEvent.operationId,
+          type: snapshot.lastEvent.eventType,
+          lifecycle: fromRuntimeLifecycle(snapshot.lastEvent.lifecycle),
+          task: snapshot.lastEvent.task,
+          sourceCommand: snapshot.lastEvent.sourceCommand,
+          reason: snapshot.lastEvent.reason,
+          nextCommand: snapshot.lastEvent.nextCommand,
+          blockedBy: snapshot.lastEvent.blockedBy,
+          artifacts: snapshot.lastEvent.artifacts,
+          recordedAt: snapshot.lastEvent.recordedAt
+        }
+      : null
+  };
+}
+
+function runtimeFallbackSnapshot(
+  targetRoot: string,
+  executionState: ExecutionStateRecord
+): RuntimeSnapshot {
+  const readiness = deriveRepoReadiness({
+    repoState: {
+      mode: "healthy",
+      title: "Repo state is healthy",
+      detail: "Repo-local state is readable."
+    },
+    validation: {
+      errors: 0,
+      warnings: 0
+    },
+    executionState
+  });
+  const runtimeDecision: RuntimeDecision = {
+    currentStepId: executionState.lifecycle === "packet-created"
+      ? "generate_packets"
+      : executionState.lifecycle === "queued"
+        ? "execute_packet"
+        : executionState.lifecycle === "completed"
+          ? "checkpoint"
+          : executionState.lifecycle === "idle"
+            ? "idle"
+            : "validate",
+    currentStepLabel: executionState.lifecycle === "packet-created"
+      ? "Generate run packets"
+      : executionState.lifecycle === "queued"
+        ? "Execute packet"
+        : executionState.lifecycle === "completed"
+          ? "Checkpoint progress"
+          : executionState.lifecycle === "idle"
+            ? "Idle"
+            : "Validate outcome",
+    currentStepStatus: executionState.lifecycle === "running"
+      ? "running"
+      : executionState.lifecycle === "blocked" || executionState.lifecycle === "failed"
+        ? "failed"
+        : executionState.lifecycle === "completed"
+          ? "success"
+          : "pending",
+    nextCommand: executionState.nextCommand,
+    readinessLabel: readiness.label,
+    readinessTone: readiness.tone,
+    readinessDetail: readiness.detail,
+    nextAction: executionState.nextCommand
+      ? {
+          action: executionState.lifecycle === "packet-created"
+            ? "Generate run packets"
+            : executionState.lifecycle === "queued"
+              ? "Open latest task packet and execute it"
+              : executionState.lifecycle === "blocked" || executionState.lifecycle === "failed"
+                ? "Fix the blocking execution issue"
+                : "Continue",
+          command: executionState.lifecycle === "queued" ? null : executionState.nextCommand,
+          reason: executionState.reason ?? readiness.detail,
+          priority: executionState.lifecycle === "blocked" || executionState.lifecycle === "failed" ? "critical" : "high"
+        }
+      : null,
+    recovery: executionState.lifecycle === "blocked" || executionState.lifecycle === "failed"
+      ? {
+          kind: executionState.lifecycle === "failed" ? "failed" : "blocked",
+          reason: executionState.reason ?? readiness.detail,
+          fixCommand: executionState.nextCommand,
+          retryCommand: executionState.sourceCommand
+        }
+      : null,
+    decisionSource: "compatibility-fallback",
+    updatedAt: executionState.lastUpdatedAt ?? new Date().toISOString()
+  };
+
+  return {
+    targetRoot,
+    revision: executionState.revision,
+    operationId: executionState.operationId,
+    task: executionState.task,
+    sourceCommand: executionState.sourceCommand,
+    lifecycle: toRuntimeLifecycle(executionState.lifecycle),
+    reason: executionState.reason,
+    nextCommand: executionState.nextCommand,
+    blockedBy: executionState.blockedBy,
+    artifacts: executionState.artifacts,
+    lastUpdatedAt: executionState.lastUpdatedAt,
+    lastEvent: executionState.lastEvent
+      ? {
+          eventId: null,
+          revision: executionState.lastEvent.revision,
+          operationId: executionState.lastEvent.operationId,
+          eventType: executionState.lastEvent.type,
+          lifecycle: toRuntimeLifecycle(executionState.lastEvent.lifecycle),
+          task: executionState.lastEvent.task,
+          sourceCommand: executionState.lastEvent.sourceCommand,
+          reason: executionState.lastEvent.reason,
+          nextCommand: executionState.lastEvent.nextCommand,
+          blockedBy: executionState.lastEvent.blockedBy,
+          artifacts: executionState.lastEvent.artifacts,
+          actor: "compatibility-fallback",
+          recordedAt: executionState.lastEvent.recordedAt
+        }
+      : null,
+    readiness: {
+      label: readiness.label,
+      tone: readiness.tone,
+      detail: readiness.detail,
+      nextCommand: readiness.nextCommand
+    },
+    decision: runtimeDecision,
+    derivedFreshness: []
+  };
+}
+
+function toRuntimeLifecycle(lifecycle: ExecutionStateRecord["lifecycle"]): RuntimeSnapshot["lifecycle"] {
+  switch (lifecycle) {
+    case "packet-created":
+      return "packet_created";
+    default:
+      return lifecycle;
+  }
+}
+
+function fromRuntimeLifecycle(lifecycle: RuntimeSnapshot["lifecycle"]): ExecutionStateRecord["lifecycle"] {
+  switch (lifecycle) {
+    case "packet_created":
+      return "packet-created";
+    default:
+      return lifecycle;
+  }
 }
 
 function summarizeValidation(issues: ValidationIssue[]): string {
@@ -1327,19 +1526,10 @@ async function loadKiwiControlState(
     instructionsPath: hasInstructions ? instructionsPath : null
   };
 
-  if (!options.readOnly) {
-    await recordPreparedScopeCompletion(targetRoot, {
-      completionSource: "repo-control",
-      confidence: contextView.confidence,
-      tokensUsed: tokenAnalytics.selectedTokens,
-      tool: PRODUCT_METADATA.cli.primaryCommand
-    }).catch(() => null);
-  }
-
   // Load decision engine, feedback, and execution data in parallel
   const [decisionOutput, feedbackSummary, executionSummary] = await Promise.all([
     nextActionEngine(targetRoot, validationIssues, {
-      persist: !options.readOnly
+      persist: false
     }).catch(() => ({
       nextActions: [],
       summary: "Decision engine unavailable",
@@ -1424,10 +1614,10 @@ async function loadKiwiControlState(
     whyThisHappened: decisionLogic.summary
   };
 
-    const executionPlan = await syncExecutionPlan(targetRoot, {
+  const executionPlan = await syncExecutionPlan(targetRoot, {
     task: contextView.task ?? workflowState.task,
     validationIssues,
-    persist: !options.readOnly
+    persist: false
   }).catch(() => ({
     artifactType: "kiwi-control/execution-plan" as const,
     version: 2,

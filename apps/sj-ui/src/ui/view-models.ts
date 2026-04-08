@@ -13,6 +13,7 @@ type DecisionSummaryState = {
   validation: { errors: number; warnings: number };
   machineAdvisory: { systemHealth: { criticalCount: number; warningCount: number } };
   repoState: { title: string };
+  runtimeDecision?: { recovery: { reason: string } | null };
   kiwiControl?: {
     nextActions: { actions: Array<{ action: string }> };
     executionPlan: { lastError: { reason: string } | null };
@@ -47,6 +48,7 @@ export function buildDecisionSummary(
   const kc = state.kiwiControl;
   const nextAction = kc?.nextActions.actions[0]?.action ?? state.repoState.title;
   const blockingIssue =
+    state.runtimeDecision?.recovery?.reason ??
     kc?.executionPlan.lastError?.reason ??
     (state.validation.errors > 0 ? `${state.validation.errors} validation error${state.validation.errors === 1 ? "" : "s"}` : "none");
   const recentFailures =

@@ -1,4 +1,9 @@
-import type { CommandComposerMode, RecoveryGuidance, RepoControlMode } from "./contracts.js";
+import type {
+  CommandComposerMode,
+  RecoveryGuidance,
+  RepoControlMode,
+  RuntimeDecisionState
+} from "./contracts.js";
 
 type LoadStateSource = "fresh" | "warm-snapshot" | "stale-snapshot" | "bridge-fallback";
 
@@ -24,6 +29,7 @@ type RepoGuidanceState = {
     detail: string;
     nextCommand: string | null;
   };
+  runtimeDecision?: RuntimeDecisionState;
   kiwiControl?: {
     executionPlan?: {
       blocked?: boolean;
@@ -74,16 +80,20 @@ export function deriveRepoRecoveryGuidance(
     return {
       tone: "blocked",
       title: state.readiness.label,
-      detail: state.readiness.detail,
+      detail: state.runtimeDecision?.recovery?.reason ?? state.readiness.detail,
       nextCommand: selectRecoveryCommand(state)
     };
   }
 
   if (state.executionState.lifecycle === "blocked" || state.executionState.lifecycle === "failed") {
     return {
-      tone: state.executionState.lifecycle === "failed" ? "failed" : "blocked",
+      tone: state.runtimeDecision?.recovery?.kind === "failed"
+        ? "failed"
+        : state.executionState.lifecycle === "failed"
+          ? "failed"
+          : "blocked",
       title: state.readiness.label,
-      detail: state.readiness.detail,
+      detail: state.runtimeDecision?.recovery?.reason ?? state.readiness.detail,
       nextCommand: selectRecoveryCommand(state)
     };
   }
@@ -161,7 +171,9 @@ export function buildBootRecoveryGuidance(detail: string): {
 }
 
 function selectRecoveryCommand(state: RepoGuidanceState): string {
-  return state.executionState.nextCommand
+  return state.runtimeDecision?.recovery?.fixCommand
+    ?? state.runtimeDecision?.nextCommand
+    ?? state.executionState.nextCommand
     ?? state.readiness.nextCommand
     ?? state.kiwiControl?.executionPlan?.lastError?.fixCommand
     ?? state.kiwiControl?.executionPlan?.lastError?.retryCommand

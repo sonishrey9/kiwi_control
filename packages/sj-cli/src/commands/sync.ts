@@ -3,6 +3,7 @@ import { initOrSyncTarget, summarizeWrites } from "@shrey-junior/sj-core/core/ex
 import { prepareBootstrapContext, syncRepoAwareBootstrapArtifacts } from "@shrey-junior/sj-core/core/bootstrap.js";
 import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
 import { buildBootstrapNextSuggestedCommand } from "@shrey-junior/sj-core/core/guidance.js";
+import { buildRuntimeDecision, buildRuntimeDecisionAction } from "@shrey-junior/sj-core/core/runtime-decision.js";
 import { selectPortableContract } from "@shrey-junior/sj-core/core/router.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 
@@ -55,14 +56,30 @@ export async function runSync(options: SyncOptions): Promise<number> {
     })
   );
   if (!options.dryRun) {
+    const nextCommand = buildBootstrapNextSuggestedCommand(options.targetRoot);
     await recordExecutionState(options.targetRoot, {
       type: "repo-sync",
       lifecycle: "idle",
       sourceCommand: "kiwi-control sync",
       reason: "Repo-local control surfaces were synchronized.",
-      nextCommand: buildBootstrapNextSuggestedCommand(options.targetRoot),
+      nextCommand,
       clearTask: true,
-      reuseOperation: false
+      reuseOperation: false,
+      decision: buildRuntimeDecision({
+        currentStepId: "idle",
+        currentStepStatus: "pending",
+        nextCommand,
+        readinessLabel: "Ready",
+        readinessTone: "ready",
+        readinessDetail: "Repo-local control surfaces were synchronized.",
+        nextAction: buildRuntimeDecisionAction(
+          "Inspect repo state",
+          nextCommand,
+          "Repo-local control surfaces were synchronized.",
+          "normal"
+        ),
+        decisionSource: "sync-command"
+      })
     }).catch(() => null);
   }
   return [...results, ...repoAwareResults].some((result) => result.status === "conflict") ? 1 : 0;

@@ -40,6 +40,34 @@ export interface RecoveryGuidance {
   actionLabel?: string | null;
 }
 
+export interface RuntimeDecisionAction {
+  action: string;
+  command: string | null;
+  reason: string;
+  priority: "critical" | "high" | "normal" | "low";
+}
+
+export interface RuntimeDecisionRecovery {
+  kind: "blocked" | "failed";
+  reason: string;
+  fixCommand: string | null;
+  retryCommand: string | null;
+}
+
+export interface RuntimeDecisionState {
+  currentStepId: "prepare" | "generate_packets" | "execute_packet" | "validate" | "checkpoint" | "handoff" | "idle";
+  currentStepLabel: string;
+  currentStepStatus: "pending" | "running" | "success" | "failed";
+  nextCommand: string | null;
+  readinessLabel: string;
+  readinessTone: "ready" | "blocked" | "failed";
+  readinessDetail: string;
+  nextAction: RuntimeDecisionAction | null;
+  recovery: RuntimeDecisionRecovery | null;
+  decisionSource: string;
+  updatedAt?: string;
+}
+
 export interface DecisionSummary {
   nextAction: string;
   blockingIssue: string;
@@ -240,6 +268,7 @@ export interface RepoControlState {
     detail: string;
     nextCommand: string | null;
   };
+  runtimeDecision: RuntimeDecisionState;
   validation: {
     errors: number;
     warnings: number;

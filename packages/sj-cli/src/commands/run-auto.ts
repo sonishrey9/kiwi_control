@@ -1,6 +1,12 @@
 import { getCurrentExecutionStep, syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import {
+  buildRuntimeDecision,
+  buildRuntimeDecisionAction,
+  buildRuntimeDecisionRecovery,
+  runtimeDecisionStepIdFromExecutionPlanStep
+} from "@shrey-junior/sj-core/core/runtime-decision.js";
 import { runExecutionPlanStep } from "./execution-step-runner.js";
 
 export interface RunAutoOptions {
@@ -23,20 +29,57 @@ export async function runAuto(options: RunAutoOptions): Promise<number> {
     reason: "Auto run queued the current execution plan.",
     nextCommand: plan.nextCommands[0] ?? "kiwi-control next",
     blockedBy: [],
-    reuseOperation: false
+    reuseOperation: false,
+    decision: buildRuntimeDecision({
+      currentStepId: runtimeDecisionStepIdFromExecutionPlanStep(getCurrentExecutionStep(plan)?.id),
+      currentStepStatus: "pending",
+      nextCommand: plan.nextCommands[0] ?? "kiwi-control next",
+      readinessLabel: "Queued",
+      readinessTone: "ready",
+      readinessDetail: "Auto run queued the current execution plan.",
+      nextAction: buildRuntimeDecisionAction(
+        "Execute the current step",
+        getCurrentExecutionStep(plan)?.command ?? null,
+        "Auto run queued the current execution plan.",
+        "high"
+      ),
+      decisionSource: "run-auto-command"
+    })
   }).catch(() => null);
 
   for (let index = 0; index < 12; index += 1) {
     if (plan.lastError) {
+      const nextCommand = plan.lastError.fixCommand;
       await recordExecutionState(options.targetRoot, {
         type: "run-auto-blocked",
         lifecycle: plan.lastError.errorType === "environment_error" ? "failed" : "blocked",
         task,
         sourceCommand: `kiwi-control run "${task}" --auto`,
         reason: plan.lastError.reason,
-        nextCommand: plan.lastError.fixCommand,
+        nextCommand,
         blockedBy: [plan.lastError.reason],
-        reuseOperation: true
+        reuseOperation: true,
+        decision: buildRuntimeDecision({
+          currentStepId: runtimeDecisionStepIdFromExecutionPlanStep(getCurrentExecutionStep(plan)?.id),
+          currentStepStatus: "failed",
+          nextCommand,
+          readinessLabel: plan.lastError.errorType === "environment_error" ? "Workflow failed" : "Workflow blocked",
+          readinessTone: plan.lastError.errorType === "environment_error" ? "failed" : "blocked",
+          readinessDetail: plan.lastError.reason,
+          nextAction: buildRuntimeDecisionAction(
+            "Fix the blocking execution issue",
+            nextCommand,
+            plan.lastError.reason,
+            "critical"
+          ),
+          recovery: buildRuntimeDecisionRecovery(
+            plan.lastError.errorType === "environment_error" ? "failed" : "blocked",
+            plan.lastError.reason,
+            nextCommand,
+            plan.lastError.retryCommand
+          ),
+          decisionSource: "run-auto-command"
+        })
       }).catch(() => null);
       options.logger.error(plan.lastError.reason);
       options.logger.info(`fix command: ${plan.lastError.fixCommand}`);
@@ -73,7 +116,22 @@ export async function runAuto(options: RunAutoOptions): Promise<number> {
       reason: `Auto run is executing ${currentStep.id}.`,
       nextCommand: currentStep.command,
       blockedBy: [],
-      reuseOperation: true
+      reuseOperation: true,
+      decision: buildRuntimeDecision({
+        currentStepId: runtimeDecisionStepIdFromExecutionPlanStep(currentStep.id),
+        currentStepStatus: "running",
+        nextCommand: currentStep.command,
+        readinessLabel: "Running",
+        readinessTone: "ready",
+        readinessDetail: `Auto run is executing ${currentStep.id}.`,
+        nextAction: buildRuntimeDecisionAction(
+          `Run ${currentStep.id}`,
+          currentStep.command,
+          `Auto run is executing ${currentStep.id}.`,
+          "normal"
+        ),
+        decisionSource: "run-auto-command"
+      })
     }).catch(() => null);
     const code = await runExecutionPlanStep(currentStep.id, {
       repoRoot: options.repoRoot,
@@ -85,15 +143,37 @@ export async function runAuto(options: RunAutoOptions): Promise<number> {
         ...(options.task ? { task: options.task } : {})
       });
       if (failurePlan.lastError) {
+        const nextCommand = failurePlan.lastError.fixCommand;
         await recordExecutionState(options.targetRoot, {
           type: "run-auto-blocked",
           lifecycle: failurePlan.lastError.errorType === "environment_error" ? "failed" : "blocked",
           task,
           sourceCommand: `kiwi-control run "${task}" --auto`,
           reason: failurePlan.lastError.reason,
-          nextCommand: failurePlan.lastError.fixCommand,
+          nextCommand,
           blockedBy: [failurePlan.lastError.reason],
-          reuseOperation: true
+          reuseOperation: true,
+          decision: buildRuntimeDecision({
+            currentStepId: runtimeDecisionStepIdFromExecutionPlanStep(getCurrentExecutionStep(failurePlan)?.id),
+            currentStepStatus: "failed",
+            nextCommand,
+            readinessLabel: failurePlan.lastError.errorType === "environment_error" ? "Workflow failed" : "Workflow blocked",
+            readinessTone: failurePlan.lastError.errorType === "environment_error" ? "failed" : "blocked",
+            readinessDetail: failurePlan.lastError.reason,
+            nextAction: buildRuntimeDecisionAction(
+              "Fix the blocking execution issue",
+              nextCommand,
+              failurePlan.lastError.reason,
+              "critical"
+            ),
+            recovery: buildRuntimeDecisionRecovery(
+              failurePlan.lastError.errorType === "environment_error" ? "failed" : "blocked",
+              failurePlan.lastError.reason,
+              nextCommand,
+              failurePlan.lastError.retryCommand
+            ),
+            decisionSource: "run-auto-command"
+          })
         }).catch(() => null);
       }
       return code;
@@ -117,7 +197,28 @@ export async function runAuto(options: RunAutoOptions): Promise<number> {
     reason: "Run --auto stopped because the execution plan did not converge within 12 steps.",
     nextCommand: "kiwi-control trace",
     blockedBy: ["Run --auto did not converge within 12 steps."],
-    reuseOperation: true
+    reuseOperation: true,
+    decision: buildRuntimeDecision({
+      currentStepId: runtimeDecisionStepIdFromExecutionPlanStep(getCurrentExecutionStep(plan)?.id),
+      currentStepStatus: "failed",
+      nextCommand: "kiwi-control trace",
+      readinessLabel: "Workflow failed",
+      readinessTone: "failed",
+      readinessDetail: "Run --auto stopped because the execution plan did not converge within 12 steps.",
+      nextAction: buildRuntimeDecisionAction(
+        "Inspect the blocked execution",
+        "kiwi-control trace",
+        "Run --auto stopped because the execution plan did not converge within 12 steps.",
+        "critical"
+      ),
+      recovery: buildRuntimeDecisionRecovery(
+        "failed",
+        "Run --auto stopped because the execution plan did not converge within 12 steps.",
+        "kiwi-control trace",
+        `kiwi-control run "${task}" --auto`
+      ),
+      decisionSource: "run-auto-command"
+    })
   }).catch(() => null);
   options.logger.error("run --auto stopped because the execution plan did not converge within 12 steps.");
   options.logger.info("fix command: kiwi-control trace");

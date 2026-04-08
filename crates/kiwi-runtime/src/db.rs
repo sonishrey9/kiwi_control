@@ -1,7 +1,8 @@
 use crate::models::{
     DerivedOutputStatus, ExecutionArtifacts, ExecutionEventList, ListExecutionEventsQuery,
-    MaterializeDerivedOutputsRequest, OpenTargetRequest, RuntimeEvent, RuntimeLifecycle,
-    RuntimeReadiness, RuntimeSnapshot, TransitionExecutionStateRequest,
+    MaterializeDerivedOutputsRequest, OpenTargetRequest, RuntimeDecision, RuntimeDecisionAction,
+    RuntimeDecisionRecovery, RuntimeEvent, RuntimeLifecycle, RuntimeReadiness, RuntimeSnapshot,
+    TransitionExecutionStateRequest,
 };
 use anyhow::{anyhow, Context, Result};
 use rusqlite::{params, Connection, OptionalExtension, Transaction, TransactionBehavior};
@@ -192,6 +193,12 @@ pub fn transition_execution_state(request: &TransitionExecutionStateRequest) -> 
         last_event_id: Some(event_id),
     };
     upsert_state(&tx, &current)?;
+    let decision = request
+        .decision
+        .clone()
+        .map(|decision| normalize_runtime_decision(decision, &timestamp))
+        .unwrap_or_else(|| decision_from_state(&current, &timestamp));
+    insert_decision(&tx, target_id, next_revision, &decision)?;
 
     let invalidated_outputs = if let Some(outputs) = request.invalidate_outputs.clone() {
         outputs
@@ -348,6 +355,23 @@ fn open_connection(target_root: &Path) -> Result<Connection> {
             FOREIGN KEY(target_id) REFERENCES repo_targets(id),
             FOREIGN KEY(last_event_id) REFERENCES execution_events(event_id)
          );
+         CREATE TABLE IF NOT EXISTS decision_state (
+            target_id INTEGER NOT NULL,
+            revision INTEGER NOT NULL,
+            current_step_id TEXT NOT NULL,
+            current_step_label TEXT NOT NULL,
+            current_step_status TEXT NOT NULL,
+            next_command TEXT,
+            readiness_label TEXT NOT NULL,
+            readiness_tone TEXT NOT NULL,
+            readiness_detail TEXT NOT NULL,
+            next_action_json TEXT NOT NULL,
+            recovery_json TEXT,
+            decision_source TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY(target_id, revision),
+            FOREIGN KEY(target_id) REFERENCES repo_targets(id)
+         );
          CREATE TABLE IF NOT EXISTS state_revisions (
             target_id INTEGER NOT NULL,
             revision INTEGER NOT NULL,
@@ -390,6 +414,8 @@ fn ensure_initialized(
     )?;
     if count == 0 {
         import_or_seed(conn, target_root, target_id)?;
+    } else {
+        backfill_decision_state_if_missing(conn, target_id)?;
     }
     Ok(target_id)
 }
@@ -445,6 +471,7 @@ fn import_or_seed(conn: &Connection, target_root: &Path, target_id: i64) -> Resu
         last_event_id: None,
     };
     upsert_state_direct(conn, &state)?;
+    insert_decision(conn, target_id, 0, &decision_from_state(&state, &timestamp))?;
     conn.execute(
         "INSERT INTO state_revisions (target_id, revision, change_kind, trigger_command, state_digest, compatibility_dirty, recorded_at)
          VALUES (?1, 0, 'seed', NULL, ?2, 1, ?3)",
@@ -511,6 +538,12 @@ fn import_legacy_execution_state(conn: &Connection, target_root: &Path, target_i
             ..state
         };
         upsert_state_direct(conn, &imported_state)?;
+        let imported_timestamp = imported_state
+            .last_updated_at
+            .clone()
+            .unwrap_or_else(timestamp_now);
+        let imported_decision = decision_from_state(&imported_state, &imported_timestamp);
+        insert_decision(conn, target_id, imported_state.revision, &imported_decision)?;
         conn.execute(
             "INSERT INTO state_revisions (target_id, revision, change_kind, trigger_command, state_digest, compatibility_dirty, recorded_at)
              VALUES (?1, ?2, 'legacy_import', ?3, ?4, 1, ?5)",
@@ -519,17 +552,10 @@ fn import_legacy_execution_state(conn: &Connection, target_root: &Path, target_i
                 imported_state.revision,
                 imported_state.source_command,
                 state_digest(&imported_state)?,
-                imported_state
-                    .last_updated_at
-                    .clone()
-                    .unwrap_or_else(timestamp_now)
+                imported_timestamp
             ],
         )?;
-        let stale_at = imported_state
-            .last_updated_at
-            .clone()
-            .unwrap_or_else(timestamp_now);
-        mark_all_outputs_stale(conn, target_root, target_id, &stale_at)?;
+        mark_all_outputs_stale(conn, target_root, target_id, &imported_timestamp)?;
         return Ok(true);
     }
 
@@ -538,25 +564,25 @@ fn import_legacy_execution_state(conn: &Connection, target_root: &Path, target_i
         return Ok(false);
     };
 
-    upsert_state_direct(conn, &StoredExecutionState { target_id, ..derived.clone() })?;
+    let derived_state = StoredExecutionState { target_id, ..derived.clone() };
+    upsert_state_direct(conn, &derived_state)?;
+    let derived_timestamp = derived_state.last_updated_at.clone().unwrap_or_else(timestamp_now);
+    insert_decision(conn, target_id, 0, &decision_from_state(&derived_state, &derived_timestamp))?;
     conn.execute(
         "INSERT INTO state_revisions (target_id, revision, change_kind, trigger_command, state_digest, compatibility_dirty, recorded_at)
          VALUES (?1, 0, 'legacy_import', ?2, ?3, 1, ?4)",
         params![
             target_id,
             derived.source_command,
-            state_digest(&StoredExecutionState {
-                target_id,
-                ..derived.clone()
-            })?,
-            derived.last_updated_at.clone().unwrap_or_else(timestamp_now)
+            state_digest(&derived_state)?,
+            derived_timestamp
         ],
     )?;
     mark_all_outputs_stale(
         conn,
         target_root,
         target_id,
-        &derived.last_updated_at.unwrap_or_else(timestamp_now),
+        &derived_timestamp,
     )?;
     Ok(true)
 }
@@ -806,6 +832,8 @@ fn build_snapshot(conn: &Connection, target_root: &Path, target_id: i64) -> Resu
     let state = load_state_row(conn, target_id)?;
     let last_event = load_last_event(conn, target_id, state.last_event_id)?;
     let readiness = readiness_from_state(&state);
+    let decision = load_decision_row(conn, target_id, state.revision)?
+        .unwrap_or_else(|| decision_from_state(&state, state.last_updated_at.as_deref().unwrap_or("1970-01-01T00:00:00Z")));
     let derived_freshness = load_derived_output_statuses(conn, target_id)?;
     Ok(RuntimeSnapshot {
         target_root: target_root.to_string_lossy().to_string(),
@@ -821,6 +849,7 @@ fn build_snapshot(conn: &Connection, target_root: &Path, target_id: i64) -> Resu
         last_updated_at: state.last_updated_at,
         last_event,
         readiness,
+        decision,
         derived_freshness,
     })
 }
@@ -848,6 +877,225 @@ fn load_derived_output_statuses(conn: &Connection, target_id: i64) -> Result<Vec
         statuses.push(row?);
     }
     Ok(statuses)
+}
+
+fn insert_decision(
+    conn: &impl EventWriter,
+    target_id: i64,
+    revision: i64,
+    decision: &RuntimeDecision,
+) -> Result<()> {
+    conn.execute(
+        "INSERT INTO decision_state (target_id, revision, current_step_id, current_step_label, current_step_status, next_command, readiness_label, readiness_tone, readiness_detail, next_action_json, recovery_json, decision_source, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+        params![
+            target_id,
+            revision,
+            decision.current_step_id,
+            decision.current_step_label,
+            decision.current_step_status,
+            decision.next_command,
+            decision.readiness_label,
+            decision.readiness_tone,
+            decision.readiness_detail,
+            json_string(&decision.next_action)?,
+            json_string(&decision.recovery)?,
+            decision.decision_source,
+            decision.updated_at
+        ],
+    )?;
+    Ok(())
+}
+
+fn load_decision_row(
+    conn: &Connection,
+    target_id: i64,
+    revision: i64,
+) -> Result<Option<RuntimeDecision>> {
+    conn.query_row(
+        "SELECT current_step_id, current_step_label, current_step_status, next_command, readiness_label, readiness_tone, readiness_detail, next_action_json, recovery_json, decision_source, updated_at
+           FROM decision_state
+          WHERE target_id = ?1 AND revision = ?2",
+        params![target_id, revision],
+        |row| {
+            let next_action_json = row.get::<_, String>(7)?;
+            let recovery_json = row.get::<_, String>(8)?;
+            Ok(RuntimeDecision {
+                current_step_id: row.get(0)?,
+                current_step_label: row.get(1)?,
+                current_step_status: row.get(2)?,
+                next_command: row.get(3)?,
+                readiness_label: row.get(4)?,
+                readiness_tone: row.get(5)?,
+                readiness_detail: row.get(6)?,
+                next_action: json_from_str(&next_action_json).map_err(|_| rusqlite::Error::InvalidQuery)?,
+                recovery: json_from_str(&recovery_json).map_err(|_| rusqlite::Error::InvalidQuery)?,
+                decision_source: row.get(9)?,
+                updated_at: row.get(10)?,
+            })
+        },
+    )
+    .optional()
+    .context("failed to load decision_state row")
+}
+
+fn backfill_decision_state_if_missing(conn: &Connection, target_id: i64) -> Result<()> {
+    let state = load_state_row(conn, target_id)?;
+    if load_decision_row(conn, target_id, state.revision)?.is_some() {
+        return Ok(());
+    }
+
+    let timestamp = state
+        .last_updated_at
+        .clone()
+        .unwrap_or_else(timestamp_now);
+    insert_decision(
+        conn,
+        target_id,
+        state.revision,
+        &decision_from_state(&state, &timestamp),
+    )?;
+    Ok(())
+}
+
+fn decision_from_state(state: &StoredExecutionState, timestamp: &str) -> RuntimeDecision {
+    let readiness = readiness_from_state(state);
+    match state.lifecycle {
+        RuntimeLifecycle::Idle => RuntimeDecision {
+            current_step_id: String::from("idle"),
+            current_step_label: String::from("Idle"),
+            current_step_status: String::from("pending"),
+            next_command: state.next_command.clone(),
+            readiness_label: readiness.label,
+            readiness_tone: readiness.tone,
+            readiness_detail: readiness.detail,
+            next_action: None,
+            recovery: None,
+            decision_source: String::from("runtime-default"),
+            updated_at: timestamp.to_string(),
+        },
+        RuntimeLifecycle::PacketCreated => {
+            let detail = readiness.detail.clone();
+            RuntimeDecision {
+                current_step_id: String::from("generate_packets"),
+                current_step_label: String::from("Generate run packets"),
+                current_step_status: String::from("pending"),
+                next_command: state.next_command.clone(),
+                readiness_label: readiness.label,
+                readiness_tone: readiness.tone,
+                readiness_detail: detail.clone(),
+                next_action: Some(RuntimeDecisionAction {
+                    action: String::from("Generate run packets"),
+                    command: state.next_command.clone(),
+                    reason: detail,
+                    priority: String::from("high"),
+                }),
+                recovery: None,
+                decision_source: String::from("runtime-default"),
+                updated_at: timestamp.to_string(),
+            }
+        }
+        RuntimeLifecycle::Queued => {
+            let detail = readiness.detail.clone();
+            RuntimeDecision {
+                current_step_id: String::from("execute_packet"),
+                current_step_label: String::from("Execute packet"),
+                current_step_status: String::from("pending"),
+                next_command: state.next_command.clone(),
+                readiness_label: readiness.label,
+                readiness_tone: readiness.tone,
+                readiness_detail: detail.clone(),
+                next_action: Some(RuntimeDecisionAction {
+                    action: String::from("Open latest task packet and execute it"),
+                    command: None,
+                    reason: detail,
+                    priority: String::from("high"),
+                }),
+                recovery: None,
+                decision_source: String::from("runtime-default"),
+                updated_at: timestamp.to_string(),
+            }
+        }
+        RuntimeLifecycle::Running => {
+            let detail = readiness.detail.clone();
+            RuntimeDecision {
+                current_step_id: infer_running_step_id(state),
+                current_step_label: infer_running_step_label(state),
+                current_step_status: String::from("running"),
+                next_command: state.next_command.clone(),
+                readiness_label: readiness.label,
+                readiness_tone: readiness.tone,
+                readiness_detail: detail.clone(),
+                next_action: Some(RuntimeDecisionAction {
+                    action: infer_running_step_label(state),
+                    command: state.next_command.clone().or_else(|| state.source_command.clone()),
+                    reason: detail,
+                    priority: String::from("normal"),
+                }),
+                recovery: None,
+                decision_source: String::from("runtime-default"),
+                updated_at: timestamp.to_string(),
+            }
+        }
+        RuntimeLifecycle::Completed => {
+            let detail = readiness.detail.clone();
+            RuntimeDecision {
+                current_step_id: String::from("checkpoint"),
+                current_step_label: String::from("Checkpoint progress"),
+                current_step_status: String::from("pending"),
+                next_command: state.next_command.clone(),
+                readiness_label: readiness.label,
+                readiness_tone: readiness.tone,
+                readiness_detail: detail.clone(),
+                next_action: state.next_command.as_ref().map(|command| RuntimeDecisionAction {
+                    action: String::from("Checkpoint progress"),
+                    command: Some(command.clone()),
+                    reason: detail.clone(),
+                    priority: String::from("normal"),
+                }),
+                recovery: None,
+                decision_source: String::from("runtime-default"),
+                updated_at: timestamp.to_string(),
+            }
+        }
+        RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed => {
+            let detail = readiness.detail.clone();
+            RuntimeDecision {
+                current_step_id: infer_blocked_step_id(state),
+                current_step_label: infer_blocked_step_label(state),
+                current_step_status: String::from("failed"),
+                next_command: state.next_command.clone(),
+                readiness_label: readiness.label,
+                readiness_tone: readiness.tone,
+                readiness_detail: detail.clone(),
+                next_action: state.next_command.as_ref().map(|command| RuntimeDecisionAction {
+                    action: String::from("Fix the blocking execution issue"),
+                    command: Some(command.clone()),
+                    reason: detail.clone(),
+                    priority: String::from("critical"),
+                }),
+                recovery: Some(RuntimeDecisionRecovery {
+                    kind: if state.lifecycle == RuntimeLifecycle::Failed {
+                        String::from("failed")
+                    } else {
+                        String::from("blocked")
+                    },
+                    reason: detail,
+                    fix_command: state.next_command.clone(),
+                    retry_command: state.source_command.clone(),
+                }),
+                decision_source: String::from("runtime-default"),
+                updated_at: timestamp.to_string(),
+            }
+        }
+    }
+}
+
+fn normalize_runtime_decision(mut decision: RuntimeDecision, timestamp: &str) -> RuntimeDecision {
+    if decision.updated_at.trim().is_empty() {
+        decision.updated_at = timestamp.to_string();
+    }
+    decision
 }
 
 fn mark_all_outputs_stale(conn: &Connection, target_root: &Path, target_id: i64, timestamp: &str) -> Result<()> {
@@ -1022,6 +1270,85 @@ fn readiness_from_state(state: &StoredExecutionState) -> RuntimeReadiness {
                 .unwrap_or_else(|| String::from("Repo-local state is loaded and no active execution is in flight.")),
             next_command: state.next_command.clone(),
         },
+    }
+}
+
+fn infer_running_step_id(state: &StoredExecutionState) -> String {
+    if state
+        .source_command
+        .as_deref()
+        .unwrap_or_default()
+        .contains("validate")
+    {
+        String::from("validate")
+    } else if state
+        .source_command
+        .as_deref()
+        .unwrap_or_default()
+        .contains("run")
+    {
+        String::from("execute_packet")
+    } else if state
+        .source_command
+        .as_deref()
+        .unwrap_or_default()
+        .contains("prepare")
+    {
+        String::from("prepare")
+    } else {
+        String::from("execute_packet")
+    }
+}
+
+fn infer_running_step_label(state: &StoredExecutionState) -> String {
+    match infer_running_step_id(state).as_str() {
+        "validate" => String::from("Validate outcome"),
+        "prepare" => String::from("Prepare bounded context"),
+        _ => String::from("Execute packet"),
+    }
+}
+
+fn infer_blocked_step_id(state: &StoredExecutionState) -> String {
+    if state
+        .source_command
+        .as_deref()
+        .unwrap_or_default()
+        .contains("prepare")
+    {
+        String::from("prepare")
+    } else if state
+        .source_command
+        .as_deref()
+        .unwrap_or_default()
+        .contains("run")
+    {
+        String::from("execute_packet")
+    } else if state
+        .source_command
+        .as_deref()
+        .unwrap_or_default()
+        .contains("checkpoint")
+    {
+        String::from("checkpoint")
+    } else if state
+        .source_command
+        .as_deref()
+        .unwrap_or_default()
+        .contains("handoff")
+    {
+        String::from("handoff")
+    } else {
+        String::from("validate")
+    }
+}
+
+fn infer_blocked_step_label(state: &StoredExecutionState) -> String {
+    match infer_blocked_step_id(state).as_str() {
+        "prepare" => String::from("Prepare bounded context"),
+        "execute_packet" => String::from("Execute packet"),
+        "checkpoint" => String::from("Checkpoint progress"),
+        "handoff" => String::from("Handoff work"),
+        _ => String::from("Validate outcome"),
     }
 }
 
@@ -1423,6 +1750,7 @@ mod tests {
             operation_id: None,
             reuse_operation: Some(false),
             clear_task: Some(false),
+            decision: None,
             invalidate_outputs: None,
             materialize_outputs: None,
         })?;
@@ -1436,6 +1764,60 @@ mod tests {
             read_json_file(&output_path(dir.path(), OUTPUT_EXECUTION_STATE))?;
         assert_eq!(compatibility.lifecycle, "packet-created");
         assert_eq!(compatibility.revision, 1);
+        Ok(())
+    }
+
+    #[test]
+    fn persists_runtime_decision_state_with_transition() -> Result<()> {
+        let dir = create_target()?;
+        let target_root = dir.path().to_string_lossy().to_string();
+        open_target(&OpenTargetRequest {
+            target_root: target_root.clone(),
+            root_label: None,
+            project_type: None,
+            profile_name: None,
+        })?;
+
+        let snapshot = transition_execution_state(&TransitionExecutionStateRequest {
+            target_root,
+            actor: Some(String::from("test")),
+            trigger_command: Some(String::from("kiwi-control run \"demo\"")),
+            event_type: String::from("run-packetized"),
+            lifecycle: RuntimeLifecycle::Queued,
+            task: Some(String::from("demo")),
+            source_command: Some(String::from("kiwi-control run \"demo\"")),
+            reason: Some(String::from("Packets are ready.")),
+            next_command: Some(String::from("kiwi-control validate \"demo\"")),
+            blocked_by: Some(Vec::new()),
+            artifacts: Some(BTreeMap::new()),
+            operation_id: None,
+            reuse_operation: Some(false),
+            clear_task: Some(false),
+            decision: Some(RuntimeDecision {
+                current_step_id: String::from("execute_packet"),
+                current_step_label: String::from("Execute packet"),
+                current_step_status: String::from("pending"),
+                next_command: Some(String::from("kiwi-control validate \"demo\"")),
+                readiness_label: String::from("Queued"),
+                readiness_tone: String::from("ready"),
+                readiness_detail: String::from("Packets are ready."),
+                next_action: Some(RuntimeDecisionAction {
+                    action: String::from("Open latest task packet and execute it"),
+                    command: None,
+                    reason: String::from("Packets are ready."),
+                    priority: String::from("high"),
+                }),
+                recovery: None,
+                decision_source: String::from("test"),
+                updated_at: String::new(),
+            }),
+            invalidate_outputs: None,
+            materialize_outputs: None,
+        })?;
+
+        assert_eq!(snapshot.decision.current_step_id, "execute_packet");
+        assert_eq!(snapshot.decision.readiness_label, "Queued");
+        assert_eq!(snapshot.decision.decision_source, "test");
         Ok(())
     }
 

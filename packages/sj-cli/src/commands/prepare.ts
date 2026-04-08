@@ -8,6 +8,11 @@ import { matchSkillsForTask } from "@shrey-junior/sj-core/core/skills-registry.j
 import type { SkillRegistryState } from "@shrey-junior/sj-core/core/skills-registry.js";
 import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
+import {
+  buildRuntimeDecision,
+  buildRuntimeDecisionAction,
+  buildRuntimeDecisionRecovery
+} from "@shrey-junior/sj-core/core/runtime-decision.js";
 import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import type { MeasuredUsageState } from "@shrey-junior/sj-core/core/token-intelligence.js";
 import type { TokenBreakdownState, TokenEstimate } from "@shrey-junior/sj-core/core/token-estimator.js";
@@ -121,15 +126,37 @@ export async function runPrepare(options: PrepareOptions): Promise<number> {
   });
 
   if (!workflowExecution.ok || !selection || !instructions || !instructionPath || !tokenEstimate) {
+    const nextCommand = workflowExecution.retryCommand ?? `kiwi-control prepare "${task}"`;
     await recordExecutionState(targetRoot, {
       type: "prepare-failed",
       lifecycle: "blocked",
       task,
       sourceCommand: `kiwi-control prepare "${task}"${options.expand ? " --expand" : ""}`,
       reason: workflowExecution.failureReason ?? `Prepare failed for "${task}".`,
-      nextCommand: workflowExecution.retryCommand ?? `kiwi-control prepare "${task}"`,
+      nextCommand,
       blockedBy: [workflowExecution.failureReason ?? workflowExecution.validation],
-      reuseOperation: false
+      reuseOperation: false,
+      decision: buildRuntimeDecision({
+        currentStepId: "prepare",
+        currentStepStatus: "failed",
+        nextCommand,
+        readinessLabel: "Workflow blocked",
+        readinessTone: "blocked",
+        readinessDetail: workflowExecution.failureReason ?? `Prepare failed for "${task}".`,
+        nextAction: buildRuntimeDecisionAction(
+          "Refresh the prepared scope",
+          nextCommand,
+          workflowExecution.failureReason ?? workflowExecution.validation,
+          "critical"
+        ),
+        recovery: buildRuntimeDecisionRecovery(
+          "blocked",
+          workflowExecution.failureReason ?? workflowExecution.validation,
+          nextCommand,
+          nextCommand
+        ),
+        decisionSource: "prepare-command"
+      })
     }).catch(() => null);
     await recordRuntimeProgress(targetRoot, {
       type: "prepare_completed",
@@ -190,7 +217,22 @@ export async function runPrepare(options: PrepareOptions): Promise<number> {
       contextSelection: [".agent/state/context-selection.json"],
       tokenUsage: [".agent/state/token-usage.json"]
     },
-    reuseOperation: false
+    reuseOperation: false,
+    decision: buildRuntimeDecision({
+      currentStepId: "generate_packets",
+      currentStepStatus: "pending",
+      nextCommand: `kiwi-control run "${task}"`,
+      readinessLabel: "Packet created",
+      readinessTone: "ready",
+      readinessDetail: `Prepared ${finalSelection.include.length} selected files for "${task}".`,
+      nextAction: buildRuntimeDecisionAction(
+        "Generate run packets",
+        `kiwi-control run "${task}"`,
+        `Prepared ${finalSelection.include.length} selected files for "${task}".`,
+        "high"
+      ),
+      decisionSource: "prepare-command"
+    })
   }).catch(() => null);
   const contextTrace = await readJson<ContextTraceState>(path.join(targetRoot, ".agent", "state", "context-trace.json"));
   const indexing = await readJson<IndexingState>(path.join(targetRoot, ".agent", "state", "indexing.json"));

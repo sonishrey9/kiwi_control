@@ -15,6 +15,11 @@ import { loadContinuitySnapshot, updateActiveRoleHints } from "@shrey-junior/sj-
 import { resolveSpecialist } from "@shrey-junior/sj-core/core/specialists.js";
 import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
+import {
+  buildRuntimeDecision,
+  buildRuntimeDecisionAction,
+  buildRuntimeDecisionRecovery
+} from "@shrey-junior/sj-core/core/runtime-decision.js";
 import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import { executeWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
@@ -130,18 +135,40 @@ export async function runRun(options: RunOptions): Promise<number> {
     })
   });
   if (!workflowExecution.ok) {
+    const nextCommand = workflowExecution.retryCommand ?? `${PRODUCT_METADATA.cli.primaryCommand} prepare "${options.goal}"`;
     await recordExecutionState(options.targetRoot, {
       type: "run-packet-generation-failed",
       lifecycle: "blocked",
       task: options.goal,
       sourceCommand: `${PRODUCT_METADATA.cli.primaryCommand} run "${options.goal}"`,
       reason: workflowExecution.failureReason ?? "Run packet generation failed.",
-      nextCommand: workflowExecution.retryCommand ?? `${PRODUCT_METADATA.cli.primaryCommand} prepare "${options.goal}"`,
+      nextCommand,
       blockedBy: [workflowExecution.failureReason ?? workflowExecution.validation],
       artifacts: {
         packets: packets.map((packet) => packet.relativePath).slice(0, 12)
       },
-      reuseOperation: false
+      reuseOperation: false,
+      decision: buildRuntimeDecision({
+        currentStepId: "generate_packets",
+        currentStepStatus: "failed",
+        nextCommand,
+        readinessLabel: "Workflow blocked",
+        readinessTone: "blocked",
+        readinessDetail: workflowExecution.failureReason ?? "Run packet generation failed.",
+        nextAction: buildRuntimeDecisionAction(
+          "Refresh the prepared scope",
+          nextCommand,
+          workflowExecution.failureReason ?? workflowExecution.validation,
+          "critical"
+        ),
+        recovery: buildRuntimeDecisionRecovery(
+          "blocked",
+          workflowExecution.failureReason ?? workflowExecution.validation,
+          nextCommand,
+          `${PRODUCT_METADATA.cli.primaryCommand} run "${options.goal}"`
+        ),
+        decisionSource: "run-command"
+      })
     }).catch(() => null);
     await recordRuntimeProgress(options.targetRoot, {
       type: "packets_generated",
@@ -223,7 +250,22 @@ export async function runRun(options: RunOptions): Promise<number> {
     artifacts: {
       packets: [".agent/state/latest-task-packets.json", ...packets.map((packet) => packet.relativePath).slice(0, 12)]
     },
-    reuseOperation: false
+    reuseOperation: false,
+    decision: buildRuntimeDecision({
+      currentStepId: "execute_packet",
+      currentStepStatus: "pending",
+      nextCommand: `${PRODUCT_METADATA.cli.primaryCommand} validate "${options.goal}"`,
+      readinessLabel: "Queued",
+      readinessTone: "ready",
+      readinessDetail: `Generated ${results.length} task packet${results.length === 1 ? "" : "s"} for "${options.goal}".`,
+      nextAction: buildRuntimeDecisionAction(
+        "Open latest task packet and execute it",
+        null,
+        `Generated ${results.length} task packet${results.length === 1 ? "" : "s"} for "${options.goal}".`,
+        "high"
+      ),
+      decisionSource: "run-command"
+    })
   }).catch(() => null);
   options.logger.info(summarizeWrites(results, options.targetRoot));
   return 0;

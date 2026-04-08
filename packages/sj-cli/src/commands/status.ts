@@ -28,14 +28,14 @@ export async function runStatus(options: StatusOptions): Promise<number> {
   const nextActionSummary = renderNextActionSummary(topAction, controlState.kiwiControl.nextActions.summary);
   const contextTreeSummary = renderContextTreeSummary(controlState.kiwiControl.contextView.tree);
   const executionPlanSummary = renderExecutionPlan(controlState);
-  const currentStep = controlState.kiwiControl.executionPlan.steps[controlState.kiwiControl.executionPlan.currentStepIndex] ?? null;
+  const currentStep = controlState.runtimeDecision.currentStepId;
 
   options.logger.info(
     [
       `repo status: ${controlState.repoState.title} — ${controlState.repoState.detail}`,
       `execution state: ${controlState.executionState.lifecycle}`,
       `readiness: ${controlState.readiness.label} — ${controlState.readiness.detail}`,
-      `current step: ${currentStep?.id ?? "none"}`,
+      `current step: ${currentStep ?? "none"}`,
       `next action: ${nextActionSummary}`,
       `token summary: ${tokenSummary}`,
       executionPlanSummary,

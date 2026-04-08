@@ -2,7 +2,7 @@ import { existsSync, promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { resolveGlobalHomeRoot, resolveShreyJuniorProductRoot } from "../runtime.js";
+import { isSourceProductCheckout, resolveGlobalHomeRoot, resolveShreyJuniorProductRoot } from "../runtime.js";
 
 export interface RuntimeDaemonMetadata {
   pid: number;
@@ -16,6 +16,34 @@ export interface RuntimeReadiness {
   tone: string;
   detail: string;
   nextCommand: string | null;
+}
+
+export interface RuntimeDecisionAction {
+  action: string;
+  command: string | null;
+  reason: string;
+  priority: "critical" | "high" | "normal" | "low";
+}
+
+export interface RuntimeDecisionRecovery {
+  kind: "blocked" | "failed";
+  reason: string;
+  fixCommand: string | null;
+  retryCommand: string | null;
+}
+
+export interface RuntimeDecision {
+  currentStepId: "prepare" | "generate_packets" | "execute_packet" | "validate" | "checkpoint" | "handoff" | "idle";
+  currentStepLabel: string;
+  currentStepStatus: "pending" | "running" | "success" | "failed";
+  nextCommand: string | null;
+  readinessLabel: string;
+  readinessTone: "ready" | "blocked" | "failed";
+  readinessDetail: string;
+  nextAction: RuntimeDecisionAction | null;
+  recovery: RuntimeDecisionRecovery | null;
+  decisionSource: string;
+  updatedAt?: string;
 }
 
 export interface RuntimeExecutionArtifacts {
@@ -62,6 +90,7 @@ export interface RuntimeSnapshot {
   lastUpdatedAt: string | null;
   lastEvent: RuntimeExecutionEvent | null;
   readiness: RuntimeReadiness;
+  decision?: RuntimeDecision | null;
   derivedFreshness: RuntimeDerivedOutputStatus[];
 }
 
@@ -71,14 +100,14 @@ export interface RuntimeEventList {
   events: RuntimeExecutionEvent[];
 }
 
-interface OpenTargetRequest {
+export interface OpenTargetRequest {
   targetRoot: string;
   rootLabel?: string;
   projectType?: string;
   profileName?: string;
 }
 
-interface TransitionExecutionStateRequest {
+export interface TransitionExecutionStateRequest {
   targetRoot: string;
   actor?: string;
   triggerCommand?: string;
@@ -93,11 +122,12 @@ interface TransitionExecutionStateRequest {
   operationId?: string | null;
   reuseOperation?: boolean;
   clearTask?: boolean;
+  decision?: RuntimeDecision | null;
   invalidateOutputs?: string[];
   materializeOutputs?: string[];
 }
 
-interface MaterializeDerivedOutputsRequest {
+export interface MaterializeDerivedOutputsRequest {
   targetRoot: string;
   outputs: string[];
 }
@@ -176,7 +206,16 @@ export async function ensureRuntimeDaemon(): Promise<RuntimeDaemonMetadata> {
 }
 
 async function runtimeRequest<T>(pathname: string, init?: RequestInit): Promise<T> {
-  const metadata = await ensureRuntimeDaemon();
+  return runtimeRequestWithMetadata<T>(pathname, init);
+}
+
+async function runtimeRequestWithMetadata<T>(
+  pathname: string,
+  init?: RequestInit,
+  metadataOverride?: RuntimeDaemonMetadata | null,
+  allowRestart = true
+): Promise<T> {
+  const metadata = metadataOverride ?? await ensureRuntimeDaemon();
   const url = `${metadata.baseUrl}${pathname}`;
   const headers = new Headers(init?.headers);
   const requestInit: RequestInit = {
@@ -193,7 +232,12 @@ async function runtimeRequest<T>(pathname: string, init?: RequestInit): Promise<
     const detail = await response.text();
     throw new Error(detail || `Kiwi runtime request failed: ${response.status}`);
   }
-  return await response.json() as T;
+  const payload = await response.json() as T;
+  if (allowRestart && isRuntimeSnapshotPayload(payload) && !payload.decision) {
+    const restarted = await restartRuntimeDaemon(metadata);
+    return runtimeRequestWithMetadata<T>(pathname, init, restarted, false);
+  }
+  return payload;
 }
 
 async function runtimeDaemonHealthy(metadata: RuntimeDaemonMetadata): Promise<boolean> {
@@ -250,6 +294,20 @@ function resolveRuntimeLaunch(): { command: string; args: string[] } {
   };
 }
 
+async function restartRuntimeDaemon(
+  existing: RuntimeDaemonMetadata | null
+): Promise<RuntimeDaemonMetadata> {
+  if (existing?.pid) {
+    try {
+      process.kill(existing.pid, "SIGTERM");
+    } catch {
+      // Best-effort only. A replacement daemon can still be launched.
+    }
+  }
+  await fs.rm(runtimeMetadataPath(), { force: true }).catch(() => null);
+  return ensureRuntimeDaemon();
+}
+
 function resolveRuntimeBinaryPath(): string | null {
   const envOverride = process.env.KIWI_CONTROL_RUNTIME_BIN?.trim()
     || process.env.SHREY_JUNIOR_RUNTIME_BIN?.trim();
@@ -257,11 +315,12 @@ function resolveRuntimeBinaryPath(): string | null {
     return path.resolve(envOverride);
   }
 
-  const productRoot = resolveShreyJuniorProductRoot();
+  if (isSourceProductCheckout(resolveShreyJuniorProductRoot())) {
+    return null;
+  }
+
   const executableName = process.platform === "win32" ? "kiwi-control-runtime.exe" : "kiwi-control-runtime";
   const candidates = [
-    path.join(productRoot, "crates", "kiwi-runtime", "target", "release", executableName),
-    path.join(productRoot, "crates", "kiwi-runtime", "target", "debug", executableName),
     path.join(resolveGlobalHomeRoot(), "bin", executableName)
   ];
 
@@ -285,4 +344,12 @@ function runtimeMetadataDir(): string {
 
 function runtimeMetadataPath(): string {
   return path.join(runtimeMetadataDir(), RUNTIME_METADATA_FILE);
+}
+
+function isRuntimeSnapshotPayload(value: unknown): value is RuntimeSnapshot {
+  return typeof value === "object"
+    && value !== null
+    && "targetRoot" in value
+    && "revision" in value
+    && "lifecycle" in value;
 }

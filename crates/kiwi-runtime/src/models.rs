@@ -60,6 +60,41 @@ pub struct RuntimeReadiness {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct RuntimeDecisionAction {
+    pub action: String,
+    pub command: Option<String>,
+    pub reason: String,
+    pub priority: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeDecisionRecovery {
+    pub kind: String,
+    pub reason: String,
+    pub fix_command: Option<String>,
+    pub retry_command: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeDecision {
+    pub current_step_id: String,
+    pub current_step_label: String,
+    pub current_step_status: String,
+    pub next_command: Option<String>,
+    pub readiness_label: String,
+    pub readiness_tone: String,
+    pub readiness_detail: String,
+    pub next_action: Option<RuntimeDecisionAction>,
+    pub recovery: Option<RuntimeDecisionRecovery>,
+    pub decision_source: String,
+    #[serde(default)]
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RuntimeEvent {
     pub event_id: Option<i64>,
     pub revision: i64,
@@ -104,6 +139,7 @@ pub struct RuntimeSnapshot {
     pub last_updated_at: Option<String>,
     pub last_event: Option<RuntimeEvent>,
     pub readiness: RuntimeReadiness,
+    pub decision: RuntimeDecision,
     pub derived_freshness: Vec<DerivedOutputStatus>,
 }
 
@@ -133,6 +169,7 @@ pub struct TransitionExecutionStateRequest {
     pub operation_id: Option<String>,
     pub reuse_operation: Option<bool>,
     pub clear_task: Option<bool>,
+    pub decision: Option<RuntimeDecision>,
     pub invalidate_outputs: Option<Vec<String>>,
     pub materialize_outputs: Option<Vec<String>>,
 }

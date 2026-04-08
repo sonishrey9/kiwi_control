@@ -250,25 +250,21 @@ fn resolve_runtime_binary() -> Option<PathBuf> {
         return Some(path);
     }
 
+    if resolve_source_product_root()
+        .join("crates")
+        .join("kiwi-runtime")
+        .join("Cargo.toml")
+        .exists()
+    {
+        return None;
+    }
+
     let executable_name = if cfg!(target_os = "windows") {
         "kiwi-control-runtime.exe"
     } else {
         "kiwi-control-runtime"
     };
-    let product_root = resolve_source_product_root();
     let candidates = [
-        product_root
-            .join("crates")
-            .join("kiwi-runtime")
-            .join("target")
-            .join("release")
-            .join(executable_name),
-        product_root
-            .join("crates")
-            .join("kiwi-runtime")
-            .join("target")
-            .join("debug")
-            .join(executable_name),
         resolve_global_home_root().join("bin").join(executable_name),
     ];
 

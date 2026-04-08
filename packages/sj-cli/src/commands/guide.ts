@@ -1,6 +1,8 @@
 import { getCurrentExecutionStep, syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import { loadPreparedScope } from "@shrey-junior/sj-core/core/prepared-scope.js";
+import { runtimeDecisionFromSnapshot } from "@shrey-junior/sj-core/core/runtime-decision.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { getRuntimeSnapshot } from "@shrey-junior/sj-core/runtime/client.js";
 import { createSpinner, printSection, success, warn } from "../utils/cli-output.js";
 import { buildPlanRecoveryWorkflow, selectPrimaryPlanCommand } from "./execution-plan-recovery.js";
 
@@ -13,16 +15,20 @@ export interface GuideOptions {
 
 export async function runGuide(options: GuideOptions): Promise<number> {
   const spinner = options.json ? null : await createSpinner(`Loading guide state for ${options.targetRoot}`);
-  const [plan, preparedScope] = await Promise.all([
+  const [plan, preparedScope, runtimeSnapshot] = await Promise.all([
     syncExecutionPlan(options.targetRoot, { persist: false }),
-    loadPreparedScope(options.targetRoot)
+    loadPreparedScope(options.targetRoot),
+    getRuntimeSnapshot(options.targetRoot)
   ]);
   spinner?.succeed(`Guide ready for ${options.targetRoot}`);
+  const runtimeDecision = runtimeDecisionFromSnapshot(runtimeSnapshot);
   const step = getCurrentExecutionStep(plan);
   const nextCommand =
-    !plan.lastError && plan.confidence === "high" && step?.id === "execute" && plan.task
+    !runtimeDecision.recovery && !plan.lastError && plan.confidence === "high" && step?.id === "execute" && plan.task
       ? `kiwi-control run --auto "${plan.task}"`
-      : selectPrimaryPlanCommand(plan, "kiwi-control next");
+      : runtimeDecision.recovery?.fixCommand
+        ?? runtimeDecision.nextCommand
+        ?? selectPrimaryPlanCommand(plan, "kiwi-control next");
 
   const payload = {
     targetRoot: options.targetRoot,
@@ -30,19 +36,19 @@ export async function runGuide(options: GuideOptions): Promise<number> {
     intent: plan.intent,
     goal: plan.hierarchy.goal,
     subtasks: plan.hierarchy.subtasks,
-    currentStep: step?.id ?? null,
+    currentStep: runtimeDecision.currentStepId ?? step?.id ?? null,
     validationStatus: step?.validation ?? preparedScope?.task ?? null,
     impactPreview: plan.impactPreview,
-    ...(plan.lastError
+    ...(runtimeDecision.recovery || plan.lastError
       ? {
           blockingIssue: {
-            type: plan.lastError.errorType,
-            strategy: plan.lastError.retryStrategy,
-            reason: plan.lastError.reason
+            type: runtimeDecision.recovery?.kind ?? plan.lastError?.errorType ?? "blocked",
+            strategy: plan.lastError?.retryStrategy ?? "runtime",
+            reason: runtimeDecision.recovery?.reason ?? plan.lastError?.reason ?? runtimeDecision.readinessDetail
           },
-          fixCommand: plan.lastError.fixCommand,
-          retryCommand: plan.lastError.retryCommand,
-          blockedWorkflow: buildPlanRecoveryWorkflow(plan)
+          fixCommand: runtimeDecision.recovery?.fixCommand ?? plan.lastError?.fixCommand,
+          retryCommand: runtimeDecision.recovery?.retryCommand ?? plan.lastError?.retryCommand,
+          blockedWorkflow: runtimeDecision.recovery ? [] : buildPlanRecoveryWorkflow(plan)
         }
       : {}),
     nextCommand
@@ -56,15 +62,21 @@ export async function runGuide(options: GuideOptions): Promise<number> {
   printSection(options.logger, "GUIDE");
   options.logger.info(`target: ${options.targetRoot}`);
   options.logger.info(`goal: ${plan.hierarchy.goal ?? "none"}`);
-  options.logger.info(`current step: ${step?.id ?? "none"}`);
-  if (plan.lastError) {
-    options.logger.info(`${warn("blocking issue")}: ${plan.lastError.errorType} (${plan.lastError.retryStrategy})`);
-    options.logger.info(`reason: ${plan.lastError.reason}`);
-    options.logger.info(`fix command: ${plan.lastError.fixCommand}`);
-    options.logger.info(`retry command: ${plan.lastError.retryCommand}`);
-    for (const [index, entry] of buildPlanRecoveryWorkflow(plan).entries()) {
-      options.logger.info(`${index + 1}. ${entry.title}: ${entry.command}`);
-      options.logger.info(`   ${entry.detail}`);
+  options.logger.info(`current step: ${runtimeDecision.currentStepId ?? step?.id ?? "none"}`);
+  if (runtimeDecision.recovery || plan.lastError) {
+    options.logger.info(`${warn("blocking issue")}: ${runtimeDecision.recovery?.kind ?? plan.lastError?.errorType ?? "blocked"} (${plan.lastError?.retryStrategy ?? "runtime"})`);
+    options.logger.info(`reason: ${runtimeDecision.recovery?.reason ?? plan.lastError?.reason ?? runtimeDecision.readinessDetail}`);
+    if (runtimeDecision.recovery?.fixCommand ?? plan.lastError?.fixCommand) {
+      options.logger.info(`fix command: ${runtimeDecision.recovery?.fixCommand ?? plan.lastError?.fixCommand}`);
+    }
+    if (runtimeDecision.recovery?.retryCommand ?? plan.lastError?.retryCommand) {
+      options.logger.info(`retry command: ${runtimeDecision.recovery?.retryCommand ?? plan.lastError?.retryCommand}`);
+    }
+    if (!runtimeDecision.recovery) {
+      for (const [index, entry] of buildPlanRecoveryWorkflow(plan).entries()) {
+        options.logger.info(`${index + 1}. ${entry.title}: ${entry.command}`);
+        options.logger.info(`   ${entry.detail}`);
+      }
     }
   }
   if (plan.hierarchy.subtasks.length > 0) {

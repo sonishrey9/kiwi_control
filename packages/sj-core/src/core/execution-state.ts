@@ -5,6 +5,7 @@ import {
   materializeRuntimeDerivedOutputs,
   openRuntimeTarget,
   transitionRuntimeExecutionState,
+  type RuntimeDecision,
   type RuntimeSnapshot
 } from "../runtime/client.js";
 
@@ -63,6 +64,7 @@ export interface RecordExecutionStateOptions {
   operationId?: string | null;
   reuseOperation?: boolean;
   clearTask?: boolean;
+  decision?: RuntimeDecision | null;
 }
 
 interface LegacyExecutionPlanRecord {
@@ -155,6 +157,7 @@ export async function recordExecutionState(
     ...(options.operationId !== undefined ? { operationId: options.operationId } : {}),
     ...(options.reuseOperation !== undefined ? { reuseOperation: options.reuseOperation } : {}),
     ...(options.clearTask !== undefined ? { clearTask: options.clearTask } : {}),
+    ...(options.decision !== undefined ? { decision: options.decision } : {}),
     invalidateOutputs: [
       "execution-state",
       "execution-events",

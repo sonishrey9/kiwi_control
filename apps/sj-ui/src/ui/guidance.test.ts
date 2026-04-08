@@ -54,6 +54,58 @@ test("repo recovery guidance uses fix command for blocked execution plans", () =
   assert.equal(guidance?.nextCommand, "kc explain");
 });
 
+test("repo recovery guidance prefers runtime recovery over compatibility plan errors", () => {
+  const guidance = deriveRepoRecoveryGuidance(
+    {
+      targetRoot: "/tmp/repo",
+      loadState: { source: "fresh" },
+      repoState: { mode: "healthy", detail: "ok" },
+      validation: { errors: 0 },
+      executionState: { lifecycle: "blocked", reason: "Runtime blocked the workflow.", nextCommand: "kc validate" },
+      readiness: { label: "Workflow blocked", detail: "Runtime blocked the workflow.", nextCommand: "kc validate" },
+      runtimeDecision: {
+        currentStepId: "validate",
+        currentStepLabel: "Validate outcome",
+        currentStepStatus: "failed",
+        nextCommand: "kc validate",
+        readinessLabel: "Workflow blocked",
+        readinessTone: "blocked",
+        readinessDetail: "Runtime blocked the workflow.",
+        nextAction: {
+          action: "Re-run validation",
+          command: "kc validate",
+          reason: "Runtime blocked the workflow.",
+          priority: "critical"
+        },
+        recovery: {
+          kind: "blocked",
+          reason: "Runtime blocked the workflow.",
+          fixCommand: "kc validate",
+          retryCommand: "kc run"
+        },
+        decisionSource: "runtime-transition"
+      },
+      kiwiControl: {
+        executionPlan: {
+          blocked: true,
+          lastError: {
+            reason: "Compatibility plan is stale.",
+            fixCommand: "kc explain",
+            retryCommand: "kc retry"
+          },
+          nextCommands: ["kc next"]
+        }
+      }
+    },
+    { lastRepoLoadFailure: null }
+  );
+
+  assert.equal(guidance?.tone, "blocked");
+  assert.equal(guidance?.nextCommand, "kc validate");
+  assert.match(guidance?.detail ?? "", /Runtime blocked the workflow/);
+  assert.doesNotMatch(guidance?.detail ?? "", /Compatibility plan is stale/);
+});
+
 test("execution plan failure guidance preserves fix and retry commands", () => {
   const guidance = deriveExecutionPlanFailureGuidance({
     reason: "Validation failed.",

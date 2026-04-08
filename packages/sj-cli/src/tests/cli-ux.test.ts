@@ -11,6 +11,7 @@ import { loadExecutionLog } from "@shrey-junior/sj-core/core/execution-log.js";
 import { bootstrapTarget } from "@shrey-junior/sj-core/core/bootstrap.js";
 import { buildRepoControlState } from "@shrey-junior/sj-core/core/ui-state.js";
 import { failWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
+import { transitionRuntimeExecutionState } from "@shrey-junior/sj-core/runtime/client.js";
 import { runGuide } from "../commands/guide.js";
 import { runStatus } from "../commands/status.js";
 
@@ -725,4 +726,76 @@ test("status prioritizes live repo validation issues over stale continuity actio
   assert.match(logs.join("\n"), /next action: Fix the blocking execution issue — run kiwi-control doctor/);
   assert.match(logs.join("\n"), /generated repo-local state missing/);
   assert.doesNotMatch(logs.join("\n"), /Resume the recorded focus|Continue the active repo task|Capture current progress/);
+});
+
+test("status prefers runtime decision state over stale compatibility execution plan", async () => {
+  const repoRootPath = repoRoot();
+  const config = await loadCanonicalConfig(repoRootPath);
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-cli-runtime-decision-"));
+  const repoDir = path.join(tempDir, "repo");
+  await fs.mkdir(repoDir, { recursive: true });
+  await fs.writeFile(path.join(repoDir, "package.json"), '{\n  "name": "runtime-decision-repo"\n}\n', "utf8");
+
+  await bootstrapTarget(
+    {
+      repoRoot: repoRootPath,
+      targetRoot: repoDir
+    },
+    config
+  );
+
+  await failWorkflowStep(repoDir, {
+    task: "stale compatibility task",
+    stepId: "validate-outcome",
+    failureReason: "Compatibility plan says validation is blocked.",
+    validation: "Old validation failed."
+  });
+
+  await transitionRuntimeExecutionState({
+    targetRoot: repoDir,
+    actor: "test",
+    eventType: "prepare-completed",
+    lifecycle: "packet_created",
+    task: "runtime-authoritative task",
+    sourceCommand: 'kiwi-control prepare "runtime-authoritative task"',
+    reason: "Prepared scope is ready.",
+    nextCommand: 'kiwi-control run "runtime-authoritative task"',
+    blockedBy: [],
+    decision: {
+      currentStepId: "generate_packets",
+      currentStepLabel: "Generate run packets",
+      currentStepStatus: "pending",
+      nextCommand: 'kiwi-control run "runtime-authoritative task"',
+      readinessLabel: "Packet created",
+      readinessTone: "ready",
+      readinessDetail: "Prepared scope is ready.",
+      nextAction: {
+        action: "Generate run packets",
+        command: 'kiwi-control run "runtime-authoritative task"',
+        reason: "Prepared scope is ready.",
+        priority: "high"
+      },
+      recovery: null,
+      decisionSource: "runtime-transition"
+    }
+  });
+
+  const logs: string[] = [];
+  const exitCode = await runStatus({
+    repoRoot: repoRootPath,
+    targetRoot: repoDir,
+    logger: {
+      info(message: string) {
+        logs.push(message);
+      },
+      warn() {},
+      error() {}
+    } as never
+  });
+
+  assert.equal(exitCode, 0);
+  assert.match(logs.join("\n"), /execution state: packet-created/);
+  assert.match(logs.join("\n"), /current step: generate_packets/);
+  assert.match(logs.join("\n"), /next action: Generate run packets — run kiwi-control run "runtime-authoritative task"/);
+  assert.doesNotMatch(logs.join("\n"), /Compatibility plan says validation is blocked/);
 });

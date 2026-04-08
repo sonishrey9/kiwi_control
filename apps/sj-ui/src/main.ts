@@ -529,6 +529,29 @@ type RepoControlState = {
     detail: string;
     nextCommand: string | null;
   };
+  runtimeDecision: {
+    currentStepId: "prepare" | "generate_packets" | "execute_packet" | "validate" | "checkpoint" | "handoff" | "idle";
+    currentStepLabel: string;
+    currentStepStatus: "pending" | "running" | "success" | "failed";
+    nextCommand: string | null;
+    readinessLabel: string;
+    readinessTone: "ready" | "blocked" | "failed";
+    readinessDetail: string;
+    nextAction: {
+      action: string;
+      command: string | null;
+      reason: string;
+      priority: "critical" | "high" | "normal" | "low";
+    } | null;
+    recovery: {
+      kind: "blocked" | "failed";
+      reason: string;
+      fixCommand: string | null;
+      retryCommand: string | null;
+    } | null;
+    updatedAt?: string;
+    decisionSource: string;
+  };
   repoOverview: PanelItem[];
   continuity: PanelItem[];
   memoryBank: Array<{ label: string; path: string; present: boolean }>;
@@ -2275,7 +2298,9 @@ function deriveComposerConstraint(
   const plan = state.kiwiControl?.executionPlan;
   const validateStep = plan?.steps.find((step) => step.id === "validate");
   const validateFixCommand =
-    state.executionState.nextCommand
+    state.runtimeDecision.recovery?.fixCommand
+    ?? state.runtimeDecision.nextCommand
+    ?? state.executionState.nextCommand
     ?? state.readiness.nextCommand
     ?? validateStep?.fixCommand
     ?? validateStep?.retryCommand
@@ -3116,7 +3141,8 @@ function reportRenderProbe(state: RepoControlState): void {
     .filter((value): value is string => value.length > 0);
   const executionPlan = state.kiwiControl?.executionPlan;
   const currentStep =
-    executionPlan?.steps[executionPlan.currentStepIndex]?.id
+    state.runtimeDecision.currentStepId
+    ?? executionPlan?.steps[executionPlan.currentStepIndex]?.id
     ?? state.kiwiControl?.workflow.currentStepId
     ?? null;
 
@@ -3213,7 +3239,7 @@ function renderTopBar(state: RepoControlState): string {
   const validationState = getPanelValue(state.repoOverview, "Validation state");
   const themeLabel = activeTheme === "dark" ? "Light mode" : "Dark mode";
   const currentTask = state.kiwiControl?.contextView.task ?? state.kiwiControl?.nextActions.actions[0]?.action ?? "";
-  const retryEnabled = Boolean(state.kiwiControl?.executionPlan.lastError?.retryCommand) || Boolean(currentTargetRoot);
+  const retryEnabled = Boolean(state.runtimeDecision.recovery?.retryCommand) || Boolean(currentTargetRoot);
   const composerConstraint =
     commandState.composer
       ? deriveComposerConstraint(state, commandState.composer, commandState.draftValue)
@@ -5396,6 +5422,35 @@ function buildBridgeUnavailableState(targetRoot: string): RepoControlState {
         ? "Kiwi Control could not read repo-local execution state for this folder yet."
         : "Run kc ui inside a repo to load it automatically.",
       nextCommand: hasTargetRoot ? "kc ui" : "kc init"
+    },
+    runtimeDecision: {
+      currentStepId: "idle",
+      currentStepLabel: "Idle",
+      currentStepStatus: "failed",
+      nextCommand: hasTargetRoot ? "kc ui" : "kc init",
+      readinessLabel: hasTargetRoot ? "Desktop bridge unavailable" : "Open a repo",
+      readinessTone: "failed",
+      readinessDetail: hasTargetRoot
+        ? "Kiwi Control could not read repo-local execution state for this folder yet."
+        : "Run kc ui inside a repo to load it automatically.",
+      nextAction: {
+        action: hasTargetRoot ? "Restore the desktop bridge" : "Open a repo",
+        command: hasTargetRoot ? "kc ui" : "kc init",
+        reason: hasTargetRoot
+          ? "Kiwi Control could not read repo-local execution state for this folder yet."
+          : "Run kc ui inside a repo to load it automatically.",
+        priority: "critical"
+      },
+      recovery: {
+        kind: "failed",
+        reason: hasTargetRoot
+          ? "Kiwi Control could not read repo-local execution state for this folder yet."
+          : "Run kc ui inside a repo to load it automatically.",
+        fixCommand: hasTargetRoot ? "kc ui" : "kc init",
+        retryCommand: hasTargetRoot ? "kc ui" : "kc init"
+      },
+      decisionSource: "bridge-fallback",
+      updatedAt: new Date().toISOString()
     },
     repoOverview: [
       { label: "Project type", value: hasTargetRoot ? "unknown (awaiting repo bridge)" : "no repo loaded", ...(hasTargetRoot ? { tone: "warn" as const } : {}) },

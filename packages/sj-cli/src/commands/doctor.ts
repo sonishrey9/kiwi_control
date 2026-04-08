@@ -30,19 +30,26 @@ export async function runDoctor(options: DoctorOptions): Promise<number> {
   }));
   if (
     (controlState.executionState.lifecycle === "blocked" || controlState.executionState.lifecycle === "failed")
-    && controlState.executionState.reason
+    && (controlState.runtimeDecision.recovery?.reason || controlState.executionState.reason)
   ) {
     findings.push({
       level: controlState.executionState.lifecycle === "failed" ? "error" : "warn",
-      message: controlState.executionState.reason,
+      message: controlState.runtimeDecision.recovery?.reason ?? controlState.executionState.reason ?? "Kiwi recorded a blocking runtime state.",
       filePath: null,
-      fixCommand: controlState.executionState.nextCommand ?? `${PRODUCT_METADATA.cli.primaryCommand} doctor --target "${options.targetRoot}"`
+      fixCommand:
+        controlState.runtimeDecision.recovery?.fixCommand
+        ?? controlState.runtimeDecision.nextCommand
+        ?? controlState.executionState.nextCommand
+        ?? `${PRODUCT_METADATA.cli.primaryCommand} doctor --target "${options.targetRoot}"`
     });
   }
   const payload = {
     ok: findings.every((finding) => finding.level !== "error"),
     findings,
-    nextCommand: controlState.readiness.nextCommand ?? `${PRODUCT_METADATA.cli.primaryCommand} status --target "${options.targetRoot}"`
+    nextCommand:
+      controlState.runtimeDecision.nextCommand
+      ?? controlState.readiness.nextCommand
+      ?? `${PRODUCT_METADATA.cli.primaryCommand} status --target "${options.targetRoot}"`
   };
 
   if (options.json) {

@@ -1,6 +1,8 @@
 import { loadWorkflowState } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
+import { runtimeDecisionFromSnapshot } from "@shrey-junior/sj-core/core/runtime-decision.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { getRuntimeSnapshot } from "@shrey-junior/sj-core/runtime/client.js";
 import { selectPrimaryPlanCommand } from "./execution-plan-recovery.js";
 
 export interface TraceOptions {
@@ -11,13 +13,16 @@ export interface TraceOptions {
 }
 
 export async function runTrace(options: TraceOptions): Promise<number> {
-  const [plan, workflow] = await Promise.all([
+  const [plan, workflow, runtimeSnapshot] = await Promise.all([
     syncExecutionPlan(options.targetRoot, { persist: false }),
-    loadWorkflowState(options.targetRoot)
+    loadWorkflowState(options.targetRoot),
+    getRuntimeSnapshot(options.targetRoot)
   ]);
+  const runtimeDecision = runtimeDecisionFromSnapshot(runtimeSnapshot);
   const payload = {
-    state: plan.state,
+    state: runtimeSnapshot.lifecycle,
     currentStepIndex: plan.currentStepIndex,
+    runtimeDecision,
     hierarchy: plan.hierarchy,
     impactPreview: plan.impactPreview,
     planSteps: plan.steps.map((step) => ({
@@ -36,13 +41,13 @@ export async function runTrace(options: TraceOptions): Promise<number> {
       failureReason: step.failureReason,
       retryCommand: step.result.retryCommand
     })),
-    nextCommand: selectPrimaryPlanCommand(plan, "kiwi-control next")
+    nextCommand: runtimeDecision.recovery?.fixCommand ?? runtimeDecision.nextCommand ?? selectPrimaryPlanCommand(plan, "kiwi-control next")
   };
 
   if (options.json) {
     options.logger.info(JSON.stringify(payload, null, 2));
   } else {
-    options.logger.info(`state: ${plan.state}`);
+    options.logger.info(`state: ${runtimeSnapshot.lifecycle}`);
     if (plan.hierarchy.goal) {
       options.logger.info(`goal: ${plan.hierarchy.goal}`);
     }

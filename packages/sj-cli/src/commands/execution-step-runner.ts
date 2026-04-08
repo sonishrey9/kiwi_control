@@ -1,6 +1,11 @@
 import { loadExecutionPlan, recordPlanStepResult, syncExecutionPlan, type ExecutionPlanStepId } from "@shrey-junior/sj-core/core/execution-plan.js";
 import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import {
+  buildRuntimeDecision,
+  buildRuntimeDecisionAction,
+  runtimeDecisionStepIdFromExecutionPlanStep
+} from "@shrey-junior/sj-core/core/runtime-decision.js";
 import { runPrepare } from "./prepare.js";
 import { runRun } from "./run.js";
 import { runValidate } from "./validate.js";
@@ -31,7 +36,22 @@ export async function runExecutionPlanStep(
       reason: `Executing ${currentStep.id}.`,
       nextCommand: currentStep.command,
       blockedBy: [],
-      reuseOperation: true
+      reuseOperation: true,
+      decision: buildRuntimeDecision({
+        currentStepId: runtimeDecisionStepIdFromExecutionPlanStep(currentStep.id),
+        currentStepStatus: "running",
+        nextCommand: currentStep.command,
+        readinessLabel: "Running",
+        readinessTone: "ready",
+        readinessDetail: `Executing ${currentStep.id}.`,
+        nextAction: buildRuntimeDecisionAction(
+          `Run ${currentStep.id}`,
+          currentStep.command,
+          `Executing ${currentStep.id}.`,
+          "normal"
+        ),
+        decisionSource: "execution-step-runner"
+      })
     }).catch(() => null);
   }
   switch (stepId) {

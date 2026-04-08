@@ -14,6 +14,11 @@ import { loadActiveRoleHints, loadCurrentPhase, loadLatestCheckpoint, updateActi
 import { buildTemplateContext, selectPortableContract } from "@shrey-junior/sj-core/core/router.js";
 import { recordPreparedScopeCompletion } from "@shrey-junior/sj-core/core/execution-log.js";
 import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
+import {
+  buildRuntimeDecision,
+  buildRuntimeDecisionAction,
+  buildRuntimeDecisionRecovery
+} from "@shrey-junior/sj-core/core/runtime-decision.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
 import { executeWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
@@ -113,7 +118,22 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
     reason: `Recording handoff to ${targetSpecialistId}.`,
     nextCommand: handoff.nextCommand,
     blockedBy: [],
-    reuseOperation: true
+    reuseOperation: true,
+    decision: buildRuntimeDecision({
+      currentStepId: "handoff",
+      currentStepStatus: "running",
+      nextCommand: handoff.nextCommand,
+      readinessLabel: "Running",
+      readinessTone: "ready",
+      readinessDetail: `Recording handoff to ${targetSpecialistId}.`,
+      nextAction: buildRuntimeDecisionAction(
+        "Handoff work",
+        `${PRODUCT_METADATA.cli.primaryCommand} handoff --to ${targetSpecialistId} --tool ${handoffTool}`,
+        `Recording handoff to ${targetSpecialistId}.`,
+        "normal"
+      ),
+      decisionSource: "handoff-command"
+    })
   }).catch(() => null);
   const baseName = buildHandoffBaseName(handoff);
   const contract = selectPortableContract(
@@ -252,7 +272,44 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
           }
         }
       : {}),
-    reuseOperation: true
+    reuseOperation: true,
+    decision: workflowExecution.ok
+      ? buildRuntimeDecision({
+          currentStepId: "idle",
+          currentStepStatus: "success",
+          nextCommand: handoff.nextCommand,
+          readinessLabel: "Completed",
+          readinessTone: "ready",
+          readinessDetail: `Handoff to ${targetSpecialistId} recorded successfully.`,
+          nextAction: buildRuntimeDecisionAction(
+            "Continue in the handoff target",
+            handoff.nextCommand,
+            handoff.nextStep,
+            "normal"
+          ),
+          decisionSource: "handoff-command"
+        })
+      : buildRuntimeDecision({
+          currentStepId: "handoff",
+          currentStepStatus: "failed",
+          nextCommand: workflowExecution.retryCommand,
+          readinessLabel: "Workflow blocked",
+          readinessTone: "blocked",
+          readinessDetail: workflowExecution.failureReason ?? `Handoff to ${targetSpecialistId} failed.`,
+          nextAction: buildRuntimeDecisionAction(
+            "Fix the blocking execution issue",
+            workflowExecution.retryCommand,
+            workflowExecution.failureReason ?? workflowExecution.validation,
+            "critical"
+          ),
+          recovery: buildRuntimeDecisionRecovery(
+            "blocked",
+            workflowExecution.failureReason ?? workflowExecution.validation,
+            workflowExecution.retryCommand,
+            `${PRODUCT_METADATA.cli.primaryCommand} handoff --to ${targetSpecialistId} --tool ${handoffTool}`
+          ),
+          decisionSource: "handoff-command"
+        })
   }).catch(() => null);
   if (!workflowExecution.ok || !workflowExecution.result) {
     options.logger.error(workflowExecution.failureReason ?? `Handoff to ${targetSpecialistId} failed.`);

@@ -17,6 +17,11 @@ import { buildPhaseId, loadActiveRoleHints, loadLatestCheckpoint, parseCsvFlag, 
 import { loadCurrentPhase } from "@shrey-junior/sj-core/core/state.js";
 import { recordPreparedScopeCompletion } from "@shrey-junior/sj-core/core/execution-log.js";
 import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
+import {
+  buildRuntimeDecision,
+  buildRuntimeDecisionAction,
+  buildRuntimeDecisionRecovery
+} from "@shrey-junior/sj-core/core/runtime-decision.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
 import { executeWorkflowStep, loadWorkflowState } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
@@ -198,7 +203,22 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
     reason: `Recording checkpoint "${options.label}".`,
     nextCommand: nextSuggestedCommand,
     blockedBy: [],
-    reuseOperation: true
+    reuseOperation: true,
+    decision: buildRuntimeDecision({
+      currentStepId: "checkpoint",
+      currentStepStatus: "running",
+      nextCommand: nextSuggestedCommand,
+      readinessLabel: "Running",
+      readinessTone: "ready",
+      readinessDetail: `Recording checkpoint "${options.label}".`,
+      nextAction: buildRuntimeDecisionAction(
+        "Checkpoint progress",
+        `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "${options.label}"`,
+        `Recording checkpoint "${options.label}".`,
+        "normal"
+      ),
+      decisionSource: "checkpoint-command"
+    })
   }).catch(() => null);
   const workflowExecution = await executeWorkflowStep(options.targetRoot, {
     task: goal,
@@ -378,7 +398,44 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
           }
         }
       : {}),
-    reuseOperation: true
+    reuseOperation: true,
+    decision: workflowExecution.ok
+      ? buildRuntimeDecision({
+          currentStepId: "handoff",
+          currentStepStatus: "pending",
+          nextCommand: workflowExecution.ok ? nextSuggestedCommand : workflowExecution.retryCommand,
+          readinessLabel: "Completed",
+          readinessTone: "ready",
+          readinessDetail: `Checkpoint "${options.label}" recorded successfully.`,
+          nextAction: buildRuntimeDecisionAction(
+            "Handoff work",
+            nextSuggestedCommand,
+            record.nextRecommendedStep,
+            "normal"
+          ),
+          decisionSource: "checkpoint-command"
+        })
+      : buildRuntimeDecision({
+          currentStepId: "checkpoint",
+          currentStepStatus: "failed",
+          nextCommand: workflowExecution.retryCommand,
+          readinessLabel: "Workflow blocked",
+          readinessTone: "blocked",
+          readinessDetail: workflowExecution.failureReason ?? `Checkpoint "${options.label}" failed.`,
+          nextAction: buildRuntimeDecisionAction(
+            "Fix the blocking execution issue",
+            workflowExecution.retryCommand,
+            workflowExecution.failureReason ?? workflowExecution.validation,
+            "critical"
+          ),
+          recovery: buildRuntimeDecisionRecovery(
+            "blocked",
+            workflowExecution.failureReason ?? workflowExecution.validation,
+            workflowExecution.retryCommand,
+            `${PRODUCT_METADATA.cli.primaryCommand} checkpoint "${options.label}"`
+          ),
+          decisionSource: "checkpoint-command"
+        })
   }).catch(() => null);
   if (!workflowExecution.ok || !workflowExecution.result) {
     options.logger.error(workflowExecution.failureReason ?? `Checkpoint "${options.label}" failed.`);

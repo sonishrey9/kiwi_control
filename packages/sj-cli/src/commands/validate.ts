@@ -2,6 +2,11 @@ import { inspectGitState } from "@shrey-junior/sj-core/core/git.js";
 import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
 import { evaluateFinalValidation, syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import { recordEvalEntry } from "@shrey-junior/sj-core/core/eval.js";
+import {
+  buildRuntimeDecision,
+  buildRuntimeDecisionAction,
+  buildRuntimeDecisionRecovery
+} from "@shrey-junior/sj-core/core/runtime-decision.js";
 import { executeWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
@@ -30,7 +35,22 @@ export async function runValidate(options: ValidateOptions): Promise<number> {
     reason: `Validating "${task}".`,
     nextCommand: `kiwi-control validate "${task}"`,
     blockedBy: [],
-    reuseOperation: true
+    reuseOperation: true,
+    decision: buildRuntimeDecision({
+      currentStepId: "validate",
+      currentStepStatus: "running",
+      nextCommand: `kiwi-control validate "${task}"`,
+      readinessLabel: "Running",
+      readinessTone: "ready",
+      readinessDetail: `Validating "${task}".`,
+      nextAction: buildRuntimeDecisionAction(
+        "Validate outcome",
+        `kiwi-control validate "${task}"`,
+        `Validating "${task}".`,
+        "normal"
+      ),
+      decisionSource: "validate-command"
+    })
   }).catch(() => null);
   const [gitState, preparedScope, selection] = await Promise.all([
     inspectGitState(options.targetRoot),
@@ -79,7 +99,44 @@ export async function runValidate(options: ValidateOptions): Promise<number> {
     artifacts: {
       changedFiles: gitState.changedFiles.slice(0, 12)
     },
-    reuseOperation: true
+    reuseOperation: true,
+    decision: execution.ok
+      ? buildRuntimeDecision({
+          currentStepId: "checkpoint",
+          currentStepStatus: "pending",
+          nextCommand,
+          readinessLabel: "Completed",
+          readinessTone: "ready",
+          readinessDetail: `Validation passed for "${task}".`,
+          nextAction: buildRuntimeDecisionAction(
+            "Checkpoint progress",
+            nextCommand,
+            `Validation passed for "${task}".`,
+            "normal"
+          ),
+          decisionSource: "validate-command"
+        })
+      : buildRuntimeDecision({
+          currentStepId: "validate",
+          currentStepStatus: "failed",
+          nextCommand,
+          readinessLabel: updatedPlan?.state === "failed" ? "Workflow failed" : "Workflow blocked",
+          readinessTone: updatedPlan?.state === "failed" ? "failed" : "blocked",
+          readinessDetail: execution.failureReason ?? `Validation failed for "${task}".`,
+          nextAction: buildRuntimeDecisionAction(
+            "Fix the blocking execution issue",
+            nextCommand,
+            execution.failureReason ?? execution.validation,
+            "critical"
+          ),
+          recovery: buildRuntimeDecisionRecovery(
+            updatedPlan?.state === "failed" ? "failed" : "blocked",
+            execution.failureReason ?? execution.validation,
+            nextCommand,
+            recoveryRetryCommand ?? `kiwi-control validate "${task}"`
+          ),
+          decisionSource: "validate-command"
+        })
   }).catch(() => null);
 
   await recordRuntimeProgress(options.targetRoot, {
