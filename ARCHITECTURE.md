@@ -2,7 +2,7 @@
 
 ## High-level overview
 
-Kiwi Control is a repo-local, artifact-first control plane for coding agents. It is not a new agent runtime. The repository remains authoritative through `.agent/` artifacts and canonical product inputs in `configs/`, `prompts/`, and `templates/`. The system is split into a backend engine, a CLI layer, and a desktop shell.
+Kiwi Control is a repo-local, artifact-first control plane for coding agents. The repository remains authoritative through `.agent/` artifacts and canonical product inputs in `configs/`, `prompts/`, and `templates/`. Execution state is now owned by a standalone Rust runtime service backed by repo-local SQLite WAL storage, while the rest of the product remains split into a backend engine, a CLI layer, and a desktop shell.
 
 ```text
 repo files + .agent artifacts
@@ -13,7 +13,7 @@ repo files + .agent artifacts
    +------+------+
    |             |
    v             v
-packages/sj-cli  runtime/ui-bridge
+packages/sj-cli  kiwi-control-runtime
    |             |
    +------+------+
           |
@@ -47,6 +47,8 @@ Important files:
 - `packages/sj-core/src/core/task-intent.ts`
 - `packages/sj-core/src/core/ui-state.ts`
 - `packages/sj-core/src/runtime/ui-bridge.ts`
+- `crates/kiwi-runtime/src/db.rs`
+- `crates/kiwi-runtime/src/daemon.rs`
 
 ### `packages/sj-cli`
 
@@ -77,7 +79,7 @@ Important files:
 
 ### `apps/sj-ui`
 
-The desktop app is a Tauri shell around repo-local state. It should never become authoritative.
+The desktop app is a Tauri shell around repo-local state. It should never become authoritative, and it now consumes execution revisions from the Rust runtime instead of polling JSON files directly.
 
 Responsibilities:
 
@@ -98,8 +100,9 @@ Important files:
 ### Repo state hydration
 
 1. The desktop app invokes `load_repo_control_state`
-2. Tauri delegates to the runtime bridge in `sj-core`
-3. `buildRepoControlState(...)` composes:
+2. Tauri opens the standalone Rust runtime and reads the canonical execution snapshot
+3. The desktop still uses `buildRepoControlState(...)` for compatibility aggregation, but execution authority comes from the runtime-backed state path
+4. `buildRepoControlState(...)` composes:
    - repo validation
    - context selection
    - execution plan
@@ -107,7 +110,7 @@ Important files:
    - specialists and MCP packs
    - machine advisory
    - token analytics
-4. The desktop renderer paints a single `RepoControlState`
+5. The desktop renderer paints a single `RepoControlState`
 
 ### Action execution
 

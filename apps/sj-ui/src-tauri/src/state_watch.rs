@@ -1,12 +1,19 @@
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use std::env;
 use std::fs;
 use std::path::PathBuf;
+use std::process::{Command, Stdio};
 use std::sync::Mutex;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 pub const REPO_STATE_CHANGED_EVENT: &str = "repo-state-changed";
+
+const RUNTIME_START_TIMEOUT: Duration = Duration::from_secs(20);
+const RUNTIME_HEALTH_TIMEOUT: Duration = Duration::from_secs(4);
+const RUNTIME_POLL_INTERVAL: Duration = Duration::from_millis(250);
 
 #[derive(Default)]
 pub struct RepoStateWatchState {
@@ -22,8 +29,15 @@ pub struct RepoStateChangedPayload {
 }
 
 #[derive(Deserialize)]
-struct ExecutionStateSnapshot {
-    revision: u64,
+#[serde(rename_all = "camelCase")]
+struct RuntimeDaemonMetadata {
+    base_url: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RuntimeEventList {
+    latest_revision: u64,
 }
 
 pub fn set_active_repo_target(
@@ -31,6 +45,11 @@ pub fn set_active_repo_target(
     target_root: String,
     revision: u64,
 ) -> Result<(), String> {
+    let normalized_target_root = target_root.trim().to_string();
+    if !normalized_target_root.is_empty() {
+        open_runtime_target(&normalized_target_root)?;
+    }
+
     let mut active_target_root = state
         .active_target_root
         .lock()
@@ -40,10 +59,10 @@ pub fn set_active_repo_target(
         .lock()
         .map_err(|_| String::from("failed to lock repo-state watch revision"))?;
 
-    *active_target_root = if target_root.trim().is_empty() {
+    *active_target_root = if normalized_target_root.is_empty() {
         None
     } else {
-        Some(target_root)
+        Some(normalized_target_root)
     };
     *last_seen_revision = revision;
     Ok(())
@@ -57,22 +76,27 @@ pub fn start_repo_state_watcher(app: AppHandle) {
         };
 
         let Some(target_root) = target_root else {
-            thread::sleep(Duration::from_millis(250));
+            thread::sleep(RUNTIME_POLL_INTERVAL);
             continue;
         };
 
-        let revision = match read_execution_state_revision(&target_root) {
-            Some(revision) => revision,
-            None => {
-                thread::sleep(Duration::from_millis(250));
+        let after_revision = match app.state::<RepoStateWatchState>().last_seen_revision.lock() {
+            Ok(last_seen_revision) => *last_seen_revision,
+            Err(_) => 0,
+        };
+
+        let latest_revision = match list_runtime_events(&target_root, after_revision) {
+            Ok(latest_revision) => latest_revision,
+            Err(_) => {
+                thread::sleep(RUNTIME_POLL_INTERVAL);
                 continue;
             }
         };
 
         let should_emit = match app.state::<RepoStateWatchState>().last_seen_revision.lock() {
             Ok(mut last_seen_revision) => {
-                if revision > *last_seen_revision {
-                    *last_seen_revision = revision;
+                if latest_revision > *last_seen_revision {
+                    *last_seen_revision = latest_revision;
                     true
                 } else {
                     false
@@ -86,21 +110,220 @@ pub fn start_repo_state_watcher(app: AppHandle) {
                 REPO_STATE_CHANGED_EVENT,
                 RepoStateChangedPayload {
                     target_root: target_root.clone(),
-                    revision,
+                    revision: latest_revision,
                 },
             );
         }
 
-        thread::sleep(Duration::from_millis(250));
+        thread::sleep(RUNTIME_POLL_INTERVAL);
     });
 }
 
-fn read_execution_state_revision(target_root: &str) -> Option<u64> {
-    let file_path = PathBuf::from(target_root)
-        .join(".agent")
-        .join("state")
-        .join("execution-state.json");
-    let payload = fs::read_to_string(file_path).ok()?;
-    let snapshot = serde_json::from_str::<ExecutionStateSnapshot>(&payload).ok()?;
-    Some(snapshot.revision)
+fn list_runtime_events(target_root: &str, after_revision: u64) -> Result<u64, String> {
+    let metadata = ensure_runtime_daemon()?;
+    let response = ureq::get(&format!("{}/execution-events", metadata.base_url))
+        .query("targetRoot", target_root)
+        .query("afterRevision", &after_revision.to_string())
+        .timeout(RUNTIME_HEALTH_TIMEOUT)
+        .call()
+        .map_err(|error| format!("failed to query runtime events: {error}"))?;
+
+    let payload: RuntimeEventList = response
+        .into_json()
+        .map_err(|error| format!("failed to decode runtime event payload: {error}"))?;
+    Ok(payload.latest_revision)
+}
+
+fn open_runtime_target(target_root: &str) -> Result<(), String> {
+    let metadata = ensure_runtime_daemon()?;
+    ureq::post(&format!("{}/open-target", metadata.base_url))
+        .timeout(RUNTIME_HEALTH_TIMEOUT)
+        .send_json(json!({ "targetRoot": target_root }))
+        .map_err(|error| format!("failed to open runtime target: {error}"))?;
+    Ok(())
+}
+
+fn ensure_runtime_daemon() -> Result<RuntimeDaemonMetadata, String> {
+    if let Some(metadata) = read_runtime_metadata()? {
+        if runtime_healthy(&metadata) {
+            return Ok(metadata);
+        }
+    }
+
+    let metadata_path = runtime_metadata_path();
+    if let Some(parent) = metadata_path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|error| format!("failed to create runtime metadata dir: {error}"))?;
+    }
+
+    let (command, args) = resolve_runtime_launch_command();
+    Command::new(command)
+        .args(args)
+        .current_dir(resolve_source_product_root())
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|error| format!("failed to launch kiwi runtime daemon: {error}"))?;
+
+    let started_at = Instant::now();
+    while started_at.elapsed() < RUNTIME_START_TIMEOUT {
+        if let Some(metadata) = read_runtime_metadata()? {
+            if runtime_healthy(&metadata) {
+                return Ok(metadata);
+            }
+        }
+        thread::sleep(Duration::from_millis(200));
+    }
+
+    Err(String::from(
+        "kiwi runtime daemon did not become healthy in time",
+    ))
+}
+
+fn runtime_healthy(metadata: &RuntimeDaemonMetadata) -> bool {
+    ureq::get(&format!("{}/health", metadata.base_url))
+        .timeout(RUNTIME_HEALTH_TIMEOUT)
+        .call()
+        .map(|response| response.status() == 200)
+        .unwrap_or(false)
+}
+
+fn read_runtime_metadata() -> Result<Option<RuntimeDaemonMetadata>, String> {
+    let metadata_path = runtime_metadata_path();
+    if !metadata_path.exists() {
+        return Ok(None);
+    }
+
+    let payload = fs::read_to_string(&metadata_path)
+        .map_err(|error| format!("failed to read runtime metadata: {error}"))?;
+    let metadata = serde_json::from_str::<RuntimeDaemonMetadata>(&payload)
+        .map_err(|error| format!("failed to parse runtime metadata: {error}"))?;
+    Ok(Some(metadata))
+}
+
+fn resolve_runtime_launch_command() -> (String, Vec<String>) {
+    if let Some(runtime_binary) = resolve_runtime_binary() {
+        return (
+            runtime_binary.to_string_lossy().to_string(),
+            vec![
+                String::from("daemon"),
+                String::from("--metadata-file"),
+                runtime_metadata_path().to_string_lossy().to_string(),
+            ],
+        );
+    }
+
+    let cargo_command = if cfg!(target_os = "windows") {
+        String::from("cargo.exe")
+    } else {
+        String::from("cargo")
+    };
+    (
+        cargo_command,
+        vec![
+            String::from("run"),
+            String::from("--manifest-path"),
+            resolve_source_product_root()
+                .join("crates")
+                .join("kiwi-runtime")
+                .join("Cargo.toml")
+                .to_string_lossy()
+                .to_string(),
+            String::from("--quiet"),
+            String::from("--bin"),
+            String::from("kiwi-control-runtime"),
+            String::from("--"),
+            String::from("daemon"),
+            String::from("--metadata-file"),
+            runtime_metadata_path().to_string_lossy().to_string(),
+        ],
+    )
+}
+
+fn resolve_runtime_binary() -> Option<PathBuf> {
+    let env_override = env::var("KIWI_CONTROL_RUNTIME_BIN")
+        .ok()
+        .or_else(|| env::var("SHREY_JUNIOR_RUNTIME_BIN").ok())
+        .map(PathBuf::from);
+    if let Some(path) = env_override {
+        return Some(path);
+    }
+
+    let executable_name = if cfg!(target_os = "windows") {
+        "kiwi-control-runtime.exe"
+    } else {
+        "kiwi-control-runtime"
+    };
+    let product_root = resolve_source_product_root();
+    let candidates = [
+        product_root
+            .join("crates")
+            .join("kiwi-runtime")
+            .join("target")
+            .join("release")
+            .join(executable_name),
+        product_root
+            .join("crates")
+            .join("kiwi-runtime")
+            .join("target")
+            .join("debug")
+            .join(executable_name),
+        resolve_global_home_root().join("bin").join(executable_name),
+    ];
+
+    candidates.into_iter().find(|candidate| candidate.exists())
+}
+
+fn resolve_source_product_root() -> PathBuf {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    manifest_dir
+        .join("..")
+        .join("..")
+        .join("..")
+        .canonicalize()
+        .unwrap_or_else(|_| manifest_dir)
+}
+
+fn resolve_global_home_root() -> PathBuf {
+    if let Ok(value) = env::var("KIWI_CONTROL_HOME") {
+        let trimmed = value.trim();
+        if !trimmed.is_empty() {
+            return PathBuf::from(trimmed);
+        }
+    }
+    if let Ok(value) = env::var("SHREY_JUNIOR_HOME") {
+        let trimmed = value.trim();
+        if !trimmed.is_empty() {
+            return PathBuf::from(trimmed);
+        }
+    }
+
+    let home_dir = env::var("HOME")
+        .or_else(|_| env::var("USERPROFILE"))
+        .unwrap_or_else(|_| String::from("."));
+    let kiwi_home = PathBuf::from(&home_dir).join(".kiwi-control");
+    let legacy_home = PathBuf::from(&home_dir).join(".shrey-junior");
+    if kiwi_home.exists() || !legacy_home.exists() {
+        kiwi_home
+    } else {
+        legacy_home
+    }
+}
+
+fn runtime_metadata_path() -> PathBuf {
+    if let Ok(value) = env::var("KIWI_CONTROL_RUNTIME_DIR") {
+        let trimmed = value.trim();
+        if !trimmed.is_empty() {
+            return PathBuf::from(trimmed).join("daemon.json");
+        }
+    }
+    if let Ok(value) = env::var("SHREY_JUNIOR_RUNTIME_DIR") {
+        let trimmed = value.trim();
+        if !trimmed.is_empty() {
+            return PathBuf::from(trimmed).join("daemon.json");
+        }
+    }
+
+    resolve_global_home_root().join("runtime").join("daemon.json")
 }

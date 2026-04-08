@@ -1,0 +1,23 @@
+[package]
+name = "kiwi-runtime"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "kiwi-control-runtime"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0"
+axum = "0.7"
+hex = "0.4"
+rusqlite = { version = "0.31", features = ["bundled"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+time = { version = "0.3", features = ["formatting"] }
+tokio = { version = "1", features = ["macros", "net", "rt-multi-thread"] }
+uuid = { version = "1", features = ["v4"] }
+
+[dev-dependencies]
+tempfile = "3.10"

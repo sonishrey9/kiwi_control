@@ -13,3 +13,6 @@ coverage/
 .omx/
 .lean-ctx/
 .repomix-output.xml
+.agent/state/runtime.sqlite3
+.agent/state/runtime.sqlite3-shm
+.agent/state/runtime.sqlite3-wal

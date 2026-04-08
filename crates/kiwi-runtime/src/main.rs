@@ -1,0 +1,37 @@
+use anyhow::{anyhow, Result};
+use kiwi_runtime::daemon::run_daemon;
+use std::path::PathBuf;
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let mut args = std::env::args().skip(1);
+    let Some(command) = args.next() else {
+        return Err(anyhow!(
+            "usage: kiwi-control-runtime daemon --metadata-file <path>"
+        ));
+    };
+
+    match command.as_str() {
+        "daemon" => {
+            let mut metadata_file = None;
+            while let Some(argument) = args.next() {
+                match argument.as_str() {
+                    "--metadata-file" => {
+                        let Some(value) = args.next() else {
+                            return Err(anyhow!("--metadata-file requires a value"));
+                        };
+                        metadata_file = Some(PathBuf::from(value));
+                    }
+                    other => {
+                        return Err(anyhow!("unsupported runtime argument: {other}"));
+                    }
+                }
+            }
+
+            let metadata_file = metadata_file
+                .ok_or_else(|| anyhow!("daemon requires --metadata-file <path>"))?;
+            run_daemon(metadata_file).await
+        }
+        other => Err(anyhow!("unsupported runtime command: {other}")),
+    }
+}

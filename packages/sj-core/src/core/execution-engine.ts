@@ -13,6 +13,8 @@ import type { ContextSelectionState } from "./context-selector.js";
 import type { RepoContextTreeState } from "./context-tree.js";
 import type { WorkflowState } from "./workflow-engine.js";
 import { loadWorkflowState } from "./workflow-engine.js";
+import type { ExecutionStateRecord } from "./execution-state.js";
+import { loadExecutionState } from "./execution-state.js";
 
 export type ExecutionEngineState =
   | "idle"
@@ -241,7 +243,7 @@ export async function syncExecutionPlan(
   }
 ): Promise<ExecutionPlanState> {
   const existingPlan = await loadExecutionPlan(targetRoot);
-  const [workflow, preparedScope, currentPhase, latestCheckpoint, latestHandoff, activeRoleHints, gitState, selection, contextTree] = await Promise.all([
+  const [workflow, preparedScope, currentPhase, latestCheckpoint, latestHandoff, activeRoleHints, gitState, selection, contextTree, executionState] = await Promise.all([
     loadWorkflowState(targetRoot),
     loadPreparedScope(targetRoot),
     loadCurrentPhase(targetRoot),
@@ -250,19 +252,24 @@ export async function syncExecutionPlan(
     loadActiveRoleHints(targetRoot),
     inspectGitState(targetRoot),
     loadContextSelection(targetRoot),
-    loadContextTree(targetRoot)
+    loadContextTree(targetRoot),
+    loadExecutionState(targetRoot, { allowLegacyFallback: false }).catch(() => null)
   ]);
+  const effectiveWorkflow = shouldPreferExecutionStateWorkflow(executionState, workflow)
+    ? synthesizeWorkflowFromExecutionState(workflow, executionState)
+    : workflow;
 
   const task =
     options?.task ??
+    executionState?.task ??
     existingPlan?.task ??
     preparedScope?.task ??
-    workflow.task ??
+    effectiveWorkflow.task ??
     currentPhase?.goal ??
     null;
   const intent = task ? parseTaskIntent(task, selection?.confidence ?? null) : null;
   const risk = assessGoalRisk(task ?? "").level;
-  const prepareStep = workflow.steps.find((step) => step.stepId === "prepare-context") ?? null;
+  const prepareStep = effectiveWorkflow.steps.find((step) => step.stepId === "prepare-context") ?? null;
   const shouldEnforcePreparedScope =
     Boolean(preparedScope) &&
     Boolean(task) &&
@@ -284,7 +291,7 @@ export async function syncExecutionPlan(
   const steps = buildExecutionSteps({
     task,
     intent,
-    workflow,
+    workflow: effectiveWorkflow,
     latestCheckpointExists: Boolean(latestCheckpoint),
     latestHandoffExists: Boolean(latestHandoff),
     contextSnapshot,
@@ -299,7 +306,7 @@ export async function syncExecutionPlan(
     : null;
   const lastError = deriveLastError({
     task,
-    workflow,
+    workflow: effectiveWorkflow,
     steps,
     selection,
     preparedScope,
@@ -311,7 +318,7 @@ export async function syncExecutionPlan(
     options?.forceState ??
     deriveExecutionState({
       steps,
-      workflow,
+      workflow: effectiveWorkflow,
       currentStepIndex,
       lastError,
       task,
@@ -352,6 +359,147 @@ export async function syncExecutionPlan(
     await persistExecutionPlan(targetRoot, plan);
   }
   return plan;
+}
+
+function shouldPreferExecutionStateWorkflow(
+  executionState: ExecutionStateRecord | null,
+  workflow: WorkflowState
+): boolean {
+  if (!executionState?.lastUpdatedAt) {
+    return false;
+  }
+  if (executionState.task && workflow.task && executionState.task !== workflow.task) {
+    return true;
+  }
+
+  const executionTimestamp = Date.parse(executionState.lastUpdatedAt);
+  const workflowTimestamp = Date.parse(workflow.timestamp);
+  if (!Number.isFinite(executionTimestamp) || !Number.isFinite(workflowTimestamp)) {
+    return false;
+  }
+
+  return (
+    executionTimestamp > workflowTimestamp
+    && executionState.lifecycle !== "blocked"
+    && executionState.lifecycle !== "failed"
+  );
+}
+
+function synthesizeWorkflowFromExecutionState(
+  workflow: WorkflowState,
+  executionState: ExecutionStateRecord | null
+): WorkflowState {
+  if (!executionState) {
+    return workflow;
+  }
+
+  const steps: WorkflowState["steps"] = workflow.steps.map((step): WorkflowState["steps"][number] => ({
+    ...step,
+    status: "pending" as const,
+    output: null,
+    failureReason: null,
+    attemptCount: 0,
+    retryCount: 0,
+    files: [],
+    skillsApplied: [],
+    tokenUsage: {
+      source: "none" as const,
+      measuredTokens: null,
+      estimatedTokens: null,
+      note: "No token usage has been recorded for this step yet."
+    },
+    result: {
+      ok: null,
+      summary: null,
+      validation: null,
+      failureReason: null,
+      suggestedFix: null,
+      retryCommand: null
+    },
+    updatedAt: null
+  }));
+  const setStep = (
+    stepId: WorkflowState["steps"][number]["stepId"],
+    status: WorkflowState["steps"][number]["status"],
+    summary?: string | null
+  ): void => {
+    const step = steps.find((candidate) => candidate.stepId === stepId);
+    if (!step) {
+      return;
+    }
+    step.status = status;
+    step.updatedAt = executionState.lastUpdatedAt;
+    if (summary) {
+      step.output = summary;
+      step.result.summary = summary;
+    }
+    if (status === "success") {
+      step.result.ok = true;
+    }
+    if (status === "failed") {
+      step.failureReason = executionState.reason;
+      step.result.ok = false;
+      step.result.failureReason = executionState.reason;
+      step.result.retryCommand = executionState.nextCommand;
+    }
+  };
+
+  switch (executionState.lifecycle) {
+    case "idle":
+      break;
+    case "packet-created":
+      setStep("prepare-context", "success", executionState.reason);
+      break;
+    case "queued":
+      setStep("prepare-context", "success");
+      setStep("generate-run-packets", "success", executionState.reason);
+      break;
+    case "running":
+      setStep("prepare-context", "success");
+      if (executionState.sourceCommand?.includes("validate")) {
+        setStep("generate-run-packets", "success");
+        setStep("validate-outcome", "running", executionState.reason);
+      } else if (executionState.sourceCommand?.includes("run")) {
+        setStep("generate-run-packets", "running", executionState.reason);
+      } else {
+        setStep("prepare-context", "running", executionState.reason);
+      }
+      break;
+    case "blocked":
+    case "failed":
+      setStep("prepare-context", "success");
+      if (executionState.sourceCommand?.includes("prepare")) {
+        setStep("prepare-context", "failed", executionState.reason);
+      } else if (executionState.sourceCommand?.includes("run")) {
+        setStep("generate-run-packets", "failed", executionState.reason);
+      } else {
+        setStep("generate-run-packets", "success");
+        setStep("validate-outcome", "failed", executionState.reason);
+      }
+      break;
+    case "completed":
+      setStep("prepare-context", "success");
+      setStep("generate-run-packets", "success");
+      setStep("validate-outcome", "success", executionState.reason);
+      break;
+  }
+
+  const currentStep = steps.find((step) => step.status === "running") ?? null;
+  const failedStep = steps.find((step) => step.status === "failed") ?? null;
+  return {
+    ...workflow,
+    task: executionState.task ?? workflow.task,
+    status: failedStep
+      ? "failed"
+      : currentStep
+        ? "running"
+        : steps.every((step) => step.status === "success")
+          ? "success"
+          : "pending",
+    currentStepId: currentStep?.stepId ?? failedStep?.stepId ?? null,
+    timestamp: executionState.lastUpdatedAt ?? workflow.timestamp,
+    steps
+  };
 }
 
 export function deriveCompatibilityNextActions(plan: ExecutionPlanState): Array<{

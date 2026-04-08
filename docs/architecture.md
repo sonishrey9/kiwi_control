@@ -145,7 +145,7 @@ Phase continuity is intentionally small and explicit.
 - `status` summarizes the repo-local control state
 - `push-check` reads safe git metadata and checkpoint health to produce a push gate
 
-No background worker or daemon updates this state. The user or a tool run creates it deliberately.
+Execution state is now maintained by the standalone `kiwi-control-runtime` service, which persists repo-local SQLite WAL state and only mutates it when a user command or product action explicitly transitions execution. Broader repo continuity artifacts remain deliberate outputs rather than a general background scheduler.
 
 ## Controlled multi-role coordination
 
@@ -155,7 +155,7 @@ The coordination layer is intentionally file-based.
 - `collect` summarizes which role outputs exist
 - `reconcile` compares collected role outputs and creates a go / review / blocked recommendation
 
-This is not a scheduler, not a daemon, and not a swarm runtime. It is a coordination scaffold that helps Codex, Claude, Copilot, and future tools work from the same repo-local state.
+This is not a scheduler and not a swarm runtime. It is a coordination scaffold that helps Codex, Claude, Copilot, and future tools work from the same repo-local state, with the runtime daemon limited to authoritative execution-state persistence and revision delivery.
 
 ## Push-readiness model
 

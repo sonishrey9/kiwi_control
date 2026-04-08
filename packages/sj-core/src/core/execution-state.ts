@@ -1,7 +1,12 @@
-import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { promises as fs } from "node:fs";
 import { pathExists, readJson, writeText } from "../utils/fs.js";
+import {
+  getRuntimeSnapshot,
+  materializeRuntimeDerivedOutputs,
+  openRuntimeTarget,
+  transitionRuntimeExecutionState,
+  type RuntimeSnapshot
+} from "../runtime/client.js";
 
 export type ExecutionLifecycle =
   | "idle"
@@ -119,20 +124,13 @@ export async function loadExecutionState(
   targetRoot: string,
   options: { allowLegacyFallback?: boolean } = {}
 ): Promise<ExecutionStateRecord> {
-  const stateFilePath = executionStatePath(targetRoot);
-  if (await pathExists(stateFilePath)) {
-    try {
-      const state = await readJson<ExecutionStateRecord>(stateFilePath);
-      if (state.artifactType === "kiwi-control/execution-state" && state.version === EXECUTION_STATE_VERSION) {
-        return normalizeExecutionStateRecord(state);
-      }
-    } catch {
+  try {
+    const snapshot = await openRuntimeTarget({ targetRoot });
+    return runtimeSnapshotToExecutionState(snapshot);
+  } catch {
+    if (options.allowLegacyFallback === false) {
       return emptyExecutionState();
     }
-  }
-
-  if (options.allowLegacyFallback === false) {
-    return emptyExecutionState();
   }
 
   return deriveLegacyExecutionState(targetRoot);
@@ -142,78 +140,58 @@ export async function recordExecutionState(
   targetRoot: string,
   options: RecordExecutionStateOptions
 ): Promise<ExecutionStateRecord> {
-  const current = await loadExecutionState(targetRoot, { allowLegacyFallback: false });
-  const recordedAt = new Date().toISOString();
-  const nextRevision = current.revision + 1;
-  const reuseOperation = options.reuseOperation ?? options.lifecycle !== "idle";
-  const nextOperationId =
-    options.lifecycle === "idle"
-      ? null
-      : options.operationId !== undefined
-        ? options.operationId
-        : reuseOperation
-          ? current.operationId ?? randomUUID()
-          : randomUUID();
-  const nextArtifacts = mergeArtifacts(
-    reuseOperation && nextOperationId != null && current.operationId === nextOperationId
-      ? current.artifacts
-      : {},
-    options.artifacts
-  );
-  const nextBlockedBy = [...new Set(options.blockedBy ?? [])];
-  const nextTask = options.clearTask === true
-    ? null
-    : options.task !== undefined
-      ? options.task
-      : reuseOperation
-        ? current.task
-        : null;
-  const nextSourceCommand = options.sourceCommand !== undefined
-    ? options.sourceCommand
-    : reuseOperation
-      ? current.sourceCommand
-      : null;
-  const event: ExecutionStateEvent = {
-    revision: nextRevision,
-    operationId: nextOperationId,
-    type: options.type,
-    lifecycle: options.lifecycle,
-    task: nextTask ?? null,
-    sourceCommand: nextSourceCommand ?? null,
-    reason: options.reason ?? null,
-    nextCommand: options.nextCommand ?? null,
-    blockedBy: nextBlockedBy,
-    artifacts: nextArtifacts,
-    recordedAt
-  };
-  const nextState: ExecutionStateRecord = {
-    artifactType: "kiwi-control/execution-state",
-    version: EXECUTION_STATE_VERSION,
-    revision: nextRevision,
-    operationId: nextOperationId,
-    task: nextTask ?? null,
-    sourceCommand: nextSourceCommand ?? null,
-    lifecycle: options.lifecycle,
-    reason: options.reason ?? null,
-    nextCommand: options.nextCommand ?? null,
-    blockedBy: nextBlockedBy,
-    lastUpdatedAt: recordedAt,
-    artifacts: nextArtifacts,
-    lastEvent: event
-  };
-
-  await persistExecutionState(targetRoot, nextState);
-  await appendExecutionEvent(targetRoot, event);
-  return nextState;
+  const snapshot = await transitionRuntimeExecutionState({
+    targetRoot,
+    actor: "sj-core",
+    ...(options.sourceCommand ? { triggerCommand: options.sourceCommand } : {}),
+    eventType: options.type,
+    lifecycle: toRuntimeLifecycle(options.lifecycle),
+    ...(options.task !== undefined ? { task: options.task } : {}),
+    ...(options.sourceCommand !== undefined ? { sourceCommand: options.sourceCommand } : {}),
+    ...(options.reason !== undefined ? { reason: options.reason } : {}),
+    ...(options.nextCommand !== undefined ? { nextCommand: options.nextCommand } : {}),
+    ...(options.blockedBy !== undefined ? { blockedBy: options.blockedBy } : {}),
+    ...(options.artifacts !== undefined ? { artifacts: options.artifacts } : {}),
+    ...(options.operationId !== undefined ? { operationId: options.operationId } : {}),
+    ...(options.reuseOperation !== undefined ? { reuseOperation: options.reuseOperation } : {}),
+    ...(options.clearTask !== undefined ? { clearTask: options.clearTask } : {}),
+    invalidateOutputs: [
+      "execution-state",
+      "execution-events",
+      "repo-control-snapshot",
+      "runtime-lifecycle",
+      "workflow",
+      "execution-plan",
+      "decision-logic"
+    ],
+    materializeOutputs: ["execution-state", "execution-events"]
+  });
+  return runtimeSnapshotToExecutionState(snapshot);
 }
 
 export async function persistExecutionState(
   targetRoot: string,
   state: ExecutionStateRecord
 ): Promise<string> {
-  const outputPath = executionStatePath(targetRoot);
-  await writeText(outputPath, `${JSON.stringify(normalizeExecutionStateRecord(state), null, 2)}\n`);
-  return outputPath;
+  await transitionRuntimeExecutionState({
+    targetRoot,
+    actor: "sj-core",
+    ...(state.sourceCommand ? { triggerCommand: state.sourceCommand } : {}),
+    eventType: state.lastEvent?.type ?? "compatibility-sync",
+    lifecycle: toRuntimeLifecycle(state.lifecycle),
+    ...(state.task !== undefined ? { task: state.task } : {}),
+    ...(state.sourceCommand !== undefined ? { sourceCommand: state.sourceCommand } : {}),
+    ...(state.reason !== undefined ? { reason: state.reason } : {}),
+    ...(state.nextCommand !== undefined ? { nextCommand: state.nextCommand } : {}),
+    ...(state.blockedBy !== undefined ? { blockedBy: state.blockedBy } : {}),
+    ...(state.artifacts !== undefined ? { artifacts: state.artifacts } : {}),
+    ...(state.operationId !== undefined ? { operationId: state.operationId } : {}),
+    reuseOperation: state.operationId != null,
+    clearTask: state.task == null,
+    invalidateOutputs: ["execution-state", "execution-events"],
+    materializeOutputs: ["execution-state", "execution-events"]
+  });
+  return executionStatePath(targetRoot);
 }
 
 export async function readExecutionStateRevision(targetRoot: string): Promise<number> {
@@ -222,9 +200,10 @@ export async function readExecutionStateRevision(targetRoot: string): Promise<nu
 }
 
 async function appendExecutionEvent(targetRoot: string, event: ExecutionStateEvent): Promise<void> {
-  const eventsFilePath = executionEventsPath(targetRoot);
-  await fs.mkdir(path.dirname(eventsFilePath), { recursive: true });
-  await fs.appendFile(eventsFilePath, `${JSON.stringify(event)}\n`, "utf8");
+  await materializeRuntimeDerivedOutputs({
+    targetRoot,
+    outputs: ["execution-events"]
+  });
 }
 
 async function deriveLegacyExecutionState(targetRoot: string): Promise<ExecutionStateRecord> {
@@ -378,4 +357,54 @@ function normalizeExecutionStateRecord(state: ExecutionStateRecord): ExecutionSt
 
 function normalizeArtifactEntries(value: string[]): string[] {
   return [...new Set(value.filter((entry) => entry.trim().length > 0))];
+}
+
+function runtimeSnapshotToExecutionState(snapshot: RuntimeSnapshot): ExecutionStateRecord {
+  return normalizeExecutionStateRecord({
+    artifactType: "kiwi-control/execution-state",
+    version: EXECUTION_STATE_VERSION,
+    revision: snapshot.revision,
+    operationId: snapshot.operationId,
+    task: snapshot.task,
+    sourceCommand: snapshot.sourceCommand,
+    lifecycle: fromRuntimeLifecycle(snapshot.lifecycle),
+    reason: snapshot.reason,
+    nextCommand: snapshot.nextCommand,
+    blockedBy: snapshot.blockedBy,
+    lastUpdatedAt: snapshot.lastUpdatedAt,
+    artifacts: snapshot.artifacts,
+    lastEvent: snapshot.lastEvent
+      ? {
+          revision: snapshot.lastEvent.revision,
+          operationId: snapshot.lastEvent.operationId,
+          type: snapshot.lastEvent.eventType,
+          lifecycle: fromRuntimeLifecycle(snapshot.lastEvent.lifecycle),
+          task: snapshot.lastEvent.task,
+          sourceCommand: snapshot.lastEvent.sourceCommand,
+          reason: snapshot.lastEvent.reason,
+          nextCommand: snapshot.lastEvent.nextCommand,
+          blockedBy: snapshot.lastEvent.blockedBy,
+          artifacts: snapshot.lastEvent.artifacts,
+          recordedAt: snapshot.lastEvent.recordedAt
+        }
+      : null
+  });
+}
+
+function toRuntimeLifecycle(lifecycle: ExecutionLifecycle): RuntimeSnapshot["lifecycle"] {
+  switch (lifecycle) {
+    case "packet-created":
+      return "packet_created";
+    default:
+      return lifecycle;
+  }
+}
+
+function fromRuntimeLifecycle(lifecycle: RuntimeSnapshot["lifecycle"]): ExecutionLifecycle {
+  switch (lifecycle) {
+    case "packet_created":
+      return "packet-created";
+    default:
+      return lifecycle;
+  }
 }

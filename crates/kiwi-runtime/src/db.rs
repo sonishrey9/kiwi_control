@@ -1,0 +1,1477 @@
+use crate::models::{
+    DerivedOutputStatus, ExecutionArtifacts, ExecutionEventList, ListExecutionEventsQuery,
+    MaterializeDerivedOutputsRequest, OpenTargetRequest, RuntimeEvent, RuntimeLifecycle,
+    RuntimeReadiness, RuntimeSnapshot, TransitionExecutionStateRequest,
+};
+use anyhow::{anyhow, Context, Result};
+use rusqlite::{params, Connection, OptionalExtension, Transaction, TransactionBehavior};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::collections::BTreeMap;
+use std::fs;
+use std::path::{Path, PathBuf};
+use uuid::Uuid;
+
+pub const OUTPUT_EXECUTION_STATE: &str = "execution-state";
+pub const OUTPUT_EXECUTION_EVENTS: &str = "execution-events";
+pub const OUTPUT_REPO_CONTROL_SNAPSHOT: &str = "repo-control-snapshot";
+pub const OUTPUT_RUNTIME_LIFECYCLE: &str = "runtime-lifecycle";
+pub const OUTPUT_WORKFLOW: &str = "workflow";
+pub const OUTPUT_EXECUTION_PLAN: &str = "execution-plan";
+pub const OUTPUT_DECISION_LOGIC: &str = "decision-logic";
+
+const ALL_DERIVED_OUTPUTS: &[&str] = &[
+    OUTPUT_EXECUTION_STATE,
+    OUTPUT_EXECUTION_EVENTS,
+    OUTPUT_REPO_CONTROL_SNAPSHOT,
+    OUTPUT_RUNTIME_LIFECYCLE,
+    OUTPUT_WORKFLOW,
+    OUTPUT_EXECUTION_PLAN,
+    OUTPUT_DECISION_LOGIC,
+];
+
+const COMPATIBILITY_OUTPUTS: &[&str] = &[OUTPUT_EXECUTION_STATE, OUTPUT_EXECUTION_EVENTS];
+
+pub fn runtime_db_path(target_root: &str) -> PathBuf {
+    PathBuf::from(target_root)
+        .join(".agent")
+        .join("state")
+        .join("runtime.sqlite3")
+}
+
+pub fn open_target(request: &OpenTargetRequest) -> Result<RuntimeSnapshot> {
+    let target_root = normalize_target_root(&request.target_root)?;
+    let mut conn = open_connection(&target_root)?;
+    ensure_initialized(
+        &mut conn,
+        &target_root,
+        request.root_label.as_deref(),
+        request.project_type.as_deref(),
+        request.profile_name.as_deref(),
+    )?;
+    materialize_outputs_for_target(target_root.to_string_lossy().as_ref(), COMPATIBILITY_OUTPUTS)?;
+    get_runtime_snapshot(target_root.to_string_lossy().as_ref())
+}
+
+pub fn get_runtime_snapshot(target_root: &str) -> Result<RuntimeSnapshot> {
+    let target_root = normalize_target_root(target_root)?;
+    let mut conn = open_connection(&target_root)?;
+    let target_id = ensure_initialized(&mut conn, &target_root, None, None, None)?;
+    build_snapshot(&conn, &target_root, target_id)
+}
+
+pub fn list_execution_events(query: &ListExecutionEventsQuery) -> Result<ExecutionEventList> {
+    let target_root = normalize_target_root(&query.target_root)?;
+    let mut conn = open_connection(&target_root)?;
+    let target_id = ensure_initialized(&mut conn, &target_root, None, None, None)?;
+    let latest_revision = load_state_row(&conn, target_id)?.revision;
+    let mut statement = conn.prepare(
+        "SELECT event_id, revision, operation_id, event_type, lifecycle, task, source_command, reason,
+                next_command, blocked_by_json, artifacts_json, actor, recorded_at
+           FROM execution_events
+          WHERE target_id = ?1 AND revision > ?2
+          ORDER BY revision ASC",
+    )?;
+    let rows = statement.query_map(params![target_id, query.after_revision.unwrap_or(0)], |row| {
+        Ok(RuntimeEvent {
+            event_id: row.get(0)?,
+            revision: row.get(1)?,
+            operation_id: row.get(2)?,
+            event_type: row.get(3)?,
+            lifecycle: RuntimeLifecycle::from_any(&row.get::<_, String>(4)?)
+                .ok_or_else(|| rusqlite::Error::InvalidQuery)?,
+            task: row.get(5)?,
+            source_command: row.get(6)?,
+            reason: row.get(7)?,
+            next_command: row.get(8)?,
+            blocked_by: json_from_str(&row.get::<_, String>(9)?)
+                .map_err(|_| rusqlite::Error::InvalidQuery)?,
+            artifacts: json_from_str(&row.get::<_, String>(10)?)
+                .map_err(|_| rusqlite::Error::InvalidQuery)?,
+            actor: row.get(11)?,
+            recorded_at: row.get(12)?,
+        })
+    })?;
+
+    let mut events = Vec::new();
+    for row in rows {
+        events.push(row?);
+    }
+
+    Ok(ExecutionEventList {
+        target_root: target_root.to_string_lossy().to_string(),
+        latest_revision,
+        events,
+    })
+}
+
+pub fn transition_execution_state(request: &TransitionExecutionStateRequest) -> Result<RuntimeSnapshot> {
+    let target_root = normalize_target_root(&request.target_root)?;
+    let mut conn = open_connection(&target_root)?;
+    let target_id = ensure_initialized(&mut conn, &target_root, None, None, None)?;
+    let mut current = load_state_row(&conn, target_id)?;
+    let timestamp = timestamp_now();
+    let tx = conn
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .context("failed to start execution-state transaction")?;
+
+    let next_revision = current.revision + 1;
+    let reuse_operation = request
+        .reuse_operation
+        .unwrap_or(request.lifecycle != RuntimeLifecycle::Idle);
+    let next_operation_id = if request.lifecycle == RuntimeLifecycle::Idle {
+        None
+    } else if let Some(operation_id) = request.operation_id.clone() {
+        Some(operation_id)
+    } else if reuse_operation {
+        current
+            .operation_id
+            .clone()
+            .or_else(|| Some(Uuid::new_v4().to_string()))
+    } else {
+        Some(Uuid::new_v4().to_string())
+    };
+    let next_artifacts = if reuse_operation
+        && next_operation_id.is_some()
+        && next_operation_id == current.operation_id
+    {
+        merge_artifacts(&current.artifacts, request.artifacts.as_ref())
+    } else {
+        normalize_artifacts(request.artifacts.clone().unwrap_or_default())
+    };
+    let next_blocked_by = normalize_string_list(request.blocked_by.clone().unwrap_or_default());
+    let next_task = if request.clear_task.unwrap_or(false) {
+        None
+    } else if let Some(task) = request.task.clone() {
+        Some(task)
+    } else if reuse_operation {
+        current.task.clone()
+    } else {
+        None
+    };
+    let next_source_command = if let Some(source_command) = request.source_command.clone() {
+        Some(source_command)
+    } else if reuse_operation {
+        current.source_command.clone()
+    } else {
+        None
+    };
+
+    let event = RuntimeEvent {
+        event_id: None,
+        revision: next_revision,
+        operation_id: next_operation_id.clone(),
+        event_type: request.event_type.clone(),
+        lifecycle: request.lifecycle,
+        task: next_task.clone(),
+        source_command: next_source_command.clone(),
+        reason: request.reason.clone(),
+        next_command: request.next_command.clone(),
+        blocked_by: next_blocked_by.clone(),
+        artifacts: next_artifacts.clone(),
+        actor: request
+            .actor
+            .clone()
+            .unwrap_or_else(|| String::from("kiwi-runtime")),
+        recorded_at: timestamp.clone(),
+    };
+    let event_id = insert_event(&tx, target_id, &event)?;
+
+    current = StoredExecutionState {
+        target_id,
+        revision: next_revision,
+        operation_id: next_operation_id,
+        task: next_task,
+        source_command: next_source_command,
+        lifecycle: request.lifecycle,
+        reason: request.reason.clone(),
+        next_command: request.next_command.clone(),
+        blocked_by: next_blocked_by,
+        artifacts: next_artifacts,
+        last_updated_at: Some(timestamp.clone()),
+        last_event_id: Some(event_id),
+    };
+    upsert_state(&tx, &current)?;
+
+    let invalidated_outputs = if let Some(outputs) = request.invalidate_outputs.clone() {
+        outputs
+    } else {
+        ALL_DERIVED_OUTPUTS.iter().map(|value| (*value).to_string()).collect()
+    };
+    mark_outputs_stale(&tx, &target_root, target_id, &invalidated_outputs, &timestamp)?;
+
+    let digest = state_digest(&current)?;
+    tx.execute(
+        "INSERT INTO state_revisions (target_id, revision, change_kind, trigger_command, state_digest, compatibility_dirty, recorded_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![
+            target_id,
+            next_revision,
+            request.event_type,
+            request
+                .trigger_command
+                .clone()
+                .or_else(|| request.source_command.clone()),
+            digest,
+            if invalidated_outputs.is_empty() { 0 } else { 1 },
+            timestamp
+        ],
+    )?;
+    tx.commit()?;
+
+    let materialize_outputs = request
+        .materialize_outputs
+        .clone()
+        .unwrap_or_else(|| COMPATIBILITY_OUTPUTS.iter().map(|value| (*value).to_string()).collect());
+    if !materialize_outputs.is_empty() {
+        materialize_outputs_for_target(
+            target_root.to_string_lossy().as_ref(),
+            &materialize_outputs
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+        )?;
+    }
+
+    get_runtime_snapshot(target_root.to_string_lossy().as_ref())
+}
+
+pub fn materialize_derived_outputs(request: &MaterializeDerivedOutputsRequest) -> Result<RuntimeSnapshot> {
+    materialize_outputs_for_target(&request.target_root, &request.outputs.iter().map(String::as_str).collect::<Vec<_>>())?;
+    get_runtime_snapshot(&request.target_root)
+}
+
+fn materialize_outputs_for_target(target_root: &str, outputs: &[&str]) -> Result<()> {
+    let target_root = normalize_target_root(target_root)?;
+    let mut conn = open_connection(&target_root)?;
+    let target_id = ensure_initialized(&mut conn, &target_root, None, None, None)?;
+    let state = load_state_row(&conn, target_id)?;
+    let events = load_events(&conn, target_id)?;
+    let now = timestamp_now();
+
+    for output in outputs {
+        match *output {
+            OUTPUT_EXECUTION_STATE => {
+                let payload = compatibility_execution_state(&state, events.last().cloned())?;
+                write_json_file(&output_path(&target_root, output), &payload)?;
+                mark_output_fresh(
+                    &conn,
+                    target_id,
+                    output,
+                    &output_path(&target_root, output),
+                    state.revision,
+                    &now,
+                )?;
+            }
+            OUTPUT_EXECUTION_EVENTS => {
+                write_events_file(&output_path(&target_root, output), &events)?;
+                mark_output_fresh(
+                    &conn,
+                    target_id,
+                    output,
+                    &output_path(&target_root, output),
+                    state.revision,
+                    &now,
+                )?;
+            }
+            unsupported => {
+                mark_output_error(
+                    &conn,
+                    target_id,
+                    unsupported,
+                    &output_path(&target_root, unsupported),
+                    &format!("materialization is not implemented for {unsupported}"),
+                    &now,
+                )?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn open_connection(target_root: &Path) -> Result<Connection> {
+    let db_path = runtime_db_path(target_root.to_string_lossy().as_ref());
+    if let Some(parent) = db_path.parent() {
+        fs::create_dir_all(parent).with_context(|| format!("failed to create {}", parent.display()))?;
+    }
+    let conn = Connection::open(&db_path)
+        .with_context(|| format!("failed to open runtime database at {}", db_path.display()))?;
+    conn.execute_batch(
+        "PRAGMA journal_mode=WAL;
+         PRAGMA synchronous=FULL;
+         PRAGMA foreign_keys=ON;
+         PRAGMA busy_timeout=5000;
+         PRAGMA wal_autocheckpoint=1000;",
+    )?;
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS repo_targets (
+            id INTEGER PRIMARY KEY,
+            canonical_root TEXT UNIQUE NOT NULL,
+            root_label TEXT NOT NULL,
+            project_type TEXT,
+            profile_name TEXT,
+            created_at TEXT NOT NULL,
+            last_seen_at TEXT NOT NULL
+         );
+         CREATE TABLE IF NOT EXISTS execution_events (
+            event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            target_id INTEGER NOT NULL,
+            revision INTEGER NOT NULL,
+            event_type TEXT NOT NULL,
+            operation_id TEXT,
+            lifecycle TEXT NOT NULL,
+            task TEXT,
+            source_command TEXT,
+            reason TEXT,
+            next_command TEXT,
+            blocked_by_json TEXT NOT NULL,
+            artifacts_json TEXT NOT NULL,
+            actor TEXT NOT NULL,
+            recorded_at TEXT NOT NULL,
+            FOREIGN KEY(target_id) REFERENCES repo_targets(id),
+            UNIQUE(target_id, revision)
+         );
+         CREATE TABLE IF NOT EXISTS execution_state (
+            target_id INTEGER PRIMARY KEY,
+            revision INTEGER NOT NULL,
+            operation_id TEXT,
+            task TEXT,
+            source_command TEXT,
+            lifecycle TEXT NOT NULL,
+            reason TEXT,
+            next_command TEXT,
+            blocked_by_json TEXT NOT NULL,
+            artifacts_json TEXT NOT NULL,
+            last_event_id INTEGER,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(target_id) REFERENCES repo_targets(id),
+            FOREIGN KEY(last_event_id) REFERENCES execution_events(event_id)
+         );
+         CREATE TABLE IF NOT EXISTS state_revisions (
+            target_id INTEGER NOT NULL,
+            revision INTEGER NOT NULL,
+            change_kind TEXT NOT NULL,
+            trigger_command TEXT,
+            state_digest TEXT NOT NULL,
+            compatibility_dirty INTEGER NOT NULL,
+            recorded_at TEXT NOT NULL,
+            PRIMARY KEY(target_id, revision),
+            FOREIGN KEY(target_id) REFERENCES repo_targets(id)
+         );
+         CREATE TABLE IF NOT EXISTS derived_outputs (
+            target_id INTEGER NOT NULL,
+            output_name TEXT NOT NULL,
+            path TEXT NOT NULL,
+            source_revision INTEGER,
+            freshness TEXT NOT NULL,
+            generated_at TEXT,
+            invalidated_at TEXT,
+            last_error TEXT,
+            PRIMARY KEY(target_id, output_name),
+            FOREIGN KEY(target_id) REFERENCES repo_targets(id)
+         );",
+    )?;
+    Ok(conn)
+}
+
+fn ensure_initialized(
+    conn: &mut Connection,
+    target_root: &Path,
+    root_label: Option<&str>,
+    project_type: Option<&str>,
+    profile_name: Option<&str>,
+) -> Result<i64> {
+    let target_id = upsert_target_row(conn, target_root, root_label, project_type, profile_name)?;
+    let count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM execution_state WHERE target_id = ?1",
+        params![target_id],
+        |row| row.get(0),
+    )?;
+    if count == 0 {
+        import_or_seed(conn, target_root, target_id)?;
+    }
+    Ok(target_id)
+}
+
+fn upsert_target_row(
+    conn: &Connection,
+    target_root: &Path,
+    root_label: Option<&str>,
+    project_type: Option<&str>,
+    profile_name: Option<&str>,
+) -> Result<i64> {
+    let canonical_root = target_root.to_string_lossy().to_string();
+    let label = root_label
+        .map(str::to_string)
+        .unwrap_or_else(|| target_root.file_name().map(|value| value.to_string_lossy().to_string()).unwrap_or_else(|| canonical_root.clone()));
+    let now = timestamp_now();
+    conn.execute(
+        "INSERT INTO repo_targets (canonical_root, root_label, project_type, profile_name, created_at, last_seen_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+         ON CONFLICT(canonical_root) DO UPDATE SET
+             root_label = excluded.root_label,
+             project_type = COALESCE(excluded.project_type, repo_targets.project_type),
+             profile_name = COALESCE(excluded.profile_name, repo_targets.profile_name),
+             last_seen_at = excluded.last_seen_at",
+        params![canonical_root, label, project_type, profile_name, now, now],
+    )?;
+    conn.query_row(
+        "SELECT id FROM repo_targets WHERE canonical_root = ?1",
+        params![target_root.to_string_lossy().to_string()],
+        |row| row.get(0),
+    )
+    .context("failed to resolve repo target row")
+}
+
+fn import_or_seed(conn: &Connection, target_root: &Path, target_id: i64) -> Result<()> {
+    if import_legacy_execution_state(conn, target_root, target_id)? {
+        return Ok(());
+    }
+
+    let timestamp = timestamp_now();
+    let state = StoredExecutionState {
+        target_id,
+        revision: 0,
+        operation_id: None,
+        task: None,
+        source_command: None,
+        lifecycle: RuntimeLifecycle::Idle,
+        reason: None,
+        next_command: None,
+        blocked_by: Vec::new(),
+        artifacts: BTreeMap::new(),
+        last_updated_at: Some(timestamp.clone()),
+        last_event_id: None,
+    };
+    upsert_state_direct(conn, &state)?;
+    conn.execute(
+        "INSERT INTO state_revisions (target_id, revision, change_kind, trigger_command, state_digest, compatibility_dirty, recorded_at)
+         VALUES (?1, 0, 'seed', NULL, ?2, 1, ?3)",
+        params![target_id, state_digest(&state)?, timestamp],
+    )?;
+    mark_all_outputs_stale(conn, target_root, target_id, &timestamp)?;
+    Ok(())
+}
+
+fn import_legacy_execution_state(conn: &Connection, target_root: &Path, target_id: i64) -> Result<bool> {
+    let state_root = target_root.join(".agent").join("state");
+    let canonical_state_path = state_root.join("execution-state.json");
+    if canonical_state_path.exists() {
+        let legacy_state: LegacyExecutionStateRecord = read_json_file(&canonical_state_path)
+            .with_context(|| format!("failed to read {}", canonical_state_path.display()))?;
+        if legacy_state.artifact_type != "kiwi-control/execution-state" || legacy_state.version != 1 {
+            return Ok(false);
+        }
+
+        let imported_events = read_legacy_events(&state_root.join("execution-events.ndjson"))?;
+        let state = StoredExecutionState {
+            target_id,
+            revision: legacy_state.revision,
+            operation_id: legacy_state.operation_id,
+            task: legacy_state.task,
+            source_command: legacy_state.source_command,
+            lifecycle: RuntimeLifecycle::from_any(&legacy_state.lifecycle).unwrap_or(RuntimeLifecycle::Idle),
+            reason: legacy_state.reason,
+            next_command: legacy_state.next_command,
+            blocked_by: normalize_string_list(legacy_state.blocked_by.unwrap_or_default()),
+            artifacts: normalize_artifacts(legacy_state.artifacts.unwrap_or_default()),
+            last_updated_at: legacy_state.last_updated_at,
+            last_event_id: None,
+        };
+        let mut last_event_id = None;
+        if imported_events.is_empty() && state.revision > 0 {
+            let synthetic = RuntimeEvent {
+                event_id: None,
+                revision: state.revision,
+                operation_id: state.operation_id.clone(),
+                event_type: String::from("legacy-import"),
+                lifecycle: state.lifecycle,
+                task: state.task.clone(),
+                source_command: state.source_command.clone(),
+                reason: state.reason.clone(),
+                next_command: state.next_command.clone(),
+                blocked_by: state.blocked_by.clone(),
+                artifacts: state.artifacts.clone(),
+                actor: String::from("legacy-import"),
+                recorded_at: state
+                    .last_updated_at
+                    .clone()
+                    .unwrap_or_else(timestamp_now),
+            };
+            last_event_id = Some(insert_event(conn, target_id, &synthetic)?);
+        } else {
+            for event in imported_events {
+                last_event_id = Some(insert_event(conn, target_id, &event)?);
+            }
+        }
+
+        let imported_state = StoredExecutionState {
+            last_event_id,
+            ..state
+        };
+        upsert_state_direct(conn, &imported_state)?;
+        conn.execute(
+            "INSERT INTO state_revisions (target_id, revision, change_kind, trigger_command, state_digest, compatibility_dirty, recorded_at)
+             VALUES (?1, ?2, 'legacy_import', ?3, ?4, 1, ?5)",
+            params![
+                target_id,
+                imported_state.revision,
+                imported_state.source_command,
+                state_digest(&imported_state)?,
+                imported_state
+                    .last_updated_at
+                    .clone()
+                    .unwrap_or_else(timestamp_now)
+            ],
+        )?;
+        let stale_at = imported_state
+            .last_updated_at
+            .clone()
+            .unwrap_or_else(timestamp_now);
+        mark_all_outputs_stale(conn, target_root, target_id, &stale_at)?;
+        return Ok(true);
+    }
+
+    let derived = derive_legacy_state_from_secondary_artifacts(&state_root)?;
+    let Some(derived) = derived else {
+        return Ok(false);
+    };
+
+    upsert_state_direct(conn, &StoredExecutionState { target_id, ..derived.clone() })?;
+    conn.execute(
+        "INSERT INTO state_revisions (target_id, revision, change_kind, trigger_command, state_digest, compatibility_dirty, recorded_at)
+         VALUES (?1, 0, 'legacy_import', ?2, ?3, 1, ?4)",
+        params![
+            target_id,
+            derived.source_command,
+            state_digest(&StoredExecutionState {
+                target_id,
+                ..derived.clone()
+            })?,
+            derived.last_updated_at.clone().unwrap_or_else(timestamp_now)
+        ],
+    )?;
+    mark_all_outputs_stale(
+        conn,
+        target_root,
+        target_id,
+        &derived.last_updated_at.unwrap_or_else(timestamp_now),
+    )?;
+    Ok(true)
+}
+
+fn derive_legacy_state_from_secondary_artifacts(state_root: &Path) -> Result<Option<StoredExecutionState>> {
+    let plan = read_json_if_present::<LegacyExecutionPlanRecord>(&state_root.join("execution-plan.json"))?;
+    let lifecycle =
+        read_json_if_present::<LegacyRuntimeLifecycleRecord>(&state_root.join("runtime-lifecycle.json"))?;
+    let workflow = read_json_if_present::<LegacyWorkflowRecord>(&state_root.join("workflow.json"))?;
+
+    if plan.is_none() && lifecycle.is_none() && workflow.is_none() {
+        return Ok(None);
+    }
+
+    let task = plan
+        .as_ref()
+        .and_then(|value| value.task.clone())
+        .or_else(|| lifecycle.as_ref().and_then(|value| value.current_task.clone()))
+        .or_else(|| workflow.as_ref().and_then(|value| value.task.clone()));
+    let reason = plan
+        .as_ref()
+        .and_then(|value| value.last_error.as_ref().and_then(|value| value.reason.clone()))
+        .or_else(|| lifecycle.as_ref().and_then(|value| value.next_recommended_action.clone()))
+        .or_else(|| plan.as_ref().and_then(|value| value.summary.clone()));
+    let next_command = plan
+        .as_ref()
+        .and_then(|value| value.last_error.as_ref().and_then(|value| value.fix_command.clone()))
+        .or_else(|| plan.as_ref().and_then(|value| value.next_commands.as_ref().and_then(|value| value.first().cloned())))
+        .or_else(|| lifecycle.as_ref().and_then(|value| value.next_suggested_command.clone()));
+    let last_updated_at = plan
+        .as_ref()
+        .and_then(|value| value.updated_at.clone())
+        .or_else(|| lifecycle.as_ref().and_then(|value| value.timestamp.clone()))
+        .or_else(|| workflow.as_ref().and_then(|value| value.timestamp.clone()));
+
+    let lifecycle_value = if matches!(plan.as_ref().and_then(|value| value.state.as_deref()), Some("blocked"))
+        || matches!(lifecycle.as_ref().and_then(|value| value.current_stage.as_deref()), Some("blocked"))
+    {
+        RuntimeLifecycle::Blocked
+    } else if matches!(plan.as_ref().and_then(|value| value.state.as_deref()), Some("failed")) {
+        RuntimeLifecycle::Failed
+    } else if matches!(plan.as_ref().and_then(|value| value.state.as_deref()), Some("completed"))
+        || matches!(lifecycle.as_ref().and_then(|value| value.current_stage.as_deref()), Some("checkpointed" | "handed-off"))
+    {
+        RuntimeLifecycle::Completed
+    } else if matches!(workflow.as_ref().and_then(|value| value.status.as_deref()), Some("failed")) {
+        RuntimeLifecycle::Blocked
+    } else if matches!(lifecycle.as_ref().and_then(|value| value.current_stage.as_deref()), Some("packetized")) {
+        RuntimeLifecycle::Queued
+    } else if matches!(lifecycle.as_ref().and_then(|value| value.current_stage.as_deref()), Some("prepared"))
+        || matches!(plan.as_ref().and_then(|value| value.state.as_deref()), Some("ready" | "planning"))
+    {
+        RuntimeLifecycle::PacketCreated
+    } else if matches!(plan.as_ref().and_then(|value| value.state.as_deref()), Some("executing" | "validating" | "retrying"))
+        || matches!(workflow.as_ref().and_then(|value| value.status.as_deref()), Some("running"))
+        || matches!(lifecycle.as_ref().and_then(|value| value.current_stage.as_deref()), Some("validating"))
+    {
+        RuntimeLifecycle::Running
+    } else {
+        RuntimeLifecycle::Idle
+    };
+
+    Ok(Some(StoredExecutionState {
+        target_id: 0,
+        revision: 0,
+        operation_id: None,
+        task,
+        source_command: None,
+        lifecycle: lifecycle_value,
+        reason: reason.clone(),
+        next_command,
+        blocked_by: if matches!(lifecycle_value, RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed) {
+            normalize_string_list(reason.into_iter().collect())
+        } else {
+            Vec::new()
+        },
+        artifacts: BTreeMap::new(),
+        last_updated_at,
+        last_event_id: None,
+    }))
+}
+
+fn insert_event(conn: &impl EventWriter, target_id: i64, event: &RuntimeEvent) -> Result<i64> {
+    let blocked_by_json = json_string(&normalize_string_list(event.blocked_by.clone()))?;
+    let artifacts_json = json_string(&normalize_artifacts(event.artifacts.clone()))?;
+    conn.execute(
+        "INSERT INTO execution_events (target_id, revision, event_type, operation_id, lifecycle, task, source_command, reason, next_command, blocked_by_json, artifacts_json, actor, recorded_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+        params![
+            target_id,
+            event.revision,
+            event.event_type,
+            event.operation_id,
+            event.lifecycle.as_str(),
+            event.task,
+            event.source_command,
+            event.reason,
+            event.next_command,
+            blocked_by_json,
+            artifacts_json,
+            event.actor,
+            event.recorded_at
+        ],
+    )?;
+    Ok(conn.last_insert_rowid())
+}
+
+fn upsert_state(tx: &Transaction<'_>, state: &StoredExecutionState) -> Result<()> {
+    upsert_state_direct(tx, state)
+}
+
+fn upsert_state_direct(conn: &impl EventWriter, state: &StoredExecutionState) -> Result<()> {
+    conn.execute(
+        "INSERT INTO execution_state (target_id, revision, operation_id, task, source_command, lifecycle, reason, next_command, blocked_by_json, artifacts_json, last_event_id, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+         ON CONFLICT(target_id) DO UPDATE SET
+            revision = excluded.revision,
+            operation_id = excluded.operation_id,
+            task = excluded.task,
+            source_command = excluded.source_command,
+            lifecycle = excluded.lifecycle,
+            reason = excluded.reason,
+            next_command = excluded.next_command,
+            blocked_by_json = excluded.blocked_by_json,
+            artifacts_json = excluded.artifacts_json,
+            last_event_id = excluded.last_event_id,
+            updated_at = excluded.updated_at",
+        params![
+            state.target_id,
+            state.revision,
+            state.operation_id,
+            state.task,
+            state.source_command,
+            state.lifecycle.as_str(),
+            state.reason,
+            state.next_command,
+            json_string(&state.blocked_by)?,
+            json_string(&state.artifacts)?,
+            state.last_event_id,
+            state.last_updated_at.clone().unwrap_or_else(timestamp_now)
+        ],
+    )?;
+    Ok(())
+}
+
+fn load_state_row(conn: &Connection, target_id: i64) -> Result<StoredExecutionState> {
+    conn.query_row(
+        "SELECT target_id, revision, operation_id, task, source_command, lifecycle, reason, next_command, blocked_by_json, artifacts_json, last_event_id, updated_at
+           FROM execution_state
+          WHERE target_id = ?1",
+        params![target_id],
+        |row| {
+            let lifecycle = row.get::<_, String>(5)?;
+            let blocked_by_json = row.get::<_, String>(8)?;
+            let artifacts_json = row.get::<_, String>(9)?;
+            Ok(StoredExecutionState {
+                target_id: row.get(0)?,
+                revision: row.get(1)?,
+                operation_id: row.get(2)?,
+                task: row.get(3)?,
+                source_command: row.get(4)?,
+                lifecycle: RuntimeLifecycle::from_any(&lifecycle).ok_or_else(|| rusqlite::Error::InvalidQuery)?,
+                reason: row.get(6)?,
+                next_command: row.get(7)?,
+                blocked_by: json_from_str(&blocked_by_json).map_err(|_| rusqlite::Error::InvalidQuery)?,
+                artifacts: json_from_str(&artifacts_json).map_err(|_| rusqlite::Error::InvalidQuery)?,
+                last_event_id: row.get(10)?,
+                last_updated_at: row.get(11)?,
+            })
+        },
+    )
+    .context("failed to load execution_state row")
+}
+
+fn load_last_event(conn: &Connection, target_id: i64, event_id: Option<i64>) -> Result<Option<RuntimeEvent>> {
+    let Some(event_id) = event_id else {
+        return Ok(None);
+    };
+    conn.query_row(
+        "SELECT event_id, revision, operation_id, event_type, lifecycle, task, source_command, reason, next_command, blocked_by_json, artifacts_json, actor, recorded_at
+           FROM execution_events
+          WHERE target_id = ?1 AND event_id = ?2",
+        params![target_id, event_id],
+        |row| {
+            let lifecycle = row.get::<_, String>(4)?;
+            let blocked_by_json = row.get::<_, String>(9)?;
+            let artifacts_json = row.get::<_, String>(10)?;
+            Ok(RuntimeEvent {
+                event_id: row.get(0)?,
+                revision: row.get(1)?,
+                operation_id: row.get(2)?,
+                event_type: row.get(3)?,
+                lifecycle: RuntimeLifecycle::from_any(&lifecycle)
+                    .ok_or_else(|| rusqlite::Error::InvalidQuery)?,
+                task: row.get(5)?,
+                source_command: row.get(6)?,
+                reason: row.get(7)?,
+                next_command: row.get(8)?,
+                blocked_by: json_from_str(&blocked_by_json)
+                    .map_err(|_| rusqlite::Error::InvalidQuery)?,
+                artifacts: json_from_str(&artifacts_json)
+                    .map_err(|_| rusqlite::Error::InvalidQuery)?,
+                actor: row.get(11)?,
+                recorded_at: row.get(12)?,
+            })
+        },
+    )
+    .optional()
+    .context("failed to load last execution event")
+}
+
+fn load_events(conn: &Connection, target_id: i64) -> Result<Vec<RuntimeEvent>> {
+    let mut statement = conn.prepare(
+        "SELECT event_id, revision, operation_id, event_type, lifecycle, task, source_command, reason, next_command, blocked_by_json, artifacts_json, actor, recorded_at
+           FROM execution_events
+          WHERE target_id = ?1
+          ORDER BY revision ASC",
+    )?;
+    let rows = statement.query_map(params![target_id], |row| {
+        let lifecycle = row.get::<_, String>(4)?;
+        let blocked_by_json = row.get::<_, String>(9)?;
+        let artifacts_json = row.get::<_, String>(10)?;
+        Ok(RuntimeEvent {
+            event_id: row.get(0)?,
+            revision: row.get(1)?,
+            operation_id: row.get(2)?,
+            event_type: row.get(3)?,
+            lifecycle: RuntimeLifecycle::from_any(&lifecycle).ok_or_else(|| rusqlite::Error::InvalidQuery)?,
+            task: row.get(5)?,
+            source_command: row.get(6)?,
+            reason: row.get(7)?,
+            next_command: row.get(8)?,
+            blocked_by: json_from_str(&blocked_by_json).map_err(|_| rusqlite::Error::InvalidQuery)?,
+            artifacts: json_from_str(&artifacts_json).map_err(|_| rusqlite::Error::InvalidQuery)?,
+            actor: row.get(11)?,
+            recorded_at: row.get(12)?,
+        })
+    })?;
+    let mut events = Vec::new();
+    for row in rows {
+        events.push(row?);
+    }
+    Ok(events)
+}
+
+fn build_snapshot(conn: &Connection, target_root: &Path, target_id: i64) -> Result<RuntimeSnapshot> {
+    let state = load_state_row(conn, target_id)?;
+    let last_event = load_last_event(conn, target_id, state.last_event_id)?;
+    let readiness = readiness_from_state(&state);
+    let derived_freshness = load_derived_output_statuses(conn, target_id)?;
+    Ok(RuntimeSnapshot {
+        target_root: target_root.to_string_lossy().to_string(),
+        revision: state.revision,
+        operation_id: state.operation_id,
+        task: state.task,
+        source_command: state.source_command,
+        lifecycle: state.lifecycle,
+        reason: state.reason,
+        next_command: state.next_command,
+        blocked_by: state.blocked_by,
+        artifacts: state.artifacts,
+        last_updated_at: state.last_updated_at,
+        last_event,
+        readiness,
+        derived_freshness,
+    })
+}
+
+fn load_derived_output_statuses(conn: &Connection, target_id: i64) -> Result<Vec<DerivedOutputStatus>> {
+    let mut statement = conn.prepare(
+        "SELECT output_name, path, freshness, source_revision, generated_at, invalidated_at, last_error
+           FROM derived_outputs
+          WHERE target_id = ?1
+          ORDER BY output_name ASC",
+    )?;
+    let rows = statement.query_map(params![target_id], |row| {
+        Ok(DerivedOutputStatus {
+            output_name: row.get(0)?,
+            path: row.get(1)?,
+            freshness: row.get(2)?,
+            source_revision: row.get(3)?,
+            generated_at: row.get(4)?,
+            invalidated_at: row.get(5)?,
+            last_error: row.get(6)?,
+        })
+    })?;
+    let mut statuses = Vec::new();
+    for row in rows {
+        statuses.push(row?);
+    }
+    Ok(statuses)
+}
+
+fn mark_all_outputs_stale(conn: &Connection, target_root: &Path, target_id: i64, timestamp: &str) -> Result<()> {
+    mark_outputs_stale(
+        conn,
+        target_root,
+        target_id,
+        &ALL_DERIVED_OUTPUTS.iter().map(|value| (*value).to_string()).collect::<Vec<_>>(),
+        timestamp,
+    )
+}
+
+fn mark_outputs_stale(
+    conn: &Connection,
+    target_root: &Path,
+    target_id: i64,
+    outputs: &[String],
+    timestamp: &str,
+) -> Result<()> {
+    for output in outputs {
+        conn.execute(
+            "INSERT INTO derived_outputs (target_id, output_name, path, source_revision, freshness, generated_at, invalidated_at, last_error)
+             VALUES (?1, ?2, ?3, NULL, 'stale', NULL, ?4, NULL)
+             ON CONFLICT(target_id, output_name) DO UPDATE SET
+                path = excluded.path,
+                freshness = 'stale',
+                invalidated_at = excluded.invalidated_at,
+                last_error = NULL",
+            params![
+                target_id,
+                output,
+                output_path(target_root, output).to_string_lossy().to_string(),
+                timestamp
+            ],
+        )?;
+    }
+    Ok(())
+}
+
+fn mark_output_fresh(
+    conn: &Connection,
+    target_id: i64,
+    output_name: &str,
+    output_path: &Path,
+    source_revision: i64,
+    timestamp: &str,
+) -> Result<()> {
+    conn.execute(
+        "INSERT INTO derived_outputs (target_id, output_name, path, source_revision, freshness, generated_at, invalidated_at, last_error)
+         VALUES (?1, ?2, ?3, ?4, 'fresh', ?5, NULL, NULL)
+         ON CONFLICT(target_id, output_name) DO UPDATE SET
+            path = excluded.path,
+            source_revision = excluded.source_revision,
+            freshness = 'fresh',
+            generated_at = excluded.generated_at,
+            invalidated_at = NULL,
+            last_error = NULL",
+        params![
+            target_id,
+            output_name,
+            output_path.to_string_lossy().to_string(),
+            source_revision,
+            timestamp
+        ],
+    )?;
+    Ok(())
+}
+
+fn mark_output_error(
+    conn: &Connection,
+    target_id: i64,
+    output_name: &str,
+    output_path: &Path,
+    error: &str,
+    timestamp: &str,
+) -> Result<()> {
+    conn.execute(
+        "INSERT INTO derived_outputs (target_id, output_name, path, source_revision, freshness, generated_at, invalidated_at, last_error)
+         VALUES (?1, ?2, ?3, NULL, 'error', NULL, ?4, ?5)
+         ON CONFLICT(target_id, output_name) DO UPDATE SET
+            path = excluded.path,
+            freshness = 'error',
+            invalidated_at = excluded.invalidated_at,
+            last_error = excluded.last_error",
+        params![
+            target_id,
+            output_name,
+            output_path.to_string_lossy().to_string(),
+            timestamp,
+            error
+        ],
+    )?;
+    Ok(())
+}
+
+fn output_path(target_root: &Path, output_name: &str) -> PathBuf {
+    let state_root = target_root.join(".agent").join("state");
+    match output_name {
+        OUTPUT_EXECUTION_STATE => state_root.join("execution-state.json"),
+        OUTPUT_EXECUTION_EVENTS => state_root.join("execution-events.ndjson"),
+        OUTPUT_REPO_CONTROL_SNAPSHOT => state_root.join("repo-control-snapshot.json"),
+        OUTPUT_RUNTIME_LIFECYCLE => state_root.join("runtime-lifecycle.json"),
+        OUTPUT_WORKFLOW => state_root.join("workflow.json"),
+        OUTPUT_EXECUTION_PLAN => state_root.join("execution-plan.json"),
+        OUTPUT_DECISION_LOGIC => state_root.join("decision-logic.json"),
+        other => state_root.join(format!("{other}.json")),
+    }
+}
+
+fn readiness_from_state(state: &StoredExecutionState) -> RuntimeReadiness {
+    match state.lifecycle {
+        RuntimeLifecycle::Blocked => RuntimeReadiness {
+            label: String::from("Workflow blocked"),
+            tone: String::from("blocked"),
+            detail: state
+                .reason
+                .clone()
+                .unwrap_or_else(|| String::from("Kiwi recorded a blocking execution issue.")),
+            next_command: state.next_command.clone(),
+        },
+        RuntimeLifecycle::Failed => RuntimeReadiness {
+            label: String::from("Workflow failed"),
+            tone: String::from("failed"),
+            detail: state
+                .reason
+                .clone()
+                .unwrap_or_else(|| String::from("Kiwi recorded a failed execution state.")),
+            next_command: state.next_command.clone(),
+        },
+        RuntimeLifecycle::PacketCreated => RuntimeReadiness {
+            label: String::from("Packet created"),
+            tone: String::from("ready"),
+            detail: state
+                .reason
+                .clone()
+                .unwrap_or_else(|| String::from("Prepared scope and instructions are ready.")),
+            next_command: state.next_command.clone(),
+        },
+        RuntimeLifecycle::Queued => RuntimeReadiness {
+            label: String::from("Queued"),
+            tone: String::from("ready"),
+            detail: state
+                .reason
+                .clone()
+                .unwrap_or_else(|| String::from("Execution is queued.")),
+            next_command: state.next_command.clone(),
+        },
+        RuntimeLifecycle::Running => RuntimeReadiness {
+            label: String::from("Running"),
+            tone: String::from("ready"),
+            detail: state
+                .reason
+                .clone()
+                .unwrap_or_else(|| String::from("Execution is running.")),
+            next_command: state.next_command.clone(),
+        },
+        RuntimeLifecycle::Completed => RuntimeReadiness {
+            label: String::from("Completed"),
+            tone: String::from("ready"),
+            detail: state
+                .reason
+                .clone()
+                .unwrap_or_else(|| String::from("Execution completed.")),
+            next_command: state.next_command.clone(),
+        },
+        RuntimeLifecycle::Idle => RuntimeReadiness {
+            label: String::from("Ready"),
+            tone: String::from("ready"),
+            detail: state
+                .reason
+                .clone()
+                .unwrap_or_else(|| String::from("Repo-local state is loaded and no active execution is in flight.")),
+            next_command: state.next_command.clone(),
+        },
+    }
+}
+
+fn compatibility_execution_state(
+    state: &StoredExecutionState,
+    last_event: Option<RuntimeEvent>,
+) -> Result<LegacyExecutionStateRecord> {
+    Ok(LegacyExecutionStateRecord {
+        artifact_type: String::from("kiwi-control/execution-state"),
+        version: 1,
+        revision: state.revision,
+        operation_id: state.operation_id.clone(),
+        task: state.task.clone(),
+        source_command: state.source_command.clone(),
+        lifecycle: String::from(state.lifecycle.legacy_str()),
+        reason: state.reason.clone(),
+        next_command: state.next_command.clone(),
+        blocked_by: Some(state.blocked_by.clone()),
+        last_updated_at: state.last_updated_at.clone(),
+        artifacts: Some(state.artifacts.clone()),
+        last_event: last_event.map(|event| LegacyExecutionStateEvent {
+            revision: event.revision,
+            operation_id: event.operation_id,
+            event_type: event.event_type,
+            lifecycle: String::from(event.lifecycle.legacy_str()),
+            task: event.task,
+            source_command: event.source_command,
+            reason: event.reason,
+            next_command: event.next_command,
+            blocked_by: event.blocked_by,
+            artifacts: event.artifacts,
+            recorded_at: event.recorded_at,
+        }),
+    })
+}
+
+fn write_events_file(output_path: &Path, events: &[RuntimeEvent]) -> Result<()> {
+    if let Some(parent) = output_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let mut payload = String::new();
+    for event in events {
+        let compatibility = LegacyExecutionStateEvent {
+            revision: event.revision,
+            operation_id: event.operation_id.clone(),
+            event_type: event.event_type.clone(),
+            lifecycle: String::from(event.lifecycle.legacy_str()),
+            task: event.task.clone(),
+            source_command: event.source_command.clone(),
+            reason: event.reason.clone(),
+            next_command: event.next_command.clone(),
+            blocked_by: event.blocked_by.clone(),
+            artifacts: event.artifacts.clone(),
+            recorded_at: event.recorded_at.clone(),
+        };
+        payload.push_str(&serde_json::to_string(&compatibility)?);
+        payload.push('\n');
+    }
+    fs::write(output_path, payload)?;
+    Ok(())
+}
+
+fn write_json_file<T: Serialize>(output_path: &Path, value: &T) -> Result<()> {
+    if let Some(parent) = output_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(output_path, format!("{}\n", serde_json::to_string_pretty(value)?))?;
+    Ok(())
+}
+
+fn read_json_if_present<T: DeserializeOwned>(path: &Path) -> Result<Option<T>> {
+    if !path.exists() {
+        return Ok(None);
+    }
+    Ok(Some(read_json_file(path)?))
+}
+
+fn read_json_file<T: DeserializeOwned>(path: &Path) -> Result<T> {
+    let payload = fs::read_to_string(path)?;
+    Ok(serde_json::from_str(&payload)?)
+}
+
+fn read_legacy_events(path: &Path) -> Result<Vec<RuntimeEvent>> {
+    if !path.exists() {
+        return Ok(Vec::new());
+    }
+    let payload = fs::read_to_string(path)?;
+    let mut events = Vec::new();
+    for line in payload.lines().filter(|line| !line.trim().is_empty()) {
+        let parsed: LegacyExecutionStateEvent = serde_json::from_str(line)?;
+        let lifecycle = RuntimeLifecycle::from_any(&parsed.lifecycle)
+            .ok_or_else(|| anyhow!("unsupported legacy lifecycle {}", parsed.lifecycle))?;
+        events.push(RuntimeEvent {
+            event_id: None,
+            revision: parsed.revision,
+            operation_id: parsed.operation_id,
+            event_type: parsed.event_type,
+            lifecycle,
+            task: parsed.task,
+            source_command: parsed.source_command,
+            reason: parsed.reason,
+            next_command: parsed.next_command,
+            blocked_by: normalize_string_list(parsed.blocked_by),
+            artifacts: normalize_artifacts(parsed.artifacts),
+            actor: String::from("legacy-import"),
+            recorded_at: parsed.recorded_at,
+        });
+    }
+    Ok(events)
+}
+
+fn normalize_target_root(target_root: &str) -> Result<PathBuf> {
+    let trimmed = target_root.trim();
+    if trimmed.is_empty() {
+        return Err(anyhow!("target_root is required"));
+    }
+    let path = PathBuf::from(trimmed);
+    if path.exists() {
+        return Ok(fs::canonicalize(&path).unwrap_or(path));
+    }
+    Ok(path)
+}
+
+fn state_digest(state: &StoredExecutionState) -> Result<String> {
+    let payload = serde_json::to_vec(&state.digest_view())?;
+    let mut hasher = Sha256::new();
+    hasher.update(payload);
+    Ok(hex::encode(hasher.finalize()))
+}
+
+fn json_string<T: Serialize>(value: &T) -> Result<String> {
+    Ok(serde_json::to_string(value)?)
+}
+
+fn json_from_str<T: DeserializeOwned>(value: &str) -> Result<T> {
+    Ok(serde_json::from_str(value)?)
+}
+
+fn normalize_artifacts(input: ExecutionArtifacts) -> ExecutionArtifacts {
+    let mut normalized = BTreeMap::new();
+    for (key, values) in input {
+        let next_values = normalize_string_list(values);
+        if !next_values.is_empty() {
+            normalized.insert(key, next_values);
+        }
+    }
+    normalized
+}
+
+fn merge_artifacts(current: &ExecutionArtifacts, patch: Option<&ExecutionArtifacts>) -> ExecutionArtifacts {
+    let mut merged = current.clone();
+    if let Some(patch) = patch {
+        for (key, values) in patch {
+            let normalized = normalize_string_list(values.clone());
+            if !normalized.is_empty() {
+                merged.insert(key.clone(), normalized);
+            }
+        }
+    }
+    normalize_artifacts(merged)
+}
+
+fn normalize_string_list(values: Vec<String>) -> Vec<String> {
+    let mut next = Vec::new();
+    for value in values {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if !next.iter().any(|existing| existing == trimmed) {
+            next.push(trimmed.to_string());
+        }
+    }
+    next
+}
+
+fn timestamp_now() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    chrono_like_iso8601(now)
+}
+
+fn chrono_like_iso8601(epoch_seconds: u64) -> String {
+    // Keep the runtime dependency-light while still producing stable UTC timestamps.
+    let datetime = time::OffsetDateTime::from_unix_timestamp(epoch_seconds as i64)
+        .unwrap_or(time::OffsetDateTime::UNIX_EPOCH);
+    datetime
+        .format(&time::format_description::well_known::Rfc3339)
+        .unwrap_or_else(|_| String::from("1970-01-01T00:00:00Z"))
+}
+
+#[derive(Clone, Debug)]
+struct StoredExecutionState {
+    target_id: i64,
+    revision: i64,
+    operation_id: Option<String>,
+    task: Option<String>,
+    source_command: Option<String>,
+    lifecycle: RuntimeLifecycle,
+    reason: Option<String>,
+    next_command: Option<String>,
+    blocked_by: Vec<String>,
+    artifacts: ExecutionArtifacts,
+    last_updated_at: Option<String>,
+    last_event_id: Option<i64>,
+}
+
+impl StoredExecutionState {
+    fn digest_view(&self) -> DigestView<'_> {
+        DigestView {
+            revision: self.revision,
+            operation_id: self.operation_id.as_deref(),
+            task: self.task.as_deref(),
+            source_command: self.source_command.as_deref(),
+            lifecycle: self.lifecycle.as_str(),
+            reason: self.reason.as_deref(),
+            next_command: self.next_command.as_deref(),
+            blocked_by: &self.blocked_by,
+            artifacts: &self.artifacts,
+            last_updated_at: self.last_updated_at.as_deref(),
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct DigestView<'a> {
+    revision: i64,
+    operation_id: Option<&'a str>,
+    task: Option<&'a str>,
+    source_command: Option<&'a str>,
+    lifecycle: &'a str,
+    reason: Option<&'a str>,
+    next_command: Option<&'a str>,
+    blocked_by: &'a [String],
+    artifacts: &'a ExecutionArtifacts,
+    last_updated_at: Option<&'a str>,
+}
+
+trait EventWriter {
+    fn execute<P: rusqlite::Params>(&self, sql: &str, params: P) -> rusqlite::Result<usize>;
+    fn last_insert_rowid(&self) -> i64;
+}
+
+impl EventWriter for Connection {
+    fn execute<P: rusqlite::Params>(&self, sql: &str, params: P) -> rusqlite::Result<usize> {
+        Connection::execute(self, sql, params)
+    }
+
+    fn last_insert_rowid(&self) -> i64 {
+        Connection::last_insert_rowid(self)
+    }
+}
+
+impl<'a> EventWriter for Transaction<'a> {
+    fn execute<P: rusqlite::Params>(&self, sql: &str, params: P) -> rusqlite::Result<usize> {
+        let mut statement = self.prepare(sql)?;
+        statement.execute(params)
+    }
+
+    fn last_insert_rowid(&self) -> i64 {
+        self.query_row("SELECT last_insert_rowid()", [], |row| row.get(0))
+            .unwrap_or_default()
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LegacyExecutionStateRecord {
+    artifact_type: String,
+    version: i64,
+    revision: i64,
+    operation_id: Option<String>,
+    task: Option<String>,
+    source_command: Option<String>,
+    lifecycle: String,
+    reason: Option<String>,
+    next_command: Option<String>,
+    blocked_by: Option<Vec<String>>,
+    last_updated_at: Option<String>,
+    artifacts: Option<ExecutionArtifacts>,
+    last_event: Option<LegacyExecutionStateEvent>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LegacyExecutionStateEvent {
+    revision: i64,
+    operation_id: Option<String>,
+    #[serde(rename = "type", alias = "eventType")]
+    event_type: String,
+    lifecycle: String,
+    task: Option<String>,
+    source_command: Option<String>,
+    reason: Option<String>,
+    next_command: Option<String>,
+    blocked_by: Vec<String>,
+    artifacts: ExecutionArtifacts,
+    recorded_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct LegacyExecutionPlanRecord {
+    task: Option<String>,
+    state: Option<String>,
+    summary: Option<String>,
+    next_commands: Option<Vec<String>>,
+    last_error: Option<LegacyExecutionPlanError>,
+    updated_at: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct LegacyExecutionPlanError {
+    reason: Option<String>,
+    fix_command: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct LegacyRuntimeLifecycleRecord {
+    current_task: Option<String>,
+    current_stage: Option<String>,
+    next_suggested_command: Option<String>,
+    next_recommended_action: Option<String>,
+    timestamp: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct LegacyWorkflowRecord {
+    task: Option<String>,
+    status: Option<String>,
+    timestamp: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    fn create_target() -> Result<tempfile::TempDir> {
+        let dir = tempdir()?;
+        fs::create_dir_all(dir.path().join(".agent").join("state"))?;
+        Ok(dir)
+    }
+
+    #[test]
+    fn initializes_db_with_wal_and_idle_state() -> Result<()> {
+        let dir = create_target()?;
+        let target_root = dir.path().to_string_lossy().to_string();
+        let snapshot = open_target(&OpenTargetRequest {
+            target_root: target_root.clone(),
+            root_label: None,
+            project_type: Some(String::from("node")),
+            profile_name: Some(String::from("product-build")),
+        })?;
+
+        assert_eq!(snapshot.revision, 0);
+        assert_eq!(snapshot.lifecycle, RuntimeLifecycle::Idle);
+
+        let conn = open_connection(dir.path())?;
+        let mode: String = conn.query_row("PRAGMA journal_mode;", [], |row| row.get(0))?;
+        assert_eq!(mode.to_lowercase(), "wal");
+        assert!(runtime_db_path(&target_root).exists());
+        Ok(())
+    }
+
+    #[test]
+    fn transitions_state_and_materializes_compatibility_outputs() -> Result<()> {
+        let dir = create_target()?;
+        let target_root = dir.path().to_string_lossy().to_string();
+        open_target(&OpenTargetRequest {
+            target_root: target_root.clone(),
+            root_label: None,
+            project_type: None,
+            profile_name: None,
+        })?;
+
+        let snapshot = transition_execution_state(&TransitionExecutionStateRequest {
+            target_root: target_root.clone(),
+            actor: Some(String::from("test")),
+            trigger_command: Some(String::from("kiwi-control prepare \"runtime authority\"")),
+            event_type: String::from("prepare-completed"),
+            lifecycle: RuntimeLifecycle::PacketCreated,
+            task: Some(String::from("runtime authority")),
+            source_command: Some(String::from("kiwi-control prepare \"runtime authority\"")),
+            reason: Some(String::from("Prepared scope is ready.")),
+            next_command: Some(String::from("kiwi-control run \"runtime authority\"")),
+            blocked_by: Some(Vec::new()),
+            artifacts: Some(BTreeMap::from([(
+                String::from("instructions"),
+                vec![String::from(".agent/context/generated-instructions.md")],
+            )])),
+            operation_id: None,
+            reuse_operation: Some(false),
+            clear_task: Some(false),
+            invalidate_outputs: None,
+            materialize_outputs: None,
+        })?;
+
+        assert_eq!(snapshot.revision, 1);
+        assert_eq!(snapshot.lifecycle, RuntimeLifecycle::PacketCreated);
+        assert!(output_path(dir.path(), OUTPUT_EXECUTION_STATE).exists());
+        assert!(output_path(dir.path(), OUTPUT_EXECUTION_EVENTS).exists());
+
+        let compatibility: LegacyExecutionStateRecord =
+            read_json_file(&output_path(dir.path(), OUTPUT_EXECUTION_STATE))?;
+        assert_eq!(compatibility.lifecycle, "packet-created");
+        assert_eq!(compatibility.revision, 1);
+        Ok(())
+    }
+
+    #[test]
+    fn imports_legacy_execution_state_once() -> Result<()> {
+        let dir = create_target()?;
+        let legacy_state_path = dir.path().join(".agent").join("state").join("execution-state.json");
+        write_json_file(
+            &legacy_state_path,
+            &LegacyExecutionStateRecord {
+                artifact_type: String::from("kiwi-control/execution-state"),
+                version: 1,
+                revision: 4,
+                operation_id: Some(String::from("op-1")),
+                task: Some(String::from("legacy task")),
+                source_command: Some(String::from("kiwi-control validate \"legacy task\"")),
+                lifecycle: String::from("blocked"),
+                reason: Some(String::from("Prepared scope drifted.")),
+                next_command: Some(String::from("kiwi-control explain")),
+                blocked_by: Some(vec![String::from("Prepared scope drifted.")]),
+                last_updated_at: Some(String::from("2026-04-08T00:00:00Z")),
+                artifacts: Some(BTreeMap::new()),
+                last_event: None,
+            },
+        )?;
+
+        let snapshot = open_target(&OpenTargetRequest {
+            target_root: dir.path().to_string_lossy().to_string(),
+            root_label: None,
+            project_type: None,
+            profile_name: None,
+        })?;
+
+        assert_eq!(snapshot.revision, 4);
+        assert_eq!(snapshot.lifecycle, RuntimeLifecycle::Blocked);
+        assert_eq!(snapshot.reason.as_deref(), Some("Prepared scope drifted."));
+        Ok(())
+    }
+}

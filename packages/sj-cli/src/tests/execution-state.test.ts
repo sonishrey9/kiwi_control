@@ -53,6 +53,7 @@ test("execution state records revisions, events, and preserves the active operat
   assert.match(eventLog, /prepare-completed/);
   assert.match(eventLog, /run-packetized/);
   await fs.access(executionStatePath(tempDir));
+  await fs.access(path.join(tempDir, ".agent", "state", "runtime.sqlite3"));
 });
 
 test("execution state derives a blocked fallback from legacy execution artifacts when canonical state is missing", async () => {
