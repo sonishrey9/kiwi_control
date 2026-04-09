@@ -22,6 +22,7 @@ import {
   buildRuntimeDecisionAction,
   buildRuntimeDecisionRecovery
 } from "@shrey-junior/sj-core/core/runtime-decision.js";
+import { syncPackSelectionSideEffects } from "./helpers/pack-selection.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
 import { executeWorkflowStep, loadWorkflowState } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
@@ -441,6 +442,11 @@ export async function runCheckpoint(options: CheckpointOptions): Promise<number>
     options.logger.error(workflowExecution.failureReason ?? `Checkpoint "${options.label}" failed.`);
     return 1;
   }
+  await syncPackSelectionSideEffects({
+    repoRoot: options.repoRoot,
+    targetRoot: options.targetRoot,
+    ...(options.profileName ? { profileName: options.profileName } : {})
+  }).catch(() => null);
   options.logger.info(`checkpoint recorded: ${workflowExecution.result.paths.currentPhasePath}`);
   options.logger.info(`history entry: ${workflowExecution.result.paths.historyPath}`);
   options.logger.info(`latest checkpoint: ${workflowExecution.result.checkpointArtifacts.latestJsonPath}`);

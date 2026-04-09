@@ -1,0 +1,28 @@
+{
+  "artifactType": "kiwi-control/selected-pack",
+  "version": 1,
+  "updatedAt": "2026-04-09T21:40:53.115Z",
+  "targetRoot": "/Volumes/shrey ssd/shrey-junior",
+  "selectedPack": "research-pack",
+  "selectedPackSource": "heuristic-default",
+  "explicitSelection": null,
+  "heuristicPackId": "research-pack",
+  "executable": true,
+  "unavailablePackReason": null,
+  "effectiveCapabilityIds": [
+    "exa",
+    "firecrawl",
+    "brave-search",
+    "context7",
+    "sequential-thinking",
+    "github"
+  ],
+  "preferredCapabilityIds": [
+    "exa",
+    "firecrawl",
+    "brave-search",
+    "context7",
+    "sequential-thinking"
+  ],
+  "unavailableCapabilityIds": []
+}

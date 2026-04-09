@@ -973,6 +973,28 @@ fn build_allowlisted_cli_args(
             cli_args.push(target.clone());
             String::from("handoff")
         }
+        "pack" => {
+            let action = args
+                .first()
+                .filter(|value| !value.trim().is_empty())
+                .ok_or_else(|| String::from("pack requires status, set, or clear"))?;
+            if action != "status" && action != "set" && action != "clear" {
+                return Err(String::from("pack requires status, set, or clear"));
+            }
+            cli_args.push(String::from("pack"));
+            cli_args.push(action.clone());
+            if action == "set" {
+                let pack_id = args
+                    .get(1)
+                    .filter(|value| !value.trim().is_empty())
+                    .ok_or_else(|| String::from("pack set requires a pack id"))?;
+                cli_args.push(pack_id.clone());
+            }
+            if args.iter().any(|arg| arg == "--json") {
+                cli_args.push(String::from("--json"));
+            }
+            format!("pack {action}")
+        }
         _ => {
             return Err(format!("unsupported cli command: {command}"));
         }

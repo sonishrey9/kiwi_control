@@ -1,18 +1,18 @@
 {
   "artifactType": "kiwi-control/ready-substrate",
   "version": 1,
-  "generatedAt": "2026-04-09T19:30:52.809Z",
+  "generatedAt": "2026-04-09T21:40:53.135Z",
   "targetRoot": "/Volumes/shrey ssd/shrey-junior",
-  "status": "ready",
-  "ready": true,
-  "summary": "Ready repo substrate is available at runtime revision 18.",
+  "status": "partial",
+  "ready": false,
+  "summary": "Repo substrate is partial; missing graphAuthority.",
   "runtimeAuthority": {
     "valid": true,
-    "revision": 18,
+    "revision": 29,
     "lifecycle": "blocked",
     "sourceCommand": "kiwi-control validate \"update README docs\"",
     "nextCommand": "kiwi-control prepare \"update README docs\"",
-    "lastUpdatedAt": "2026-04-09T19:16:00Z",
+    "lastUpdatedAt": "2026-04-09T21:40:52Z",
     "sqlitePath": ".agent/state/runtime.sqlite3",
     "compatibilityStatePath": ".agent/state/execution-state.json",
     "compatibilityEventsPath": ".agent/state/execution-events.ndjson",
@@ -20,22 +20,22 @@
   },
   "graphAuthority": {
     "valid": true,
-    "ready": true,
+    "ready": false,
     "status": "ready",
-    "freshness": "fresh",
-    "graphRevision": 9,
-    "sourceRevision": 18,
-    "sourceRuntimeRevision": 18,
-    "generatedAt": "2026-04-09T19:30:52Z",
+    "freshness": "stale",
+    "graphRevision": 17,
+    "sourceRevision": 25,
+    "sourceRuntimeRevision": 25,
+    "generatedAt": "2026-04-09T21:35:04Z",
     "graphAuthorityPath": "/Volumes/shrey ssd/shrey-junior/.agent/state/runtime.sqlite3",
     "kind": "runtime-sqlite-normalized",
-    "nodeCount": 2118,
-    "edgeCount": 2915,
+    "nodeCount": 2167,
+    "edgeCount": 3047,
     "moduleCount": 6,
-    "symbolCount": 1898,
+    "symbolCount": 1943,
     "aliasKind": "runtime-sqlite-normalized-aliases",
-    "aliasCount": 10129,
-    "aliasAmbiguityCount": 1487,
+    "aliasCount": 10366,
+    "aliasAmbiguityCount": 1525,
     "explicitAliasSourcePath": ".agent/context/graph-aliases.json",
     "explicitAliasSourceAvailable": false,
     "artifactPath": ".agent/context/repo-map.json",
@@ -43,6 +43,28 @@
     "compatibilityInSync": true,
     "compatibilityArtifacts": null,
     "note": "Canonical repo graph lives in runtime SQLite. JSON graph files are compatibility/export views."
+  },
+  "packSelection": {
+    "selectedPack": "research-pack",
+    "selectedPackSource": "heuristic-default",
+    "explicitSelection": null,
+    "executable": true,
+    "unavailablePackReason": null,
+    "effectiveCapabilityIds": [
+      "exa",
+      "firecrawl",
+      "brave-search",
+      "context7",
+      "sequential-thinking",
+      "github"
+    ],
+    "preferredCapabilityIds": [
+      "exa",
+      "firecrawl",
+      "brave-search",
+      "context7",
+      "sequential-thinking"
+    ]
   },
   "artifacts": {
     "repoMap": {
@@ -111,6 +133,12 @@
       "required": true,
       "role": "tool-entry"
     },
+    "selectedPack": {
+      "path": ".agent/state/selected-pack.json",
+      "valid": true,
+      "required": false,
+      "role": "pack"
+    },
     "reviewPack": {
       "path": ".agent/context/review-pack.json",
       "valid": true,
@@ -132,6 +160,7 @@
   },
   "readFirst": [
     ".agent/state/ready-substrate.json",
+    ".agent/state/selected-pack.json",
     ".agent/context/agent-pack.json",
     ".agent/state/execution-state.json",
     ".agent/state/execution-events.ndjson",
@@ -143,5 +172,7 @@
     "path": ".agent/context/agent-pack.json",
     "note": "External coding tools should start with agent-pack.json, then follow readFirst and packPointers."
   },
-  "missingRequired": []
+  "missingRequired": [
+    "graphAuthority"
+  ]
 }

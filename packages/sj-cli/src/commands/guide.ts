@@ -6,6 +6,7 @@ import { getRuntimeSnapshot } from "@shrey-junior/sj-core/runtime/client.js";
 import { buildReadyRepoSubstrate } from "@shrey-junior/sj-core/core/ready-substrate.js";
 import { createSpinner, printSection, success, warn } from "../utils/cli-output.js";
 import { buildPlanRecoveryWorkflow, selectPrimaryPlanCommand } from "./execution-plan-recovery.js";
+import { syncPackSelectionSideEffects } from "./helpers/pack-selection.js";
 
 export interface GuideOptions {
   repoRoot: string;
@@ -21,7 +22,12 @@ export async function runGuide(options: GuideOptions): Promise<number> {
     loadPreparedScope(options.targetRoot),
     getRuntimeSnapshot(options.targetRoot)
   ]);
-  const readySubstrate = await buildReadyRepoSubstrate(options.targetRoot, runtimeSnapshot);
+  const packSynced = await syncPackSelectionSideEffects({
+    repoRoot: options.repoRoot,
+    targetRoot: options.targetRoot,
+    persist: false
+  }).catch(() => null);
+  const readySubstrate = await buildReadyRepoSubstrate(options.targetRoot, runtimeSnapshot, packSynced?.packSelection ?? null);
   spinner?.succeed(`Guide ready for ${options.targetRoot}`);
   const runtimeDecision = runtimeDecisionFromSnapshot(runtimeSnapshot);
   const step = getCurrentExecutionStep(plan);
@@ -47,8 +53,10 @@ export async function runGuide(options: GuideOptions): Promise<number> {
       readFirst: readySubstrate.readFirst,
       toolEntry: readySubstrate.toolEntry,
       graphAuthority: readySubstrate.graphAuthority,
+      packSelection: readySubstrate.packSelection,
       missingRequired: readySubstrate.missingRequired
     },
+    ...(packSynced ? { packSelection: packSynced.controlState.mcpPacks } : {}),
     ...(runtimeDecision.recovery || plan.lastError
       ? {
           blockingIssue: {

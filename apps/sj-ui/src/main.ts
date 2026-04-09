@@ -614,8 +614,22 @@ type RepoControlState = {
     safeParallelHint: string;
   };
   mcpPacks: {
+    selectedPack: { id: string; name?: string; description: string; realismNotes?: string[]; guidance?: string[] };
+    selectedPackSource: "runtime-explicit" | "heuristic-default";
+    explicitSelection: string | null;
     suggestedPack: { id: string; name?: string; description: string; realismNotes?: string[]; guidance?: string[] };
-    available: Array<{ id: string; name?: string; description: string; realismNotes: string[]; guidance?: string[] }>;
+    available: Array<{
+      id: string;
+      name?: string;
+      description: string;
+      realismNotes: string[];
+      guidance?: string[];
+      executable: boolean;
+      unavailablePackReason: string | null;
+      allowedCapabilityIds: string[];
+      preferredCapabilityIds: string[];
+      unavailableCapabilityIds: string[];
+    }>;
     compatibleCapabilities: Array<{
       id: string;
       category: string;
@@ -627,7 +641,11 @@ type RepoControlState = {
       usageGuidance: string[];
       antiPatterns: string[];
     }>;
-    capabilityStatus: "compatible" | "limited";
+    effectiveCapabilityIds: string[];
+    preferredCapabilityIds: string[];
+    executable: boolean;
+    unavailablePackReason: string | null;
+    capabilityStatus: "compatible" | "limited" | "blocked";
     note: string;
   };
   validation: {
@@ -2498,6 +2516,48 @@ async function executeKiwiCommand(
   }
 }
 
+async function executePackCommand(
+  action: "status" | "set" | "clear",
+  packId?: string
+): Promise<CliCommandResultPayload | null> {
+  if (!currentTargetRoot || commandState.loading || !isTauriBridgeAvailable()) {
+    return null;
+  }
+
+  commandState.loading = true;
+  commandState.activeCommand = "status";
+  commandState.lastError = null;
+  commandState.lastResult = null;
+  lastBlockedActionGuidance = null;
+  renderState(currentState);
+
+  try {
+    const args = action === "set" && packId ? [action, packId, "--json"] : [action, "--json"];
+    const result = await invoke<CliCommandResultPayload>("run_cli_command", {
+      command: "pack",
+      args,
+      targetRoot: currentTargetRoot,
+      expectJson: true
+    });
+    commandState.lastResult = result;
+    commandState.lastError = result.ok ? null : summarizeCliCommandFailure(result);
+    if (result.ok) {
+      await refreshCurrentRepoState();
+    } else {
+      renderState(currentState);
+    }
+    return result;
+  } catch (error) {
+    commandState.lastError = error instanceof Error ? error.message : String(error);
+    renderState(currentState);
+    return null;
+  } finally {
+    commandState.loading = false;
+    commandState.activeCommand = null;
+    renderState(currentState);
+  }
+}
+
 async function openTerminalForKiwiCommand(command: UiCommandName, args: string[]): Promise<boolean> {
   if (!currentTargetRoot || !isTauriBridgeAvailable()) {
     return false;
@@ -3046,6 +3106,19 @@ function handleInteractiveClick(event: MouseEvent, target: HTMLElement): boolean
     return true;
   }
 
+  const packAction = target.closest<HTMLElement>("[data-pack-action]");
+  if (packAction?.dataset.packAction) {
+    const action = packAction.dataset.packAction;
+    if (action === "clear") {
+      void executePackCommand("clear");
+      return true;
+    }
+    if (action === "set" && packAction.dataset.packId) {
+      void executePackCommand("set", packAction.dataset.packId);
+      return true;
+    }
+  }
+
   const submitComposer = target.closest<HTMLElement>("[data-composer-submit]");
   if (submitComposer?.dataset.composerSubmit) {
     const mode = submitComposer.dataset.composerSubmit as Exclude<CommandComposerMode, null>;
@@ -3271,6 +3344,8 @@ function reportRenderProbe(state: RepoControlState): void {
     bootVisible,
     activeView,
     targetRoot: state.targetRoot,
+    selectedPack: state.mcpPacks.selectedPack.id,
+    selectedPackSource: state.mcpPacks.selectedPackSource,
     repoMode: state.repoState.mode,
     executionState: state.executionState.lifecycle,
     executionRevision: state.executionState.revision,
@@ -3667,7 +3742,7 @@ function renderOverviewView(state: RepoControlState): string {
             ${renderInfoRow("Project type", state.projectType)}
             ${renderInfoRow("Execution mode", state.executionMode)}
             ${renderInfoRow("Active specialist", activeSpecialist)}
-            ${renderInfoRow("Suggested pack", state.mcpPacks.suggestedPack.name ?? state.mcpPacks.suggestedPack.id)}
+            ${renderInfoRow("Selected pack", state.mcpPacks.selectedPack.name ?? state.mcpPacks.selectedPack.id)}
             ${renderInfoRow("Compatible MCPs", String(compatibleMcpCount))}
             ${renderInfoRow("Feedback", `${kc.feedback.adaptationLevel} (${kc.feedback.totalRuns} runs)`)}
             ${renderInfoRow("Measured usage", kc.measuredUsage.available ? `${formatTokensShort(kc.measuredUsage.totalTokens)} over ${kc.measuredUsage.totalRuns} runs` : "unavailable")}
@@ -4153,20 +4228,23 @@ function renderMcpView(state: RepoControlState): string {
   const highTrustCount = capabilities.filter((entry) => entry.trustLevel === "high").length;
   const writeCapableCount = capabilities.filter((entry) => entry.writeCapable).length;
   const approvalCount = capabilities.filter((entry) => entry.approvalRequired).length;
+  const selectedPack = state.mcpPacks.selectedPack;
+  const suggestedPack = state.mcpPacks.suggestedPack;
+  const showClearButton = state.mcpPacks.explicitSelection !== null;
 
   return `
     <div class="kc-view-shell">
       <section class="kc-view-header">
         <div>
           <p class="kc-view-kicker">MCP / Tool Integrations</p>
-          <h1>${escapeHtml(state.mcpPacks.suggestedPack.name ?? state.mcpPacks.suggestedPack.id)}</h1>
-          <p>${escapeHtml(state.mcpPacks.suggestedPack.description)}</p>
+          <h1>${escapeHtml(selectedPack.name ?? selectedPack.id)}</h1>
+          <p>${escapeHtml(selectedPack.description)}</p>
         </div>
         ${renderHeaderBadge(state.mcpPacks.capabilityStatus, state.mcpPacks.capabilityStatus === "compatible" ? "success" : "warn")}
       </section>
 
       <div class="kc-stat-grid">
-        ${renderStatCard("Compatible MCPs", String(capabilities.length), "active workflow role + profile", capabilities.length > 0 ? "success" : "warn")}
+        ${renderStatCard("Compatible MCPs", String(capabilities.length), state.mcpPacks.selectedPackSource === "runtime-explicit" ? "explicit pack policy" : "heuristic pack policy", capabilities.length > 0 ? "success" : "warn")}
         ${renderStatCard("High Trust", String(highTrustCount), "preferred first", highTrustCount > 0 ? "success" : "neutral")}
         ${renderStatCard("Write Capable", String(writeCapableCount), "requires judgment", writeCapableCount > 0 ? "warn" : "neutral")}
         ${renderStatCard("Approval Gates", String(approvalCount), "extra caution", approvalCount > 0 ? "warn" : "neutral")}
@@ -4174,14 +4252,22 @@ function renderMcpView(state: RepoControlState): string {
 
       <div class="kc-two-column">
         <section class="kc-panel">
-          ${renderPanelHeader("Suggested Pack", state.mcpPacks.note)}
+          ${renderPanelHeader("Selected Pack", state.mcpPacks.note)}
           <div class="kc-stack-list">
-            ${(state.mcpPacks.suggestedPack.guidance ?? []).map((item: string) => renderBulletRow(item)).join("")}
+            ${renderInfoRow("Source", state.mcpPacks.selectedPackSource)}
+            ${renderInfoRow("Heuristic default", suggestedPack.name ?? suggestedPack.id)}
+            ${renderInfoRow("Executable", state.mcpPacks.executable ? "yes" : "no")}
+          </div>
+          ${state.mcpPacks.unavailablePackReason ? `<div class="kc-divider"></div><div class="kc-stack-list">${renderNoteRow("Blocked", "warn", state.mcpPacks.unavailablePackReason)}</div>` : ""}
+          <div class="kc-divider"></div>
+          <div class="kc-stack-list">
+            ${(selectedPack.guidance ?? []).map((item: string) => renderBulletRow(item)).join("")}
           </div>
           <div class="kc-divider"></div>
           <div class="kc-stack-list">
-            ${(state.mcpPacks.suggestedPack.realismNotes ?? []).map((item: string) => renderNoteRow("Reality check", "advisory", item)).join("")}
+            ${(selectedPack.realismNotes ?? []).map((item: string) => renderNoteRow("Reality check", "advisory", item)).join("")}
           </div>
+          ${showClearButton ? `<div class="kc-divider"></div><div class="kc-stack-list"><button class="kc-action-button secondary" data-pack-action="clear">Clear explicit pack</button></div>` : ""}
         </section>
         <section class="kc-panel">
           ${renderPanelHeader("Compatible MCP Capabilities", "These are the currently compatible MCP integrations for the active repo workflow role and repo profile.")}
@@ -4192,20 +4278,37 @@ function renderMcpView(state: RepoControlState): string {
       </div>
 
       <section class="kc-panel">
-        ${renderPanelHeader("Available Packs", "Pack guidance shapes operator expectations, but does not imply universal runtime parity.")}
+        ${renderPanelHeader("Available Packs", "Pack selection is runtime-backed policy. Unavailable packs are blocked until matching integrations are registered.")}
         <div class="kc-fold-grid">
           ${state.mcpPacks.available.map((pack) => `
-            <details class="kc-fold-card" ${pack.id === state.mcpPacks.suggestedPack.id ? "open" : ""}>
+            <details class="kc-fold-card" ${pack.id === selectedPack.id ? "open" : ""}>
               <summary>
                 <div>
                   <strong>${escapeHtml(pack.name ?? pack.id)}</strong>
                   <span>${escapeHtml(pack.description)}</span>
                 </div>
-                ${renderHeaderBadge(pack.id === state.mcpPacks.suggestedPack.id ? "selected" : "available", pack.id === state.mcpPacks.suggestedPack.id ? "success" : "neutral")}
+                ${renderHeaderBadge(
+                  pack.id === selectedPack.id ? "selected" : pack.executable ? "available" : "blocked",
+                  pack.id === selectedPack.id ? "success" : pack.executable ? "neutral" : "warn"
+                )}
               </summary>
               <div class="kc-fold-body">
                 <div class="kc-stack-list">
                   ${(pack.guidance ?? []).map((item) => renderBulletRow(item)).join("")}
+                </div>
+                <div class="kc-divider"></div>
+                <div class="kc-stack-list">
+                  ${renderInfoRow("Allowed", pack.allowedCapabilityIds.join(", ") || "none")}
+                  ${renderInfoRow("Preferred", pack.preferredCapabilityIds.join(", ") || "none")}
+                  ${pack.unavailablePackReason ? renderNoteRow("Blocked", "warn", pack.unavailablePackReason) : ""}
+                </div>
+                <div class="kc-divider"></div>
+                <div class="kc-stack-list">
+                  ${pack.id === selectedPack.id
+                    ? renderNoteRow("Selected", "success", state.mcpPacks.selectedPackSource === "runtime-explicit" ? "Explicit runtime selection is active." : "Heuristic default is active.")
+                    : pack.executable
+                      ? `<button class="kc-action-button" data-pack-action="set" data-pack-id="${escapeHtml(pack.id)}">Select pack</button>`
+                      : renderEmptyState("Blocked until matching integrations are registered.")}
                 </div>
               </div>
             </details>
@@ -5618,6 +5721,12 @@ function buildBridgeUnavailableState(targetRoot: string): RepoControlState {
       safeParallelHint: "Restore repo-local visibility first."
     },
     mcpPacks: {
+      selectedPack: {
+        id: "core-pack",
+        description: "Default repo-first pack."
+      },
+      selectedPackSource: "heuristic-default",
+      explicitSelection: null,
       suggestedPack: {
         id: "core-pack",
         description: "Default repo-first pack.",
@@ -5626,6 +5735,10 @@ function buildBridgeUnavailableState(targetRoot: string): RepoControlState {
       },
       available: [],
       compatibleCapabilities: [],
+      effectiveCapabilityIds: [],
+      preferredCapabilityIds: [],
+      executable: false,
+      unavailablePackReason: "Pack selection is unavailable until repo-local state can be loaded.",
       capabilityStatus: "limited",
       note: "No compatible MCP integrations are available until repo-local state can be loaded."
     },

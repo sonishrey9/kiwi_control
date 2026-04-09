@@ -22,8 +22,8 @@ const MCP_PACKS: Record<McpPackId, McpPackDefinition> = {
       "Prefer this pack when the repo is generic and should stay quiet by default."
     ],
     realismNotes: [
-      "This pack is guidance only. Availability still depends on the active runtime and installed tools.",
-      "Do not assume write-capable MCP parity across Codex, Claude, Copilot, Cursor, or hosted runtimes."
+      "This pack is runtime-selectable and narrows Kiwi to a baseline repo-first integration lane.",
+      "Actual capability availability still depends on the active repo profile and installed integrations."
     ],
     suggestedProjectTypes: ["generic", "node", "python", "docs", "data-platform"]
   },
@@ -36,8 +36,8 @@ const MCP_PACKS: Record<McpPackId, McpPackDefinition> = {
       "Prefer read-heavy tools and keep repo-local outputs compact and inspectable."
     ],
     realismNotes: [
-      "Search and browser tooling are stronger in some runtimes than others.",
-      "The pack improves guidance, not guaranteed live browsing capability."
+      "This pack is runtime-selectable and prefers research-oriented integrations when they are registered.",
+      "Search availability still depends on the active repo profile and installed integrations."
     ],
     suggestedProjectTypes: ["docs", "generic", "data-platform"]
   },
@@ -50,8 +50,8 @@ const MCP_PACKS: Record<McpPackId, McpPackDefinition> = {
       "Keep browser verification additive. Never imply that UI automation is universally available."
     ],
     realismNotes: [
-      "Playwright MCP is strongest where browser automation is explicitly installed and exposed.",
-      "Copilot is suggestion-oriented and should not be described as a strict orchestration runtime."
+      "This pack is runtime-selectable and prefers browser and design validation integrations when they are registered.",
+      "Playwright-style automation still depends on the active repo profile and installed integrations."
     ],
     suggestedProjectTypes: ["node", "generic"]
   },
@@ -64,8 +64,8 @@ const MCP_PACKS: Record<McpPackId, McpPackDefinition> = {
       "Prefer repo-local guidance and existing SSO/account conventions over ad hoc credential handling."
     ],
     realismNotes: [
-      "AWS MCP support is workload-specific and runtime-specific.",
-      "Never imply AWS tooling is symmetric across local and hosted agent runtimes."
+      "This pack stays blocked until AWS-specific integrations are registered in Kiwi's repo registry and machine inventory.",
+      "Do not imply AWS tooling exists here until the pack reports executable."
     ],
     suggestedProjectTypes: ["infra", "node", "python"]
   },
@@ -78,8 +78,8 @@ const MCP_PACKS: Record<McpPackId, McpPackDefinition> = {
       "Keep repo-local runbooks authoritative and treat bridge tooling as optional acceleration."
     ],
     realismNotes: [
-      "Xcode bridge availability is not universal across local shells, CI, and hosted runtimes.",
-      "Always describe simulator and bridge capabilities as contingent on the active environment."
+      "This pack stays blocked until Xcode or simulator integrations are registered in Kiwi's repo registry and machine inventory.",
+      "Do not imply Apple-platform bridge support exists here until the pack reports executable."
     ],
     suggestedProjectTypes: ["ios", "macos"]
   },
@@ -92,8 +92,8 @@ const MCP_PACKS: Record<McpPackId, McpPackDefinition> = {
       "Default to repo-local guidance and normal build/test tooling before claiming special bridge support."
     ],
     realismNotes: [
-      "Android support relies mainly on repo-local guidance plus standard build and test tooling.",
-      "Do not imply parity with iOS bridge workflows or universal MCP support."
+      "This pack stays blocked until Android-specific integrations are registered in Kiwi's repo registry and machine inventory.",
+      "Do not imply emulator or Android bridge support exists here until the pack reports executable."
     ],
     suggestedProjectTypes: ["android"]
   }

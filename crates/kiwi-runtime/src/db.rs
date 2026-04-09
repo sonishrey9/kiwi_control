@@ -6,6 +6,7 @@ use crate::models::{
     RefreshDerivedOutputsRequest,
     RuntimeDecision, RuntimeDecisionAction, RuntimeDecisionRecovery, RuntimeEvent,
     RuntimeLifecycle, RuntimeReadiness, RuntimeSnapshot, TransitionExecutionStateRequest,
+    RepoPackSelectionStatus, SetRepoPackSelectionRequest, ClearRepoPackSelectionRequest,
 };
 use anyhow::{anyhow, Context, Result};
 use rusqlite::{params, Connection, OptionalExtension, Transaction, TransactionBehavior};
@@ -385,6 +386,83 @@ pub fn query_repo_graph_impact(query: &RepoGraphQuery) -> Result<RepoGraphNodeRe
     query_repo_graph(query, "impact")
 }
 
+pub fn get_repo_pack_selection_status(target_root: &str) -> Result<RepoPackSelectionStatus> {
+    let target_root = normalize_target_root(target_root)?;
+    let mut conn = open_connection(&target_root)?;
+    let target_id = ensure_initialized(&mut conn, &target_root, None, None, None)?;
+    Ok(build_repo_pack_selection_status(&conn, &target_root, target_id)?)
+}
+
+pub fn set_repo_pack_selection(request: &SetRepoPackSelectionRequest) -> Result<RuntimeSnapshot> {
+    let target_root = normalize_target_root(&request.target_root)?;
+    let mut conn = open_connection(&target_root)?;
+    let target_id = ensure_initialized(&mut conn, &target_root, None, None, None)?;
+    let current_selection = load_repo_pack_selection_row(&conn, target_id)?;
+    if current_selection
+        .as_ref()
+        .map(|row| row.selected_pack_id.as_str())
+        == Some(request.pack_id.as_str())
+    {
+        return get_runtime_snapshot(target_root.to_string_lossy().as_ref());
+    }
+
+    let mut current = load_state_row(&conn, target_id)?;
+    let timestamp = timestamp_now();
+    let tx = conn
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .context("failed to start repo-pack selection transaction")?;
+    upsert_repo_pack_selection_row(
+        &tx,
+        target_id,
+        &request.pack_id,
+        request.selection_source.as_deref().unwrap_or("runtime-explicit"),
+        &timestamp,
+    )?;
+    apply_repo_pack_selection_event(
+        &tx,
+        &mut current,
+        target_id,
+        "repo-pack-selected",
+        request.trigger_command.clone(),
+        request.actor.clone(),
+        format!("Selected MCP pack {}.", request.pack_id),
+        &timestamp,
+    )?;
+    tx.commit()?;
+    get_runtime_snapshot(target_root.to_string_lossy().as_ref())
+}
+
+pub fn clear_repo_pack_selection(request: &ClearRepoPackSelectionRequest) -> Result<RuntimeSnapshot> {
+    let target_root = normalize_target_root(&request.target_root)?;
+    let mut conn = open_connection(&target_root)?;
+    let target_id = ensure_initialized(&mut conn, &target_root, None, None, None)?;
+    if load_repo_pack_selection_row(&conn, target_id)?.is_none() {
+        return get_runtime_snapshot(target_root.to_string_lossy().as_ref());
+    }
+
+    let mut current = load_state_row(&conn, target_id)?;
+    let timestamp = timestamp_now();
+    let tx = conn
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .context("failed to start repo-pack clear transaction")?;
+    tx.execute(
+        "DELETE FROM repo_pack_selection WHERE target_id = ?1",
+        params![target_id],
+    )?;
+    apply_repo_pack_selection_event(
+        &tx,
+        &mut current,
+        target_id,
+        "repo-pack-cleared",
+        request.trigger_command.clone(),
+        request.actor.clone(),
+        String::from("Cleared the explicit MCP pack selection."),
+        &timestamp,
+    )?;
+    tx.commit()?;
+    get_runtime_snapshot(target_root.to_string_lossy().as_ref())
+}
+
 fn query_repo_graph(query: &RepoGraphQuery, query_kind: &str) -> Result<RepoGraphNodeResult> {
     let target_root = normalize_target_root(&query.target_root)?;
     let mut conn = open_connection(&target_root)?;
@@ -678,6 +756,13 @@ fn open_connection(target_root: &Path) -> Result<Connection> {
             source TEXT NOT NULL,
             PRIMARY KEY(graph_revision, alias_kind, alias_value, canonical_node_id),
             FOREIGN KEY(graph_revision) REFERENCES repo_graph_revisions(graph_revision)
+         );
+         CREATE TABLE IF NOT EXISTS repo_pack_selection (
+            target_id INTEGER PRIMARY KEY,
+            selected_pack_id TEXT NOT NULL,
+            selection_source TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(target_id) REFERENCES repo_targets(id)
          );",
     )?;
     conn.execute_batch("DROP TABLE IF EXISTS repo_graph_state;")?;
@@ -776,6 +861,107 @@ fn import_or_seed(conn: &Connection, target_root: &Path, target_id: i64) -> Resu
         params![target_id, state_digest(&state)?, timestamp],
     )?;
     mark_all_outputs_stale(conn, target_root, target_id, &timestamp)?;
+    Ok(())
+}
+
+#[derive(Clone, Debug)]
+struct StoredRepoPackSelection {
+    selected_pack_id: String,
+    selection_source: String,
+    updated_at: String,
+}
+
+fn load_repo_pack_selection_row(conn: &Connection, target_id: i64) -> Result<Option<StoredRepoPackSelection>> {
+    conn.query_row(
+        "SELECT selected_pack_id, selection_source, updated_at
+           FROM repo_pack_selection
+          WHERE target_id = ?1",
+        params![target_id],
+        |row| {
+            Ok(StoredRepoPackSelection {
+                selected_pack_id: row.get(0)?,
+                selection_source: row.get(1)?,
+                updated_at: row.get(2)?,
+            })
+        },
+    )
+    .optional()
+    .context("failed to load repo pack selection")
+}
+
+fn build_repo_pack_selection_status(
+    conn: &Connection,
+    target_root: &Path,
+    target_id: i64,
+) -> Result<RepoPackSelectionStatus> {
+    let selection = load_repo_pack_selection_row(conn, target_id)?;
+    Ok(RepoPackSelectionStatus {
+        target_root: target_root.to_string_lossy().to_string(),
+        selected_pack_id: selection.as_ref().map(|row| row.selected_pack_id.clone()),
+        selected_pack_source: selection.as_ref().map(|row| row.selection_source.clone()),
+        updated_at: selection.as_ref().map(|row| row.updated_at.clone()),
+    })
+}
+
+fn upsert_repo_pack_selection_row(
+    tx: &Transaction<'_>,
+    target_id: i64,
+    selected_pack_id: &str,
+    selection_source: &str,
+    updated_at: &str,
+) -> Result<()> {
+    tx.execute(
+        "INSERT INTO repo_pack_selection (target_id, selected_pack_id, selection_source, updated_at)
+         VALUES (?1, ?2, ?3, ?4)
+         ON CONFLICT(target_id) DO UPDATE SET
+            selected_pack_id = excluded.selected_pack_id,
+            selection_source = excluded.selection_source,
+            updated_at = excluded.updated_at",
+        params![target_id, selected_pack_id, selection_source, updated_at],
+    )?;
+    Ok(())
+}
+
+fn apply_repo_pack_selection_event(
+    tx: &Transaction<'_>,
+    current: &mut StoredExecutionState,
+    target_id: i64,
+    event_type: &str,
+    trigger_command: Option<String>,
+    actor: Option<String>,
+    reason: String,
+    timestamp: &str,
+) -> Result<()> {
+    let next_revision = current.revision + 1;
+    let event = RuntimeEvent {
+        event_id: None,
+        revision: next_revision,
+        operation_id: current.operation_id.clone(),
+        event_type: String::from(event_type),
+        lifecycle: current.lifecycle,
+        task: current.task.clone(),
+        source_command: trigger_command.clone(),
+        reason: Some(reason),
+        next_command: current.next_command.clone(),
+        blocked_by: current.blocked_by.clone(),
+        artifacts: BTreeMap::new(),
+        actor: actor.unwrap_or_else(|| String::from("kiwi-runtime-pack")),
+        recorded_at: timestamp.to_string(),
+    };
+    let event_id = insert_event(tx, target_id, &event)?;
+    current.revision = next_revision;
+    current.last_event_id = Some(event_id);
+    current.last_updated_at = Some(timestamp.to_string());
+    upsert_state(tx, current)?;
+    let decision = load_decision_row(tx, target_id, current.revision - 1)?
+        .unwrap_or_else(|| decision_from_state(current, timestamp));
+    insert_decision(tx, target_id, next_revision, &normalize_runtime_decision(decision, timestamp))?;
+    let digest = state_digest(current)?;
+    tx.execute(
+        "INSERT INTO state_revisions (target_id, revision, change_kind, trigger_command, state_digest, compatibility_dirty, recorded_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6)",
+        params![target_id, next_revision, event_type, trigger_command, digest, timestamp],
+    )?;
     Ok(())
 }
 
@@ -3265,6 +3451,52 @@ mod tests {
         assert_eq!(snapshot.revision, 4);
         assert_eq!(snapshot.lifecycle, RuntimeLifecycle::Blocked);
         assert_eq!(snapshot.reason.as_deref(), Some("Prepared scope drifted."));
+        Ok(())
+    }
+
+    #[test]
+    fn persists_and_clears_repo_pack_selection_with_runtime_revision_changes() -> Result<()> {
+        let dir = create_target()?;
+        let target_root = dir.path().to_string_lossy().to_string();
+        open_target(&OpenTargetRequest {
+            target_root: target_root.clone(),
+            root_label: None,
+            project_type: Some(String::from("node")),
+            profile_name: Some(String::from("product-build")),
+        })?;
+
+        let set_snapshot = set_repo_pack_selection(&SetRepoPackSelectionRequest {
+            target_root: target_root.clone(),
+            pack_id: String::from("research-pack"),
+            selection_source: Some(String::from("runtime-explicit")),
+            trigger_command: Some(String::from("kiwi-control pack set research-pack")),
+            actor: Some(String::from("test")),
+        })?;
+        assert_eq!(set_snapshot.revision, 1);
+
+        let status = get_repo_pack_selection_status(&target_root)?;
+        assert_eq!(status.selected_pack_id.as_deref(), Some("research-pack"));
+        assert_eq!(status.selected_pack_source.as_deref(), Some("runtime-explicit"));
+
+        let repeated_snapshot = set_repo_pack_selection(&SetRepoPackSelectionRequest {
+            target_root: target_root.clone(),
+            pack_id: String::from("research-pack"),
+            selection_source: Some(String::from("runtime-explicit")),
+            trigger_command: Some(String::from("kiwi-control pack set research-pack")),
+            actor: Some(String::from("test")),
+        })?;
+        assert_eq!(repeated_snapshot.revision, 1);
+
+        let cleared_snapshot = clear_repo_pack_selection(&ClearRepoPackSelectionRequest {
+            target_root: target_root.clone(),
+            trigger_command: Some(String::from("kiwi-control pack clear")),
+            actor: Some(String::from("test")),
+        })?;
+        assert_eq!(cleared_snapshot.revision, 2);
+
+        let cleared = get_repo_pack_selection_status(&target_root)?;
+        assert_eq!(cleared.selected_pack_id, None);
+        assert_eq!(cleared.selected_pack_source, None);
         Ok(())
     }
 }

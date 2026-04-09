@@ -107,7 +107,7 @@ export function renderInspectorPanel(context: InspectorRenderContext): string {
           <section class="kc-inspector-section">
             <p class="kc-section-micro">MCP usage</p>
             <div class="kc-gate-list">
-              ${renderGateRow("Pack", state.mcpPacks.suggestedPack.name ?? state.mcpPacks.suggestedPack.id, "default")}
+              ${renderGateRow("Pack", state.mcpPacks.selectedPack?.name ?? state.mcpPacks.selectedPack?.id ?? state.mcpPacks.suggestedPack.name ?? state.mcpPacks.suggestedPack.id, "default")}
               ${renderGateRow("Compatible", String(state.mcpPacks.compatibleCapabilities.length), state.mcpPacks.compatibleCapabilities.length > 0 ? "success" : "warn")}
               ${renderGateRow("Top capability", topCapability?.id ?? "none", topCapability ? "success" : "warn")}
             </div>

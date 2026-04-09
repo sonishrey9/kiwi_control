@@ -29,6 +29,28 @@ export interface McpCapability {
   antiPatterns: string[];
 }
 
+export function listAvailableMcpCapabilities(options: {
+  config: LoadedConfig;
+  profileName: string;
+  tool?: ToolName;
+}): McpCapability[] {
+  return Object.entries(options.config.mcpServers.mcpServers)
+    .filter(([, server]) => server.allowedProfiles.includes(options.profileName))
+    .filter(([, server]) => !options.tool || server.toolCompatibility.includes(options.tool))
+    .map(([id, server]) => ({
+      id: server.id ?? id,
+      category: server.category,
+      purpose: server.purpose,
+      trustLevel: server.trustLevel,
+      readOnly: server.readOnly ?? server.referenceOnly,
+      writeCapable: server.writeCapable ?? !server.referenceOnly,
+      approvalRequired: server.approvalRequired ?? false,
+      usageGuidance: server.usageGuidance ?? [],
+      antiPatterns: server.antiPatterns ?? []
+    }))
+    .sort((left, right) => trustWeight(right.trustLevel) - trustWeight(left.trustLevel));
+}
+
 export function resolveSpecialist(options: {
   config: LoadedConfig;
   profileName: string;

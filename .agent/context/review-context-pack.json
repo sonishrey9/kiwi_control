@@ -1,8 +1,8 @@
 {
   "artifactType": "kiwi-control/review-context-pack",
   "version": 1,
-  "generatedAt": "2026-04-09T19:30:52.784Z",
-  "summary": "Review attention is concentrated in packages/sj-core with 16 ranked targets.",
+  "generatedAt": "2026-04-09T21:35:04.233Z",
+  "summary": "Review attention is concentrated in packages/sj-cli with 16 ranked targets.",
   "currentTask": "update README docs",
   "readFirst": [
     ".agent/state/decision-graph.json",
@@ -15,7 +15,7 @@
   ],
   "decisions": [
     {
-      "id": "execution-state:18",
+      "id": "execution-state:25",
       "kind": "execution-event",
       "label": "blocked",
       "summary": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
@@ -178,20 +178,20 @@
     {
       "kind": "file",
       "target": "apps/sj-ui/src/main.ts",
+      "touches": 15,
+      "commits": 15
+    },
+    {
+      "kind": "file",
+      "target": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
       "touches": 14,
       "commits": 14
     },
     {
       "kind": "file",
-      "target": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-      "touches": 13,
-      "commits": 13
-    },
-    {
-      "kind": "file",
       "target": "packages/sj-core/src/core/ui-state.ts",
-      "touches": 13,
-      "commits": 13
+      "touches": 14,
+      "commits": 14
     },
     {
       "kind": "file",
@@ -202,42 +202,33 @@
     {
       "kind": "module",
       "target": "packages/sj-cli",
-      "touches": 140,
+      "touches": 142,
       "commits": 26
     },
     {
       "kind": "module",
       "target": "apps/sj-ui",
-      "touches": 90,
-      "commits": 18
+      "touches": 91,
+      "commits": 19
     },
     {
       "kind": "module",
       "target": "packages/sj-core",
-      "touches": 80,
+      "touches": 82,
       "commits": 24
     },
     {
       "kind": "module",
       "target": "scripts",
-      "touches": 41,
-      "commits": 16
+      "touches": 40,
+      "commits": 15
     }
   ],
   "reviewAttention": [
     {
       "kind": "module",
-      "target": "packages/sj-core",
-      "score": 4592,
-      "reasons": [
-        "active change cluster",
-        "repeated touches"
-      ]
-    },
-    {
-      "kind": "module",
       "target": "packages/sj-cli",
-      "score": 2447,
+      "score": 7223,
       "reasons": [
         "active change cluster",
         "contains entry point",
@@ -246,8 +237,17 @@
     },
     {
       "kind": "module",
+      "target": "packages/sj-core",
+      "score": 6316,
+      "reasons": [
+        "active change cluster",
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "module",
       "target": "apps/sj-ui",
-      "score": 1999,
+      "score": 2762,
       "reasons": [
         "active change cluster",
         "contains entry point",
@@ -258,7 +258,7 @@
     {
       "kind": "module",
       "target": "scripts",
-      "score": 474,
+      "score": 460,
       "reasons": [
         "repeated touches"
       ]
@@ -266,7 +266,7 @@
     {
       "kind": "module",
       "target": "docs",
-      "score": 408,
+      "score": 364,
       "reasons": [
         "repeated touches"
       ]
@@ -274,7 +274,7 @@
     {
       "kind": "module",
       "target": "crates/kiwi-runtime",
-      "score": 268,
+      "score": 292,
       "reasons": [
         "contains entry point",
         "repeated touches"
@@ -283,8 +283,9 @@
     {
       "kind": "file",
       "target": "apps/sj-ui/src/main.ts",
-      "score": 230,
+      "score": 263,
       "reasons": [
+        "call relationship",
         "changed file",
         "changed-area cluster",
         "entry point",
@@ -296,13 +297,15 @@
     },
     {
       "kind": "file",
-      "target": "packages/sj-core/src/core/ui-state.ts",
-      "score": 184,
+      "target": "apps/sj-ui/src/ui/contracts.ts",
+      "score": 197,
       "reasons": [
-        "call relationship",
         "changed file",
         "changed-area cluster",
+        "failure-linked",
+        "forward dependency",
         "history hotspot",
+        "repeated decision attention",
         "repeated touches",
         "reverse dependency hub"
       ]
@@ -310,25 +313,27 @@
     {
       "kind": "file",
       "target": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-      "score": 164,
-      "reasons": [
-        "changed file",
-        "changed-area cluster",
-        "history hotspot",
-        "repeated touches"
-      ]
-    },
-    {
-      "kind": "file",
-      "target": "packages/sj-core/src/runtime/client.ts",
-      "score": 137,
+      "score": 192,
       "reasons": [
         "call relationship",
         "changed file",
         "changed-area cluster",
-        "forward dependency",
         "history hotspot",
-        "repeated touches"
+        "repeated touches",
+        "reverse dependent"
+      ]
+    },
+    {
+      "kind": "file",
+      "target": "packages/sj-core/src/core/ui-state.ts",
+      "score": 192,
+      "reasons": [
+        "call relationship",
+        "changed file",
+        "changed-area cluster",
+        "history hotspot",
+        "repeated touches",
+        "reverse dependency hub"
       ]
     }
   ],

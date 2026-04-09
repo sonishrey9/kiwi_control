@@ -1,9 +1,9 @@
 {
   "artifactType": "kiwi-control/symbol-index",
   "version": 1,
-  "generatedAt": "2026-04-09T19:30:51.510Z",
-  "totalFiles": 202,
-  "totalSymbols": 1898,
+  "generatedAt": "2026-04-09T21:35:03.043Z",
+  "totalFiles": 206,
+  "totalSymbols": 1943,
   "files": [
     {
       "file": "apps/sj-ui/src/bootcheck.ts",
@@ -74,6 +74,7 @@
         "escapeSelectorValue",
         "evalPrecisionLow",
         "executeKiwiCommand",
+        "executePackCommand",
         "executePlanStepCommand",
         "executions",
         "filterGuidanceForCurrentState",
@@ -700,6 +701,18 @@
       ]
     },
     {
+      "file": "packages/sj-cli/src/commands/helpers/pack-selection.ts",
+      "moduleGroup": "packages/sj-cli",
+      "exports": [
+        "packArtifactDataFromControlState",
+        "syncPackSelectionSideEffects"
+      ],
+      "localFunctions": [
+        "packArtifactDataFromControlState",
+        "syncPackSelectionSideEffects"
+      ]
+    },
+    {
       "file": "packages/sj-cli/src/commands/init.ts",
       "moduleGroup": "packages/sj-cli",
       "exports": [
@@ -727,6 +740,17 @@
       ],
       "localFunctions": [
         "runNext"
+      ]
+    },
+    {
+      "file": "packages/sj-cli/src/commands/pack.ts",
+      "moduleGroup": "packages/sj-cli",
+      "exports": [
+        "runPack"
+      ],
+      "localFunctions": [
+        "emitPackResult",
+        "runPack"
       ]
     },
     {
@@ -1174,12 +1198,15 @@
       "file": "packages/sj-cli/src/tests/graph-query.test.ts",
       "moduleGroup": "packages/sj-cli",
       "exports": [
+        "alpha",
+        "beta",
         "helper",
         "login",
         "route"
       ],
       "localFunctions": [
         "capture",
+        "captureGraph",
         "helper",
         "login",
         "route"
@@ -1212,6 +1239,14 @@
       "moduleGroup": "packages/sj-cli",
       "exports": [],
       "localFunctions": []
+    },
+    {
+      "file": "packages/sj-cli/src/tests/pack.test.ts",
+      "moduleGroup": "packages/sj-cli",
+      "exports": [],
+      "localFunctions": [
+        "jsonLogger"
+      ]
     },
     {
       "file": "packages/sj-cli/src/tests/packets.test.ts",
@@ -2054,6 +2089,39 @@
       "localFunctions": []
     },
     {
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core",
+      "exports": [
+        "annotatePackSelectionArtifacts",
+        "packSelectionArtifactFragment",
+        "persistSelectedPackArtifact",
+        "resolveEffectiveMcpPackState",
+        "resolveMcpPackCatalog",
+        "selectedPackArtifactPath"
+      ],
+      "localFunctions": [
+        "annotateArtifactIfPresent",
+        "annotatePackSelectionArtifacts",
+        "buildPackNote",
+        "currentContent",
+        "packSelectionArtifactFragment",
+        "persistSelectedPackArtifact",
+        "preferredDelta",
+        "preferredRankDelta",
+        "resolveEffectiveMcpPackState",
+        "resolveFileArea",
+        "resolveHeuristicPackId",
+        "resolveMcpPackCatalog",
+        "resolvePackPolicy",
+        "resolveProjectType",
+        "resolveTaskType",
+        "selectedPackArtifactPath",
+        "sortPackCapabilities",
+        "trustWeight",
+        "uniqueStrings"
+      ]
+    },
+    {
       "file": "packages/sj-core/src/core/memory.ts",
       "moduleGroup": "packages/sj-core",
       "exports": [
@@ -2511,6 +2579,7 @@
       "moduleGroup": "packages/sj-core",
       "exports": [
         "isKnownSpecialistId",
+        "listAvailableMcpCapabilities",
         "listEligibleMcpCapabilities",
         "listSpecialists",
         "normalizeSpecialistId",
@@ -2521,6 +2590,7 @@
       "localFunctions": [
         "inferPreferredSpecialistId",
         "isKnownSpecialistId",
+        "listAvailableMcpCapabilities",
         "listEligibleMcpCapabilities",
         "listSpecialists",
         "normalizeSpecialistId",
@@ -3011,8 +3081,10 @@
       "file": "packages/sj-core/src/runtime/client.ts",
       "moduleGroup": "packages/sj-core",
       "exports": [
+        "clearRuntimePackSelection",
         "ensureRuntimeDaemon",
         "getRuntimeIdentity",
+        "getRuntimePackSelectionStatus",
         "getRuntimeRepoGraph",
         "getRuntimeRepoGraphStatus",
         "getRuntimeSnapshot",
@@ -3023,14 +3095,17 @@
         "persistRuntimeRepoGraph",
         "queryRuntimeRepoGraph",
         "refreshRuntimeDerivedOutputs",
+        "setRuntimePackSelection",
         "transitionRuntimeExecutionState"
       ],
       "localFunctions": [
         "allowDevRuntimeFallback",
+        "clearRuntimePackSelection",
         "currentRuntimeExecutableName",
         "currentRustTargetTriple",
         "ensureRuntimeDaemon",
         "getRuntimeIdentity",
+        "getRuntimePackSelectionStatus",
         "getRuntimeRepoGraph",
         "getRuntimeRepoGraphStatus",
         "getRuntimeSnapshot",
@@ -3055,6 +3130,7 @@
         "runtimeMetadataPath",
         "runtimeRequest",
         "runtimeRequestWithMetadata",
+        "setRuntimePackSelection",
         "transitionRuntimeExecutionState"
       ]
     },
@@ -3509,6 +3585,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "alpha",
+      "kind": "export",
+      "file": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
       "symbol": "analyzeImpact",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/context-index.ts",
@@ -3525,6 +3607,24 @@
       "kind": "local-function",
       "file": "apps/sj-ui/src/ui/graph-model.ts",
       "moduleGroup": "apps/sj-ui"
+    },
+    {
+      "symbol": "annotateArtifactIfPresent",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "annotatePackSelectionArtifacts",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "annotatePackSelectionArtifacts",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "anyHarnessActive",
@@ -3753,6 +3853,12 @@
       "kind": "local-function",
       "file": "apps/sj-ui/src/main.ts",
       "moduleGroup": "apps/sj-ui"
+    },
+    {
+      "symbol": "beta",
+      "kind": "export",
+      "file": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "moduleGroup": "packages/sj-cli"
     },
     {
       "symbol": "bindDownload",
@@ -4721,6 +4827,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "buildPackNote",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "buildPhaseCloseRecord",
       "kind": "export",
       "file": "packages/sj-core/src/core/release.ts",
@@ -5357,6 +5469,12 @@
       "moduleGroup": "packages/sj-cli"
     },
     {
+      "symbol": "captureGraph",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
       "symbol": "captureScreenshot",
       "kind": "local-function",
       "file": "scripts/generate-product-media.mjs",
@@ -5433,6 +5551,18 @@
       "kind": "local-function",
       "file": "packages/sj-cli/src/commands/ui.ts",
       "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "clearRuntimePackSelection",
+      "kind": "export",
+      "file": "packages/sj-core/src/runtime/client.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "clearRuntimePackSelection",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/runtime/client.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "cliEntrypoint",
@@ -5876,6 +6006,12 @@
       "symbol": "current",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/state.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "currentContent",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -6539,6 +6675,12 @@
       "moduleGroup": "packages/sj-cli"
     },
     {
+      "symbol": "emitPackResult",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/pack.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
       "symbol": "emptyCodexUsage",
       "kind": "local-function",
       "file": "packages/sj-core/src/integrations/machine-advisory.ts",
@@ -6852,6 +6994,12 @@
     },
     {
       "symbol": "executeKiwiCommand",
+      "kind": "local-function",
+      "file": "apps/sj-ui/src/main.ts",
+      "moduleGroup": "apps/sj-ui"
+    },
+    {
+      "symbol": "executePackCommand",
       "kind": "local-function",
       "file": "apps/sj-ui/src/main.ts",
       "moduleGroup": "apps/sj-ui"
@@ -7655,6 +7803,18 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "getRuntimePackSelectionStatus",
+      "kind": "export",
+      "file": "packages/sj-core/src/runtime/client.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "getRuntimePackSelectionStatus",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/runtime/client.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "getRuntimeRepoGraph",
       "kind": "export",
       "file": "packages/sj-core/src/runtime/client.ts",
@@ -8411,6 +8571,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "jsonLogger",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/tests/pack.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
       "symbol": "killExistingKiwiProcesses",
       "kind": "local-function",
       "file": "scripts/verify-cli-ui-truth.mjs",
@@ -8492,6 +8658,18 @@
       "symbol": "linkNodeToFilesAndModules",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "listAvailableMcpCapabilities",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/specialists.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "listAvailableMcpCapabilities",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/specialists.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -9881,6 +10059,30 @@
       "moduleGroup": "scripts"
     },
     {
+      "symbol": "packArtifactDataFromControlState",
+      "kind": "export",
+      "file": "packages/sj-cli/src/commands/helpers/pack-selection.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "packArtifactDataFromControlState",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/helpers/pack-selection.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "packSelectionArtifactFragment",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "packSelectionArtifactFragment",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "pad",
       "kind": "local-function",
       "file": "packages/sj-cli/src/utils/cli-output.ts",
@@ -10367,6 +10569,18 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "persistSelectedPackArtifact",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "persistSelectedPackArtifact",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "persistSkillRegistry",
       "kind": "export",
       "file": "packages/sj-core/src/core/skills-registry.ts",
@@ -10497,6 +10711,18 @@
       "kind": "local-function",
       "file": "apps/sj-ui/src/main.ts",
       "moduleGroup": "apps/sj-ui"
+    },
+    {
+      "symbol": "preferredDelta",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "preferredRankDelta",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "prepareBootstrapContext",
@@ -12155,6 +12381,18 @@
       "moduleGroup": "packages/sj-cli"
     },
     {
+      "symbol": "resolveEffectiveMcpPackState",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "resolveEffectiveMcpPackState",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "resolveExecutionActor",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/execution-state.ts",
@@ -12170,6 +12408,12 @@
       "symbol": "resolveExecutionMode",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/profiles.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "resolveFileArea",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -12195,6 +12439,12 @@
       "kind": "local-function",
       "file": "apps/sj-ui/src/main.ts",
       "moduleGroup": "apps/sj-ui"
+    },
+    {
+      "symbol": "resolveHeuristicPackId",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "resolveImportPath",
@@ -12243,6 +12493,24 @@
       "kind": "local-function",
       "file": "packages/sj-cli/src/commands/ui.ts",
       "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "resolveMcpPackCatalog",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "resolveMcpPackCatalog",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "resolvePackPolicy",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "resolvePathBinRoot",
@@ -12309,6 +12577,12 @@
       "kind": "local-function",
       "file": "apps/sj-ui/src/ui/graph-model.ts",
       "moduleGroup": "apps/sj-ui"
+    },
+    {
+      "symbol": "resolveProjectType",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "resolveReconcileStatus",
@@ -12500,6 +12774,12 @@
       "symbol": "resolveTargetKind",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/project-detect.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "resolveTaskType",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -12956,6 +13236,18 @@
       "symbol": "runNext",
       "kind": "local-function",
       "file": "packages/sj-cli/src/commands/next.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "runPack",
+      "kind": "export",
+      "file": "packages/sj-cli/src/commands/pack.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "runPack",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/pack.ts",
       "moduleGroup": "packages/sj-cli"
     },
     {
@@ -13487,6 +13779,18 @@
       "moduleGroup": "apps/sj-ui"
     },
     {
+      "symbol": "selectedPackArtifactPath",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "selectedPackArtifactPath",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "selectFilesWithinBudget",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/context-selector.ts",
@@ -13533,6 +13837,18 @@
       "kind": "local-function",
       "file": "apps/sj-ui/src/main.ts",
       "moduleGroup": "apps/sj-ui"
+    },
+    {
+      "symbol": "setRuntimePackSelection",
+      "kind": "export",
+      "file": "packages/sj-core/src/runtime/client.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "setRuntimePackSelection",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/runtime/client.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "setStep",
@@ -13628,6 +13944,12 @@
       "symbol": "sortMachineGuidance",
       "kind": "local-function",
       "file": "packages/sj-core/src/integrations/machine-advisory-guidance.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "sortPackCapabilities",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -14021,6 +14343,18 @@
       "moduleGroup": "apps/sj-ui"
     },
     {
+      "symbol": "syncPackSelectionSideEffects",
+      "kind": "export",
+      "file": "packages/sj-cli/src/commands/helpers/pack-selection.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "syncPackSelectionSideEffects",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/helpers/pack-selection.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
       "symbol": "syncRepoAwareBootstrapArtifacts",
       "kind": "export",
       "file": "packages/sj-core/src/core/bootstrap.ts",
@@ -14227,6 +14561,12 @@
     {
       "symbol": "trustWeight",
       "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "trustWeight",
+      "kind": "local-function",
       "file": "packages/sj-core/src/core/specialists.ts",
       "moduleGroup": "packages/sj-core"
     },
@@ -14294,6 +14634,12 @@
       "symbol": "uniqueStrings",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/guidance.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "uniqueStrings",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/mcp-pack-selection.ts",
       "moduleGroup": "packages/sj-core"
     },
     {

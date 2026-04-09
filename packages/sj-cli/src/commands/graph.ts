@@ -2,9 +2,10 @@ import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
 import { buildRepoContextTree, persistRepoContextTreeArtifacts } from "@shrey-junior/sj-core/core/context-tree.js";
 import { inspectBootstrapTarget } from "@shrey-junior/sj-core/core/project-detect.js";
 import { buildRepoIntelligenceArtifacts, persistRepoIntelligenceArtifacts } from "@shrey-junior/sj-core/core/repo-intelligence.js";
-import { buildReadyRepoSubstrate, persistReadyRepoSubstrate } from "@shrey-junior/sj-core/core/ready-substrate.js";
+import { buildReadyRepoSubstrate } from "@shrey-junior/sj-core/core/ready-substrate.js";
 import { getRuntimeRepoGraphStatus, getRuntimeSnapshot, queryRuntimeRepoGraph, transitionRuntimeExecutionState, type RepoGraphNodeResult } from "@shrey-junior/sj-core/runtime/client.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { syncPackSelectionSideEffects } from "./helpers/pack-selection.js";
 
 export interface GraphOptions {
   repoRoot: string;
@@ -19,17 +20,26 @@ export async function runGraph(options: GraphOptions): Promise<number> {
   if (options.action === "build") {
     await buildCanonicalGraph(options.repoRoot, options.targetRoot);
     await recordGraphBuildRuntimeEvent(options.targetRoot).catch(() => null);
-    await persistReadyRepoSubstrate(options.targetRoot).catch(() => null);
+    await syncPackSelectionSideEffects({
+      repoRoot: options.repoRoot,
+      targetRoot: options.targetRoot
+    }).catch(() => null);
   }
   if (["file", "module", "symbol", "neighbors", "impact"].includes(options.action)) {
     return runGraphQueryAction(options);
   }
 
   const graph = await getRuntimeRepoGraphStatus(options.targetRoot);
-  const substrate = await buildReadyRepoSubstrate(options.targetRoot);
+  const packSynced = await syncPackSelectionSideEffects({
+    repoRoot: options.repoRoot,
+    targetRoot: options.targetRoot,
+    persist: false
+  }).catch(() => null);
+  const substrate = await buildReadyRepoSubstrate(options.targetRoot, undefined, packSynced?.packSelection ?? null);
   const payload = {
     targetRoot: options.targetRoot,
     graph,
+    ...(packSynced ? { packSelection: packSynced.controlState.mcpPacks } : {}),
     readySubstrate: {
       ready: substrate.ready,
       status: substrate.status,
@@ -135,5 +145,8 @@ async function buildCanonicalGraph(repoRoot: string, targetRoot: string): Promis
     index
   });
   await persistRepoIntelligenceArtifacts(targetRoot, artifacts);
-  await persistReadyRepoSubstrate(targetRoot);
+  await syncPackSelectionSideEffects({
+    repoRoot,
+    targetRoot
+  }).catch(() => null);
 }

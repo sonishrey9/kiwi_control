@@ -387,3 +387,30 @@ pub struct RuntimeProofResponse {
     pub snapshot: RuntimeSnapshot,
     pub derived_freshness: Vec<DerivedOutputStatus>,
 }
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RepoPackSelectionStatus {
+    pub target_root: String,
+    pub selected_pack_id: Option<String>,
+    pub selected_pack_source: Option<String>,
+    pub updated_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetRepoPackSelectionRequest {
+    pub target_root: String,
+    pub pack_id: String,
+    pub selection_source: Option<String>,
+    pub trigger_command: Option<String>,
+    pub actor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClearRepoPackSelectionRequest {
+    pub target_root: String,
+    pub trigger_command: Option<String>,
+    pub actor: Option<String>,
+}

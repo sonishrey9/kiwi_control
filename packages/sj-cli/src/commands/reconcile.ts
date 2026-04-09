@@ -11,6 +11,7 @@ import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 import { updateActiveRoleHints } from "@shrey-junior/sj-core/core/state.js";
 import { buildTemplateContext, selectPortableContract } from "@shrey-junior/sj-core/core/router.js";
 import { renderDisplayPath } from "@shrey-junior/sj-core/utils/fs.js";
+import { syncPackSelectionSideEffects } from "./helpers/pack-selection.js";
 
 export interface ReconcileOptions {
   repoRoot: string;
@@ -114,5 +115,10 @@ export async function runReconcile(options: ReconcileOptions): Promise<number> {
       `reconcile markdown: ${renderDisplayPath(options.targetRoot, artifacts.markdownPath)}`
     ].join("\n")
   );
+  await syncPackSelectionSideEffects({
+    repoRoot: options.repoRoot,
+    targetRoot: options.targetRoot,
+    ...(options.profileName ? { profileName: options.profileName } : {})
+  }).catch(() => null);
   return report.status === "blocked" ? 1 : 0;
 }

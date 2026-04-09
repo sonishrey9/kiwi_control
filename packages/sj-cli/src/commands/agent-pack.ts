@@ -14,7 +14,7 @@ import {
   persistTaskPack
 } from "@shrey-junior/sj-core/core/repo-intelligence.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
-import { persistReadyRepoSubstrate } from "@shrey-junior/sj-core/core/ready-substrate.js";
+import { syncPackSelectionSideEffects } from "./helpers/pack-selection.js";
 
 export interface AgentPackOptions {
   repoRoot: string;
@@ -77,7 +77,10 @@ export async function runAgentPack(options: AgentPackOptions): Promise<number> {
     reviewContextPack
   });
   await persistAgentPack(options.targetRoot, agentPack);
-  await persistReadyRepoSubstrate(options.targetRoot).catch(() => null);
+  const packSync = await syncPackSelectionSideEffects({
+    repoRoot: options.repoRoot,
+    targetRoot: options.targetRoot
+  }).catch(() => null);
 
   const payload = {
     artifactPaths: {
@@ -86,8 +89,10 @@ export async function runAgentPack(options: AgentPackOptions): Promise<number> {
       reviewContextPack: ".agent/context/review-context-pack.json",
       compactContextPack: ".agent/context/compact-context-pack.json",
       repoMap: ".agent/context/repo-map.json",
-      readySubstrate: ".agent/state/ready-substrate.json"
+      readySubstrate: ".agent/state/ready-substrate.json",
+      selectedPack: ".agent/state/selected-pack.json"
     },
+    ...(packSync ? { packSelection: packSync.controlState.mcpPacks } : {}),
     ...(options.review
       ? { reviewContextPack }
       : options.task

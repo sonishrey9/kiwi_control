@@ -3,6 +3,7 @@ import type { LoadedConfig } from "./config.js";
 import { loadCanonicalConfig } from "./config.js";
 import { PRODUCT_METADATA } from "./product.js";
 import { compileRepoContext } from "./context.js";
+import { packSelectionArtifactFragment, resolveEffectiveMcpPackState } from "./mcp-pack-selection.js";
 import { syncExecutionPlan } from "./execution-plan.js";
 import type { ExecutionPlanState } from "./execution-plan.js";
 import { loadExecutionState, type ExecutionStateRecord } from "./execution-state.js";
@@ -19,10 +20,8 @@ import { getMemoryPaths, loadOpenRisks } from "./memory.js";
 import { inspectBootstrapTarget } from "./project-detect.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "./profiles.js";
 import { deriveRepoReadiness, type RepoReadiness } from "./repo-readiness.js";
-import { getMcpPackDefinition, listMcpPacks, recommendMcpPack } from "./recommendations.js";
 import { loadLatestReconcileReport } from "./reconcile.js";
 import {
-  listEligibleMcpCapabilities,
   listSpecialists,
   normalizeSpecialistId,
   recommendNextSpecialist
@@ -415,10 +414,17 @@ export interface RepoControlState {
     safeParallelHint: string;
   };
   mcpPacks: {
-    suggestedPack: ReturnType<typeof getMcpPackDefinition>;
-    available: ReturnType<typeof listMcpPacks>;
-    compatibleCapabilities: ReturnType<typeof listEligibleMcpCapabilities>;
-    capabilityStatus: "compatible" | "limited";
+    selectedPack: Awaited<ReturnType<typeof resolveEffectiveMcpPackState>>["selectedPack"];
+    selectedPackSource: Awaited<ReturnType<typeof resolveEffectiveMcpPackState>>["selectedPackSource"];
+    explicitSelection: string | null;
+    suggestedPack: Awaited<ReturnType<typeof resolveEffectiveMcpPackState>>["suggestedPack"];
+    available: Awaited<ReturnType<typeof resolveEffectiveMcpPackState>>["availablePacks"];
+    compatibleCapabilities: Awaited<ReturnType<typeof resolveEffectiveMcpPackState>>["effectiveCapabilities"];
+    effectiveCapabilityIds: string[];
+    preferredCapabilityIds: string[];
+    executable: boolean;
+    unavailablePackReason: string | null;
+    capabilityStatus: "compatible" | "limited" | "blocked";
     note: string;
   };
   validation: RepoValidationSummary;
@@ -649,17 +655,6 @@ export async function buildRepoControlStateFromConfig(options: {
       projectType: inspection.projectType,
       ...(activeRoleHints?.activeRole ? { activeSpecialistId: activeRoleHints.activeRole } : {})
     }).specialistId;
-  const suggestedPackId =
-    activeRoleHints?.nextSuggestedMcpPack ??
-    continuity.currentFocus?.nextSuggestedMcpPack ??
-    recommendMcpPack({
-      projectType: inspection.projectType,
-      taskType: compiledContext.taskType,
-      fileArea: compiledContext.fileArea,
-        starterMcpHints: compiledContext.eligibleMcpServers,
-        authorityFiles: compiledContext.authorityOrder
-    });
-  const suggestedPack = getMcpPackDefinition(suggestedPackId);
   const [
     controlPlaneIssues,
     targetRepoIssues,
@@ -853,16 +848,33 @@ export async function buildRepoControlStateFromConfig(options: {
   const activeSpecialistProfile = availableSpecialists.find((entry) => entry.specialistId === activeSpecialistId) ?? null;
   const recommendedSpecialistProfile =
     availableSpecialists.find((entry) => entry.specialistId === defaultRecommendedSpecialist) ?? null;
-  const compatibleMcpCapabilities = listEligibleMcpCapabilities({
+  const packSelection = await resolveEffectiveMcpPackState({
+    targetRoot: options.targetRoot,
     config: options.config,
     profileName: selection.profileName,
-    specialistId: activeSpecialistId
+    projectType: inspection.projectType,
+    taskType: compiledContext.taskType,
+    fileArea: compiledContext.fileArea,
+    authorityFiles: compiledContext.authorityOrder,
+    starterMcpHints: compiledContext.eligibleMcpServers,
+    activeSpecialistId
   });
   const repoOverview = summarizeRepoOverview();
   const ecosystem = buildEcosystemCatalog();
   const kiwiControl = await loadKiwiControlState(options.targetRoot, validationIssues, {
     readOnly: true,
-    runtimeSnapshot
+    runtimeSnapshot,
+    packSelection: packSelectionArtifactFragment({
+      selectedPack: packSelection.selectedPackId,
+      selectedPackSource: packSelection.selectedPackSource,
+      explicitSelection: packSelection.explicitSelection,
+      heuristicPackId: packSelection.heuristicPackId,
+      executable: packSelection.executable,
+      unavailablePackReason: packSelection.unavailablePackReason,
+      effectiveCapabilityIds: packSelection.effectiveCapabilityIds,
+      preferredCapabilityIds: packSelection.preferredCapabilityIds,
+      unavailableCapabilityIds: packSelection.unavailableCapabilityIds
+    })
   });
   const machineGuidanceContext = buildMachineGuidanceContext({
     taskType: deriveMachineTaskType(kiwiControl),
@@ -904,14 +916,22 @@ export async function buildRepoControlStateFromConfig(options: {
       safeParallelHint: buildSafeParallelHint(repoState.mode, latestTaskPacketSet?.files.length ?? 0)
     },
     mcpPacks: {
-      suggestedPack,
-      available: listMcpPacks(),
-      compatibleCapabilities: compatibleMcpCapabilities,
-      capabilityStatus: compatibleMcpCapabilities.length > 0 ? "compatible" : "limited",
-      note:
-        compatibleMcpCapabilities.length > 0
-          ? `${compatibleMcpCapabilities.length} repo-workflow-compatible MCP integrations are currently available for this repo profile.`
-          : "No repo-workflow-compatible MCP integrations are currently exposed for this repo profile."
+      selectedPack: packSelection.selectedPack,
+      selectedPackSource: packSelection.selectedPackSource,
+      explicitSelection: packSelection.explicitSelection,
+      suggestedPack: packSelection.suggestedPack,
+      available: packSelection.availablePacks,
+      compatibleCapabilities: packSelection.effectiveCapabilities,
+      effectiveCapabilityIds: packSelection.effectiveCapabilityIds,
+      preferredCapabilityIds: packSelection.preferredCapabilityIds,
+      executable: packSelection.executable,
+      unavailablePackReason: packSelection.unavailablePackReason,
+      capabilityStatus: !packSelection.executable
+        ? "blocked"
+        : packSelection.effectiveCapabilities.length > 0
+          ? "compatible"
+          : "limited",
+      note: packSelection.note
     },
     validation,
     ecosystem,
@@ -1254,7 +1274,11 @@ async function readJsonIfPresent<T>(filePath: string): Promise<T | null> {
 async function loadKiwiControlState(
   targetRoot: string,
   validationIssues: ValidationIssue[],
-  options: { readOnly?: boolean; runtimeSnapshot?: RuntimeSnapshot } = {}
+  options: {
+    readOnly?: boolean;
+    runtimeSnapshot?: RuntimeSnapshot;
+    packSelection?: ReturnType<typeof packSelectionArtifactFragment>;
+  } = {}
 ): Promise<KiwiControlState> {
   const contextSelectionPath = path.join(targetRoot, ".agent", "state", "context-selection.json");
   const contextTracePath = path.join(targetRoot, ".agent", "state", "context-trace.json");
@@ -1334,7 +1358,7 @@ async function loadKiwiControlState(
       reviewPackPath: null,
       reviewPackSummary: null
     })),
-    buildReadyRepoSubstrate(targetRoot, options.runtimeSnapshot)
+    buildReadyRepoSubstrate(targetRoot, options.runtimeSnapshot, options.packSelection)
   ]);
 
   let contextView: KiwiControlContextView = {

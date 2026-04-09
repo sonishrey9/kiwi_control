@@ -1,4 +1,5 @@
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
 import type { WriteResult } from "../utils/fs.js";
@@ -539,7 +540,7 @@ async function persistRepoGraphAuthority(
     sourceRevision: snapshot?.revision ?? null,
     graph: artifacts,
     artifactPath: ".agent/context/repo-map.json",
-    compatibilityHash: compatibilityHashForArtifacts(artifacts),
+    compatibilityHash: await compatibilityHashForArtifacts(targetRoot, artifacts),
     compatibilityArtifacts: {
       repoMap: ".agent/context/repo-map.json",
       symbolIndex: ".agent/state/symbol-index.json",
@@ -748,8 +749,12 @@ function languageForFile(file: string): string | null {
   return ext || null;
 }
 
-function compatibilityHashForArtifacts(artifacts: RepoIntelligenceArtifacts): string {
-  return `${artifacts.repoMap.generatedAt}:${artifacts.symbolIndex.totalSymbols}:${artifacts.dependencyGraph.edges.length}:${artifacts.impactMap.impactedFiles.length}`;
+async function compatibilityHashForArtifacts(targetRoot: string, artifacts: RepoIntelligenceArtifacts): Promise<string> {
+  const explicitAliasPath = path.join(targetRoot, ".agent", "context", "graph-aliases.json");
+  const explicitAliasHash = await readText(explicitAliasPath)
+    .then((value) => createHash("sha256").update(value).digest("hex"))
+    .catch(() => "none");
+  return `${artifacts.repoMap.generatedAt}:${artifacts.symbolIndex.totalSymbols}:${artifacts.dependencyGraph.edges.length}:${artifacts.impactMap.impactedFiles.length}:${explicitAliasHash}`;
 }
 
 export async function loadRepoIntelligenceSummary(targetRoot: string): Promise<RepoIntelligenceSummary> {

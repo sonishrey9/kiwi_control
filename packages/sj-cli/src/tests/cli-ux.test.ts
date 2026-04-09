@@ -68,6 +68,7 @@ test("--help exits cleanly and leads with the installed Kiwi Control command sur
   assert.match(result.stdout, /Core commands:/);
   assert.match(result.stdout, /Commands default to the current working directory/);
   assert.match(result.stdout, /kiwi-control init/);
+  assert.match(result.stdout, /kiwi-control pack status\|set <pack-id>\|clear/);
   assert.match(result.stdout, /kiwi-control ui/);
   assert.match(result.stdout, /kiwi-control toolchain/);
   assert.match(result.stdout, /kiwi-control usage/);
@@ -212,7 +213,7 @@ test("unknown commands exit with usage status and corrective guidance", () => {
   assert.equal(result.code, 2);
   assert.match(result.stderr, /kiwi-control usage error:/);
   assert.match(result.stderr, /unknown command: does-not-exist/);
-  assert.match(result.stderr, /Core commands: plan, next, retry, resume, guide, prepare, validate, explain, trace, doctor, parity, runtime, repo-map, toolchain, usage, eval, init, status, check, specialists, agent-pack, graph, graph-query, review, checkpoint, handoff, ui/);
+  assert.match(result.stderr, /Core commands: plan, next, retry, resume, guide, prepare, validate, explain, trace, doctor, parity, runtime, repo-map, toolchain, usage, eval, init, status, pack, check, specialists, agent-pack, graph, graph-query, review, checkpoint, handoff, ui/);
 });
 
 test("inside-folder workflow uses the current working directory by default", async () => {

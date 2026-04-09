@@ -141,7 +141,18 @@ test("ui command returns structured repo-control state in json mode", async () =
     continuity: Array<{ label: string }>;
     memoryBank: Array<{ label: string; present: boolean }>;
     specialists: { recommendedSpecialist: string; activeSpecialist: string };
-    mcpPacks: { suggestedPack: { id: string }; compatibleCapabilities: Array<{ id: string }>; note: string };
+    mcpPacks: {
+      selectedPack: { id: string };
+      selectedPackSource: string;
+      explicitSelection: string | null;
+      suggestedPack: { id: string };
+      compatibleCapabilities: Array<{ id: string }>;
+      effectiveCapabilityIds: string[];
+      preferredCapabilityIds: string[];
+      executable: boolean;
+      unavailablePackReason: string | null;
+      note: string;
+    };
     validation: { ok: boolean };
     machineAdvisory: {
       generatedBy: string;
@@ -216,6 +227,7 @@ test("ui command returns structured repo-control state in json mode", async () =
         toolEntry: { path: string };
         runtimeAuthority: { valid: boolean };
         graphAuthority: { ready: boolean; graphRevision: number | null; graphAuthorityPath: string };
+        packSelection: { selectedPack: string | null; selectedPackSource: string | null; effectiveCapabilityIds: string[] };
       };
       fileAnalysis: { totalFiles: number; selected: Array<{ file: string; selectionWhy?: string; dependencyChain?: string[] }> };
       contextTrace: { expansionSteps: Array<{ step: string }> };
@@ -264,8 +276,12 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(payload.memoryBank.some((entry) => entry.label === "Repo Facts" && entry.present), true);
   assert.match(payload.specialists.recommendedSpecialist, /-specialist$/);
   assert.match(payload.specialists.activeSpecialist, /-specialist$/);
+  assert.equal(typeof payload.mcpPacks.selectedPack.id, "string");
+  assert.match(payload.mcpPacks.selectedPackSource, /runtime-explicit|heuristic-default/);
   assert.equal(typeof payload.mcpPacks.suggestedPack.id, "string");
   assert.equal(Array.isArray(payload.mcpPacks.compatibleCapabilities), true);
+  assert.equal(Array.isArray(payload.mcpPacks.effectiveCapabilityIds), true);
+  assert.equal(Array.isArray(payload.mcpPacks.preferredCapabilityIds), true);
   assert.equal(payload.mcpPacks.compatibleCapabilities.some((entry) => entry.id.endsWith("-specialist")), false);
   assert.match(payload.mcpPacks.note, /MCP/i);
   assert.equal(payload.validation.ok, true);
@@ -326,6 +342,7 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(payload.kiwiControl.readySubstrate.status, "ready");
   assert.equal(payload.kiwiControl.readySubstrate.runtimeAuthority.valid, true);
   assert.equal(payload.kiwiControl.readySubstrate.graphAuthority.ready, true);
+  assert.equal(Array.isArray(payload.kiwiControl.readySubstrate.packSelection.effectiveCapabilityIds), true);
   assert.equal(typeof payload.kiwiControl.readySubstrate.graphAuthority.graphRevision, "number");
   assert.match(payload.kiwiControl.readySubstrate.graphAuthority.graphAuthorityPath, /runtime\.sqlite3$/);
   assert.equal(payload.kiwiControl.readySubstrate.readFirst[0], ".agent/state/ready-substrate.json");

@@ -41,6 +41,7 @@ import { runEval } from "./commands/eval.js";
 import { runAuto } from "./commands/run-auto.js";
 import { runRuntime } from "./commands/runtime.js";
 import { runRepoMap } from "./commands/repo-map.js";
+import { runPack } from "./commands/pack.js";
 
 interface ParsedArgs {
   command: string | undefined;
@@ -203,6 +204,22 @@ async function main(): Promise<void> {
         logger
       });
       return;
+    case "pack": {
+      const action = (parsed.positionals[0] ?? "status").trim();
+      if (!["status", "set", "clear"].includes(action)) {
+        throw new CliUsageError("pack requires action status, set, or clear.");
+      }
+      process.exitCode = await runPack({
+        repoRoot,
+        targetRoot,
+        action: action as "status" | "set" | "clear",
+        ...(parsed.positionals.length > 1 ? { packId: parsed.positionals.slice(1).join(" ") } : {}),
+        ...(typeof parsed.flags.profile === "string" ? { profileName: String(parsed.flags.profile) } : {}),
+        json: parsed.flags.json === true,
+        logger
+      });
+      return;
+    }
     case "specialists":
       assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runSpecialists({
@@ -589,6 +606,7 @@ Core commands:
   ${primaryCommand} eval [--json] [--target /path/to/repo]
   ${primaryCommand} init [--profile profile-name] [--target /path/to/repo]
   ${primaryCommand} status [--profile profile-name] [--json] [--target /path/to/repo]
+  ${primaryCommand} pack status|set <pack-id>|clear [--json] [--target /path/to/repo]
   ${primaryCommand} check [--profile profile-name] [--json] [--target /path/to/repo]
   ${primaryCommand} specialists [--profile profile-name] [--json]
   ${primaryCommand} agent-pack [--task "goal"] [--review] [--json] [--target /path/to/repo]
@@ -677,6 +695,7 @@ main().catch((error: unknown) => {
         "eval",
         "init",
         "status",
+        "pack",
         "check",
         "specialists",
         "agent-pack",

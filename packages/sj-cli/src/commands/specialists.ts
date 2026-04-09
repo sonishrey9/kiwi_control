@@ -1,5 +1,5 @@
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
-import { listMcpPacks } from "@shrey-junior/sj-core/core/recommendations.js";
+import { resolveMcpPackCatalog } from "@shrey-junior/sj-core/core/mcp-pack-selection.js";
 import { listSpecialists } from "@shrey-junior/sj-core/core/specialists.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 
@@ -16,7 +16,10 @@ export async function runSpecialists(options: SpecialistsOptions): Promise<numbe
     config,
     ...(options.profileName ? { profileName: options.profileName } : {})
   });
-  const mcpPacks = listMcpPacks();
+  const mcpPacks = resolveMcpPackCatalog({
+    config,
+    profileName: options.profileName ?? config.global.defaults.default_profile
+  });
 
   if (options.json) {
     options.logger.info(

@@ -22,6 +22,7 @@ import {
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
 import { executeWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { syncPackSelectionSideEffects } from "./helpers/pack-selection.js";
 import type { ToolName } from "@shrey-junior/sj-core/core/config.js";
 import { pathExists } from "@shrey-junior/sj-core/utils/fs.js";
 
@@ -315,6 +316,11 @@ export async function runHandoff(options: HandoffOptions): Promise<number> {
     options.logger.error(workflowExecution.failureReason ?? `Handoff to ${targetSpecialistId} failed.`);
     return 1;
   }
+  await syncPackSelectionSideEffects({
+    repoRoot: options.repoRoot,
+    targetRoot: options.targetRoot,
+    ...(options.profileName ? { profileName: options.profileName } : {})
+  }).catch(() => null);
   options.logger.info(`handoff markdown: ${workflowExecution.result.artifacts.markdownPath}`);
   options.logger.info(`handoff json: ${workflowExecution.result.artifacts.jsonPath}`);
   options.logger.info(`handoff brief: ${workflowExecution.result.artifacts.briefPath}`);

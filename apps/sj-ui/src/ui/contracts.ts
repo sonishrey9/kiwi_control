@@ -310,10 +310,33 @@ export interface RepoControlState {
   };
   mcpPacks: {
     note: string;
+    selectedPackSource?: string;
+    explicitSelection?: string | null;
+    executable?: boolean;
+    unavailablePackReason?: string | null;
+    effectiveCapabilityIds?: string[];
+    preferredCapabilityIds?: string[];
+    selectedPack?: {
+      id: string;
+      name?: string;
+      description?: string;
+      executable?: boolean;
+      unavailablePackReason?: string | null;
+    };
     suggestedPack: {
       id: string;
       name?: string;
     };
+    available?: Array<{
+      id: string;
+      name?: string;
+      description?: string;
+      executable?: boolean;
+      unavailablePackReason?: string | null;
+      allowedCapabilityIds?: string[];
+      preferredCapabilityIds?: string[];
+      unavailableCapabilityIds?: string[];
+    }>;
     compatibleCapabilities: Array<{
       id: string;
     }>;

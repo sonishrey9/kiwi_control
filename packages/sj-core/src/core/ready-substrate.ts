@@ -1,5 +1,6 @@
 import path from "node:path";
 import { getRuntimeRepoGraphStatus, getRuntimeSnapshot, type RepoGraphStatus, type RuntimeSnapshot } from "../runtime/client.js";
+import type { PackSelectionArtifactData } from "./mcp-pack-selection.js";
 import { ensureDir, pathExists, readJson, writeText } from "../utils/fs.js";
 
 export type ReadySubstrateStatus = "ready" | "partial" | "missing";
@@ -57,6 +58,15 @@ export interface ReadyRepoSubstrateState {
     compatibilityArtifacts: RepoGraphStatus["compatibilityArtifacts"];
     note: string;
   };
+  packSelection: {
+    selectedPack: string | null;
+    selectedPackSource: string | null;
+    explicitSelection: string | null;
+    executable: boolean;
+    unavailablePackReason: string | null;
+    effectiveCapabilityIds: string[];
+    preferredCapabilityIds: string[];
+  };
   artifacts: Record<string, ReadySubstrateArtifact>;
   readFirst: string[];
   toolEntry: {
@@ -81,6 +91,7 @@ const REQUIRED_ARTIFACTS: Array<[string, ReadySubstrateArtifact]> = [
 ];
 
 const OPTIONAL_ARTIFACTS: Array<[string, ReadySubstrateArtifact]> = [
+  ["selectedPack", artifact(".agent/state/selected-pack.json", false, "pack")],
   ["reviewPack", artifact(".agent/context/review-pack.json", false, "review")],
   ["executionStateCompat", artifact(".agent/state/execution-state.json", false, "runtime-compat")],
   ["executionEventsCompat", artifact(".agent/state/execution-events.ndjson", false, "runtime-compat")]
@@ -92,7 +103,8 @@ export function readySubstratePath(targetRoot: string): string {
 
 export async function buildReadyRepoSubstrate(
   targetRoot: string,
-  runtimeSnapshot?: RuntimeSnapshot | null
+  runtimeSnapshot?: RuntimeSnapshot | null,
+  packSelection?: PackSelectionArtifactData | null
 ): Promise<ReadyRepoSubstrateState> {
   const snapshot = runtimeSnapshot ?? await getRuntimeSnapshot(targetRoot).catch(() => null);
   const graphStatus = await getRuntimeRepoGraphStatus(targetRoot).catch(() => null);
@@ -169,9 +181,19 @@ export async function buildReadyRepoSubstrate(
       compatibilityArtifacts: graphStatus?.compatibilityArtifacts ?? null,
       note: "Canonical repo graph lives in runtime SQLite. JSON graph files are compatibility/export views."
     },
+    packSelection: {
+      selectedPack: packSelection?.selectedPack ?? null,
+      selectedPackSource: packSelection?.selectedPackSource ?? null,
+      explicitSelection: packSelection?.explicitSelection ?? null,
+      executable: packSelection?.executable ?? false,
+      unavailablePackReason: packSelection?.unavailablePackReason ?? null,
+      effectiveCapabilityIds: packSelection?.effectiveCapabilityIds ?? [],
+      preferredCapabilityIds: packSelection?.preferredCapabilityIds ?? []
+    },
     artifacts,
     readFirst: [
       ".agent/state/ready-substrate.json",
+      ".agent/state/selected-pack.json",
       ".agent/context/agent-pack.json",
       ".agent/state/execution-state.json",
       ".agent/state/execution-events.ndjson",
@@ -187,9 +209,13 @@ export async function buildReadyRepoSubstrate(
   };
 }
 
-export async function persistReadyRepoSubstrate(targetRoot: string): Promise<string> {
+export async function persistReadyRepoSubstrate(
+  targetRoot: string,
+  packSelection?: PackSelectionArtifactData | null,
+  runtimeSnapshot?: RuntimeSnapshot | null
+): Promise<string> {
   const outputPath = readySubstratePath(targetRoot);
-  const state = await buildReadyRepoSubstrate(targetRoot);
+  const state = await buildReadyRepoSubstrate(targetRoot, runtimeSnapshot, packSelection);
   await ensureDir(path.dirname(outputPath));
   await writeText(outputPath, `${JSON.stringify(state, null, 2)}\n`);
   return outputPath;

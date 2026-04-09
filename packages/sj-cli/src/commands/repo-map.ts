@@ -16,7 +16,7 @@ import {
 import { inspectBootstrapTarget } from "@shrey-junior/sj-core/core/project-detect.js";
 import { normalizeRepoPath, relativeFrom } from "@shrey-junior/sj-core/utils/fs.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
-import { persistReadyRepoSubstrate } from "@shrey-junior/sj-core/core/ready-substrate.js";
+import { syncPackSelectionSideEffects } from "./helpers/pack-selection.js";
 
 export interface RepoMapOptions {
   repoRoot: string;
@@ -80,7 +80,10 @@ export async function runRepoMap(options: RepoMapOptions): Promise<number> {
     reviewContextPack
   });
   await persistAgentPack(options.targetRoot, agentPack);
-  await persistReadyRepoSubstrate(options.targetRoot).catch(() => null);
+  const packSync = await syncPackSelectionSideEffects({
+    repoRoot: options.repoRoot,
+    targetRoot: options.targetRoot
+  }).catch(() => null);
 
   const payload = {
     artifactPaths: {
@@ -96,8 +99,10 @@ export async function runRepoMap(options: RepoMapOptions): Promise<number> {
       compactContextPack: ".agent/context/compact-context-pack.json",
       reviewContextPack: ".agent/context/review-context-pack.json",
       contextTree: ".agent/context/context-tree.json",
-      readySubstrate: ".agent/state/ready-substrate.json"
+      readySubstrate: ".agent/state/ready-substrate.json",
+      selectedPack: ".agent/state/selected-pack.json"
     },
+    ...(packSync ? { packSelection: packSync.controlState.mcpPacks } : {}),
     repoMap: artifacts.repoMap,
     symbolIndex: artifacts.symbolIndex,
     dependencyGraph: artifacts.dependencyGraph,

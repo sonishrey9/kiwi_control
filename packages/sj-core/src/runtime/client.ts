@@ -264,6 +264,27 @@ export interface RepoGraphQueryResolution {
   reasons: string[];
 }
 
+export interface RuntimePackSelectionStatus {
+  targetRoot: string;
+  selectedPackId: string | null;
+  selectedPackSource: string | null;
+  updatedAt: string | null;
+}
+
+export interface SetRuntimePackSelectionRequest {
+  targetRoot: string;
+  packId: string;
+  selectionSource?: string | null;
+  triggerCommand?: string | null;
+  actor?: string | null;
+}
+
+export interface ClearRuntimePackSelectionRequest {
+  targetRoot: string;
+  triggerCommand?: string | null;
+  actor?: string | null;
+}
+
 export interface PersistRuntimeRepoGraphRequest {
   targetRoot: string;
   sourceKind: string;
@@ -375,6 +396,28 @@ export async function queryRuntimeRepoGraph(
   if (query.moduleId) search.set("moduleId", query.moduleId);
   if (query.symbol) search.set("symbol", query.symbol);
   return runtimeRequest<RepoGraphNodeResult>(`/repo-graph/${kind}?${search.toString()}`);
+}
+
+export async function getRuntimePackSelectionStatus(targetRoot: string): Promise<RuntimePackSelectionStatus> {
+  return runtimeRequest<RuntimePackSelectionStatus>(`/repo-pack/status?targetRoot=${encodeURIComponent(path.resolve(targetRoot))}`);
+}
+
+export async function setRuntimePackSelection(
+  request: SetRuntimePackSelectionRequest
+): Promise<RuntimeSnapshot> {
+  return runtimeRequest<RuntimeSnapshot>("/repo-pack/set", {
+    method: "POST",
+    body: JSON.stringify(request)
+  });
+}
+
+export async function clearRuntimePackSelection(
+  request: ClearRuntimePackSelectionRequest
+): Promise<RuntimeSnapshot> {
+  return runtimeRequest<RuntimeSnapshot>("/repo-pack/clear", {
+    method: "POST",
+    body: JSON.stringify(request)
+  });
 }
 
 export async function ensureRuntimeDaemon(): Promise<RuntimeDaemonMetadata> {

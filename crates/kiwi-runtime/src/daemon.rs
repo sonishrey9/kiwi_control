@@ -3,6 +3,7 @@ use crate::models::{
     ListExecutionEventsQuery, MaterializeDerivedOutputsRequest, OpenTargetRequest,
     PersistDerivedOutputRequest, PersistRepoGraphRequest, RefreshDerivedOutputsRequest,
     RepoGraphQuery, RuntimeDaemonMetadata, RuntimeIdentity, TransitionExecutionStateRequest,
+    RepoPackSelectionStatus, SetRepoPackSelectionRequest, ClearRepoPackSelectionRequest,
 };
 use anyhow::{Context, Result};
 use axum::extract::DefaultBodyLimit;
@@ -94,6 +95,9 @@ pub async fn run_daemon(
         .route("/repo-graph/symbol", get(repo_graph_symbol))
         .route("/repo-graph/neighbors", get(repo_graph_neighbors))
         .route("/repo-graph/impact", get(repo_graph_impact))
+        .route("/repo-pack/status", get(repo_pack_status))
+        .route("/repo-pack/set", post(repo_pack_set))
+        .route("/repo-pack/clear", post(repo_pack_clear))
         .route("/refresh-derived-outputs", post(refresh_derived_outputs))
         .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
         .with_state(AppState { identity });
@@ -220,6 +224,28 @@ async fn repo_graph_neighbors(Query(query): Query<RepoGraphQuery>) -> HttpResult
 async fn repo_graph_impact(Query(query): Query<RepoGraphQuery>) -> HttpResult<serde_json::Value> {
     db::query_repo_graph_impact(&query)
         .map(|payload| Json(json!(payload)))
+        .map_err(internal_error)
+}
+
+async fn repo_pack_status(Query(query): Query<SnapshotQuery>) -> HttpResult<RepoPackSelectionStatus> {
+    db::get_repo_pack_selection_status(&query.target_root)
+        .map(Json)
+        .map_err(internal_error)
+}
+
+async fn repo_pack_set(
+    Json(request): Json<SetRepoPackSelectionRequest>,
+) -> HttpResult<serde_json::Value> {
+    db::set_repo_pack_selection(&request)
+        .map(|snapshot| Json(json!(snapshot)))
+        .map_err(internal_error)
+}
+
+async fn repo_pack_clear(
+    Json(request): Json<ClearRepoPackSelectionRequest>,
+) -> HttpResult<serde_json::Value> {
+    db::clear_repo_pack_selection(&request)
+        .map(|snapshot| Json(json!(snapshot)))
         .map_err(internal_error)
 }
 

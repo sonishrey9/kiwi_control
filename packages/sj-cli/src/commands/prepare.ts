@@ -7,7 +7,6 @@ import type { GeneratedInstructions } from "@shrey-junior/sj-core/core/instructi
 import { matchSkillsForTask } from "@shrey-junior/sj-core/core/skills-registry.js";
 import type { SkillRegistryState } from "@shrey-junior/sj-core/core/skills-registry.js";
 import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
-import { persistReadyRepoSubstrate } from "@shrey-junior/sj-core/core/ready-substrate.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
 import {
   buildRuntimeDecision,
@@ -21,6 +20,7 @@ import { estimateTokens, persistTokenUsage } from "@shrey-junior/sj-core/core/to
 import { executeWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 import { pathExists, readJson, relativeFrom } from "@shrey-junior/sj-core/utils/fs.js";
+import { syncPackSelectionSideEffects } from "./helpers/pack-selection.js";
 
 export interface PrepareOptions {
   repoRoot: string;
@@ -235,7 +235,10 @@ export async function runPrepare(options: PrepareOptions): Promise<number> {
       decisionSource: "prepare-command"
     })
   }).catch(() => null);
-  await persistReadyRepoSubstrate(targetRoot).catch(() => null);
+  await syncPackSelectionSideEffects({
+    repoRoot: options.repoRoot,
+    targetRoot
+  }).catch(() => null);
   const contextTrace = await readJson<ContextTraceState>(path.join(targetRoot, ".agent", "state", "context-trace.json"));
   const indexing = await readJson<IndexingState>(path.join(targetRoot, ".agent", "state", "indexing.json"));
   const tokenBreakdown = await readJson<TokenBreakdownState>(path.join(targetRoot, ".agent", "state", "token-breakdown.json"));

@@ -1,8 +1,8 @@
 {
   "artifactType": "kiwi-control/context-tree-view",
   "version": 1,
-  "timestamp": "2026-04-09T19:30:51.510Z",
-  "summary": "Discovered 397 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
+  "timestamp": "2026-04-09T21:35:03.043Z",
+  "summary": "Discovered 401 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
   "languages": [
     "docs",
     "javascript",
@@ -30,7 +30,7 @@
   "keyModules": [
     {
       "id": "packages/sj-cli",
-      "fileCount": 84,
+      "fileCount": 87,
       "entryPoints": [
         "packages/sj-cli/src/cli.ts",
         "packages/sj-cli/src/commands/commit-plan.ts",
@@ -54,6 +54,7 @@
         "packages/sj-cli/src/tests/graph-query.test.ts",
         "packages/sj-cli/src/tests/handoff.test.ts",
         "packages/sj-cli/src/tests/machine-advisory.test.ts",
+        "packages/sj-cli/src/tests/pack.test.ts",
         "packages/sj-cli/src/tests/packets.test.ts",
         "packages/sj-cli/src/tests/prepare.test.ts",
         "packages/sj-cli/src/tests/product-surfaces.desktop-bundles.test.ts",
@@ -78,7 +79,7 @@
     },
     {
       "id": "packages/sj-core",
-      "fileCount": 74,
+      "fileCount": 75,
       "entryPoints": [
         "packages/sj-core/src/core/bootstrap.ts",
         "packages/sj-core/src/core/discovery.ts",
@@ -154,17 +155,22 @@
     {
       "file": "packages/sj-core/src/utils/fs.ts",
       "moduleGroup": "packages/sj-core",
-      "importedByCount": 46
+      "importedByCount": 47
     },
     {
       "file": "packages/sj-core/src/core/config.ts",
       "moduleGroup": "packages/sj-core",
-      "importedByCount": 26
+      "importedByCount": 27
     },
     {
       "file": "packages/sj-core/src/core/state.ts",
       "moduleGroup": "packages/sj-core",
-      "importedByCount": 18
+      "importedByCount": 19
+    },
+    {
+      "file": "packages/sj-cli/src/commands/helpers/pack-selection.ts",
+      "moduleGroup": "packages/sj-cli",
+      "importedByCount": 11
     },
     {
       "file": "packages/sj-core/src/core/product.ts",
@@ -174,7 +180,12 @@
     {
       "file": "packages/sj-core/src/core/specialists.ts",
       "moduleGroup": "packages/sj-core",
-      "importedByCount": 10
+      "importedByCount": 11
+    },
+    {
+      "file": "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
+      "moduleGroup": "packages/sj-cli",
+      "importedByCount": 9
     },
     {
       "file": "packages/sj-core/src/core/context.ts",
@@ -190,16 +201,6 @@
       "file": "packages/sj-core/src/core/task-intent.ts",
       "moduleGroup": "packages/sj-core",
       "importedByCount": 9
-    },
-    {
-      "file": "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
-      "moduleGroup": "packages/sj-cli",
-      "importedByCount": 8
-    },
-    {
-      "file": "packages/sj-core/src/core/git.ts",
-      "moduleGroup": "packages/sj-core",
-      "importedByCount": 8
     }
   ],
   "tree": [
@@ -1358,6 +1359,19 @@
                   "kind": "directory",
                   "children": [
                     {
+                      "name": "helpers",
+                      "path": "packages/sj-cli/src/commands/helpers",
+                      "kind": "directory",
+                      "children": [
+                        {
+                          "name": "pack-selection.ts",
+                          "path": "packages/sj-cli/src/commands/helpers/pack-selection.ts",
+                          "kind": "file",
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
                       "name": "agent-pack.ts",
                       "path": "packages/sj-cli/src/commands/agent-pack.ts",
                       "kind": "file",
@@ -1480,6 +1494,12 @@
                     {
                       "name": "next.ts",
                       "path": "packages/sj-cli/src/commands/next.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "pack.ts",
+                      "path": "packages/sj-cli/src/commands/pack.ts",
                       "kind": "file",
                       "children": []
                     },
@@ -1740,6 +1760,12 @@
                     {
                       "name": "machine-advisory.test.ts",
                       "path": "packages/sj-cli/src/tests/machine-advisory.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "pack.test.ts",
+                      "path": "packages/sj-cli/src/tests/pack.test.ts",
                       "kind": "file",
                       "children": []
                     },
@@ -2087,6 +2113,12 @@
                     {
                       "name": "logger.ts",
                       "path": "packages/sj-core/src/core/logger.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "mcp-pack-selection.ts",
+                      "path": "packages/sj-core/src/core/mcp-pack-selection.ts",
                       "kind": "file",
                       "children": []
                     },

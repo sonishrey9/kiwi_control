@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/execution-state",
   "version": 1,
-  "revision": 18,
+  "revision": 29,
   "operationId": "cb6b1283-d9e0-4612-be97-2dd24a5181c6",
   "task": "update README docs",
   "sourceCommand": "kiwi-control validate \"update README docs\"",
@@ -11,7 +11,7 @@
   "blockedBy": [
     "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
   ],
-  "lastUpdatedAt": "2026-04-09T19:16:00Z",
+  "lastUpdatedAt": "2026-04-09T21:40:52Z",
   "artifacts": {
     "changedFiles": [
       ".agent/context-authority.json",
@@ -47,51 +47,18 @@
     ]
   },
   "lastEvent": {
-    "revision": 18,
+    "revision": 29,
     "operationId": "cb6b1283-d9e0-4612-be97-2dd24a5181c6",
-    "type": "repo-graph-built",
+    "type": "repo-pack-cleared",
     "lifecycle": "blocked",
     "task": "update README docs",
-    "sourceCommand": "kiwi-control validate \"update README docs\"",
-    "reason": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
+    "sourceCommand": "kiwi-control pack clear",
+    "reason": "Cleared the explicit MCP pack selection.",
     "nextCommand": "kiwi-control prepare \"update README docs\"",
     "blockedBy": [
       "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
     ],
-    "artifacts": {
-      "changedFiles": [
-        ".agent/context-authority.json",
-        ".agent/context/context-tree.json",
-        ".agent/context/repo-map.json",
-        ".agent/eval/eval-log.json",
-        ".agent/state/context-index.json",
-        ".agent/state/context-tree.json",
-        ".agent/state/decision-graph.json",
-        ".agent/state/decision-logic.json",
-        ".agent/state/dependency-graph.json",
-        ".agent/state/execution-events.ndjson",
-        ".agent/state/execution-plan.json",
-        ".agent/state/execution-state.json"
-      ],
-      "contextSelection": [
-        ".agent/state/context-selection.json"
-      ],
-      "instructions": [
-        ".agent/context/generated-instructions.md"
-      ],
-      "readySubstrate": [
-        ".agent/state/ready-substrate.json"
-      ],
-      "repoGraph": [
-        ".agent/state/runtime.sqlite3"
-      ],
-      "reviewPack": [
-        ".agent/context/review-pack.json"
-      ],
-      "tokenUsage": [
-        ".agent/state/token-usage.json"
-      ]
-    },
-    "recordedAt": "2026-04-09T19:16:00Z"
+    "artifacts": {},
+    "recordedAt": "2026-04-09T21:40:52Z"
   }
 }

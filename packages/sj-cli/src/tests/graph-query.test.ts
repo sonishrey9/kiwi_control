@@ -157,17 +157,17 @@ test("graph module resolution prefers explicit aliases and surfaces ambiguity wi
   const config = await loadCanonicalConfig(repoRootPath);
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-graph-alias-"));
   const target = path.join(tempDir, "repo");
-  await fs.mkdir(path.join(target, "packages", "alpha-core", "src"), { recursive: true });
-  await fs.mkdir(path.join(target, "packages", "beta-core", "src"), { recursive: true });
+  await fs.mkdir(path.join(target, "packages", "core", "src"), { recursive: true });
+  await fs.mkdir(path.join(target, "core", "src"), { recursive: true });
   await fs.mkdir(path.join(target, ".agent", "context"), { recursive: true });
   await fs.writeFile(path.join(target, "package.json"), '{\n  "name": "graph-alias-fixture"\n}\n', "utf8");
-  await fs.writeFile(path.join(target, "packages", "alpha-core", "src", "main.ts"), "export const alpha = 1;\n", "utf8");
-  await fs.writeFile(path.join(target, "packages", "beta-core", "src", "main.ts"), "export const beta = 1;\n", "utf8");
+  await fs.writeFile(path.join(target, "packages", "core", "src", "main.ts"), "export const alpha = 1;\n", "utf8");
+  await fs.writeFile(path.join(target, "core", "src", "main.ts"), "export const beta = 1;\n", "utf8");
   await fs.writeFile(
     path.join(target, ".agent", "context", "graph-aliases.json"),
     JSON.stringify({
       modules: {
-        core: "packages/alpha-core"
+        platform: "packages/core"
       }
     }, null, 2) + "\n",
     "utf8"
@@ -211,7 +211,7 @@ test("graph module resolution prefers explicit aliases and surfaces ambiguity wi
     };
   };
 
-  const explicit = await captureGraph("core");
+  const explicit = await captureGraph("platform");
   assert.equal(explicit.exitCode, 0);
   const explicitResolution = explicit.payload.queryResolution as {
     resolution: string;
@@ -219,27 +219,37 @@ test("graph module resolution prefers explicit aliases and surfaces ambiguity wi
     score: number;
   };
   assert.equal(explicitResolution.resolution, "explicit");
-  assert.equal(explicitResolution.resolvedModuleId, "packages/alpha-core");
+  assert.equal(explicitResolution.resolvedModuleId, "packages/core");
   assert.ok(explicitResolution.score > 0);
 
-  const canonical = await captureGraph("packages/alpha-core");
+  const canonical = await captureGraph("packages/core");
   const canonicalResolution = canonical.payload.queryResolution as {
     resolution: string;
     resolvedModuleId: string;
   };
   assert.equal(canonicalResolution.resolution, "canonical-id");
-  assert.equal(canonicalResolution.resolvedModuleId, "packages/alpha-core");
+  assert.equal(canonicalResolution.resolvedModuleId, "packages/core");
 
-  await fs.writeFile(
-    path.join(target, ".agent", "context", "graph-aliases.json"),
-    JSON.stringify({
-      modules: {
-        shared: "packages/alpha-core",
-        shared2: "packages/beta-core"
-      }
-    }, null, 2) + "\n",
-    "utf8"
-  );
+  const statusLines: string[] = [];
+  await runGraph({
+    repoRoot: repoRootPath,
+    targetRoot: target,
+    action: "status",
+    json: true,
+    logger: {
+      info(message: string) {
+        statusLines.push(message);
+      },
+      warn() {},
+      error() {}
+    } as never
+  });
+  const statusPayload = JSON.parse(statusLines.join("\n")) as {
+    graph: { explicitAliasSourceAvailable: boolean };
+  };
+  assert.equal(statusPayload.graph.explicitAliasSourceAvailable, true);
+
+  await fs.rm(path.join(target, ".agent", "context", "graph-aliases.json"));
   await runGraph({
     repoRoot: repoRootPath,
     targetRoot: target,
@@ -256,7 +266,7 @@ test("graph module resolution prefers explicit aliases and surfaces ambiguity wi
     repoRoot: repoRootPath,
     targetRoot: target,
     action: "module",
-    value: "core",
+    value: "ore",
     json: true,
     logger: {
       info(message: string) {

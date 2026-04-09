@@ -1,9 +1,9 @@
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
 import { bootstrapTarget } from "@shrey-junior/sj-core/core/bootstrap.js";
 import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
-import { persistReadyRepoSubstrate } from "@shrey-junior/sj-core/core/ready-substrate.js";
 import { summarizeWrites } from "@shrey-junior/sj-core/core/executor.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { syncPackSelectionSideEffects } from "./helpers/pack-selection.js";
 
 export interface InitOptions {
   repoRoot: string;
@@ -35,7 +35,11 @@ export async function runInit(options: InitOptions): Promise<number> {
     clearTask: true,
     reuseOperation: false
   }).catch(() => null);
-  await persistReadyRepoSubstrate(options.targetRoot).catch(() => null);
+  await syncPackSelectionSideEffects({
+    repoRoot: options.repoRoot,
+    targetRoot: options.targetRoot,
+    ...(options.profileName ? { profileName: options.profileName } : {})
+  }).catch(() => null);
   options.logger.info(summarizeWrites(plan.results, options.targetRoot));
   return plan.results.some((result) => result.status === "conflict") ? 1 : 0;
 }

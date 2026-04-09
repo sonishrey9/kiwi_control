@@ -6,9 +6,9 @@ import {
   persistRepoIntelligenceArtifacts
 } from "@shrey-junior/sj-core/core/repo-intelligence.js";
 import { buildReviewPack, persistReviewPack, resolveReviewChangedFiles } from "@shrey-junior/sj-core/core/review-pack.js";
-import { persistReadyRepoSubstrate } from "@shrey-junior/sj-core/core/ready-substrate.js";
 import { getRuntimeSnapshot, transitionRuntimeExecutionState } from "@shrey-junior/sj-core/runtime/client.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { syncPackSelectionSideEffects } from "./helpers/pack-selection.js";
 
 export interface ReviewOptions {
   repoRoot: string;
@@ -47,7 +47,10 @@ export async function runReview(options: ReviewOptions): Promise<number> {
   });
   await persistReviewPack(options.targetRoot, reviewPack);
   await recordReviewPackRuntimeEvent(options);
-  await persistReadyRepoSubstrate(options.targetRoot).catch(() => null);
+  await syncPackSelectionSideEffects({
+    repoRoot: options.repoRoot,
+    targetRoot: options.targetRoot
+  }).catch(() => null);
 
   if (options.json) {
     options.logger.info(JSON.stringify(reviewPack, null, 2));
