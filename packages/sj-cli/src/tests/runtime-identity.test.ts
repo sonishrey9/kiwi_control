@@ -141,8 +141,7 @@ test("runtime --refresh-derived rewrites stale derived artifacts without changin
     [".agent/state/execution-plan.json", { stale: true }],
     [".agent/state/workflow.json", { stale: true }],
     [".agent/state/runtime-lifecycle.json", { stale: true }],
-    [".agent/state/decision-logic.json", { stale: true }],
-    [".agent/state/repo-control-snapshot.json", { stale: true }]
+    [".agent/state/decision-logic.json", { stale: true }]
   ] as const) {
     const fullPath = path.join(target, relativePath);
     await fs.mkdir(path.dirname(fullPath), { recursive: true });
@@ -188,16 +187,15 @@ test("runtime --refresh-derived rewrites stale derived artifacts without changin
     payload.derivedFreshness.every((entry) => entry.freshness === "fresh" && entry.sourceRevision === 1),
     true
   );
+  assert.equal(payload.derivedFreshness.some((entry) => entry.outputName === "repo-control-snapshot"), false);
 
   const executionPlan = JSON.parse(await fs.readFile(path.join(target, ".agent", "state", "execution-plan.json"), "utf8"));
   const workflow = JSON.parse(await fs.readFile(path.join(target, ".agent", "state", "workflow.json"), "utf8"));
   const runtimeLifecycle = JSON.parse(await fs.readFile(path.join(target, ".agent", "state", "runtime-lifecycle.json"), "utf8"));
   const decisionLogic = JSON.parse(await fs.readFile(path.join(target, ".agent", "state", "decision-logic.json"), "utf8"));
-  const snapshotArtifact = JSON.parse(await fs.readFile(path.join(target, ".agent", "state", "repo-control-snapshot.json"), "utf8"));
-
   assert.equal(executionPlan.artifactType, "kiwi-control/execution-plan");
   assert.equal(workflow.artifactType, "kiwi-control/workflow");
   assert.equal(runtimeLifecycle.artifactType, "kiwi-control/runtime-lifecycle");
   assert.equal(decisionLogic.artifactType, "kiwi-control/decision-logic");
-  assert.equal(snapshotArtifact.artifactType, "kiwi-control/repo-control-snapshot");
+  await assert.rejects(fs.access(path.join(target, ".agent", "state", "repo-control-snapshot.json")));
 });

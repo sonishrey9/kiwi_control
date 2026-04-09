@@ -429,6 +429,14 @@ interface RepoControlSnapshotArtifact {
 const REPO_CONTROL_SNAPSHOT_VERSION = 1;
 const DEFAULT_WARM_SNAPSHOT_MAX_AGE_MS = 120_000;
 const DEFAULT_STALE_SNAPSHOT_MAX_AGE_MS = 10 * 60_000;
+const AUTHORITATIVE_DERIVED_OUTPUTS = new Set([
+  "execution-state",
+  "execution-events",
+  "execution-plan",
+  "workflow",
+  "runtime-lifecycle",
+  "decision-logic"
+]);
 
 function repoControlSnapshotPath(targetRoot: string): string {
   return path.join(targetRoot, ".agent", "state", "repo-control-snapshot.json");
@@ -851,7 +859,7 @@ export async function buildRepoControlStateFromConfig(options: {
       nextCommand: runtimeDecision.nextCommand
     },
     runtimeIdentity,
-    derivedFreshness: runtimeSnapshot.derivedFreshness,
+    derivedFreshness: runtimeSnapshot.derivedFreshness.filter((entry) => AUTHORITATIVE_DERIVED_OUTPUTS.has(entry.outputName)),
     runtimeDecision,
     repoOverview,
     continuity: continuityItems,

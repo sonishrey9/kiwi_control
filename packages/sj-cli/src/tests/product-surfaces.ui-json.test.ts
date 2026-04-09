@@ -175,6 +175,7 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(typeof payload.runtimeIdentity?.binarySha256, "string");
   assert.equal(Array.isArray(payload.derivedFreshness), true);
   assert.equal(payload.derivedFreshness.some((entry) => entry.outputName === "execution-plan"), true);
+  assert.equal(payload.derivedFreshness.some((entry) => entry.outputName === "repo-control-snapshot"), false);
   assert.equal(payload.repoOverview.some((entry) => entry.label === "Project type"), true);
   assert.equal(payload.continuity.some((entry) => entry.label === "Latest checkpoint"), true);
   assert.equal(payload.memoryBank.some((entry) => entry.label === "Repo Facts" && entry.present), true);

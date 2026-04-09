@@ -1,16 +1,11 @@
 import {
   getRuntimeIdentity,
   getRuntimeSnapshot,
-  persistRuntimeDerivedOutput,
   refreshRuntimeDerivedOutputs,
   type RuntimeDerivedOutputStatus,
   type RuntimeIdentity,
   type RuntimeSnapshot
 } from "@shrey-junior/sj-core/runtime/client.js";
-import {
-  buildRepoControlSnapshotArtifact,
-  buildRepoControlState
-} from "@shrey-junior/sj-core/core/ui-state.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 
 export interface RuntimeCommandOptions {
@@ -28,26 +23,19 @@ export interface RuntimeCommandResult {
   derivedFreshness: RuntimeDerivedOutputStatus[];
 }
 
+const AUTHORITATIVE_DERIVED_OUTPUTS = new Set([
+  "execution-state",
+  "execution-events",
+  "execution-plan",
+  "workflow",
+  "runtime-lifecycle",
+  "decision-logic"
+]);
+
 export async function runRuntime(options: RuntimeCommandOptions): Promise<number> {
-  let snapshotArtifact: ReturnType<typeof buildRepoControlSnapshotArtifact> | undefined;
   if (options.refreshDerived) {
-    const state = await buildRepoControlState({
-      repoRoot: options.repoRoot,
-      targetRoot: options.targetRoot,
-      ...(options.profileName ? { profileName: options.profileName } : {}),
-      machineAdvisoryOptions: { fastMode: true },
-      readOnly: true
-    });
-    snapshotArtifact = buildRepoControlSnapshotArtifact(state);
     await refreshRuntimeDerivedOutputs({
-      targetRoot: options.targetRoot,
-      ...(snapshotArtifact ? { repoControlSnapshot: snapshotArtifact } : {})
-    });
-    await persistRuntimeDerivedOutput({
-      targetRoot: options.targetRoot,
-      outputName: "repo-control-snapshot",
-      payload: snapshotArtifact,
-      sourceRevision: state.executionState.revision
+      targetRoot: options.targetRoot
     });
   }
 
@@ -55,10 +43,14 @@ export async function runRuntime(options: RuntimeCommandOptions): Promise<number
     getRuntimeIdentity(),
     getRuntimeSnapshot(options.targetRoot)
   ]);
+  const derivedFreshness = filterAuthoritativeDerivedFreshness(snapshot.derivedFreshness);
   const result: RuntimeCommandResult = {
     identity,
-    snapshot,
-    derivedFreshness: snapshot.derivedFreshness
+    snapshot: {
+      ...snapshot,
+      derivedFreshness
+    },
+    derivedFreshness
   };
 
   if (options.json) {
@@ -81,10 +73,16 @@ export async function runRuntime(options: RuntimeCommandOptions): Promise<number
       `current step: ${snapshot.decision?.currentStepId ?? "none"}`,
       `readiness: ${snapshot.decision?.readinessLabel ?? snapshot.readiness.label}`,
       ...(options.refreshDerived ? ["derived outputs refreshed from canonical runtime state"] : []),
-      ...renderDerivedFreshness(snapshot.derivedFreshness)
+      ...renderDerivedFreshness(result.derivedFreshness)
     ].join("\n")
   );
   return 0;
+}
+
+function filterAuthoritativeDerivedFreshness(
+  statuses: RuntimeDerivedOutputStatus[]
+): RuntimeDerivedOutputStatus[] {
+  return statuses.filter((entry) => AUTHORITATIVE_DERIVED_OUTPUTS.has(entry.outputName));
 }
 
 function renderDerivedFreshness(statuses: RuntimeDerivedOutputStatus[]): string[] {

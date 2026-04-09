@@ -161,7 +161,6 @@ export interface PersistDerivedOutputRequest {
 
 export interface RefreshRuntimeDerivedOutputsRequest {
   targetRoot: string;
-  repoControlSnapshot?: unknown;
 }
 
 export interface RuntimeProof {

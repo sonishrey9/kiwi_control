@@ -19,5 +19,16 @@
         "timeout": 10000
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(/bin/bash -c 'cat ~/.gitconfig')",
+      "Bash(/bin/bash -c 'git config --list --show-origin 2>/dev/null | grep -Ei \"user\\\\.name|user\\\\.email|include\" || echo \"NONE\"')",
+      "Bash(/bin/bash -c 'find \"/Volumes/shrey ssd\" /Users/shreysoni/Desktop /Users/shreysoni/Documents /Users/shreysoni/Code /Users/shreysoni -maxdepth 5 -name \".git\" -type d 2>/dev/null | grep -v \"node_modules\\\\|\\\\.Trash\\\\|Library/Application Support\" | sort')",
+      "Bash(/bin/bash -c 'find /Users/shreysoni -maxdepth 5 -name \".git\" -type d 2>/dev/null | grep -v \"node_modules\\\\|\\\\.Trash\\\\|Library\" | sort')",
+      "Bash(/bin/bash -c 'find \"/Volumes/shrey ssd\" -maxdepth 4 -name \".git\" -type d 2>/dev/null | head -30')",
+      "Bash(/bin/bash -c 'find /Users/shreysoni -maxdepth 4 -name \".git\" -type d 2>/dev/null | grep -v \"Library\\\\|\\\\.Trash\\\\|node_modules\" | head -30')",
+      "Bash(/bin/bash -c ':*)"
+    ]
   }
 }

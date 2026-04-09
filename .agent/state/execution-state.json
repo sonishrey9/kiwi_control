@@ -11,11 +11,11 @@
   "blockedBy": [],
   "lastUpdatedAt": "2026-04-07T21:52:02.653Z",
   "artifacts": {
-    "instructions": [
-      ".agent/context/generated-instructions.md"
-    ],
     "contextSelection": [
       ".agent/state/context-selection.json"
+    ],
+    "instructions": [
+      ".agent/context/generated-instructions.md"
     ],
     "tokenUsage": [
       ".agent/state/token-usage.json"
@@ -32,11 +32,11 @@
     "nextCommand": "kiwi-control run \"update README docs\"",
     "blockedBy": [],
     "artifacts": {
-      "instructions": [
-        ".agent/context/generated-instructions.md"
-      ],
       "contextSelection": [
         ".agent/state/context-selection.json"
+      ],
+      "instructions": [
+        ".agent/context/generated-instructions.md"
       ],
       "tokenUsage": [
         ".agent/state/token-usage.json"

@@ -33,6 +33,15 @@ const ALL_DERIVED_OUTPUTS: &[&str] = &[
     OUTPUT_DECISION_LOGIC,
 ];
 
+const REFRESHABLE_DERIVED_OUTPUTS: &[&str] = &[
+    OUTPUT_EXECUTION_STATE,
+    OUTPUT_EXECUTION_EVENTS,
+    OUTPUT_RUNTIME_LIFECYCLE,
+    OUTPUT_WORKFLOW,
+    OUTPUT_EXECUTION_PLAN,
+    OUTPUT_DECISION_LOGIC,
+];
+
 const COMPATIBILITY_OUTPUTS: &[&str] = &[OUTPUT_EXECUTION_STATE, OUTPUT_EXECUTION_EVENTS];
 
 pub fn runtime_db_path(target_root: &str) -> PathBuf {
@@ -252,10 +261,9 @@ pub fn materialize_derived_outputs(request: &MaterializeDerivedOutputsRequest) -
 
 pub fn refresh_derived_outputs(request: &RefreshDerivedOutputsRequest) -> Result<RuntimeSnapshot> {
     let target_root = normalize_target_root(&request.target_root)?;
-    materialize_outputs_for_target_with_snapshot(
+    materialize_outputs_for_target(
         target_root.to_string_lossy().as_ref(),
-        ALL_DERIVED_OUTPUTS,
-        request.repo_control_snapshot.as_ref(),
+        REFRESHABLE_DERIVED_OUTPUTS,
     )?;
     get_runtime_snapshot(target_root.to_string_lossy().as_ref())
 }
@@ -279,14 +287,6 @@ pub fn persist_derived_output(request: &PersistDerivedOutputRequest) -> Result<R
 }
 
 fn materialize_outputs_for_target(target_root: &str, outputs: &[&str]) -> Result<()> {
-    materialize_outputs_for_target_with_snapshot(target_root, outputs, None)
-}
-
-fn materialize_outputs_for_target_with_snapshot(
-    target_root: &str,
-    outputs: &[&str],
-    repo_control_snapshot: Option<&Value>,
-) -> Result<()> {
     let target_root = normalize_target_root(target_root)?;
     let mut conn = open_connection(&target_root)?;
     let target_id = ensure_initialized(&mut conn, &target_root, None, None, None)?;
@@ -342,9 +342,7 @@ fn materialize_outputs_for_target_with_snapshot(
                 mark_output_fresh(&conn, target_id, output, &output_path(&target_root, output), state.revision, &now)?;
             }
             OUTPUT_REPO_CONTROL_SNAPSHOT => {
-                let payload = repo_control_snapshot
-                    .cloned()
-                    .unwrap_or_else(|| compatibility_repo_control_snapshot(&state, &decision, &now));
+                let payload = compatibility_repo_control_snapshot(&state, &decision, &now);
                 write_json_file(&output_path(&target_root, output), &payload)?;
                 mark_output_fresh(&conn, target_id, output, &output_path(&target_root, output), state.revision, &now)?;
             }

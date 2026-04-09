@@ -241,7 +241,6 @@ pub struct RuntimeIdentity {
 #[serde(rename_all = "camelCase")]
 pub struct RefreshDerivedOutputsRequest {
     pub target_root: String,
-    pub repo_control_snapshot: Option<Value>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
