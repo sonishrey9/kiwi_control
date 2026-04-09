@@ -164,6 +164,8 @@ async function collectSourceContents(targetRoot: string, config: LoadedConfig): 
     { relativePath: ".agent/project.yaml", kind: "authority" },
     { relativePath: ".agent/checks.yaml", kind: "authority" },
     { relativePath: ".agent/context/context-tree.json", kind: "context" },
+    { relativePath: ".agent/context/agent-pack.json", kind: "context" },
+    { relativePath: ".agent/context/task-pack.json", kind: "context" },
     { relativePath: ".agent/context/repo-map.json", kind: "context" },
     { relativePath: ".agent/context/compact-context-pack.json", kind: "context" },
     { relativePath: ".agent/context/review-context-pack.json", kind: "context" },

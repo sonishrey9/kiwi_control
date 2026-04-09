@@ -463,6 +463,27 @@ function withFreshLoadState(state: RepoControlState, generatedAt = new Date().to
   };
 }
 
+function emptyMachineParitySummary(): MachineParitySummaryState {
+  return {
+    available: true,
+    updatedAt: new Date().toISOString(),
+    overallStatus: "needs-work",
+    boundaryNote:
+      "Repo-local Kiwi capability is built into the product. Machine-global parity measures optional external setup that Kiwi can benefit from, but does not treat as canonical repo truth.",
+    repoLocalCovered: 0,
+    repoLocalTotal: 0,
+    machineGlobal: {
+      covered: 0,
+      partial: 0,
+      missing: 0,
+      optional: 0,
+      total: 0
+    },
+    topMissing: [],
+    topPartial: []
+  };
+}
+
 export async function loadWarmRepoControlSnapshot(
   targetRoot: string,
   options: { warmMaxAgeMs?: number; staleMaxAgeMs?: number } = {}
@@ -491,6 +512,7 @@ export async function loadWarmRepoControlSnapshot(
         ...artifact.state,
         runtimeIdentity: artifact.state.runtimeIdentity ?? null,
         derivedFreshness: artifact.state.derivedFreshness ?? [],
+        machineParity: artifact.state.machineParity ?? emptyMachineParitySummary(),
         loadState: {
           source: "stale-snapshot",
           freshness: "stale",
@@ -506,6 +528,7 @@ export async function loadWarmRepoControlSnapshot(
       ...artifact.state,
       runtimeIdentity: artifact.state.runtimeIdentity ?? null,
       derivedFreshness: artifact.state.derivedFreshness ?? [],
+      machineParity: artifact.state.machineParity ?? emptyMachineParitySummary(),
       loadState: {
         source: "warm-snapshot",
         freshness: "warm",
@@ -1270,6 +1293,14 @@ async function loadKiwiControlState(
       available: false,
       generatedAt: null,
       summary: null,
+      agentPackAvailable: false,
+      agentPackPath: null,
+      agentPackSummary: null,
+      taskPackAvailable: false,
+      taskPackPath: null,
+      taskPackTask: null,
+      taskPackSummary: null,
+      taskPackFiles: 0,
       repoMapPath: null,
       symbolIndexPath: null,
       dependencyGraphPath: null,
@@ -1290,7 +1321,11 @@ async function loadKiwiControlState(
       compactContextPackMode: null,
       compactContextPackTask: null,
       compactContextPackSummary: null,
-      compactContextPackFiles: 0
+      compactContextPackFiles: 0,
+      reviewContextPackAvailable: false,
+      reviewContextPackPath: null,
+      reviewContextPackTask: null,
+      reviewContextPackSummary: null
     }))
   ]);
 

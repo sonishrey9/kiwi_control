@@ -1,9 +1,9 @@
 {
   "artifactType": "kiwi-control/review-context-pack",
   "version": 1,
-  "generatedAt": "2026-04-09T13:13:03.511Z",
+  "generatedAt": "2026-04-09T13:55:59.418Z",
   "summary": "Review attention is concentrated in packages/sj-core with 16 ranked targets.",
-  "currentTask": "phase 3 decision history review graph",
+  "currentTask": "phase 5 agent consumption integration",
   "readFirst": [
     ".agent/state/decision-graph.json",
     ".agent/state/history-graph.json",
@@ -161,20 +161,20 @@
     {
       "kind": "file",
       "target": "apps/sj-ui/src/main.ts",
-      "touches": 20,
-      "commits": 20
+      "touches": 18,
+      "commits": 18
     },
     {
       "kind": "file",
       "target": "apps/sj-ui/src/ui/contracts.ts",
-      "touches": 15,
-      "commits": 15
+      "touches": 14,
+      "commits": 14
     },
     {
       "kind": "file",
-      "target": "apps/sj-ui/src-tauri/src/main.rs",
-      "touches": 10,
-      "commits": 10
+      "target": "packages/sj-core/src/core/ui-state.ts",
+      "touches": 12,
+      "commits": 12
     },
     {
       "kind": "file",
@@ -185,20 +185,20 @@
     {
       "kind": "module",
       "target": "packages/sj-cli",
-      "touches": 115,
-      "commits": 27
+      "touches": 119,
+      "commits": 28
     },
     {
       "kind": "module",
       "target": "apps/sj-ui",
-      "touches": 112,
-      "commits": 24
+      "touches": 101,
+      "commits": 22
     },
     {
       "kind": "module",
       "target": "packages/sj-core",
-      "touches": 62,
-      "commits": 19
+      "touches": 67,
+      "commits": 20
     },
     {
       "kind": "module",
@@ -211,7 +211,7 @@
     {
       "kind": "module",
       "target": "packages/sj-core",
-      "score": 5167,
+      "score": 5292,
       "reasons": [
         "active change cluster",
         "repeated touches"
@@ -220,7 +220,7 @@
     {
       "kind": "module",
       "target": "packages/sj-cli",
-      "score": 2195,
+      "score": 4888,
       "reasons": [
         "active change cluster",
         "contains entry point",
@@ -230,7 +230,7 @@
     {
       "kind": "module",
       "target": "apps/sj-ui",
-      "score": 1306,
+      "score": 1188,
       "reasons": [
         "contains entry point",
         "failure-linked",
@@ -254,18 +254,6 @@
       ]
     },
     {
-      "kind": "file",
-      "target": "apps/sj-ui/src/main.ts",
-      "score": 220,
-      "reasons": [
-        "entry point",
-        "failure-linked",
-        "history hotspot",
-        "repeated decision attention",
-        "repeated touches"
-      ]
-    },
-    {
       "kind": "module",
       "target": "crates/kiwi-runtime",
       "score": 210,
@@ -276,10 +264,10 @@
     },
     {
       "kind": "file",
-      "target": "apps/sj-ui/src/ui/contracts.ts",
-      "score": 178,
+      "target": "apps/sj-ui/src/main.ts",
+      "score": 204,
       "reasons": [
-        "dependency hub",
+        "entry point",
         "failure-linked",
         "history hotspot",
         "repeated decision attention",
@@ -289,7 +277,7 @@
     {
       "kind": "file",
       "target": "packages/sj-core/src/core/ui-state.ts",
-      "score": 160,
+      "score": 176,
       "reasons": [
         "call relationship",
         "changed file",
@@ -301,11 +289,25 @@
     },
     {
       "kind": "file",
-      "target": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-      "score": 124,
+      "target": "apps/sj-ui/src/ui/contracts.ts",
+      "score": 170,
       "reasons": [
+        "dependency hub",
+        "failure-linked",
+        "history hotspot",
+        "repeated decision attention",
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "file",
+      "target": "packages/sj-cli/src/cli.ts",
+      "score": 149,
+      "reasons": [
+        "call relationship",
         "changed file",
         "changed-area cluster",
+        "entry point",
         "history hotspot",
         "repeated touches"
       ]

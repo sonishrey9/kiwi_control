@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/context-tree",
   "version": 1,
-  "timestamp": "2026-04-09T13:13:02.048Z",
+  "timestamp": "2026-04-09T13:55:58.337Z",
   "targetRoot": "/Volumes/shrey ssd/shrey-junior",
   "projectType": "node",
   "languages": [
@@ -175,9 +175,10 @@
     },
     {
       "id": "packages/sj-cli",
-      "fileCount": 76,
+      "fileCount": 79,
       "files": [
         "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/commands/agent-pack.ts",
         "packages/sj-cli/src/commands/audit.ts",
         "packages/sj-cli/src/commands/bootstrap.ts",
         "packages/sj-cli/src/commands/check.ts",
@@ -196,6 +197,7 @@
         "packages/sj-cli/src/commands/init.ts",
         "packages/sj-cli/src/commands/launch.ts",
         "packages/sj-cli/src/commands/next.ts",
+        "packages/sj-cli/src/commands/parity.ts",
         "packages/sj-cli/src/commands/phase-close.ts",
         "packages/sj-cli/src/commands/plan.ts",
         "packages/sj-cli/src/commands/prepare.ts",
@@ -217,6 +219,7 @@
         "packages/sj-cli/src/commands/ui.ts",
         "packages/sj-cli/src/commands/usage.ts",
         "packages/sj-cli/src/commands/validate.ts",
+        "packages/sj-cli/src/tests/agent-pack.test.ts",
         "packages/sj-cli/src/tests/bootstrap.test.ts",
         "packages/sj-cli/src/tests/check.test.ts",
         "packages/sj-cli/src/tests/checkpoint.test.ts",
@@ -255,6 +258,7 @@
         "packages/sj-cli/src/utils/cli-output.ts"
       ],
       "imports": [
+        "packages/sj-cli/src/commands/agent-pack.ts",
         "packages/sj-cli/src/commands/audit.ts",
         "packages/sj-cli/src/commands/bootstrap.ts",
         "packages/sj-cli/src/commands/check.ts",
@@ -271,6 +275,7 @@
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
         "packages/sj-cli/src/commands/next.ts",
+        "packages/sj-cli/src/commands/parity.ts",
         "packages/sj-cli/src/commands/plan.ts",
         "packages/sj-cli/src/commands/prepare.ts",
         "packages/sj-cli/src/commands/push-check.ts",
@@ -299,12 +304,14 @@
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/next.ts",
+        "packages/sj-cli/src/commands/parity.ts",
         "packages/sj-cli/src/commands/resume.ts",
         "packages/sj-cli/src/commands/retry.ts",
         "packages/sj-cli/src/commands/run-auto.ts",
         "packages/sj-cli/src/commands/toolchain.ts",
         "packages/sj-cli/src/commands/trace.ts",
         "packages/sj-cli/src/commands/usage.ts",
+        "packages/sj-cli/src/tests/agent-pack.test.ts",
         "packages/sj-cli/src/tests/check.test.ts",
         "packages/sj-cli/src/tests/checkpoint.test.ts",
         "packages/sj-cli/src/tests/cli-ux.test.ts",
@@ -325,6 +332,7 @@
         "packages/sj-cli/src/commands/launch.ts",
         "packages/sj-cli/src/commands/phase-close.ts",
         "packages/sj-cli/src/commands/release-check.ts",
+        "packages/sj-cli/src/tests/agent-pack.test.ts",
         "packages/sj-cli/src/tests/bootstrap.test.ts",
         "packages/sj-cli/src/tests/check.test.ts",
         "packages/sj-cli/src/tests/checkpoint.test.ts",
@@ -363,7 +371,7 @@
     },
     {
       "id": "packages/sj-core",
-      "fileCount": 70,
+      "fileCount": 71,
       "files": [
         "packages/sj-core/src/adapters/claude.ts",
         "packages/sj-core/src/adapters/codex.ts",
@@ -427,6 +435,7 @@
         "packages/sj-core/src/integrations/machine-advisory-score.ts",
         "packages/sj-core/src/integrations/machine-advisory-summary.ts",
         "packages/sj-core/src/integrations/machine-advisory.ts",
+        "packages/sj-core/src/integrations/machine-parity.ts",
         "packages/sj-core/src/integrations/token-efficiency.ts",
         "packages/sj-core/src/runtime.ts",
         "packages/sj-core/src/runtime/client.ts",
@@ -489,6 +498,7 @@
         "packages/sj-core/src/integrations/machine-advisory-score.ts",
         "packages/sj-core/src/integrations/machine-advisory-summary.ts",
         "packages/sj-core/src/integrations/machine-advisory.ts",
+        "packages/sj-core/src/integrations/machine-parity.ts",
         "packages/sj-core/src/integrations/token-efficiency.ts",
         "packages/sj-core/src/runtime.ts",
         "packages/sj-core/src/runtime/client.ts",
@@ -1786,6 +1796,12 @@
                   "kind": "directory",
                   "children": [
                     {
+                      "name": "agent-pack.ts",
+                      "path": "packages/sj-cli/src/commands/agent-pack.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
                       "name": "audit.ts",
                       "path": "packages/sj-cli/src/commands/audit.ts",
                       "kind": "file",
@@ -1890,6 +1906,12 @@
                     {
                       "name": "next.ts",
                       "path": "packages/sj-cli/src/commands/next.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "parity.ts",
+                      "path": "packages/sj-cli/src/commands/parity.ts",
                       "kind": "file",
                       "children": []
                     },
@@ -2038,6 +2060,12 @@
                           "children": []
                         }
                       ]
+                    },
+                    {
+                      "name": "agent-pack.test.ts",
+                      "path": "packages/sj-cli/src/tests/agent-pack.test.ts",
+                      "kind": "file",
+                      "children": []
                     },
                     {
                       "name": "bootstrap.test.ts",
@@ -2678,6 +2706,12 @@
                     {
                       "name": "machine-advisory.ts",
                       "path": "packages/sj-core/src/integrations/machine-advisory.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "machine-parity.ts",
+                      "path": "packages/sj-core/src/integrations/machine-parity.ts",
                       "kind": "file",
                       "children": []
                     },
@@ -3353,6 +3387,6 @@
     "selectionDepth": 3,
     "explainDepth": 5
   },
-  "filesDiscovered": 385,
-  "importableFiles": 190
+  "filesDiscovered": 389,
+  "importableFiles": 194
 }

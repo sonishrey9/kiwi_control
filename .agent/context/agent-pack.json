@@ -1,0 +1,455 @@
+{
+  "artifactType": "kiwi-control/agent-pack",
+  "version": 1,
+  "generatedAt": "2026-04-09T13:55:59.420Z",
+  "summary": "Discovered 389 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts. Start with runtime truth, then use the task or review pack instead of the full graph when you do not need global repo exploration.",
+  "readFirst": [
+    ".agent/context/agent-pack.json",
+    ".agent/state/execution-state.json",
+    ".agent/state/execution-events.ndjson",
+    ".agent/context/task-pack.json",
+    ".agent/context/review-context-pack.json",
+    ".agent/context/repo-map.json"
+  ],
+  "sourceOfTruthNote": "Canonical workflow truth remains runtime-backed execution state and execution events. Agent packs are compact read aids, not authority.",
+  "repo": {
+    "summary": "Discovered 389 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
+    "entryPoints": [
+      "apps/sj-ui/package.json",
+      "apps/sj-ui/src-tauri/Cargo.toml",
+      "apps/sj-ui/src/bootcheck.ts",
+      "apps/sj-ui/src/main.ts",
+      "apps/sj-ui/src/ui/OnboardingPanel.test.ts",
+      "apps/sj-ui/src/ui/readiness.test.ts",
+      "apps/sj-ui/src/ui/view-models.test.ts",
+      "crates/kiwi-runtime/Cargo.toml",
+      "hooks/post-edit.ts",
+      "hooks/pre-command.ts",
+      "hooks/pre-commit.ts",
+      "hooks/risk-gate.ts"
+    ],
+    "keyModules": [
+      {
+        "id": "packages/sj-cli",
+        "fileCount": 79,
+        "entryPoints": [
+          "packages/sj-cli/src/cli.ts",
+          "packages/sj-cli/src/commands/commit-plan.ts",
+          "packages/sj-cli/src/commands/launch.ts",
+          "packages/sj-cli/src/commands/phase-close.ts",
+          "packages/sj-cli/src/commands/release-check.ts",
+          "packages/sj-cli/src/tests/agent-pack.test.ts",
+          "packages/sj-cli/src/tests/bootstrap.test.ts",
+          "packages/sj-cli/src/tests/check.test.ts",
+          "packages/sj-cli/src/tests/checkpoint.test.ts",
+          "packages/sj-cli/src/tests/cli-ux.test.ts",
+          "packages/sj-cli/src/tests/collect.test.ts",
+          "packages/sj-cli/src/tests/context-feedback.test.ts",
+          "packages/sj-cli/src/tests/context-selector.test.ts",
+          "packages/sj-cli/src/tests/context-tree.test.ts",
+          "packages/sj-cli/src/tests/context.test.ts",
+          "packages/sj-cli/src/tests/dispatch.test.ts",
+          "packages/sj-cli/src/tests/execution-state.test.ts",
+          "packages/sj-cli/src/tests/fs.test.ts",
+          "packages/sj-cli/src/tests/git.test.ts",
+          "packages/sj-cli/src/tests/handoff.test.ts",
+          "packages/sj-cli/src/tests/machine-advisory.test.ts",
+          "packages/sj-cli/src/tests/packets.test.ts",
+          "packages/sj-cli/src/tests/prepare.test.ts",
+          "packages/sj-cli/src/tests/product-surfaces.desktop-bundles.test.ts",
+          "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
+          "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+          "packages/sj-cli/src/tests/profiles.test.ts",
+          "packages/sj-cli/src/tests/project-detect.test.ts",
+          "packages/sj-cli/src/tests/reconcile.test.ts",
+          "packages/sj-cli/src/tests/redact.test.ts",
+          "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+          "packages/sj-cli/src/tests/router.test.ts",
+          "packages/sj-cli/src/tests/runtime-identity.test.ts",
+          "packages/sj-cli/src/tests/runtime.test.ts",
+          "packages/sj-cli/src/tests/sj-init.test.ts",
+          "packages/sj-cli/src/tests/specialists.test.ts",
+          "packages/sj-cli/src/tests/standardize.test.ts",
+          "packages/sj-cli/src/tests/state.test.ts",
+          "packages/sj-cli/src/tests/sync.test.ts",
+          "packages/sj-cli/src/tests/workflow-engine.test.ts"
+        ]
+      },
+      {
+        "id": "packages/sj-core",
+        "fileCount": 71,
+        "entryPoints": [
+          "packages/sj-core/src/core/bootstrap.ts",
+          "packages/sj-core/src/core/discovery.ts",
+          "packages/sj-core/src/core/execution-engine.ts",
+          "packages/sj-core/src/core/handoff.ts",
+          "packages/sj-core/src/core/instruction-generator.ts",
+          "packages/sj-core/src/core/launch.ts",
+          "packages/sj-core/src/core/logger.ts",
+          "packages/sj-core/src/core/release.ts",
+          "packages/sj-core/src/index.ts",
+          "packages/sj-core/src/runtime/ui-bridge.ts"
+        ]
+      },
+      {
+        "id": "apps/sj-ui",
+        "fileCount": 21,
+        "entryPoints": [
+          "apps/sj-ui/src/bootcheck.ts",
+          "apps/sj-ui/src/main.ts",
+          "apps/sj-ui/src/ui/command-help.test.ts",
+          "apps/sj-ui/src/ui/guidance.test.ts",
+          "apps/sj-ui/src/ui/OnboardingPanel.test.ts",
+          "apps/sj-ui/src/ui/readiness.test.ts",
+          "apps/sj-ui/src/ui/view-models.test.ts",
+          "apps/sj-ui/vite.config.ts"
+        ]
+      },
+      {
+        "id": "scripts",
+        "fileCount": 18,
+        "entryPoints": [
+          "scripts/copy-runtime-assets.mjs",
+          "scripts/ensure-cloudflare-pages-project.mjs",
+          "scripts/generate-product-media.mjs",
+          "scripts/generate-release-checksums.mjs",
+          "scripts/package-release-assets.mjs",
+          "scripts/prepare-release-manifest.mjs",
+          "scripts/prepare-runtime-sidecar.mjs",
+          "scripts/remove-macos-metadata.mjs",
+          "scripts/run-cli.mjs",
+          "scripts/run-ui-desktop-build.mjs",
+          "scripts/run-ui-desktop-test.mjs",
+          "scripts/run-ui-dev.mjs",
+          "scripts/stage-cli-bundle.mjs",
+          "scripts/upsert-route53-pages-record.mjs",
+          "scripts/verify-bundled-cli-install.mjs",
+          "scripts/verify-cli-ui-truth.mjs",
+          "scripts/verify-installed-launch-flow.mjs",
+          "scripts/verify-rendered-desktop.mjs"
+        ]
+      },
+      {
+        "id": "hooks",
+        "fileCount": 4,
+        "entryPoints": [
+          "hooks/post-edit.ts",
+          "hooks/pre-command.ts",
+          "hooks/pre-commit.ts",
+          "hooks/risk-gate.ts"
+        ]
+      },
+      {
+        "id": "website",
+        "fileCount": 1,
+        "entryPoints": [
+          "website/app.js"
+        ]
+      }
+    ],
+    "topReverseDependencyHubs": [
+      {
+        "file": "packages/sj-core/src/utils/fs.ts",
+        "moduleGroup": "packages/sj-core",
+        "importedByCount": 43
+      },
+      {
+        "file": "packages/sj-core/src/core/config.ts",
+        "moduleGroup": "packages/sj-core",
+        "importedByCount": 26
+      },
+      {
+        "file": "packages/sj-core/src/core/state.ts",
+        "moduleGroup": "packages/sj-core",
+        "importedByCount": 18
+      },
+      {
+        "file": "packages/sj-core/src/core/product.ts",
+        "moduleGroup": "packages/sj-core",
+        "importedByCount": 11
+      },
+      {
+        "file": "packages/sj-core/src/core/specialists.ts",
+        "moduleGroup": "packages/sj-core",
+        "importedByCount": 10
+      },
+      {
+        "file": "packages/sj-core/src/core/context.ts",
+        "moduleGroup": "packages/sj-core",
+        "importedByCount": 9
+      },
+      {
+        "file": "packages/sj-core/src/core/router.ts",
+        "moduleGroup": "packages/sj-core",
+        "importedByCount": 9
+      },
+      {
+        "file": "packages/sj-core/src/core/task-intent.ts",
+        "moduleGroup": "packages/sj-core",
+        "importedByCount": 8
+      }
+    ]
+  },
+  "decisions": [
+    {
+      "id": "execution-state:9",
+      "kind": "execution-event",
+      "label": "packet-created",
+      "summary": "Prepared 43 selected files for \"update README docs\".",
+      "status": "packet-created",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/context/generated-instructions.md",
+        ".agent/state/context-selection.json",
+        ".agent/state/token-usage.json"
+      ],
+      "relatedModules": [
+        ".agent/context",
+        ".agent/state"
+      ],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "execution-event:9",
+      "kind": "execution-event",
+      "label": "prepare-completed",
+      "summary": "Prepared 43 selected files for \"update README docs\".",
+      "status": "packet-created",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/context/generated-instructions.md",
+        ".agent/state/context-selection.json",
+        ".agent/state/token-usage.json"
+      ],
+      "relatedModules": [
+        ".agent/context",
+        ".agent/state"
+      ],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "kind": "runtime-lifecycle",
+      "label": "prepared",
+      "summary": "Open the generated instructions and work inside the prepared scope.",
+      "status": "ok",
+      "task": "update README docs",
+      "relatedFiles": [
+        "apps/sj-ui/src/bootcheck.ts",
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/contracts.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts",
+        "apps/sj-ui/src/ui/guidance.ts",
+        "apps/sj-ui/src/ui/readiness.test.ts",
+        "apps/sj-ui/src/ui/readiness.ts",
+        "packages/sj-cli/src/commands/checkpoint.ts"
+      ],
+      "relatedModules": [
+        "apps/sj-ui",
+        "packages/sj-cli"
+      ],
+      "nextCommand": null
+    },
+    {
+      "id": "execution-event:8",
+      "kind": "execution-event",
+      "label": "run-auto-blocked",
+      "summary": "Touched files do not satisfy the task-category goal heuristic.",
+      "status": "blocked",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/memory/current-focus.json",
+        ".agent/state/active-role-hints.json",
+        ".agent/state/context-index.json",
+        ".agent/state/execution-plan.json",
+        "apps/sj-ui/src-tauri/src/main.rs",
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/contracts.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts"
+      ],
+      "relatedModules": [
+        ".agent/memory",
+        ".agent/state",
+        "apps/sj-ui",
+        "packages/sj-cli"
+      ],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "execution-event:7",
+      "kind": "execution-event",
+      "label": "validation-failed",
+      "summary": "Touched files do not satisfy the task-category goal heuristic.",
+      "status": "blocked",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/memory/current-focus.json",
+        ".agent/state/active-role-hints.json",
+        ".agent/state/context-index.json",
+        ".agent/state/execution-plan.json",
+        "apps/sj-ui/src-tauri/src/main.rs",
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/contracts.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts"
+      ],
+      "relatedModules": [
+        ".agent/memory",
+        ".agent/state",
+        "apps/sj-ui",
+        "packages/sj-cli"
+      ],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "execution-event:6",
+      "kind": "execution-event",
+      "label": "validation-started",
+      "summary": "Validating \"update README docs\".",
+      "status": "running",
+      "task": "update README docs",
+      "relatedFiles": [],
+      "relatedModules": [],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    }
+  ],
+  "hotspots": [
+    {
+      "kind": "file",
+      "target": "apps/sj-ui/src/main.ts",
+      "touches": 18,
+      "commits": 18
+    },
+    {
+      "kind": "file",
+      "target": "apps/sj-ui/src/ui/contracts.ts",
+      "touches": 14,
+      "commits": 14
+    },
+    {
+      "kind": "file",
+      "target": "packages/sj-core/src/core/ui-state.ts",
+      "touches": 12,
+      "commits": 12
+    },
+    {
+      "kind": "file",
+      "target": "package.json",
+      "touches": 10,
+      "commits": 10
+    },
+    {
+      "kind": "module",
+      "target": "packages/sj-cli",
+      "touches": 119,
+      "commits": 28
+    },
+    {
+      "kind": "module",
+      "target": "apps/sj-ui",
+      "touches": 101,
+      "commits": 22
+    },
+    {
+      "kind": "module",
+      "target": "packages/sj-core",
+      "touches": 67,
+      "commits": 20
+    },
+    {
+      "kind": "module",
+      "target": "scripts",
+      "touches": 42,
+      "commits": 17
+    }
+  ],
+  "reviewAttention": [
+    {
+      "kind": "module",
+      "target": "packages/sj-core",
+      "score": 5292,
+      "reasons": [
+        "active change cluster",
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "module",
+      "target": "packages/sj-cli",
+      "score": 4888,
+      "reasons": [
+        "active change cluster",
+        "contains entry point",
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "module",
+      "target": "apps/sj-ui",
+      "score": 1188,
+      "reasons": [
+        "contains entry point",
+        "failure-linked",
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "module",
+      "target": "scripts",
+      "score": 488,
+      "reasons": [
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "module",
+      "target": "docs",
+      "score": 408,
+      "reasons": [
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "module",
+      "target": "crates/kiwi-runtime",
+      "score": 210,
+      "reasons": [
+        "contains entry point",
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "file",
+      "target": "apps/sj-ui/src/main.ts",
+      "score": 204,
+      "reasons": [
+        "entry point",
+        "failure-linked",
+        "history hotspot",
+        "repeated decision attention",
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "file",
+      "target": "packages/sj-core/src/core/ui-state.ts",
+      "score": 176,
+      "reasons": [
+        "call relationship",
+        "changed file",
+        "changed-area cluster",
+        "history hotspot",
+        "repeated touches",
+        "reverse dependency hub"
+      ]
+    }
+  ],
+  "packPointers": {
+    "repoMap": ".agent/context/repo-map.json",
+    "taskPack": ".agent/context/task-pack.json",
+    "reviewContextPack": ".agent/context/review-context-pack.json",
+    "compactContextPack": ".agent/context/compact-context-pack.json",
+    "decisionGraph": ".agent/state/decision-graph.json",
+    "historyGraph": ".agent/state/history-graph.json",
+    "reviewGraph": ".agent/state/review-graph.json"
+  }
+}

@@ -1,6 +1,6 @@
 import { contextSelector } from "@shrey-junior/sj-core/core/context-selector.js";
 import { buildRepoContextTree, persistRepoContextTreeArtifacts } from "@shrey-junior/sj-core/core/context-tree.js";
-import { buildCompactContextPack, buildRepoIntelligenceArtifacts, buildReviewContextPack, persistCompactContextPack, persistRepoIntelligenceArtifacts, persistReviewContextPack } from "@shrey-junior/sj-core/core/repo-intelligence.js";
+import { buildAgentPack, buildCompactContextPack, buildRepoIntelligenceArtifacts, buildReviewContextPack, buildTaskPack, persistAgentPack, persistCompactContextPack, persistRepoIntelligenceArtifacts, persistReviewContextPack, persistTaskPack } from "@shrey-junior/sj-core/core/repo-intelligence.js";
 import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
 import { inspectBootstrapTarget } from "@shrey-junior/sj-core/core/project-detect.js";
@@ -33,24 +33,46 @@ export async function runPlan(options: PlanOptions): Promise<number> {
     options.targetRoot,
     intelligenceArtifacts
   );
+  const compactContextPack = buildCompactContextPack({
+    index,
+    repoMap: intelligenceArtifacts.repoMap,
+    impactMap: intelligenceArtifacts.impactMap,
+    mode: index.lastImpact.changedFiles.length > 0 ? "changed" : "overview",
+    task: options.task
+  });
   await persistCompactContextPack(
     options.targetRoot,
-    buildCompactContextPack({
-      index,
-      repoMap: intelligenceArtifacts.repoMap,
-      impactMap: intelligenceArtifacts.impactMap,
-      mode: index.lastImpact.changedFiles.length > 0 ? "changed" : "overview",
+    compactContextPack
+  );
+  const reviewContextPack = buildReviewContextPack({
+    targetRoot: options.targetRoot,
+    decisionGraph: intelligenceArtifacts.decisionGraph,
+    historyGraph: intelligenceArtifacts.historyGraph,
+    reviewGraph: intelligenceArtifacts.reviewGraph,
+    task: options.task
+  });
+  await persistReviewContextPack(
+    options.targetRoot,
+    reviewContextPack
+  );
+  await persistTaskPack(
+    options.targetRoot,
+    buildTaskPack({
+      compactContextPack,
+      decisionGraph: intelligenceArtifacts.decisionGraph,
+      reviewGraph: intelligenceArtifacts.reviewGraph,
       task: options.task
     })
   );
-  await persistReviewContextPack(
+  await persistAgentPack(
     options.targetRoot,
-    buildReviewContextPack({
-      targetRoot: options.targetRoot,
+    buildAgentPack({
+      repoMap: intelligenceArtifacts.repoMap,
       decisionGraph: intelligenceArtifacts.decisionGraph,
       historyGraph: intelligenceArtifacts.historyGraph,
       reviewGraph: intelligenceArtifacts.reviewGraph,
-      task: options.task
+      compactContextPack,
+      reviewContextPack
     })
   );
   const plan = await syncExecutionPlan(options.targetRoot, {

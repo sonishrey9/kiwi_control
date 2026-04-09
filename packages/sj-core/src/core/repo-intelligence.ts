@@ -198,12 +198,24 @@ export interface RepoIntelligenceSummary {
   importantDecisions: number;
   hotspotFiles: number;
   reviewRiskTargets: number;
+  agentPackAvailable: boolean;
+  agentPackPath: string | null;
+  agentPackSummary: string | null;
+  taskPackAvailable: boolean;
+  taskPackPath: string | null;
+  taskPackTask: string | null;
+  taskPackSummary: string | null;
+  taskPackFiles: number;
   compactContextPackAvailable: boolean;
   compactContextPackPath: string | null;
   compactContextPackMode: CompactContextPack["mode"] | null;
   compactContextPackTask: string | null;
   compactContextPackSummary: string | null;
   compactContextPackFiles: number;
+  reviewContextPackAvailable: boolean;
+  reviewContextPackPath: string | null;
+  reviewContextPackTask: string | null;
+  reviewContextPackSummary: string | null;
 }
 
 export interface DecisionGraphState {
@@ -337,6 +349,54 @@ export interface ReviewContextPack {
   globalSignals: ReviewGraphState["globalSignals"];
 }
 
+export interface AgentPackState {
+  artifactType: "kiwi-control/agent-pack";
+  version: 1;
+  generatedAt: string;
+  summary: string;
+  readFirst: string[];
+  sourceOfTruthNote: string;
+  repo: {
+    summary: string;
+    entryPoints: string[];
+    keyModules: RepoMapState["keyModules"];
+    topReverseDependencyHubs: RepoMapState["topReverseDependencyHubs"];
+  };
+  decisions: DecisionGraphState["importantDecisions"];
+  hotspots: ReviewContextPack["hotspots"];
+  reviewAttention: ReviewGraphState["reviewAttention"];
+  packPointers: {
+    repoMap: string;
+    taskPack: string | null;
+    reviewContextPack: string;
+    compactContextPack: string | null;
+    decisionGraph: string;
+    historyGraph: string;
+    reviewGraph: string;
+  };
+}
+
+export interface TaskPackState {
+  artifactType: "kiwi-control/task-pack";
+  version: 1;
+  generatedAt: string;
+  task: string | null;
+  summary: string;
+  readFirst: string[];
+  sourceOfTruthNote: string;
+  focus: {
+    mode: CompactContextPack["mode"];
+    focusFiles: string[];
+    missingFocusFiles: string[];
+    files: CompactContextPack["files"];
+    modules: CompactContextPack["modules"];
+    dependencyChains: CompactContextPack["dependencyChains"];
+    clusters: CompactContextPack["clusters"];
+  };
+  decisions: DecisionGraphState["importantDecisions"];
+  reviewAttention: ReviewGraphState["reviewAttention"];
+}
+
 interface RepoHistoryCommit {
   sha: string;
   authoredAt: string;
@@ -401,10 +461,13 @@ export async function persistRepoIntelligenceIndexArtifacts(
 }
 
 export async function loadRepoIntelligenceSummary(targetRoot: string): Promise<RepoIntelligenceSummary> {
-  const [repoMap, impactMap, compactContextPack, hasSymbolIndex, hasDependencyGraph, hasDecisionGraph, hasHistoryGraph, hasReviewGraph, decisionGraph, historyGraph, reviewGraph] = await Promise.all([
+  const [repoMap, impactMap, compactContextPack, reviewContextPack, agentPack, taskPack, hasSymbolIndex, hasDependencyGraph, hasDecisionGraph, hasHistoryGraph, hasReviewGraph, decisionGraph, historyGraph, reviewGraph] = await Promise.all([
     readJsonIfPresent<RepoMapState>(repoMapPath(targetRoot)),
     readJsonIfPresent<ImpactMapState>(impactMapPath(targetRoot)),
     readJsonIfPresent<CompactContextPack>(compactContextPackPath(targetRoot)),
+    readJsonIfPresent<ReviewContextPack>(reviewContextPackPath(targetRoot)),
+    readJsonIfPresent<AgentPackState>(agentPackPath(targetRoot)),
+    readJsonIfPresent<TaskPackState>(taskPackPath(targetRoot)),
     pathExists(symbolIndexPath(targetRoot)),
     pathExists(dependencyGraphPath(targetRoot)),
     pathExists(decisionGraphPath(targetRoot)),
@@ -435,12 +498,24 @@ export async function loadRepoIntelligenceSummary(targetRoot: string): Promise<R
       importantDecisions: 0,
       hotspotFiles: 0,
       reviewRiskTargets: 0,
+      agentPackAvailable: false,
+      agentPackPath: null,
+      agentPackSummary: null,
+      taskPackAvailable: false,
+      taskPackPath: null,
+      taskPackTask: null,
+      taskPackSummary: null,
+      taskPackFiles: 0,
       compactContextPackAvailable: false,
       compactContextPackPath: null,
       compactContextPackMode: null,
       compactContextPackTask: null,
       compactContextPackSummary: null,
-      compactContextPackFiles: 0
+      compactContextPackFiles: 0,
+      reviewContextPackAvailable: false,
+      reviewContextPackPath: null,
+      reviewContextPackTask: null,
+      reviewContextPackSummary: null
     };
   }
 
@@ -463,12 +538,24 @@ export async function loadRepoIntelligenceSummary(targetRoot: string): Promise<R
     importantDecisions: decisionGraph?.importantDecisions.length ?? 0,
     hotspotFiles: historyGraph?.hotspotFiles.length ?? 0,
     reviewRiskTargets: reviewGraph?.reviewAttention.length ?? 0,
+    agentPackAvailable: Boolean(agentPack),
+    agentPackPath: agentPack ? relativeFrom(targetRoot, agentPackPath(targetRoot)) : null,
+    agentPackSummary: agentPack?.summary ?? null,
+    taskPackAvailable: Boolean(taskPack),
+    taskPackPath: taskPack ? relativeFrom(targetRoot, taskPackPath(targetRoot)) : null,
+    taskPackTask: taskPack?.task ?? null,
+    taskPackSummary: taskPack?.summary ?? null,
+    taskPackFiles: taskPack?.focus.files.length ?? 0,
     compactContextPackAvailable: Boolean(compactContextPack),
     compactContextPackPath: compactContextPack ? relativeFrom(targetRoot, compactContextPackPath(targetRoot)) : null,
     compactContextPackMode: compactContextPack?.mode ?? null,
     compactContextPackTask: compactContextPack?.task ?? null,
     compactContextPackSummary: compactContextPack?.summary ?? null,
-    compactContextPackFiles: compactContextPack?.files.length ?? 0
+    compactContextPackFiles: compactContextPack?.files.length ?? 0,
+    reviewContextPackAvailable: Boolean(reviewContextPack),
+    reviewContextPackPath: reviewContextPack ? relativeFrom(targetRoot, reviewContextPackPath(targetRoot)) : null,
+    reviewContextPackTask: reviewContextPack?.currentTask ?? null,
+    reviewContextPackSummary: reviewContextPack?.summary ?? null
   };
 }
 
@@ -1552,6 +1639,112 @@ export function buildReviewContextPack(options: {
   };
 }
 
+export function buildAgentPack(options: {
+  repoMap: RepoMapState;
+  decisionGraph: DecisionGraphState;
+  historyGraph: HistoryGraphState;
+  reviewGraph: ReviewGraphState;
+  compactContextPack?: CompactContextPack | null;
+  reviewContextPack?: ReviewContextPack | null;
+}): AgentPackState {
+  return {
+    artifactType: "kiwi-control/agent-pack",
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    summary:
+      `${options.repoMap.summary} Start with runtime truth, then use the task or review pack instead of the full graph when you do not need global repo exploration.`,
+    readFirst: [
+      ".agent/context/agent-pack.json",
+      ".agent/state/execution-state.json",
+      ".agent/state/execution-events.ndjson",
+      ".agent/context/task-pack.json",
+      ".agent/context/review-context-pack.json",
+      ".agent/context/repo-map.json"
+    ],
+    sourceOfTruthNote:
+      "Canonical workflow truth remains runtime-backed execution state and execution events. Agent packs are compact read aids, not authority.",
+    repo: {
+      summary: options.repoMap.summary,
+      entryPoints: options.repoMap.entryPoints.slice(0, 12),
+      keyModules: options.repoMap.keyModules.slice(0, 6),
+      topReverseDependencyHubs: options.repoMap.topReverseDependencyHubs.slice(0, 8)
+    },
+    decisions: options.decisionGraph.importantDecisions.slice(0, 6),
+    hotspots: [
+      ...options.historyGraph.hotspotFiles.slice(0, 4).map((entry) => ({
+        kind: "file" as const,
+        target: entry.file,
+        touches: entry.touches,
+        commits: entry.commits
+      })),
+      ...options.historyGraph.hotspotModules.slice(0, 4).map((entry) => ({
+        kind: "module" as const,
+        target: entry.id,
+        touches: entry.touches,
+        commits: entry.commits
+      }))
+    ],
+    reviewAttention: options.reviewGraph.reviewAttention.slice(0, 8),
+    packPointers: {
+      repoMap: ".agent/context/repo-map.json",
+      taskPack: options.compactContextPack ? ".agent/context/task-pack.json" : null,
+      reviewContextPack: options.reviewContextPack ? ".agent/context/review-context-pack.json" : ".agent/context/review-context-pack.json",
+      compactContextPack: options.compactContextPack ? ".agent/context/compact-context-pack.json" : null,
+      decisionGraph: ".agent/state/decision-graph.json",
+      historyGraph: ".agent/state/history-graph.json",
+      reviewGraph: ".agent/state/review-graph.json"
+    }
+  };
+}
+
+export function buildTaskPack(options: {
+  compactContextPack: CompactContextPack;
+  decisionGraph: DecisionGraphState;
+  reviewGraph: ReviewGraphState;
+  task?: string | null;
+}): TaskPackState {
+  const currentTask = options.task ?? options.compactContextPack.task;
+  const focusFiles = new Set(options.compactContextPack.files.map((entry) => entry.file));
+  const relatedDecisionAttention = options.decisionGraph.importantDecisions.filter((decision) =>
+    decision.relatedFiles.some((file) => focusFiles.has(file)) || (currentTask && decision.task === currentTask)
+  );
+  const reviewAttention = options.reviewGraph.reviewAttention.filter((entry) =>
+    entry.kind === "decision"
+      ? true
+      : focusFiles.has(entry.target) || options.compactContextPack.modules.some((module) => module.id === entry.target)
+  );
+
+  return {
+    artifactType: "kiwi-control/task-pack",
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    task: currentTask ?? null,
+    summary:
+      `${options.compactContextPack.summary} Read this first when you are implementing or editing code for the current task.`,
+    readFirst: [
+      ".agent/context/task-pack.json",
+      ".agent/state/execution-state.json",
+      ".agent/state/execution-events.ndjson",
+      ".agent/memory/current-focus.json",
+      ".agent/context/generated-instructions.md",
+      ".agent/state/impact-map.json"
+    ],
+    sourceOfTruthNote:
+      "Runtime-backed execution state remains canonical. The task pack narrows context for implementation and should be treated as a compact working set.",
+    focus: {
+      mode: options.compactContextPack.mode,
+      focusFiles: options.compactContextPack.focusFiles,
+      missingFocusFiles: options.compactContextPack.missingFocusFiles,
+      files: options.compactContextPack.files,
+      modules: options.compactContextPack.modules,
+      dependencyChains: options.compactContextPack.dependencyChains,
+      clusters: options.compactContextPack.clusters
+    },
+    decisions: relatedDecisionAttention.slice(0, 6),
+    reviewAttention: reviewAttention.slice(0, 6)
+  };
+}
+
 async function readExecutionEvents(targetRoot: string): Promise<ExecutionStateEvent[]> {
   const filePath = path.join(targetRoot, ".agent", "state", "execution-events.ndjson");
   if (!(await pathExists(filePath))) {
@@ -1664,6 +1857,8 @@ function shouldIncludeHistoryFile(filePath: string): boolean {
     || lower.includes("/dist/")
     || lower.includes("/dist-types/")
     || lower.includes("/build/")
+    || lower.includes("/.git.backup-")
+    || lower.startsWith(".git.backup-")
     || lower.includes("/target/")
     || lower.includes("/coverage/")
     || lower.includes("/.next/")
@@ -1720,6 +1915,14 @@ function reviewContextPackPath(targetRoot: string): string {
   return path.join(targetRoot, ".agent", "context", "review-context-pack.json");
 }
 
+function agentPackPath(targetRoot: string): string {
+  return path.join(targetRoot, ".agent", "context", "agent-pack.json");
+}
+
+function taskPackPath(targetRoot: string): string {
+  return path.join(targetRoot, ".agent", "context", "task-pack.json");
+}
+
 async function readJsonIfPresent<T>(filePath: string): Promise<T | null> {
   if (!(await pathExists(filePath))) {
     return null;
@@ -1765,6 +1968,20 @@ export async function persistReviewContextPack(
   reviewContextPack: ReviewContextPack
 ): Promise<WriteResult> {
   return writeJsonArtifact(reviewContextPackPath(targetRoot), reviewContextPack);
+}
+
+export async function persistAgentPack(
+  targetRoot: string,
+  agentPack: AgentPackState
+): Promise<WriteResult> {
+  return writeJsonArtifact(agentPackPath(targetRoot), agentPack);
+}
+
+export async function persistTaskPack(
+  targetRoot: string,
+  taskPack: TaskPackState
+): Promise<WriteResult> {
+  return writeJsonArtifact(taskPackPath(targetRoot), taskPack);
 }
 
 function uniqueStrings(values: string[]): string[] {

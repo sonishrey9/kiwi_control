@@ -155,6 +155,14 @@ test("ui command returns structured repo-control state in json mode", async () =
       indexing: { coverageNote: string; discoveredFiles: number };
       repoIntelligence: {
         available: boolean;
+        agentPackAvailable: boolean;
+        agentPackPath: string | null;
+        agentPackSummary: string | null;
+        taskPackAvailable: boolean;
+        taskPackPath: string | null;
+        taskPackTask: string | null;
+        taskPackSummary: string | null;
+        taskPackFiles: number;
         repoMapPath: string | null;
         symbolIndexPath: string | null;
         dependencyGraphPath: string | null;
@@ -171,6 +179,10 @@ test("ui command returns structured repo-control state in json mode", async () =
         compactContextPackTask: string | null;
         compactContextPackSummary: string | null;
         compactContextPackFiles: number;
+        reviewContextPackAvailable: boolean;
+        reviewContextPackPath: string | null;
+        reviewContextPackTask: string | null;
+        reviewContextPackSummary: string | null;
         entryPoints: string[];
       };
       fileAnalysis: { totalFiles: number; selected: Array<{ file: string; selectionWhy?: string; dependencyChain?: string[] }> };
@@ -246,6 +258,12 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(typeof payload.kiwiControl.indexing.coverageNote, "string");
   assert.equal(typeof payload.kiwiControl.repoIntelligence.available, "boolean");
   assert.equal(payload.kiwiControl.repoIntelligence.available, true);
+  assert.equal(payload.kiwiControl.repoIntelligence.agentPackAvailable, true);
+  assert.equal(payload.kiwiControl.repoIntelligence.agentPackPath, ".agent/context/agent-pack.json");
+  assert.equal(typeof payload.kiwiControl.repoIntelligence.agentPackSummary, "string");
+  assert.equal(payload.kiwiControl.repoIntelligence.taskPackAvailable, true);
+  assert.equal(payload.kiwiControl.repoIntelligence.taskPackPath, ".agent/context/task-pack.json");
+  assert.equal(typeof payload.kiwiControl.repoIntelligence.taskPackFiles, "number");
   assert.equal(payload.kiwiControl.repoIntelligence.repoMapPath, ".agent/context/repo-map.json");
   assert.equal(payload.kiwiControl.repoIntelligence.symbolIndexPath, ".agent/state/symbol-index.json");
   assert.equal(payload.kiwiControl.repoIntelligence.dependencyGraphPath, ".agent/state/dependency-graph.json");
@@ -261,6 +279,9 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.match(payload.kiwiControl.repoIntelligence.compactContextPackMode ?? "", /overview|focus|changed/);
   assert.equal(typeof payload.kiwiControl.repoIntelligence.compactContextPackSummary, "string");
   assert.equal(typeof payload.kiwiControl.repoIntelligence.compactContextPackFiles, "number");
+  assert.equal(payload.kiwiControl.repoIntelligence.reviewContextPackAvailable, true);
+  assert.equal(payload.kiwiControl.repoIntelligence.reviewContextPackPath, ".agent/context/review-context-pack.json");
+  assert.equal(typeof payload.kiwiControl.repoIntelligence.reviewContextPackSummary, "string");
   assert.equal(Array.isArray(payload.kiwiControl.repoIntelligence.entryPoints), true);
   assert.equal(typeof payload.kiwiControl.fileAnalysis.totalFiles, "number");
   assert.equal(Array.isArray(payload.kiwiControl.fileAnalysis.selected), true);

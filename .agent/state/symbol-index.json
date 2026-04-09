@@ -1,9 +1,9 @@
 {
   "artifactType": "kiwi-control/symbol-index",
   "version": 1,
-  "generatedAt": "2026-04-09T13:13:02.048Z",
-  "totalFiles": 190,
-  "totalSymbols": 1755,
+  "generatedAt": "2026-04-09T13:55:58.337Z",
+  "totalFiles": 194,
+  "totalSymbols": 1793,
   "files": [
     {
       "file": "apps/sj-ui/src/bootcheck.ts",
@@ -487,6 +487,16 @@
       ]
     },
     {
+      "file": "packages/sj-cli/src/commands/agent-pack.ts",
+      "moduleGroup": "packages/sj-cli",
+      "exports": [
+        "runAgentPack"
+      ],
+      "localFunctions": [
+        "runAgentPack"
+      ]
+    },
+    {
       "file": "packages/sj-cli/src/commands/audit.ts",
       "moduleGroup": "packages/sj-cli",
       "exports": [
@@ -678,6 +688,17 @@
       ],
       "localFunctions": [
         "runNext"
+      ]
+    },
+    {
+      "file": "packages/sj-cli/src/commands/parity.ts",
+      "moduleGroup": "packages/sj-cli",
+      "exports": [
+        "runParity"
+      ],
+      "localFunctions": [
+        "formatStatus",
+        "runParity"
       ]
     },
     {
@@ -963,6 +984,19 @@
       "localFunctions": [
         "loadContextSelection",
         "runValidate"
+      ]
+    },
+    {
+      "file": "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "moduleGroup": "packages/sj-cli",
+      "exports": [
+        "helper",
+        "run"
+      ],
+      "localFunctions": [
+        "capture",
+        "helper",
+        "run"
       ]
     },
     {
@@ -2128,19 +2162,25 @@
       "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core",
       "exports": [
+        "buildAgentPack",
         "buildCompactContextPack",
         "buildRepoIntelligenceArtifacts",
         "buildReviewContextPack",
+        "buildTaskPack",
         "loadRepoIntelligenceSummary",
+        "persistAgentPack",
         "persistCompactContextPack",
         "persistRepoIntelligenceArtifacts",
         "persistRepoIntelligenceIndexArtifacts",
-        "persistReviewContextPack"
+        "persistReviewContextPack",
+        "persistTaskPack"
       ],
       "localFunctions": [
         "addDecisionNode",
         "addEdge",
         "addRank",
+        "agentPackPath",
+        "buildAgentPack",
         "buildCompactContextPack",
         "buildDecisionGraph",
         "buildDependencyGraph",
@@ -2151,6 +2191,7 @@
         "buildReviewContextPack",
         "buildReviewGraph",
         "buildSymbolIndex",
+        "buildTaskPack",
         "compactContextPackPath",
         "decisionGraphPath",
         "dependencyGraphPath",
@@ -2165,10 +2206,12 @@
         "impactMapPath",
         "linkNodeToFilesAndModules",
         "loadRepoIntelligenceSummary",
+        "persistAgentPack",
         "persistCompactContextPack",
         "persistRepoIntelligenceArtifacts",
         "persistRepoIntelligenceIndexArtifacts",
         "persistReviewContextPack",
+        "persistTaskPack",
         "readExecutionEvents",
         "readJsonIfPresent",
         "readRecentGitHistory",
@@ -2178,6 +2221,7 @@
         "reviewGraphPath",
         "shouldIncludeHistoryFile",
         "symbolIndexPath",
+        "taskPackPath",
         "uniqueEdges",
         "uniqueStrings",
         "writeJsonArtifact"
@@ -2485,6 +2529,7 @@
         "describeContextConfidence",
         "describeIndexingCoverage",
         "emptyContextTree",
+        "emptyMachineParitySummary",
         "finalizeContextTreeNode",
         "fromRuntimeLifecycle",
         "insertContextTreePath",
@@ -2728,6 +2773,31 @@
         "tokenServer",
         "toolInstalled",
         "usage"
+      ]
+    },
+    {
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
+      "moduleGroup": "packages/sj-core",
+      "exports": [
+        "buildMachineParityState",
+        "summarizeMachineParity"
+      ],
+      "localFunctions": [
+        "buildHelpers",
+        "buildMachineGlobalCapabilities",
+        "buildMachineParityState",
+        "buildRepoLocalCapabilities",
+        "config",
+        "countStatuses",
+        "describeConfigPair",
+        "describeHarnessEvidence",
+        "describeLayerEvidence",
+        "guidanceFix",
+        "layer",
+        "statusForConfigPair",
+        "statusForTriad",
+        "summarizeMachineParity",
+        "tool"
       ]
     },
     {
@@ -3240,6 +3310,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "agentPackPath",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "aggregateFileUsage",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/token-intelligence.ts",
@@ -3556,6 +3632,18 @@
       "kind": "local-function",
       "file": "apps/sj-ui/src/main.ts",
       "moduleGroup": "apps/sj-ui"
+    },
+    {
+      "symbol": "buildAgentPack",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "buildAgentPack",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "buildAllowedScope",
@@ -4134,6 +4222,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "buildHelpers",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "buildHistoryGraph",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/repo-intelligence.ts",
@@ -4284,6 +4378,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "buildMachineGlobalCapabilities",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "buildMachineGuidance",
       "kind": "export",
       "file": "packages/sj-core/src/integrations/machine-advisory-guidance.ts",
@@ -4324,6 +4424,18 @@
       "kind": "local-function",
       "file": "apps/sj-ui/src/ui/view-models.ts",
       "moduleGroup": "apps/sj-ui"
+    },
+    {
+      "symbol": "buildMachineParityState",
+      "kind": "export",
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "buildMachineParityState",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "buildMachineSection",
@@ -4626,6 +4738,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "buildRepoLocalCapabilities",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "buildRepoMap",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/repo-intelligence.ts",
@@ -4818,6 +4936,18 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "buildTaskPack",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "buildTaskPack",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "buildTaskScopeKey",
       "kind": "export",
       "file": "packages/sj-core/src/core/task-intent.ts",
@@ -4996,6 +5126,12 @@
       "kind": "local-function",
       "file": "packages/sj-core/src/core/planner.ts",
       "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "capture",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "moduleGroup": "packages/sj-cli"
     },
     {
       "symbol": "captureScreenshot",
@@ -5352,6 +5488,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "config",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "configHealthy",
       "kind": "local-function",
       "file": "packages/sj-core/src/integrations/machine-advisory-score.ts",
@@ -5439,6 +5581,12 @@
       "symbol": "countSkills",
       "kind": "local-function",
       "file": "packages/sj-core/src/integrations/machine-advisory.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "countStatuses",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -5922,6 +6070,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "describeConfigPair",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "describeContextConfidence",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/ui-state.ts",
@@ -5940,9 +6094,21 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "describeHarnessEvidence",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "describeIndexingCoverage",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/ui-state.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "describeLayerEvidence",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -6153,6 +6319,12 @@
       "symbol": "emptyLifecycle",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/runtime-lifecycle.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "emptyMachineParitySummary",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/ui-state.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -6948,6 +7120,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "formatStatus",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/parity.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
       "symbol": "formatTimestamp",
       "kind": "local-function",
       "file": "apps/sj-ui/src/main.ts",
@@ -7266,6 +7444,12 @@
       "moduleGroup": "packages/sj-cli"
     },
     {
+      "symbol": "guidanceFix",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "handleInteractiveClick",
       "kind": "local-function",
       "file": "apps/sj-ui/src/main.ts",
@@ -7330,6 +7514,18 @@
       "kind": "local-function",
       "file": "packages/sj-core/src/runtime.ts",
       "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "helper",
+      "kind": "export",
+      "file": "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "helper",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "moduleGroup": "packages/sj-cli"
     },
     {
       "symbol": "helper",
@@ -7918,6 +8114,12 @@
       "kind": "local-function",
       "file": "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
       "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "layer",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "lifecycleLabel",
@@ -9426,6 +9628,18 @@
       "moduleGroup": "scripts"
     },
     {
+      "symbol": "persistAgentPack",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "persistAgentPack",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "persistBaselineDerivedOutputs",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/execution-state.ts",
@@ -9687,6 +9901,18 @@
       "symbol": "persistSkillRegistry",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/skills-registry.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "persistTaskPack",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "persistTaskPack",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -11714,6 +11940,18 @@
     {
       "symbol": "run",
       "kind": "export",
+      "file": "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "run",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "run",
+      "kind": "export",
       "file": "packages/sj-cli/src/tests/context-selector.test.ts",
       "moduleGroup": "packages/sj-cli"
     },
@@ -11733,6 +11971,18 @@
       "symbol": "run",
       "kind": "local-function",
       "file": "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "runAgentPack",
+      "kind": "export",
+      "file": "packages/sj-cli/src/commands/agent-pack.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "runAgentPack",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/agent-pack.ts",
       "moduleGroup": "packages/sj-cli"
     },
     {
@@ -12021,6 +12271,18 @@
       "symbol": "runNext",
       "kind": "local-function",
       "file": "packages/sj-cli/src/commands/next.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "runParity",
+      "kind": "export",
+      "file": "packages/sj-cli/src/commands/parity.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "runParity",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/parity.ts",
       "moduleGroup": "packages/sj-cli"
     },
     {
@@ -12744,6 +13006,18 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "statusForConfigPair",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "statusForTriad",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "stepIds",
       "kind": "local-function",
       "file": "apps/sj-ui/src/main.ts",
@@ -12861,6 +13135,18 @@
       "symbol": "summarizeEval",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/eval.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "summarizeMachineParity",
+      "kind": "export",
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "summarizeMachineParity",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -13002,6 +13288,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "taskPackPath",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "terminateConflictingDesktopProcesses",
       "kind": "local-function",
       "file": "packages/sj-cli/src/commands/ui.ts",
@@ -13077,6 +13369,12 @@
       "symbol": "toMatch",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/skills-registry.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "tool",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
       "moduleGroup": "packages/sj-core"
     },
     {

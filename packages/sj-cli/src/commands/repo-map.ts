@@ -2,12 +2,16 @@ import path from "node:path";
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
 import { buildRepoContextTree, persistRepoContextTreeArtifacts } from "@shrey-junior/sj-core/core/context-tree.js";
 import {
+  buildAgentPack,
   buildCompactContextPack,
   buildRepoIntelligenceArtifacts,
   buildReviewContextPack,
+  buildTaskPack,
+  persistAgentPack,
   persistCompactContextPack,
   persistRepoIntelligenceArtifacts,
-  persistReviewContextPack
+  persistReviewContextPack,
+  persistTaskPack
 } from "@shrey-junior/sj-core/core/repo-intelligence.js";
 import { inspectBootstrapTarget } from "@shrey-junior/sj-core/core/project-detect.js";
 import { normalizeRepoPath, relativeFrom } from "@shrey-junior/sj-core/utils/fs.js";
@@ -59,9 +63,27 @@ export async function runRepoMap(options: RepoMapOptions): Promise<number> {
     ...(options.task ? { task: options.task } : {})
   });
   await persistReviewContextPack(options.targetRoot, reviewContextPack);
+  const taskPack = buildTaskPack({
+    compactContextPack,
+    decisionGraph: artifacts.decisionGraph,
+    reviewGraph: artifacts.reviewGraph,
+    ...(options.task ? { task: options.task } : {})
+  });
+  await persistTaskPack(options.targetRoot, taskPack);
+  const agentPack = buildAgentPack({
+    repoMap: artifacts.repoMap,
+    decisionGraph: artifacts.decisionGraph,
+    historyGraph: artifacts.historyGraph,
+    reviewGraph: artifacts.reviewGraph,
+    compactContextPack,
+    reviewContextPack
+  });
+  await persistAgentPack(options.targetRoot, agentPack);
 
   const payload = {
     artifactPaths: {
+      agentPack: ".agent/context/agent-pack.json",
+      taskPack: ".agent/context/task-pack.json",
       repoMap: ".agent/context/repo-map.json",
       symbolIndex: ".agent/state/symbol-index.json",
       dependencyGraph: ".agent/state/dependency-graph.json",
@@ -80,6 +102,8 @@ export async function runRepoMap(options: RepoMapOptions): Promise<number> {
     decisionGraph: artifacts.decisionGraph,
     historyGraph: artifacts.historyGraph,
     reviewGraph: artifacts.reviewGraph,
+    agentPack,
+    taskPack,
     compactContextPack,
     reviewContextPack
   };

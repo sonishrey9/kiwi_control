@@ -20,6 +20,7 @@ import { runCollect } from "./commands/collect.js";
 import { runReconcile } from "./commands/reconcile.js";
 import { runSpecialists } from "./commands/specialists.js";
 import { runUi } from "./commands/ui.js";
+import { runAgentPack } from "./commands/agent-pack.js";
 import { runPrepare } from "./commands/prepare.js";
 import { runPlan } from "./commands/plan.js";
 import { runNext } from "./commands/next.js";
@@ -212,6 +213,17 @@ async function main(): Promise<void> {
         repoRoot,
         targetRoot,
         ...(typeof parsed.flags.profile === "string" ? { profileName: String(parsed.flags.profile) } : {}),
+        json: parsed.flags.json === true,
+        logger
+      });
+      return;
+    case "agent-pack":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
+      process.exitCode = await runAgentPack({
+        repoRoot,
+        targetRoot,
+        ...(typeof parsed.flags.task === "string" ? { task: String(parsed.flags.task) } : {}),
+        review: parsed.flags.review === true,
         json: parsed.flags.json === true,
         logger
       });
@@ -535,6 +547,7 @@ Core commands:
   ${primaryCommand} status [--profile profile-name] [--json] [--target /path/to/repo]
   ${primaryCommand} check [--profile profile-name] [--json] [--target /path/to/repo]
   ${primaryCommand} specialists [--profile profile-name] [--json]
+  ${primaryCommand} agent-pack [--task "goal"] [--review] [--json] [--target /path/to/repo]
   ${primaryCommand} checkpoint "label" [--goal text] [--tool codex|claude|copilot] [--profile profile-name] [--mode assisted|guarded|inline] [--status in-progress|complete|blocked] [--validations a,b] [--warnings a,b] [--open-issues a,b] [--next text] [--target /path/to/repo]
   ${primaryCommand} handoff --to qa-specialist [--tool codex|claude|copilot] [--profile profile-name] [--target /path/to/repo]
   ${primaryCommand} ui [--profile profile-name] [--json] [--target /path/to/repo]
@@ -619,6 +632,7 @@ main().catch((error: unknown) => {
         "status",
         "check",
         "specialists",
+        "agent-pack",
         "checkpoint",
         "handoff",
         "ui"

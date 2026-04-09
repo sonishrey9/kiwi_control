@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/dependency-graph",
   "version": 1,
-  "generatedAt": "2026-04-09T13:13:02.048Z",
+  "generatedAt": "2026-04-09T13:55:58.336Z",
   "nodes": [
     {
       "file": "apps/sj-ui/src/bootcheck.ts",
@@ -208,8 +208,16 @@
       "moduleGroup": "packages/sj-cli",
       "exports": 0,
       "localFunctions": 7,
-      "imports": 33,
+      "imports": 35,
       "importedBy": 0
+    },
+    {
+      "file": "packages/sj-cli/src/commands/agent-pack.ts",
+      "moduleGroup": "packages/sj-cli",
+      "exports": 1,
+      "localFunctions": 1,
+      "imports": 0,
+      "importedBy": 2
     },
     {
       "file": "packages/sj-cli/src/commands/audit.ts",
@@ -354,6 +362,14 @@
       "localFunctions": 1,
       "imports": 1,
       "importedBy": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/parity.ts",
+      "moduleGroup": "packages/sj-cli",
+      "exports": 1,
+      "localFunctions": 2,
+      "imports": 1,
+      "importedBy": 2
     },
     {
       "file": "packages/sj-cli/src/commands/phase-close.ts",
@@ -524,6 +540,14 @@
       "importedBy": 2
     },
     {
+      "file": "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "moduleGroup": "packages/sj-cli",
+      "exports": 2,
+      "localFunctions": 3,
+      "imports": 2,
+      "importedBy": 0
+    },
+    {
       "file": "packages/sj-cli/src/tests/bootstrap.test.ts",
       "moduleGroup": "packages/sj-cli",
       "exports": 0,
@@ -641,14 +665,14 @@
       "exports": 4,
       "localFunctions": 4,
       "imports": 0,
-      "importedBy": 5
+      "importedBy": 6
     },
     {
       "file": "packages/sj-cli/src/tests/machine-advisory.test.ts",
       "moduleGroup": "packages/sj-cli",
       "exports": 0,
       "localFunctions": 0,
-      "imports": 3,
+      "imports": 4,
       "importedBy": 0
     },
     {
@@ -809,7 +833,7 @@
       "exports": 9,
       "localFunctions": 13,
       "imports": 0,
-      "importedBy": 3
+      "importedBy": 4
     },
     {
       "file": "packages/sj-core/src/adapters/claude.ts",
@@ -1118,8 +1142,8 @@
     {
       "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core",
-      "exports": 8,
-      "localFunctions": 43,
+      "exports": 12,
+      "localFunctions": 49,
       "imports": 11,
       "importedBy": 3
     },
@@ -1223,8 +1247,8 @@
       "file": "packages/sj-core/src/core/ui-state.ts",
       "moduleGroup": "packages/sj-core",
       "exports": 5,
-      "localFunctions": 37,
-      "imports": 31,
+      "localFunctions": 38,
+      "imports": 32,
       "importedBy": 1
     },
     {
@@ -1306,6 +1330,14 @@
       "localFunctions": 47,
       "imports": 4,
       "importedBy": 2
+    },
+    {
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
+      "moduleGroup": "packages/sj-core",
+      "exports": 2,
+      "localFunctions": 15,
+      "imports": 0,
+      "importedBy": 1
     },
     {
       "file": "packages/sj-core/src/integrations/token-efficiency.ts",
@@ -1712,6 +1744,16 @@
     },
     {
       "from": "packages/sj-cli/src/cli.ts",
+      "to": "packages/sj-cli/src/commands/agent-pack.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-cli/src/cli.ts",
+      "to": "packages/sj-cli/src/commands/agent-pack.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-cli/src/cli.ts",
       "to": "packages/sj-cli/src/commands/audit.ts",
       "kind": "call"
     },
@@ -1848,6 +1890,16 @@
     {
       "from": "packages/sj-cli/src/cli.ts",
       "to": "packages/sj-cli/src/commands/next.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-cli/src/cli.ts",
+      "to": "packages/sj-cli/src/commands/parity.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-cli/src/cli.ts",
+      "to": "packages/sj-cli/src/commands/parity.ts",
       "kind": "import"
     },
     {
@@ -2151,6 +2203,16 @@
       "kind": "import"
     },
     {
+      "from": "packages/sj-cli/src/commands/parity.ts",
+      "to": "packages/sj-cli/src/utils/cli-output.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-cli/src/commands/parity.ts",
+      "to": "packages/sj-cli/src/utils/cli-output.ts",
+      "kind": "import"
+    },
+    {
       "from": "packages/sj-cli/src/commands/resume.ts",
       "to": "packages/sj-cli/src/commands/execution-step-runner.ts",
       "kind": "call"
@@ -2208,6 +2270,26 @@
     {
       "from": "packages/sj-cli/src/commands/usage.ts",
       "to": "packages/sj-cli/src/utils/cli-output.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "to": "packages/sj-cli/src/commands/agent-pack.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "to": "packages/sj-cli/src/commands/agent-pack.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "to": "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "to": "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
       "kind": "import"
     },
     {
@@ -2263,6 +2345,16 @@
     {
       "from": "packages/sj-cli/src/tests/machine-advisory.test.ts",
       "to": "packages/sj-cli/src/commands/doctor.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-cli/src/tests/machine-advisory.test.ts",
+      "to": "packages/sj-cli/src/commands/parity.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-cli/src/tests/machine-advisory.test.ts",
+      "to": "packages/sj-cli/src/commands/parity.ts",
       "kind": "import"
     },
     {
@@ -4342,6 +4434,16 @@
     },
     {
       "from": "packages/sj-core/src/core/ui-state.ts",
+      "to": "packages/sj-core/src/integrations/machine-parity.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-core/src/core/ui-state.ts",
+      "to": "packages/sj-core/src/integrations/machine-parity.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-core/src/core/ui-state.ts",
       "to": "packages/sj-core/src/runtime/client.ts",
       "kind": "call"
     },
@@ -5022,6 +5124,7 @@
       "file": "packages/sj-cli/src/cli.ts",
       "moduleGroup": "packages/sj-cli",
       "imports": [
+        "packages/sj-cli/src/commands/agent-pack.ts",
         "packages/sj-cli/src/commands/audit.ts",
         "packages/sj-cli/src/commands/bootstrap.ts",
         "packages/sj-cli/src/commands/check.ts",
@@ -5036,6 +5139,7 @@
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
         "packages/sj-cli/src/commands/next.ts",
+        "packages/sj-cli/src/commands/parity.ts",
         "packages/sj-cli/src/commands/plan.ts",
         "packages/sj-cli/src/commands/prepare.ts",
         "packages/sj-cli/src/commands/push-check.ts",
@@ -5058,6 +5162,7 @@
       ],
       "importedBy": [],
       "callTargets": [
+        "packages/sj-cli/src/commands/agent-pack.ts",
         "packages/sj-cli/src/commands/audit.ts",
         "packages/sj-cli/src/commands/bootstrap.ts",
         "packages/sj-cli/src/commands/check.ts",
@@ -5072,6 +5177,7 @@
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
         "packages/sj-cli/src/commands/next.ts",
+        "packages/sj-cli/src/commands/parity.ts",
         "packages/sj-cli/src/commands/plan.ts",
         "packages/sj-cli/src/commands/prepare.ts",
         "packages/sj-cli/src/commands/push-check.ts",
@@ -5093,6 +5199,7 @@
         "packages/sj-cli/src/commands/validate.ts"
       ],
       "relationships": [
+        "packages/sj-cli/src/commands/agent-pack.ts",
         "packages/sj-cli/src/commands/audit.ts",
         "packages/sj-cli/src/commands/bootstrap.ts",
         "packages/sj-cli/src/commands/check.ts",
@@ -5107,6 +5214,7 @@
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
         "packages/sj-cli/src/commands/next.ts",
+        "packages/sj-cli/src/commands/parity.ts",
         "packages/sj-cli/src/commands/plan.ts",
         "packages/sj-cli/src/commands/prepare.ts",
         "packages/sj-cli/src/commands/push-check.ts",
@@ -5127,6 +5235,17 @@
         "packages/sj-cli/src/commands/usage.ts",
         "packages/sj-cli/src/commands/validate.ts"
       ]
+    },
+    {
+      "file": "packages/sj-cli/src/commands/agent-pack.ts",
+      "moduleGroup": "packages/sj-cli",
+      "imports": [],
+      "importedBy": [
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/tests/agent-pack.test.ts"
+      ],
+      "callTargets": [],
+      "relationships": []
     },
     {
       "file": "packages/sj-cli/src/commands/audit.ts",
@@ -5359,6 +5478,23 @@
       ],
       "relationships": [
         "packages/sj-cli/src/commands/execution-plan-recovery.ts"
+      ]
+    },
+    {
+      "file": "packages/sj-cli/src/commands/parity.ts",
+      "moduleGroup": "packages/sj-cli",
+      "imports": [
+        "packages/sj-cli/src/utils/cli-output.ts"
+      ],
+      "importedBy": [
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/tests/machine-advisory.test.ts"
+      ],
+      "callTargets": [
+        "packages/sj-cli/src/utils/cli-output.ts"
+      ],
+      "relationships": [
+        "packages/sj-cli/src/utils/cli-output.ts"
       ]
     },
     {
@@ -5621,6 +5757,23 @@
       "relationships": []
     },
     {
+      "file": "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "moduleGroup": "packages/sj-cli",
+      "imports": [
+        "packages/sj-cli/src/commands/agent-pack.ts",
+        "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
+      ],
+      "importedBy": [],
+      "callTargets": [
+        "packages/sj-cli/src/commands/agent-pack.ts",
+        "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
+      ],
+      "relationships": [
+        "packages/sj-cli/src/commands/agent-pack.ts",
+        "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
+      ]
+    },
+    {
       "file": "packages/sj-cli/src/tests/bootstrap.test.ts",
       "moduleGroup": "packages/sj-cli",
       "imports": [],
@@ -5758,6 +5911,7 @@
       "moduleGroup": "packages/sj-cli",
       "imports": [],
       "importedBy": [
+        "packages/sj-cli/src/tests/agent-pack.test.ts",
         "packages/sj-cli/src/tests/product-surfaces.desktop-bundles.test.ts",
         "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
         "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
@@ -5776,17 +5930,20 @@
       "moduleGroup": "packages/sj-cli",
       "imports": [
         "packages/sj-cli/src/commands/doctor.ts",
+        "packages/sj-cli/src/commands/parity.ts",
         "packages/sj-cli/src/commands/toolchain.ts",
         "packages/sj-cli/src/commands/usage.ts"
       ],
       "importedBy": [],
       "callTargets": [
         "packages/sj-cli/src/commands/doctor.ts",
+        "packages/sj-cli/src/commands/parity.ts",
         "packages/sj-cli/src/commands/toolchain.ts",
         "packages/sj-cli/src/commands/usage.ts"
       ],
       "relationships": [
         "packages/sj-cli/src/commands/doctor.ts",
+        "packages/sj-cli/src/commands/parity.ts",
         "packages/sj-cli/src/commands/toolchain.ts",
         "packages/sj-cli/src/commands/usage.ts"
       ]
@@ -6013,6 +6170,7 @@
       "imports": [],
       "importedBy": [
         "packages/sj-cli/src/commands/guide.ts",
+        "packages/sj-cli/src/commands/parity.ts",
         "packages/sj-cli/src/commands/toolchain.ts",
         "packages/sj-cli/src/commands/usage.ts"
       ],
@@ -7380,6 +7538,7 @@
         "packages/sj-core/src/core/workflow-engine.ts",
         "packages/sj-core/src/integrations/ecosystem-catalog.ts",
         "packages/sj-core/src/integrations/machine-advisory.ts",
+        "packages/sj-core/src/integrations/machine-parity.ts",
         "packages/sj-core/src/utils/fs.ts"
       ],
       "importedBy": [
@@ -7409,6 +7568,7 @@
         "packages/sj-core/src/core/workflow-engine.ts",
         "packages/sj-core/src/integrations/ecosystem-catalog.ts",
         "packages/sj-core/src/integrations/machine-advisory.ts",
+        "packages/sj-core/src/integrations/machine-parity.ts",
         "packages/sj-core/src/runtime/client.ts",
         "packages/sj-core/src/utils/fs.ts"
       ],
@@ -7444,6 +7604,7 @@
         "packages/sj-core/src/core/workflow-engine.ts",
         "packages/sj-core/src/integrations/ecosystem-catalog.ts",
         "packages/sj-core/src/integrations/machine-advisory.ts",
+        "packages/sj-core/src/integrations/machine-parity.ts",
         "packages/sj-core/src/runtime/client.ts",
         "packages/sj-core/src/utils/fs.ts"
       ]
@@ -7648,6 +7809,16 @@
         "packages/sj-core/src/integrations/machine-advisory-summary.ts",
         "packages/sj-core/src/utils/fs.ts"
       ]
+    },
+    {
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
+      "moduleGroup": "packages/sj-core",
+      "imports": [],
+      "importedBy": [
+        "packages/sj-core/src/core/ui-state.ts"
+      ],
+      "callTargets": [],
+      "relationships": []
     },
     {
       "file": "packages/sj-core/src/integrations/token-efficiency.ts",

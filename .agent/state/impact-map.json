@@ -1,21 +1,56 @@
 {
   "artifactType": "kiwi-control/impact-map",
   "version": 1,
-  "generatedAt": "2026-04-09T13:13:02.048Z",
+  "generatedAt": "2026-04-09T13:55:58.337Z",
   "changedFiles": [
+    "packages/sj-cli/src/cli.ts",
+    "packages/sj-cli/src/commands/agent-pack.ts",
     "packages/sj-cli/src/commands/plan.ts",
     "packages/sj-cli/src/commands/repo-map.ts",
+    "packages/sj-cli/src/tests/agent-pack.test.ts",
+    "packages/sj-cli/src/tests/cli-ux.test.ts",
     "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-    "packages/sj-cli/src/tests/repo-intelligence.test.ts",
     "packages/sj-core/src/core/bootstrap.ts",
     "packages/sj-core/src/core/context.ts",
     "packages/sj-core/src/core/repo-intelligence.ts",
     "packages/sj-core/src/core/ui-state.ts"
   ],
   "forwardDependencies": [
+    "packages/sj-cli/src/commands/agent-pack.ts",
+    "packages/sj-cli/src/commands/audit.ts",
+    "packages/sj-cli/src/commands/bootstrap.ts",
+    "packages/sj-cli/src/commands/check.ts",
+    "packages/sj-cli/src/commands/checkpoint.ts",
+    "packages/sj-cli/src/commands/collect.ts",
+    "packages/sj-cli/src/commands/dispatch.ts",
+    "packages/sj-cli/src/commands/doctor.ts",
+    "packages/sj-cli/src/commands/eval.ts",
+    "packages/sj-cli/src/commands/explain.ts",
+    "packages/sj-cli/src/commands/fanout.ts",
+    "packages/sj-cli/src/commands/guide.ts",
+    "packages/sj-cli/src/commands/handoff.ts",
+    "packages/sj-cli/src/commands/init.ts",
+    "packages/sj-cli/src/commands/next.ts",
+    "packages/sj-cli/src/commands/parity.ts",
+    "packages/sj-cli/src/commands/plan.ts",
+    "packages/sj-cli/src/commands/prepare.ts",
+    "packages/sj-cli/src/commands/push-check.ts",
+    "packages/sj-cli/src/commands/reconcile.ts",
     "packages/sj-cli/src/commands/repo-map.ts",
+    "packages/sj-cli/src/commands/resume.ts",
+    "packages/sj-cli/src/commands/retry.ts",
+    "packages/sj-cli/src/commands/run-auto.ts",
+    "packages/sj-cli/src/commands/run.ts",
+    "packages/sj-cli/src/commands/runtime.ts",
     "packages/sj-cli/src/commands/specialists.ts",
+    "packages/sj-cli/src/commands/standardize.ts",
+    "packages/sj-cli/src/commands/status.ts",
+    "packages/sj-cli/src/commands/sync.ts",
+    "packages/sj-cli/src/commands/toolchain.ts",
+    "packages/sj-cli/src/commands/trace.ts",
     "packages/sj-cli/src/commands/ui.ts",
+    "packages/sj-cli/src/commands/usage.ts",
+    "packages/sj-cli/src/commands/validate.ts",
     "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
     "packages/sj-core/src/core/config.ts",
     "packages/sj-core/src/core/conflicts.ts",
@@ -55,6 +90,7 @@
     "packages/sj-core/src/core/workflow-engine.ts",
     "packages/sj-core/src/integrations/ecosystem-catalog.ts",
     "packages/sj-core/src/integrations/machine-advisory.ts",
+    "packages/sj-core/src/integrations/machine-parity.ts",
     "packages/sj-core/src/runtime/client.ts",
     "packages/sj-core/src/utils/fs.ts",
     "packages/sj-core/src/utils/redact.ts",
@@ -62,6 +98,7 @@
   ],
   "reverseDependencies": [
     "packages/sj-cli/src/cli.ts",
+    "packages/sj-cli/src/tests/agent-pack.test.ts",
     "packages/sj-cli/src/tests/repo-intelligence.test.ts",
     "packages/sj-core/src/core/bootstrap.ts",
     "packages/sj-core/src/core/context-selector.ts",
@@ -85,10 +122,40 @@
     "packages/sj-core/src/runtime/ui-bridge.ts"
   ],
   "impactedFiles": [
-    "packages/sj-cli/src/cli.ts",
+    "packages/sj-cli/src/commands/audit.ts",
+    "packages/sj-cli/src/commands/bootstrap.ts",
+    "packages/sj-cli/src/commands/check.ts",
+    "packages/sj-cli/src/commands/checkpoint.ts",
+    "packages/sj-cli/src/commands/collect.ts",
+    "packages/sj-cli/src/commands/dispatch.ts",
+    "packages/sj-cli/src/commands/doctor.ts",
+    "packages/sj-cli/src/commands/eval.ts",
+    "packages/sj-cli/src/commands/explain.ts",
+    "packages/sj-cli/src/commands/fanout.ts",
+    "packages/sj-cli/src/commands/guide.ts",
+    "packages/sj-cli/src/commands/handoff.ts",
+    "packages/sj-cli/src/commands/init.ts",
+    "packages/sj-cli/src/commands/next.ts",
+    "packages/sj-cli/src/commands/parity.ts",
+    "packages/sj-cli/src/commands/prepare.ts",
+    "packages/sj-cli/src/commands/push-check.ts",
+    "packages/sj-cli/src/commands/reconcile.ts",
+    "packages/sj-cli/src/commands/resume.ts",
+    "packages/sj-cli/src/commands/retry.ts",
+    "packages/sj-cli/src/commands/run-auto.ts",
+    "packages/sj-cli/src/commands/run.ts",
+    "packages/sj-cli/src/commands/runtime.ts",
     "packages/sj-cli/src/commands/specialists.ts",
+    "packages/sj-cli/src/commands/standardize.ts",
+    "packages/sj-cli/src/commands/status.ts",
+    "packages/sj-cli/src/commands/sync.ts",
+    "packages/sj-cli/src/commands/toolchain.ts",
+    "packages/sj-cli/src/commands/trace.ts",
     "packages/sj-cli/src/commands/ui.ts",
+    "packages/sj-cli/src/commands/usage.ts",
+    "packages/sj-cli/src/commands/validate.ts",
     "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
+    "packages/sj-cli/src/tests/repo-intelligence.test.ts",
     "packages/sj-core/src/core/config.ts",
     "packages/sj-core/src/core/conflicts.ts",
     "packages/sj-core/src/core/context-feedback.ts",
@@ -134,6 +201,7 @@
     "packages/sj-core/src/core/workflow-engine.ts",
     "packages/sj-core/src/integrations/ecosystem-catalog.ts",
     "packages/sj-core/src/integrations/machine-advisory.ts",
+    "packages/sj-core/src/integrations/machine-parity.ts",
     "packages/sj-core/src/runtime/client.ts",
     "packages/sj-core/src/runtime/ui-bridge.ts",
     "packages/sj-core/src/utils/fs.ts",
@@ -141,10 +209,40 @@
     "packages/sj-core/src/utils/yaml.ts"
   ],
   "dependencyDistances": {
-    "packages/sj-cli/src/cli.ts": 1,
+    "packages/sj-cli/src/commands/audit.ts": 1,
+    "packages/sj-cli/src/commands/bootstrap.ts": 1,
+    "packages/sj-cli/src/commands/check.ts": 1,
+    "packages/sj-cli/src/commands/checkpoint.ts": 1,
+    "packages/sj-cli/src/commands/collect.ts": 1,
+    "packages/sj-cli/src/commands/dispatch.ts": 1,
+    "packages/sj-cli/src/commands/doctor.ts": 1,
+    "packages/sj-cli/src/commands/eval.ts": 1,
+    "packages/sj-cli/src/commands/explain.ts": 1,
+    "packages/sj-cli/src/commands/fanout.ts": 1,
+    "packages/sj-cli/src/commands/guide.ts": 1,
+    "packages/sj-cli/src/commands/handoff.ts": 1,
+    "packages/sj-cli/src/commands/init.ts": 1,
+    "packages/sj-cli/src/commands/next.ts": 1,
+    "packages/sj-cli/src/commands/parity.ts": 1,
+    "packages/sj-cli/src/commands/prepare.ts": 1,
+    "packages/sj-cli/src/commands/push-check.ts": 1,
+    "packages/sj-cli/src/commands/reconcile.ts": 1,
+    "packages/sj-cli/src/commands/resume.ts": 1,
+    "packages/sj-cli/src/commands/retry.ts": 1,
+    "packages/sj-cli/src/commands/run-auto.ts": 1,
+    "packages/sj-cli/src/commands/run.ts": 1,
+    "packages/sj-cli/src/commands/runtime.ts": 1,
     "packages/sj-cli/src/commands/specialists.ts": 1,
+    "packages/sj-cli/src/commands/standardize.ts": 1,
+    "packages/sj-cli/src/commands/status.ts": 1,
+    "packages/sj-cli/src/commands/sync.ts": 1,
+    "packages/sj-cli/src/commands/toolchain.ts": 1,
+    "packages/sj-cli/src/commands/trace.ts": 1,
     "packages/sj-cli/src/commands/ui.ts": 1,
+    "packages/sj-cli/src/commands/usage.ts": 1,
+    "packages/sj-cli/src/commands/validate.ts": 1,
     "packages/sj-cli/src/tests/helpers/desktop-launch.ts": 1,
+    "packages/sj-cli/src/tests/repo-intelligence.test.ts": 1,
     "packages/sj-core/src/core/config.ts": 1,
     "packages/sj-core/src/core/conflicts.ts": 1,
     "packages/sj-core/src/core/context-feedback.ts": 1,
@@ -190,6 +288,7 @@
     "packages/sj-core/src/core/workflow-engine.ts": 1,
     "packages/sj-core/src/integrations/ecosystem-catalog.ts": 1,
     "packages/sj-core/src/integrations/machine-advisory.ts": 1,
+    "packages/sj-core/src/integrations/machine-parity.ts": 1,
     "packages/sj-core/src/runtime/client.ts": 1,
     "packages/sj-core/src/runtime/ui-bridge.ts": 1,
     "packages/sj-core/src/utils/fs.ts": 1,
@@ -197,21 +296,141 @@
     "packages/sj-core/src/utils/yaml.ts": 1
   },
   "dependencyChains": {
-    "packages/sj-cli/src/cli.ts": [
-      "packages/sj-cli/src/commands/plan.ts",
-      "packages/sj-cli/src/cli.ts"
+    "packages/sj-cli/src/commands/audit.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/audit.ts"
+    ],
+    "packages/sj-cli/src/commands/bootstrap.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/bootstrap.ts"
+    ],
+    "packages/sj-cli/src/commands/check.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/check.ts"
+    ],
+    "packages/sj-cli/src/commands/checkpoint.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/checkpoint.ts"
+    ],
+    "packages/sj-cli/src/commands/collect.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/collect.ts"
+    ],
+    "packages/sj-cli/src/commands/dispatch.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/dispatch.ts"
+    ],
+    "packages/sj-cli/src/commands/doctor.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/doctor.ts"
+    ],
+    "packages/sj-cli/src/commands/eval.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/eval.ts"
+    ],
+    "packages/sj-cli/src/commands/explain.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/explain.ts"
+    ],
+    "packages/sj-cli/src/commands/fanout.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/fanout.ts"
+    ],
+    "packages/sj-cli/src/commands/guide.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/guide.ts"
+    ],
+    "packages/sj-cli/src/commands/handoff.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/handoff.ts"
+    ],
+    "packages/sj-cli/src/commands/init.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/init.ts"
+    ],
+    "packages/sj-cli/src/commands/next.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/next.ts"
+    ],
+    "packages/sj-cli/src/commands/parity.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/parity.ts"
+    ],
+    "packages/sj-cli/src/commands/prepare.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/prepare.ts"
+    ],
+    "packages/sj-cli/src/commands/push-check.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/push-check.ts"
+    ],
+    "packages/sj-cli/src/commands/reconcile.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/reconcile.ts"
+    ],
+    "packages/sj-cli/src/commands/resume.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/resume.ts"
+    ],
+    "packages/sj-cli/src/commands/retry.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/retry.ts"
+    ],
+    "packages/sj-cli/src/commands/run-auto.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/run-auto.ts"
+    ],
+    "packages/sj-cli/src/commands/run.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/run.ts"
+    ],
+    "packages/sj-cli/src/commands/runtime.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/runtime.ts"
     ],
     "packages/sj-cli/src/commands/specialists.ts": [
-      "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+      "packages/sj-cli/src/cli.ts",
       "packages/sj-cli/src/commands/specialists.ts"
     ],
+    "packages/sj-cli/src/commands/standardize.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/standardize.ts"
+    ],
+    "packages/sj-cli/src/commands/status.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/status.ts"
+    ],
+    "packages/sj-cli/src/commands/sync.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/sync.ts"
+    ],
+    "packages/sj-cli/src/commands/toolchain.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/toolchain.ts"
+    ],
+    "packages/sj-cli/src/commands/trace.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/trace.ts"
+    ],
     "packages/sj-cli/src/commands/ui.ts": [
-      "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+      "packages/sj-cli/src/cli.ts",
       "packages/sj-cli/src/commands/ui.ts"
     ],
+    "packages/sj-cli/src/commands/usage.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/usage.ts"
+    ],
+    "packages/sj-cli/src/commands/validate.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/validate.ts"
+    ],
     "packages/sj-cli/src/tests/helpers/desktop-launch.ts": [
-      "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+      "packages/sj-cli/src/tests/agent-pack.test.ts",
       "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
+    ],
+    "packages/sj-cli/src/tests/repo-intelligence.test.ts": [
+      "packages/sj-cli/src/commands/repo-map.ts",
+      "packages/sj-cli/src/tests/repo-intelligence.test.ts"
     ],
     "packages/sj-core/src/core/config.ts": [
       "packages/sj-core/src/core/bootstrap.ts",
@@ -396,6 +615,10 @@
       "packages/sj-core/src/core/ui-state.ts",
       "packages/sj-core/src/integrations/machine-advisory.ts"
     ],
+    "packages/sj-core/src/integrations/machine-parity.ts": [
+      "packages/sj-core/src/core/ui-state.ts",
+      "packages/sj-core/src/integrations/machine-parity.ts"
+    ],
     "packages/sj-core/src/runtime/client.ts": [
       "packages/sj-core/src/core/ui-state.ts",
       "packages/sj-core/src/runtime/client.ts"
@@ -440,6 +663,22 @@
       "dependencyDistance": null
     },
     {
+      "file": "packages/sj-cli/src/cli.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 177,
+      "reasons": [
+        "call relationship",
+        "changed file",
+        "changed-area cluster",
+        "entry point",
+        "reverse dependent"
+      ],
+      "changed": true,
+      "entryPoint": true,
+      "importedByCount": 0,
+      "dependencyDistance": null
+    },
+    {
       "file": "packages/sj-core/src/core/context.ts",
       "moduleGroup": "packages/sj-core",
       "score": 162,
@@ -472,7 +711,7 @@
       "dependencyDistance": null
     },
     {
-      "file": "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+      "file": "packages/sj-cli/src/tests/agent-pack.test.ts",
       "moduleGroup": "packages/sj-cli",
       "score": 159,
       "reasons": [
@@ -502,6 +741,22 @@
       "dependencyDistance": null
     },
     {
+      "file": "packages/sj-cli/src/commands/agent-pack.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 156,
+      "reasons": [
+        "call relationship",
+        "changed file",
+        "changed-area cluster",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": true,
+      "entryPoint": false,
+      "importedByCount": 2,
+      "dependencyDistance": null
+    },
+    {
       "file": "packages/sj-cli/src/commands/repo-map.ts",
       "moduleGroup": "packages/sj-cli",
       "score": 156,
@@ -520,15 +775,30 @@
     {
       "file": "packages/sj-cli/src/commands/plan.ts",
       "moduleGroup": "packages/sj-cli",
-      "score": 121,
+      "score": 155,
       "reasons": [
+        "call relationship",
         "changed file",
         "changed-area cluster",
+        "forward dependency",
         "reverse dependency hub"
       ],
       "changed": true,
       "entryPoint": false,
       "importedByCount": 1,
+      "dependencyDistance": null
+    },
+    {
+      "file": "packages/sj-cli/src/tests/cli-ux.test.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 120,
+      "reasons": [
+        "changed file",
+        "changed-area cluster"
+      ],
+      "changed": true,
+      "entryPoint": false,
+      "importedByCount": 0,
       "dependencyDistance": null
     },
     {
@@ -664,22 +934,6 @@
       "dependencyDistance": 1
     },
     {
-      "file": "packages/sj-cli/src/cli.ts",
-      "moduleGroup": "packages/sj-cli",
-      "score": 95,
-      "reasons": [
-        "call relationship",
-        "changed-area cluster",
-        "dependency chain",
-        "entry point",
-        "reverse dependent"
-      ],
-      "changed": false,
-      "entryPoint": true,
-      "importedByCount": 0,
-      "dependencyDistance": 1
-    },
-    {
       "file": "packages/sj-core/src/core/config.ts",
       "moduleGroup": "packages/sj-core",
       "score": 78,
@@ -776,6 +1030,21 @@
       "dependencyDistance": 1
     },
     {
+      "file": "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 77,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "reverse dependent"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 0,
+      "dependencyDistance": 1
+    },
+    {
       "file": "packages/sj-core/src/core/profiles.ts",
       "moduleGroup": "packages/sj-core",
       "score": 77,
@@ -804,6 +1073,22 @@
       "changed": false,
       "entryPoint": false,
       "importedByCount": 0,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 76,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 6,
       "dependencyDistance": 1
     },
     {
@@ -887,22 +1172,6 @@
       "dependencyDistance": 1
     },
     {
-      "file": "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
-      "moduleGroup": "packages/sj-cli",
-      "score": 75,
-      "reasons": [
-        "call relationship",
-        "changed-area cluster",
-        "dependency chain",
-        "forward dependency",
-        "reverse dependency hub"
-      ],
-      "changed": false,
-      "entryPoint": false,
-      "importedByCount": 5,
-      "dependencyDistance": 1
-    },
-    {
       "file": "packages/sj-core/src/core/workflow-engine.ts",
       "moduleGroup": "packages/sj-core",
       "score": 75,
@@ -967,6 +1236,38 @@
       "dependencyDistance": 1
     },
     {
+      "file": "packages/sj-cli/src/commands/checkpoint.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 73,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 3,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/prepare.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 73,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 3,
+      "dependencyDistance": 1
+    },
+    {
       "file": "packages/sj-core/src/core/context-feedback.ts",
       "moduleGroup": "packages/sj-core",
       "score": 73,
@@ -983,7 +1284,247 @@
       "dependencyDistance": 1
     },
     {
+      "file": "packages/sj-cli/src/commands/check.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 72,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 2,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/doctor.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 72,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 2,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/explain.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 72,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 2,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/guide.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 72,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 2,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/handoff.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 72,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 2,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/parity.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 72,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 2,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/run.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 72,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 2,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/runtime.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 72,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 2,
+      "dependencyDistance": 1
+    },
+    {
       "file": "packages/sj-cli/src/commands/specialists.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 72,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 2,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/standardize.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 72,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 2,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/status.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 72,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 2,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/sync.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 72,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 2,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/toolchain.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 72,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 2,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/trace.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 72,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 2,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/usage.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 72,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 2,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/validate.ts",
       "moduleGroup": "packages/sj-cli",
       "score": 72,
       "reasons": [
@@ -1044,6 +1585,214 @@
       "changed": false,
       "entryPoint": false,
       "importedByCount": 2,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/audit.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 71,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 1,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/bootstrap.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 71,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 1,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/collect.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 71,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 1,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/dispatch.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 71,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 1,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/eval.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 71,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 1,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/fanout.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 71,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 1,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/init.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 71,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 1,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/next.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 71,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 1,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/push-check.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 71,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 1,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/reconcile.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 71,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 1,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/resume.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 71,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 1,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/retry.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 71,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 1,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-cli/src/commands/run-auto.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 71,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 1,
       "dependencyDistance": 1
     },
     {
@@ -1111,6 +1860,22 @@
     },
     {
       "file": "packages/sj-core/src/integrations/ecosystem-catalog.ts",
+      "moduleGroup": "packages/sj-core",
+      "score": 71,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "reverse dependency hub"
+      ],
+      "changed": false,
+      "entryPoint": false,
+      "importedByCount": 1,
+      "dependencyDistance": 1
+    },
+    {
+      "file": "packages/sj-core/src/integrations/machine-parity.ts",
       "moduleGroup": "packages/sj-core",
       "score": 71,
       "reasons": [
@@ -1394,7 +2159,7 @@
   "rankedModules": [
     {
       "id": "packages/sj-core",
-      "score": 4471,
+      "score": 4542,
       "changedFiles": [
         "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/context.ts",
@@ -1434,6 +2199,7 @@
         "packages/sj-core/src/core/execution-plan.ts",
         "packages/sj-core/src/core/repo-readiness.ts",
         "packages/sj-core/src/integrations/ecosystem-catalog.ts",
+        "packages/sj-core/src/integrations/machine-parity.ts",
         "packages/sj-core/src/core/planner.ts",
         "packages/sj-core/src/core/policies.ts",
         "packages/sj-core/src/core/packets.ts",
@@ -1464,29 +2230,62 @@
     },
     {
       "id": "packages/sj-cli",
-      "score": 937,
+      "score": 3586,
       "changedFiles": [
-        "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/tests/agent-pack.test.ts",
+        "packages/sj-cli/src/commands/agent-pack.ts",
         "packages/sj-cli/src/commands/repo-map.ts",
         "packages/sj-cli/src/commands/plan.ts",
+        "packages/sj-cli/src/tests/cli-ux.test.ts",
         "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts"
       ],
       "impactedFiles": [
-        "packages/sj-cli/src/cli.ts",
-        "packages/sj-cli/src/commands/ui.ts",
+        "packages/sj-cli/src/tests/repo-intelligence.test.ts",
         "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
-        "packages/sj-cli/src/commands/specialists.ts"
+        "packages/sj-cli/src/commands/ui.ts",
+        "packages/sj-cli/src/commands/checkpoint.ts",
+        "packages/sj-cli/src/commands/prepare.ts",
+        "packages/sj-cli/src/commands/check.ts",
+        "packages/sj-cli/src/commands/doctor.ts",
+        "packages/sj-cli/src/commands/explain.ts",
+        "packages/sj-cli/src/commands/guide.ts",
+        "packages/sj-cli/src/commands/handoff.ts",
+        "packages/sj-cli/src/commands/parity.ts",
+        "packages/sj-cli/src/commands/run.ts",
+        "packages/sj-cli/src/commands/runtime.ts",
+        "packages/sj-cli/src/commands/specialists.ts",
+        "packages/sj-cli/src/commands/standardize.ts",
+        "packages/sj-cli/src/commands/status.ts",
+        "packages/sj-cli/src/commands/sync.ts",
+        "packages/sj-cli/src/commands/toolchain.ts",
+        "packages/sj-cli/src/commands/trace.ts",
+        "packages/sj-cli/src/commands/usage.ts",
+        "packages/sj-cli/src/commands/validate.ts",
+        "packages/sj-cli/src/commands/audit.ts",
+        "packages/sj-cli/src/commands/bootstrap.ts",
+        "packages/sj-cli/src/commands/collect.ts",
+        "packages/sj-cli/src/commands/dispatch.ts",
+        "packages/sj-cli/src/commands/eval.ts",
+        "packages/sj-cli/src/commands/fanout.ts",
+        "packages/sj-cli/src/commands/init.ts",
+        "packages/sj-cli/src/commands/next.ts",
+        "packages/sj-cli/src/commands/push-check.ts",
+        "packages/sj-cli/src/commands/reconcile.ts",
+        "packages/sj-cli/src/commands/resume.ts",
+        "packages/sj-cli/src/commands/retry.ts",
+        "packages/sj-cli/src/commands/run-auto.ts"
       ],
       "entryPoints": [
         "packages/sj-cli/src/cli.ts",
         "packages/sj-cli/src/commands/commit-plan.ts"
       ],
       "topFiles": [
-        "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/tests/agent-pack.test.ts",
+        "packages/sj-cli/src/commands/agent-pack.ts",
         "packages/sj-cli/src/commands/repo-map.ts",
-        "packages/sj-cli/src/commands/plan.ts",
-        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-        "packages/sj-cli/src/cli.ts"
+        "packages/sj-cli/src/commands/plan.ts"
       ]
     }
   ],
@@ -1556,35 +2355,86 @@
     {
       "id": "packages/sj-cli/src/commands",
       "changedFiles": [
+        "packages/sj-cli/src/commands/agent-pack.ts",
         "packages/sj-cli/src/commands/plan.ts",
         "packages/sj-cli/src/commands/repo-map.ts"
       ],
       "impactedFiles": [
+        "packages/sj-cli/src/commands/audit.ts",
+        "packages/sj-cli/src/commands/bootstrap.ts",
+        "packages/sj-cli/src/commands/check.ts",
+        "packages/sj-cli/src/commands/checkpoint.ts",
+        "packages/sj-cli/src/commands/collect.ts",
+        "packages/sj-cli/src/commands/dispatch.ts",
+        "packages/sj-cli/src/commands/doctor.ts",
+        "packages/sj-cli/src/commands/eval.ts",
+        "packages/sj-cli/src/commands/explain.ts",
+        "packages/sj-cli/src/commands/fanout.ts",
+        "packages/sj-cli/src/commands/guide.ts",
+        "packages/sj-cli/src/commands/handoff.ts",
+        "packages/sj-cli/src/commands/init.ts",
+        "packages/sj-cli/src/commands/next.ts",
+        "packages/sj-cli/src/commands/parity.ts",
+        "packages/sj-cli/src/commands/prepare.ts",
+        "packages/sj-cli/src/commands/push-check.ts",
+        "packages/sj-cli/src/commands/reconcile.ts",
+        "packages/sj-cli/src/commands/resume.ts",
+        "packages/sj-cli/src/commands/retry.ts",
+        "packages/sj-cli/src/commands/run-auto.ts",
+        "packages/sj-cli/src/commands/run.ts",
+        "packages/sj-cli/src/commands/runtime.ts",
         "packages/sj-cli/src/commands/specialists.ts",
-        "packages/sj-cli/src/commands/ui.ts"
+        "packages/sj-cli/src/commands/standardize.ts",
+        "packages/sj-cli/src/commands/status.ts",
+        "packages/sj-cli/src/commands/sync.ts",
+        "packages/sj-cli/src/commands/toolchain.ts",
+        "packages/sj-cli/src/commands/trace.ts",
+        "packages/sj-cli/src/commands/ui.ts",
+        "packages/sj-cli/src/commands/usage.ts",
+        "packages/sj-cli/src/commands/validate.ts"
       ],
-      "score": 424,
+      "score": 2763,
       "topFiles": [
+        "packages/sj-cli/src/commands/agent-pack.ts",
         "packages/sj-cli/src/commands/repo-map.ts",
         "packages/sj-cli/src/commands/plan.ts",
         "packages/sj-cli/src/commands/ui.ts",
-        "packages/sj-cli/src/commands/specialists.ts"
+        "packages/sj-cli/src/commands/checkpoint.ts"
       ]
     },
     {
       "id": "packages/sj-cli/src/tests",
       "changedFiles": [
-        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-        "packages/sj-cli/src/tests/repo-intelligence.test.ts"
+        "packages/sj-cli/src/tests/agent-pack.test.ts",
+        "packages/sj-cli/src/tests/cli-ux.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts"
       ],
       "impactedFiles": [
-        "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
+        "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
+        "packages/sj-cli/src/tests/repo-intelligence.test.ts"
       ],
-      "score": 354,
+      "score": 552,
       "topFiles": [
-        "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+        "packages/sj-cli/src/tests/agent-pack.test.ts",
+        "packages/sj-cli/src/tests/cli-ux.test.ts",
         "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+        "packages/sj-cli/src/tests/repo-intelligence.test.ts",
         "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
+      ]
+    },
+    {
+      "id": "packages/sj-core/src/integrations",
+      "changedFiles": [],
+      "impactedFiles": [
+        "packages/sj-core/src/integrations/ecosystem-catalog.ts",
+        "packages/sj-core/src/integrations/machine-advisory.ts",
+        "packages/sj-core/src/integrations/machine-parity.ts"
+      ],
+      "score": 214,
+      "topFiles": [
+        "packages/sj-core/src/integrations/machine-advisory.ts",
+        "packages/sj-core/src/integrations/ecosystem-catalog.ts",
+        "packages/sj-core/src/integrations/machine-parity.ts"
       ]
     },
     {
@@ -1603,6 +2453,17 @@
       ]
     },
     {
+      "id": "packages/sj-cli/src/cli.ts",
+      "changedFiles": [
+        "packages/sj-cli/src/cli.ts"
+      ],
+      "impactedFiles": [],
+      "score": 177,
+      "topFiles": [
+        "packages/sj-cli/src/cli.ts"
+      ]
+    },
+    {
       "id": "packages/sj-core/src/runtime",
       "changedFiles": [],
       "impactedFiles": [
@@ -1613,30 +2474,6 @@
       "topFiles": [
         "packages/sj-core/src/runtime/ui-bridge.ts",
         "packages/sj-core/src/runtime/client.ts"
-      ]
-    },
-    {
-      "id": "packages/sj-core/src/integrations",
-      "changedFiles": [],
-      "impactedFiles": [
-        "packages/sj-core/src/integrations/ecosystem-catalog.ts",
-        "packages/sj-core/src/integrations/machine-advisory.ts"
-      ],
-      "score": 143,
-      "topFiles": [
-        "packages/sj-core/src/integrations/machine-advisory.ts",
-        "packages/sj-core/src/integrations/ecosystem-catalog.ts"
-      ]
-    },
-    {
-      "id": "packages/sj-cli/src/cli.ts",
-      "changedFiles": [],
-      "impactedFiles": [
-        "packages/sj-cli/src/cli.ts"
-      ],
-      "score": 95,
-      "topFiles": [
-        "packages/sj-cli/src/cli.ts"
       ]
     }
   ]

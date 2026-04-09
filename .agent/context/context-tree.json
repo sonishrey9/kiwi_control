@@ -1,8 +1,8 @@
 {
   "artifactType": "kiwi-control/context-tree-view",
   "version": 1,
-  "timestamp": "2026-04-09T13:13:02.048Z",
-  "summary": "Discovered 385 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
+  "timestamp": "2026-04-09T13:55:58.336Z",
+  "summary": "Discovered 389 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
   "languages": [
     "docs",
     "javascript",
@@ -30,13 +30,14 @@
   "keyModules": [
     {
       "id": "packages/sj-cli",
-      "fileCount": 76,
+      "fileCount": 79,
       "entryPoints": [
         "packages/sj-cli/src/cli.ts",
         "packages/sj-cli/src/commands/commit-plan.ts",
         "packages/sj-cli/src/commands/launch.ts",
         "packages/sj-cli/src/commands/phase-close.ts",
         "packages/sj-cli/src/commands/release-check.ts",
+        "packages/sj-cli/src/tests/agent-pack.test.ts",
         "packages/sj-cli/src/tests/bootstrap.test.ts",
         "packages/sj-cli/src/tests/check.test.ts",
         "packages/sj-cli/src/tests/checkpoint.test.ts",
@@ -75,7 +76,7 @@
     },
     {
       "id": "packages/sj-core",
-      "fileCount": 70,
+      "fileCount": 71,
       "entryPoints": [
         "packages/sj-core/src/core/bootstrap.ts",
         "packages/sj-core/src/core/discovery.ts",
@@ -1353,6 +1354,12 @@
                   "kind": "directory",
                   "children": [
                     {
+                      "name": "agent-pack.ts",
+                      "path": "packages/sj-cli/src/commands/agent-pack.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
                       "name": "audit.ts",
                       "path": "packages/sj-cli/src/commands/audit.ts",
                       "kind": "file",
@@ -1457,6 +1464,12 @@
                     {
                       "name": "next.ts",
                       "path": "packages/sj-cli/src/commands/next.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "parity.ts",
+                      "path": "packages/sj-cli/src/commands/parity.ts",
                       "kind": "file",
                       "children": []
                     },
@@ -1605,6 +1618,12 @@
                           "children": []
                         }
                       ]
+                    },
+                    {
+                      "name": "agent-pack.test.ts",
+                      "path": "packages/sj-cli/src/tests/agent-pack.test.ts",
+                      "kind": "file",
+                      "children": []
                     },
                     {
                       "name": "bootstrap.test.ts",
@@ -2245,6 +2264,12 @@
                     {
                       "name": "machine-advisory.ts",
                       "path": "packages/sj-core/src/integrations/machine-advisory.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "machine-parity.ts",
+                      "path": "packages/sj-core/src/integrations/machine-parity.ts",
                       "kind": "file",
                       "children": []
                     },
