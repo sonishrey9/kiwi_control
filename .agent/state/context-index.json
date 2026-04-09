@@ -1,23 +1,18 @@
 {
   "artifactType": "kiwi-control/context-index",
   "version": 2,
-  "timestamp": "2026-04-09T13:55:58.331Z",
-  "indexedFiles": 194,
+  "timestamp": "2026-04-09T14:18:08.201Z",
+  "indexedFiles": 197,
   "updatedFiles": [
     "packages/sj-cli/src/cli.ts",
-    "packages/sj-cli/src/commands/agent-pack.ts",
-    "packages/sj-cli/src/commands/plan.ts",
-    "packages/sj-cli/src/commands/repo-map.ts",
-    "packages/sj-cli/src/tests/agent-pack.test.ts",
+    "packages/sj-cli/src/commands/graph-query.ts",
     "packages/sj-cli/src/tests/cli-ux.test.ts",
-    "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-    "packages/sj-core/src/core/bootstrap.ts",
-    "packages/sj-core/src/core/context.ts",
-    "packages/sj-core/src/core/repo-intelligence.ts",
-    "packages/sj-core/src/core/ui-state.ts"
+    "packages/sj-cli/src/tests/graph-query.test.ts",
+    "packages/sj-core/src/core/graph-query.ts",
+    "packages/sj-core/src/core/repo-intelligence.ts"
   ],
   "removedFiles": [],
-  "reusedFiles": 183,
+  "reusedFiles": 191,
   "files": [
     {
       "file": "apps/sj-ui/src/bootcheck.ts",
@@ -1346,7 +1341,7 @@
     },
     {
       "file": "packages/sj-cli/src/cli.ts",
-      "mtime": 1775742260670,
+      "mtime": 1775744074330,
       "imports": [
         "packages/sj-cli/src/commands/agent-pack.ts",
         "packages/sj-cli/src/commands/audit.ts",
@@ -1359,6 +1354,7 @@
         "packages/sj-cli/src/commands/eval.ts",
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/fanout.ts",
+        "packages/sj-cli/src/commands/graph-query.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
@@ -1432,6 +1428,7 @@
         "runEval",
         "runExplain",
         "runFanout",
+        "runGraphQuery",
         "runGuide",
         "runHandoff",
         "runInit",
@@ -1472,6 +1469,7 @@
         "packages/sj-cli/src/commands/eval.ts",
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/fanout.ts",
+        "packages/sj-cli/src/commands/graph-query.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
@@ -1509,6 +1507,7 @@
         "packages/sj-cli/src/commands/eval.ts",
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/fanout.ts",
+        "packages/sj-cli/src/commands/graph-query.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
@@ -2136,6 +2135,48 @@
       "moduleGroup": "packages/sj-cli"
     },
     {
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
+      "mtime": 1775744059020,
+      "imports": [],
+      "importedBy": [
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/tests/graph-query.test.ts"
+      ],
+      "exports": [
+        "runGraphQuery"
+      ],
+      "localFunctions": [
+        "normalizedFileTarget",
+        "runGraphQuery"
+      ],
+      "calledSymbols": [
+        "buildRepoContextTree",
+        "buildRepoIntelligenceArtifacts",
+        "Error",
+        "filter",
+        "info",
+        "inspectBootstrapTarget",
+        "isAbsolute",
+        "loadCanonicalConfig",
+        "loadRepoIntelligenceArtifacts",
+        "normalizedFileTarget",
+        "normalizeRepoPath",
+        "persistRepoContextTreeArtifacts",
+        "persistRepoIntelligenceArtifacts",
+        "queryFileSummary",
+        "queryImpact",
+        "queryModuleSummary",
+        "queryNeighbors",
+        "querySymbolLookup",
+        "relativeFrom",
+        "runGraphQuery",
+        "stringify"
+      ],
+      "importCallTargets": [],
+      "relationships": [],
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
       "file": "packages/sj-cli/src/commands/guide.ts",
       "mtime": 1775674722510,
       "imports": [
@@ -2635,6 +2676,7 @@
       "imports": [],
       "importedBy": [
         "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/tests/graph-query.test.ts",
         "packages/sj-cli/src/tests/repo-intelligence.test.ts"
       ],
       "exports": [
@@ -3583,7 +3625,7 @@
     },
     {
       "file": "packages/sj-cli/src/tests/cli-ux.test.ts",
-      "mtime": 1775742402810,
+      "mtime": 1775744111820,
       "imports": [
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/status.ts"
@@ -3969,6 +4011,66 @@
       "moduleGroup": "packages/sj-cli"
     },
     {
+      "file": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "mtime": 1775744144080,
+      "imports": [
+        "packages/sj-cli/src/commands/graph-query.ts",
+        "packages/sj-cli/src/commands/repo-map.ts",
+        "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
+      ],
+      "importedBy": [],
+      "exports": [
+        "helper",
+        "login",
+        "route"
+      ],
+      "localFunctions": [
+        "capture",
+        "helper",
+        "login",
+        "route"
+      ],
+      "calledSymbols": [
+        "async",
+        "bootstrapTarget",
+        "capture",
+        "equal",
+        "error",
+        "helper",
+        "includes",
+        "info",
+        "join",
+        "loadCanonicalConfig",
+        "login",
+        "mkdir",
+        "mkdtemp",
+        "ok",
+        "parse",
+        "push",
+        "repoRoot",
+        "route",
+        "runCommand",
+        "runGraphQuery",
+        "runRepoMap",
+        "some",
+        "test",
+        "tmpdir",
+        "warn",
+        "writeFile"
+      ],
+      "importCallTargets": [
+        "packages/sj-cli/src/commands/graph-query.ts",
+        "packages/sj-cli/src/commands/repo-map.ts",
+        "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
+      ],
+      "relationships": [
+        "packages/sj-cli/src/commands/graph-query.ts",
+        "packages/sj-cli/src/commands/repo-map.ts",
+        "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
+      ],
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
       "file": "packages/sj-cli/src/tests/handoff.test.ts",
       "mtime": 1775238254000,
       "imports": [],
@@ -3994,6 +4096,7 @@
       "imports": [],
       "importedBy": [
         "packages/sj-cli/src/tests/agent-pack.test.ts",
+        "packages/sj-cli/src/tests/graph-query.test.ts",
         "packages/sj-cli/src/tests/product-surfaces.desktop-bundles.test.ts",
         "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
         "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
@@ -6794,6 +6897,92 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "mtime": 1775744101500,
+      "imports": [
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/utils/fs.ts"
+      ],
+      "importedBy": [],
+      "exports": [
+        "loadGraphQueryArtifacts",
+        "queryFileSummary",
+        "queryImpact",
+        "queryModuleSummary",
+        "queryNeighbors",
+        "querySymbolLookup"
+      ],
+      "localFunctions": [
+        "deriveRelatedModules",
+        "findFileRelationship",
+        "leftScore",
+        "loadGraphQueryArtifacts",
+        "modulePeers",
+        "normalizeQueryTarget",
+        "queryFileSummary",
+        "queryImpact",
+        "queryModuleImpact",
+        "queryModuleSummary",
+        "queryNeighbors",
+        "querySymbolLookup",
+        "rightScore",
+        "symbolExportsForFile",
+        "symbolLocalsForFile",
+        "topFilesForModule"
+      ],
+      "calledSymbols": [
+        "add",
+        "Boolean",
+        "cwd",
+        "deriveRelatedModules",
+        "Error",
+        "file",
+        "filter",
+        "find",
+        "findFileRelationship",
+        "flatMap",
+        "get",
+        "has",
+        "includes",
+        "isAbsolute",
+        "loadGraphQueryArtifacts",
+        "loadRepoIntelligenceArtifacts",
+        "localeCompare",
+        "map",
+        "Map",
+        "match",
+        "modulePeers",
+        "normalizeQueryTarget",
+        "normalizeRepoPath",
+        "queryFileSummary",
+        "queryImpact",
+        "queryModuleImpact",
+        "queryModuleSummary",
+        "queryNeighbors",
+        "querySymbolLookup",
+        "relationship",
+        "relativeFrom",
+        "Set",
+        "slice",
+        "sort",
+        "startsWith",
+        "symbolExportsForFile",
+        "symbolLocalsForFile",
+        "toLowerCase",
+        "topFilesForModule",
+        "trim"
+      ],
+      "importCallTargets": [
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/utils/fs.ts"
+      ],
+      "relationships": [
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/utils/fs.ts"
+      ],
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "file": "packages/sj-core/src/core/guidance.ts",
       "mtime": 1775372235450,
       "imports": [
@@ -7834,7 +8023,7 @@
     },
     {
       "file": "packages/sj-core/src/core/repo-intelligence.ts",
-      "mtime": 1775742589480,
+      "mtime": 1775743949210,
       "imports": [
         "packages/sj-core/src/core/context-index.ts",
         "packages/sj-core/src/core/context-tree.ts",
@@ -7851,6 +8040,7 @@
       "importedBy": [
         "packages/sj-core/src/core/bootstrap.ts",
         "packages/sj-core/src/core/context-selector.ts",
+        "packages/sj-core/src/core/graph-query.ts",
         "packages/sj-core/src/core/ui-state.ts"
       ],
       "exports": [
@@ -7859,6 +8049,7 @@
         "buildRepoIntelligenceArtifacts",
         "buildReviewContextPack",
         "buildTaskPack",
+        "loadRepoIntelligenceArtifacts",
         "loadRepoIntelligenceSummary",
         "persistAgentPack",
         "persistCompactContextPack",
@@ -7897,6 +8088,7 @@
         "historyGraphPath",
         "impactMapPath",
         "linkNodeToFilesAndModules",
+        "loadRepoIntelligenceArtifacts",
         "loadRepoIntelligenceSummary",
         "persistAgentPack",
         "persistCompactContextPack",
@@ -7979,6 +8171,7 @@
         "loadLatestReconcileReport",
         "loadLatestTaskPacketSet",
         "loadOpenRisks",
+        "loadRepoIntelligenceArtifacts",
         "loadRepoIntelligenceSummary",
         "localeCompare",
         "map",
@@ -10270,6 +10463,7 @@
         "packages/sj-core/src/core/execution-log.ts",
         "packages/sj-core/src/core/execution-state.ts",
         "packages/sj-core/src/core/executor.ts",
+        "packages/sj-core/src/core/graph-query.ts",
         "packages/sj-core/src/core/guidance.ts",
         "packages/sj-core/src/core/instruction-generator.ts",
         "packages/sj-core/src/core/launch.ts",
@@ -11521,6 +11715,10 @@
     "packages/sj-cli/src/commands/fanout.ts": [
       "packages/sj-cli/src/cli.ts"
     ],
+    "packages/sj-cli/src/commands/graph-query.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/tests/graph-query.test.ts"
+    ],
     "packages/sj-cli/src/commands/guide.ts": [
       "packages/sj-cli/src/cli.ts",
       "packages/sj-cli/src/tests/cli-ux.test.ts"
@@ -11555,6 +11753,7 @@
     ],
     "packages/sj-cli/src/commands/repo-map.ts": [
       "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/tests/graph-query.test.ts",
       "packages/sj-cli/src/tests/repo-intelligence.test.ts"
     ],
     "packages/sj-cli/src/commands/resume.ts": [
@@ -11615,6 +11814,7 @@
     ],
     "packages/sj-cli/src/tests/helpers/desktop-launch.ts": [
       "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "packages/sj-cli/src/tests/graph-query.test.ts",
       "packages/sj-cli/src/tests/product-surfaces.desktop-bundles.test.ts",
       "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
       "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
@@ -11826,6 +12026,7 @@
     "packages/sj-core/src/core/repo-intelligence.ts": [
       "packages/sj-core/src/core/bootstrap.ts",
       "packages/sj-core/src/core/context-selector.ts",
+      "packages/sj-core/src/core/graph-query.ts",
       "packages/sj-core/src/core/ui-state.ts"
     ],
     "packages/sj-core/src/core/repo-readiness.ts": [
@@ -11993,6 +12194,7 @@
       "packages/sj-core/src/core/execution-log.ts",
       "packages/sj-core/src/core/execution-state.ts",
       "packages/sj-core/src/core/executor.ts",
+      "packages/sj-core/src/core/graph-query.ts",
       "packages/sj-core/src/core/guidance.ts",
       "packages/sj-core/src/core/instruction-generator.ts",
       "packages/sj-core/src/core/launch.ts",
@@ -12033,30 +12235,20 @@
   },
   "lastChangedFiles": [
     "packages/sj-cli/src/cli.ts",
-    "packages/sj-cli/src/commands/agent-pack.ts",
-    "packages/sj-cli/src/commands/plan.ts",
-    "packages/sj-cli/src/commands/repo-map.ts",
-    "packages/sj-cli/src/tests/agent-pack.test.ts",
+    "packages/sj-cli/src/commands/graph-query.ts",
     "packages/sj-cli/src/tests/cli-ux.test.ts",
-    "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-    "packages/sj-core/src/core/bootstrap.ts",
-    "packages/sj-core/src/core/context.ts",
-    "packages/sj-core/src/core/repo-intelligence.ts",
-    "packages/sj-core/src/core/ui-state.ts"
+    "packages/sj-cli/src/tests/graph-query.test.ts",
+    "packages/sj-core/src/core/graph-query.ts",
+    "packages/sj-core/src/core/repo-intelligence.ts"
   ],
   "lastImpact": {
     "changedFiles": [
       "packages/sj-cli/src/cli.ts",
-      "packages/sj-cli/src/commands/agent-pack.ts",
-      "packages/sj-cli/src/commands/plan.ts",
-      "packages/sj-cli/src/commands/repo-map.ts",
-      "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "packages/sj-cli/src/commands/graph-query.ts",
       "packages/sj-cli/src/tests/cli-ux.test.ts",
-      "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-      "packages/sj-core/src/core/bootstrap.ts",
-      "packages/sj-core/src/core/context.ts",
-      "packages/sj-core/src/core/repo-intelligence.ts",
-      "packages/sj-core/src/core/ui-state.ts"
+      "packages/sj-cli/src/tests/graph-query.test.ts",
+      "packages/sj-core/src/core/graph-query.ts",
+      "packages/sj-core/src/core/repo-intelligence.ts"
     ],
     "forwardDependencies": [
       "packages/sj-cli/src/commands/agent-pack.ts",
@@ -12070,6 +12262,7 @@
       "packages/sj-cli/src/commands/eval.ts",
       "packages/sj-cli/src/commands/explain.ts",
       "packages/sj-cli/src/commands/fanout.ts",
+      "packages/sj-cli/src/commands/graph-query.ts",
       "packages/sj-cli/src/commands/guide.ts",
       "packages/sj-cli/src/commands/handoff.ts",
       "packages/sj-cli/src/commands/init.ts",
@@ -12095,76 +12288,34 @@
       "packages/sj-cli/src/commands/usage.ts",
       "packages/sj-cli/src/commands/validate.ts",
       "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
-      "packages/sj-core/src/core/config.ts",
-      "packages/sj-core/src/core/conflicts.ts",
-      "packages/sj-core/src/core/context-feedback.ts",
       "packages/sj-core/src/core/context-index.ts",
-      "packages/sj-core/src/core/context-selector.ts",
-      "packages/sj-core/src/core/context-trace.ts",
       "packages/sj-core/src/core/context-tree.ts",
-      "packages/sj-core/src/core/context.ts",
-      "packages/sj-core/src/core/execution-log.ts",
-      "packages/sj-core/src/core/execution-plan.ts",
       "packages/sj-core/src/core/execution-state.ts",
-      "packages/sj-core/src/core/executor.ts",
-      "packages/sj-core/src/core/git.ts",
-      "packages/sj-core/src/core/guidance.ts",
       "packages/sj-core/src/core/memory.ts",
       "packages/sj-core/src/core/next-action.ts",
-      "packages/sj-core/src/core/prepared-scope.ts",
-      "packages/sj-core/src/core/product.ts",
-      "packages/sj-core/src/core/profiles.ts",
-      "packages/sj-core/src/core/project-detect.ts",
-      "packages/sj-core/src/core/recommendations.ts",
       "packages/sj-core/src/core/reconcile.ts",
       "packages/sj-core/src/core/repo-intelligence.ts",
-      "packages/sj-core/src/core/repo-readiness.ts",
-      "packages/sj-core/src/core/risk.ts",
-      "packages/sj-core/src/core/router.ts",
-      "packages/sj-core/src/core/runtime-decision.ts",
       "packages/sj-core/src/core/runtime-lifecycle.ts",
-      "packages/sj-core/src/core/skills-registry.ts",
-      "packages/sj-core/src/core/specialists.ts",
       "packages/sj-core/src/core/state.ts",
       "packages/sj-core/src/core/task-intent.ts",
-      "packages/sj-core/src/core/token-estimator.ts",
-      "packages/sj-core/src/core/token-intelligence.ts",
-      "packages/sj-core/src/core/validator.ts",
       "packages/sj-core/src/core/workflow-engine.ts",
-      "packages/sj-core/src/integrations/ecosystem-catalog.ts",
-      "packages/sj-core/src/integrations/machine-advisory.ts",
-      "packages/sj-core/src/integrations/machine-parity.ts",
-      "packages/sj-core/src/runtime/client.ts",
-      "packages/sj-core/src/utils/fs.ts",
-      "packages/sj-core/src/utils/redact.ts",
-      "packages/sj-core/src/utils/yaml.ts"
+      "packages/sj-core/src/utils/fs.ts"
     ],
     "reverseDependencies": [
       "packages/sj-cli/src/cli.ts",
-      "packages/sj-cli/src/tests/agent-pack.test.ts",
-      "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+      "packages/sj-cli/src/tests/graph-query.test.ts",
       "packages/sj-core/src/core/bootstrap.ts",
       "packages/sj-core/src/core/context-selector.ts",
-      "packages/sj-core/src/core/dispatch.ts",
       "packages/sj-core/src/core/execution-engine.ts",
       "packages/sj-core/src/core/execution-log.ts",
-      "packages/sj-core/src/core/executor.ts",
-      "packages/sj-core/src/core/handoff.ts",
+      "packages/sj-core/src/core/graph-query.ts",
       "packages/sj-core/src/core/instruction-generator.ts",
-      "packages/sj-core/src/core/launch.ts",
-      "packages/sj-core/src/core/next-action.ts",
-      "packages/sj-core/src/core/packets.ts",
-      "packages/sj-core/src/core/planner.ts",
-      "packages/sj-core/src/core/policies.ts",
       "packages/sj-core/src/core/prepared-scope.ts",
-      "packages/sj-core/src/core/reconcile.ts",
-      "packages/sj-core/src/core/release.ts",
-      "packages/sj-core/src/core/repo-intelligence.ts",
       "packages/sj-core/src/core/ui-state.ts",
-      "packages/sj-core/src/core/validator.ts",
       "packages/sj-core/src/runtime/ui-bridge.ts"
     ],
     "impactedFiles": [
+      "packages/sj-cli/src/commands/agent-pack.ts",
       "packages/sj-cli/src/commands/audit.ts",
       "packages/sj-cli/src/commands/bootstrap.ts",
       "packages/sj-cli/src/commands/check.ts",
@@ -12180,9 +12331,11 @@
       "packages/sj-cli/src/commands/init.ts",
       "packages/sj-cli/src/commands/next.ts",
       "packages/sj-cli/src/commands/parity.ts",
+      "packages/sj-cli/src/commands/plan.ts",
       "packages/sj-cli/src/commands/prepare.ts",
       "packages/sj-cli/src/commands/push-check.ts",
       "packages/sj-cli/src/commands/reconcile.ts",
+      "packages/sj-cli/src/commands/repo-map.ts",
       "packages/sj-cli/src/commands/resume.ts",
       "packages/sj-cli/src/commands/retry.ts",
       "packages/sj-cli/src/commands/run-auto.ts",
@@ -12198,60 +12351,28 @@
       "packages/sj-cli/src/commands/usage.ts",
       "packages/sj-cli/src/commands/validate.ts",
       "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
-      "packages/sj-cli/src/tests/repo-intelligence.test.ts",
-      "packages/sj-core/src/core/config.ts",
-      "packages/sj-core/src/core/conflicts.ts",
-      "packages/sj-core/src/core/context-feedback.ts",
+      "packages/sj-core/src/core/bootstrap.ts",
       "packages/sj-core/src/core/context-index.ts",
       "packages/sj-core/src/core/context-selector.ts",
-      "packages/sj-core/src/core/context-trace.ts",
       "packages/sj-core/src/core/context-tree.ts",
-      "packages/sj-core/src/core/dispatch.ts",
       "packages/sj-core/src/core/execution-engine.ts",
       "packages/sj-core/src/core/execution-log.ts",
-      "packages/sj-core/src/core/execution-plan.ts",
       "packages/sj-core/src/core/execution-state.ts",
-      "packages/sj-core/src/core/executor.ts",
-      "packages/sj-core/src/core/git.ts",
-      "packages/sj-core/src/core/guidance.ts",
-      "packages/sj-core/src/core/handoff.ts",
       "packages/sj-core/src/core/instruction-generator.ts",
-      "packages/sj-core/src/core/launch.ts",
       "packages/sj-core/src/core/memory.ts",
       "packages/sj-core/src/core/next-action.ts",
-      "packages/sj-core/src/core/packets.ts",
-      "packages/sj-core/src/core/planner.ts",
-      "packages/sj-core/src/core/policies.ts",
       "packages/sj-core/src/core/prepared-scope.ts",
-      "packages/sj-core/src/core/product.ts",
-      "packages/sj-core/src/core/profiles.ts",
-      "packages/sj-core/src/core/project-detect.ts",
-      "packages/sj-core/src/core/recommendations.ts",
       "packages/sj-core/src/core/reconcile.ts",
-      "packages/sj-core/src/core/release.ts",
-      "packages/sj-core/src/core/repo-readiness.ts",
-      "packages/sj-core/src/core/risk.ts",
-      "packages/sj-core/src/core/router.ts",
-      "packages/sj-core/src/core/runtime-decision.ts",
       "packages/sj-core/src/core/runtime-lifecycle.ts",
-      "packages/sj-core/src/core/skills-registry.ts",
-      "packages/sj-core/src/core/specialists.ts",
       "packages/sj-core/src/core/state.ts",
       "packages/sj-core/src/core/task-intent.ts",
-      "packages/sj-core/src/core/token-estimator.ts",
-      "packages/sj-core/src/core/token-intelligence.ts",
-      "packages/sj-core/src/core/validator.ts",
+      "packages/sj-core/src/core/ui-state.ts",
       "packages/sj-core/src/core/workflow-engine.ts",
-      "packages/sj-core/src/integrations/ecosystem-catalog.ts",
-      "packages/sj-core/src/integrations/machine-advisory.ts",
-      "packages/sj-core/src/integrations/machine-parity.ts",
-      "packages/sj-core/src/runtime/client.ts",
       "packages/sj-core/src/runtime/ui-bridge.ts",
-      "packages/sj-core/src/utils/fs.ts",
-      "packages/sj-core/src/utils/redact.ts",
-      "packages/sj-core/src/utils/yaml.ts"
+      "packages/sj-core/src/utils/fs.ts"
     ],
     "dependencyDistances": {
+      "packages/sj-cli/src/commands/agent-pack.ts": 1,
       "packages/sj-cli/src/commands/audit.ts": 1,
       "packages/sj-cli/src/commands/bootstrap.ts": 1,
       "packages/sj-cli/src/commands/check.ts": 1,
@@ -12267,9 +12388,11 @@
       "packages/sj-cli/src/commands/init.ts": 1,
       "packages/sj-cli/src/commands/next.ts": 1,
       "packages/sj-cli/src/commands/parity.ts": 1,
+      "packages/sj-cli/src/commands/plan.ts": 1,
       "packages/sj-cli/src/commands/prepare.ts": 1,
       "packages/sj-cli/src/commands/push-check.ts": 1,
       "packages/sj-cli/src/commands/reconcile.ts": 1,
+      "packages/sj-cli/src/commands/repo-map.ts": 1,
       "packages/sj-cli/src/commands/resume.ts": 1,
       "packages/sj-cli/src/commands/retry.ts": 1,
       "packages/sj-cli/src/commands/run-auto.ts": 1,
@@ -12285,60 +12408,31 @@
       "packages/sj-cli/src/commands/usage.ts": 1,
       "packages/sj-cli/src/commands/validate.ts": 1,
       "packages/sj-cli/src/tests/helpers/desktop-launch.ts": 1,
-      "packages/sj-cli/src/tests/repo-intelligence.test.ts": 1,
-      "packages/sj-core/src/core/config.ts": 1,
-      "packages/sj-core/src/core/conflicts.ts": 1,
-      "packages/sj-core/src/core/context-feedback.ts": 1,
+      "packages/sj-core/src/core/bootstrap.ts": 1,
       "packages/sj-core/src/core/context-index.ts": 1,
       "packages/sj-core/src/core/context-selector.ts": 1,
-      "packages/sj-core/src/core/context-trace.ts": 1,
       "packages/sj-core/src/core/context-tree.ts": 1,
-      "packages/sj-core/src/core/dispatch.ts": 1,
       "packages/sj-core/src/core/execution-engine.ts": 2,
-      "packages/sj-core/src/core/execution-log.ts": 1,
-      "packages/sj-core/src/core/execution-plan.ts": 1,
+      "packages/sj-core/src/core/execution-log.ts": 3,
       "packages/sj-core/src/core/execution-state.ts": 1,
-      "packages/sj-core/src/core/executor.ts": 1,
-      "packages/sj-core/src/core/git.ts": 1,
-      "packages/sj-core/src/core/guidance.ts": 1,
-      "packages/sj-core/src/core/handoff.ts": 1,
       "packages/sj-core/src/core/instruction-generator.ts": 2,
-      "packages/sj-core/src/core/launch.ts": 1,
       "packages/sj-core/src/core/memory.ts": 1,
       "packages/sj-core/src/core/next-action.ts": 1,
-      "packages/sj-core/src/core/packets.ts": 1,
-      "packages/sj-core/src/core/planner.ts": 1,
-      "packages/sj-core/src/core/policies.ts": 1,
-      "packages/sj-core/src/core/prepared-scope.ts": 1,
-      "packages/sj-core/src/core/product.ts": 1,
-      "packages/sj-core/src/core/profiles.ts": 1,
-      "packages/sj-core/src/core/project-detect.ts": 1,
-      "packages/sj-core/src/core/recommendations.ts": 1,
+      "packages/sj-core/src/core/prepared-scope.ts": 2,
       "packages/sj-core/src/core/reconcile.ts": 1,
-      "packages/sj-core/src/core/release.ts": 2,
-      "packages/sj-core/src/core/repo-readiness.ts": 1,
-      "packages/sj-core/src/core/risk.ts": 1,
-      "packages/sj-core/src/core/router.ts": 1,
-      "packages/sj-core/src/core/runtime-decision.ts": 1,
       "packages/sj-core/src/core/runtime-lifecycle.ts": 1,
-      "packages/sj-core/src/core/skills-registry.ts": 1,
-      "packages/sj-core/src/core/specialists.ts": 1,
       "packages/sj-core/src/core/state.ts": 1,
       "packages/sj-core/src/core/task-intent.ts": 1,
-      "packages/sj-core/src/core/token-estimator.ts": 1,
-      "packages/sj-core/src/core/token-intelligence.ts": 1,
-      "packages/sj-core/src/core/validator.ts": 1,
+      "packages/sj-core/src/core/ui-state.ts": 1,
       "packages/sj-core/src/core/workflow-engine.ts": 1,
-      "packages/sj-core/src/integrations/ecosystem-catalog.ts": 1,
-      "packages/sj-core/src/integrations/machine-advisory.ts": 1,
-      "packages/sj-core/src/integrations/machine-parity.ts": 1,
-      "packages/sj-core/src/runtime/client.ts": 1,
-      "packages/sj-core/src/runtime/ui-bridge.ts": 1,
-      "packages/sj-core/src/utils/fs.ts": 1,
-      "packages/sj-core/src/utils/redact.ts": 1,
-      "packages/sj-core/src/utils/yaml.ts": 1
+      "packages/sj-core/src/runtime/ui-bridge.ts": 2,
+      "packages/sj-core/src/utils/fs.ts": 1
     },
     "dependencyChains": {
+      "packages/sj-cli/src/commands/agent-pack.ts": [
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/commands/agent-pack.ts"
+      ],
       "packages/sj-cli/src/commands/audit.ts": [
         "packages/sj-cli/src/cli.ts",
         "packages/sj-cli/src/commands/audit.ts"
@@ -12399,6 +12493,10 @@
         "packages/sj-cli/src/cli.ts",
         "packages/sj-cli/src/commands/parity.ts"
       ],
+      "packages/sj-cli/src/commands/plan.ts": [
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/commands/plan.ts"
+      ],
       "packages/sj-cli/src/commands/prepare.ts": [
         "packages/sj-cli/src/cli.ts",
         "packages/sj-cli/src/commands/prepare.ts"
@@ -12410,6 +12508,10 @@
       "packages/sj-cli/src/commands/reconcile.ts": [
         "packages/sj-cli/src/cli.ts",
         "packages/sj-cli/src/commands/reconcile.ts"
+      ],
+      "packages/sj-cli/src/commands/repo-map.ts": [
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/commands/repo-map.ts"
       ],
       "packages/sj-cli/src/commands/resume.ts": [
         "packages/sj-cli/src/cli.ts",
@@ -12468,24 +12570,12 @@
         "packages/sj-cli/src/commands/validate.ts"
       ],
       "packages/sj-cli/src/tests/helpers/desktop-launch.ts": [
-        "packages/sj-cli/src/tests/agent-pack.test.ts",
+        "packages/sj-cli/src/tests/graph-query.test.ts",
         "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
       ],
-      "packages/sj-cli/src/tests/repo-intelligence.test.ts": [
-        "packages/sj-cli/src/commands/repo-map.ts",
-        "packages/sj-cli/src/tests/repo-intelligence.test.ts"
-      ],
-      "packages/sj-core/src/core/config.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/config.ts"
-      ],
-      "packages/sj-core/src/core/conflicts.ts": [
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/core/conflicts.ts"
-      ],
-      "packages/sj-core/src/core/context-feedback.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/context-feedback.ts"
+      "packages/sj-core/src/core/bootstrap.ts": [
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/core/bootstrap.ts"
       ],
       "packages/sj-core/src/core/context-index.ts": [
         "packages/sj-core/src/core/repo-intelligence.ts",
@@ -12495,59 +12585,29 @@
         "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/context-selector.ts"
       ],
-      "packages/sj-core/src/core/context-trace.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/context-trace.ts"
-      ],
       "packages/sj-core/src/core/context-tree.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/context-tree.ts"
       ],
-      "packages/sj-core/src/core/dispatch.ts": [
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/core/dispatch.ts"
-      ],
       "packages/sj-core/src/core/execution-engine.ts": [
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/core/validator.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/core/context-selector.ts",
         "packages/sj-core/src/core/execution-engine.ts"
       ],
       "packages/sj-core/src/core/execution-log.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/core/context-selector.ts",
+        "packages/sj-core/src/core/prepared-scope.ts",
         "packages/sj-core/src/core/execution-log.ts"
-      ],
-      "packages/sj-core/src/core/execution-plan.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/execution-plan.ts"
       ],
       "packages/sj-core/src/core/execution-state.ts": [
         "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/execution-state.ts"
       ],
-      "packages/sj-core/src/core/executor.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/executor.ts"
-      ],
-      "packages/sj-core/src/core/git.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/git.ts"
-      ],
-      "packages/sj-core/src/core/guidance.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/guidance.ts"
-      ],
-      "packages/sj-core/src/core/handoff.ts": [
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/core/handoff.ts"
-      ],
       "packages/sj-core/src/core/instruction-generator.ts": [
         "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/context-selector.ts",
         "packages/sj-core/src/core/instruction-generator.ts"
-      ],
-      "packages/sj-core/src/core/launch.ts": [
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/core/launch.ts"
       ],
       "packages/sj-core/src/core/memory.ts": [
         "packages/sj-core/src/core/repo-intelligence.ts",
@@ -12557,130 +12617,43 @@
         "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/next-action.ts"
       ],
-      "packages/sj-core/src/core/packets.ts": [
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/core/packets.ts"
-      ],
-      "packages/sj-core/src/core/planner.ts": [
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/core/planner.ts"
-      ],
-      "packages/sj-core/src/core/policies.ts": [
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/core/policies.ts"
-      ],
       "packages/sj-core/src/core/prepared-scope.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/core/context-selector.ts",
         "packages/sj-core/src/core/prepared-scope.ts"
       ],
-      "packages/sj-core/src/core/product.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/product.ts"
-      ],
-      "packages/sj-core/src/core/profiles.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/profiles.ts"
-      ],
-      "packages/sj-core/src/core/project-detect.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/project-detect.ts"
-      ],
-      "packages/sj-core/src/core/recommendations.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/recommendations.ts"
-      ],
       "packages/sj-core/src/core/reconcile.ts": [
-        "packages/sj-core/src/core/context.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/reconcile.ts"
-      ],
-      "packages/sj-core/src/core/release.ts": [
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/core/dispatch.ts",
-        "packages/sj-core/src/core/release.ts"
-      ],
-      "packages/sj-core/src/core/repo-readiness.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/repo-readiness.ts"
-      ],
-      "packages/sj-core/src/core/risk.ts": [
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/core/risk.ts"
-      ],
-      "packages/sj-core/src/core/router.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/router.ts"
-      ],
-      "packages/sj-core/src/core/runtime-decision.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/runtime-decision.ts"
       ],
       "packages/sj-core/src/core/runtime-lifecycle.ts": [
         "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/runtime-lifecycle.ts"
       ],
-      "packages/sj-core/src/core/skills-registry.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/skills-registry.ts"
-      ],
-      "packages/sj-core/src/core/specialists.ts": [
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/core/specialists.ts"
-      ],
       "packages/sj-core/src/core/state.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/state.ts"
       ],
       "packages/sj-core/src/core/task-intent.ts": [
         "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/task-intent.ts"
       ],
-      "packages/sj-core/src/core/token-estimator.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/token-estimator.ts"
-      ],
-      "packages/sj-core/src/core/token-intelligence.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/token-intelligence.ts"
-      ],
-      "packages/sj-core/src/core/validator.ts": [
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/core/validator.ts"
+      "packages/sj-core/src/core/ui-state.ts": [
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/core/ui-state.ts"
       ],
       "packages/sj-core/src/core/workflow-engine.ts": [
         "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/workflow-engine.ts"
       ],
-      "packages/sj-core/src/integrations/ecosystem-catalog.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/integrations/ecosystem-catalog.ts"
-      ],
-      "packages/sj-core/src/integrations/machine-advisory.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/integrations/machine-advisory.ts"
-      ],
-      "packages/sj-core/src/integrations/machine-parity.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/integrations/machine-parity.ts"
-      ],
-      "packages/sj-core/src/runtime/client.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/runtime/client.ts"
-      ],
       "packages/sj-core/src/runtime/ui-bridge.ts": [
+        "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/ui-state.ts",
         "packages/sj-core/src/runtime/ui-bridge.ts"
       ],
       "packages/sj-core/src/utils/fs.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
+        "packages/sj-core/src/core/graph-query.ts",
         "packages/sj-core/src/utils/fs.ts"
-      ],
-      "packages/sj-core/src/utils/redact.ts": [
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/utils/redact.ts"
-      ],
-      "packages/sj-core/src/utils/yaml.ts": [
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/utils/yaml.ts"
       ]
     }
   }

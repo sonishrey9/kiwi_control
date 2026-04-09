@@ -175,6 +175,13 @@ export interface RepoIntelligenceArtifacts {
   reviewGraph: ReviewGraphState;
 }
 
+export interface LoadedRepoIntelligenceArtifacts extends RepoIntelligenceArtifacts {
+  compactContextPack: CompactContextPack | null;
+  reviewContextPack: ReviewContextPack | null;
+  agentPack: AgentPackState | null;
+  taskPack: TaskPackState | null;
+}
+
 export interface RepoIntelligenceSummary {
   available: boolean;
   generatedAt: string | null;
@@ -458,6 +465,52 @@ export async function persistRepoIntelligenceIndexArtifacts(
     writeJsonArtifact(dependencyGraphPath(targetRoot), buildDependencyGraph(index, generatedAt)),
     writeJsonArtifact(impactMapPath(targetRoot), buildImpactMap(index, generatedAt, repoMap))
   ]);
+}
+
+export async function loadRepoIntelligenceArtifacts(targetRoot: string): Promise<LoadedRepoIntelligenceArtifacts | null> {
+  const [
+    repoMap,
+    symbolIndex,
+    dependencyGraph,
+    impactMap,
+    decisionGraph,
+    historyGraph,
+    reviewGraph,
+    compactContextPack,
+    reviewContextPack,
+    agentPack,
+    taskPack
+  ] = await Promise.all([
+    readJsonIfPresent<RepoMapState>(repoMapPath(targetRoot)),
+    readJsonIfPresent<SymbolIndexState>(symbolIndexPath(targetRoot)),
+    readJsonIfPresent<DependencyGraphState>(dependencyGraphPath(targetRoot)),
+    readJsonIfPresent<ImpactMapState>(impactMapPath(targetRoot)),
+    readJsonIfPresent<DecisionGraphState>(decisionGraphPath(targetRoot)),
+    readJsonIfPresent<HistoryGraphState>(historyGraphPath(targetRoot)),
+    readJsonIfPresent<ReviewGraphState>(reviewGraphPath(targetRoot)),
+    readJsonIfPresent<CompactContextPack>(compactContextPackPath(targetRoot)),
+    readJsonIfPresent<ReviewContextPack>(reviewContextPackPath(targetRoot)),
+    readJsonIfPresent<AgentPackState>(agentPackPath(targetRoot)),
+    readJsonIfPresent<TaskPackState>(taskPackPath(targetRoot))
+  ]);
+
+  if (!repoMap || !symbolIndex || !dependencyGraph || !impactMap || !decisionGraph || !historyGraph || !reviewGraph) {
+    return null;
+  }
+
+  return {
+    repoMap,
+    symbolIndex,
+    dependencyGraph,
+    impactMap,
+    decisionGraph,
+    historyGraph,
+    reviewGraph,
+    compactContextPack,
+    reviewContextPack,
+    agentPack,
+    taskPack
+  };
 }
 
 export async function loadRepoIntelligenceSummary(targetRoot: string): Promise<RepoIntelligenceSummary> {

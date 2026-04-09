@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/dependency-graph",
   "version": 1,
-  "generatedAt": "2026-04-09T13:55:58.336Z",
+  "generatedAt": "2026-04-09T14:18:08.206Z",
   "nodes": [
     {
       "file": "apps/sj-ui/src/bootcheck.ts",
@@ -208,7 +208,7 @@
       "moduleGroup": "packages/sj-cli",
       "exports": 0,
       "localFunctions": 7,
-      "imports": 35,
+      "imports": 36,
       "importedBy": 0
     },
     {
@@ -324,6 +324,14 @@
       "importedBy": 1
     },
     {
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
+      "moduleGroup": "packages/sj-cli",
+      "exports": 1,
+      "localFunctions": 2,
+      "imports": 0,
+      "importedBy": 2
+    },
+    {
       "file": "packages/sj-cli/src/commands/guide.ts",
       "moduleGroup": "packages/sj-cli",
       "exports": 1,
@@ -425,7 +433,7 @@
       "exports": 1,
       "localFunctions": 2,
       "imports": 0,
-      "importedBy": 2
+      "importedBy": 3
     },
     {
       "file": "packages/sj-cli/src/commands/resume.ts",
@@ -652,6 +660,14 @@
       "importedBy": 0
     },
     {
+      "file": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "moduleGroup": "packages/sj-cli",
+      "exports": 3,
+      "localFunctions": 4,
+      "imports": 3,
+      "importedBy": 0
+    },
+    {
       "file": "packages/sj-cli/src/tests/handoff.test.ts",
       "moduleGroup": "packages/sj-cli",
       "exports": 0,
@@ -665,7 +681,7 @@
       "exports": 4,
       "localFunctions": 4,
       "imports": 0,
-      "importedBy": 6
+      "importedBy": 7
     },
     {
       "file": "packages/sj-cli/src/tests/machine-advisory.test.ts",
@@ -1004,6 +1020,14 @@
       "importedBy": 7
     },
     {
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core",
+      "exports": 6,
+      "localFunctions": 16,
+      "imports": 2,
+      "importedBy": 0
+    },
+    {
       "file": "packages/sj-core/src/core/guidance.ts",
       "moduleGroup": "packages/sj-core",
       "exports": 10,
@@ -1142,10 +1166,10 @@
     {
       "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core",
-      "exports": 12,
-      "localFunctions": 49,
+      "exports": 13,
+      "localFunctions": 50,
       "imports": 11,
-      "importedBy": 3
+      "importedBy": 4
     },
     {
       "file": "packages/sj-core/src/core/repo-readiness.ts",
@@ -1385,7 +1409,7 @@
       "exports": 27,
       "localFunctions": 30,
       "imports": 0,
-      "importedBy": 43
+      "importedBy": 44
     },
     {
       "file": "packages/sj-core/src/utils/redact.ts",
@@ -1854,6 +1878,16 @@
     },
     {
       "from": "packages/sj-cli/src/cli.ts",
+      "to": "packages/sj-cli/src/commands/graph-query.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-cli/src/cli.ts",
+      "to": "packages/sj-cli/src/commands/graph-query.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-cli/src/cli.ts",
       "to": "packages/sj-cli/src/commands/guide.ts",
       "kind": "call"
     },
@@ -2330,6 +2364,36 @@
     {
       "from": "packages/sj-cli/src/tests/cli-ux.test.ts",
       "to": "packages/sj-cli/src/commands/status.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "to": "packages/sj-cli/src/commands/graph-query.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "to": "packages/sj-cli/src/commands/graph-query.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "to": "packages/sj-cli/src/commands/repo-map.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "to": "packages/sj-cli/src/commands/repo-map.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "to": "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "to": "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
       "kind": "import"
     },
     {
@@ -3320,6 +3384,26 @@
     {
       "from": "packages/sj-core/src/core/git.ts",
       "to": "packages/sj-core/src/utils/child-process.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-core/src/core/graph-query.ts",
+      "to": "packages/sj-core/src/core/repo-intelligence.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-core/src/core/graph-query.ts",
+      "to": "packages/sj-core/src/core/repo-intelligence.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-core/src/core/graph-query.ts",
+      "to": "packages/sj-core/src/utils/fs.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-core/src/core/graph-query.ts",
+      "to": "packages/sj-core/src/utils/fs.ts",
       "kind": "import"
     },
     {
@@ -5135,6 +5219,7 @@
         "packages/sj-cli/src/commands/eval.ts",
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/fanout.ts",
+        "packages/sj-cli/src/commands/graph-query.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
@@ -5173,6 +5258,7 @@
         "packages/sj-cli/src/commands/eval.ts",
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/fanout.ts",
+        "packages/sj-cli/src/commands/graph-query.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
@@ -5210,6 +5296,7 @@
         "packages/sj-cli/src/commands/eval.ts",
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/fanout.ts",
+        "packages/sj-cli/src/commands/graph-query.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
@@ -5416,6 +5503,17 @@
       "relationships": []
     },
     {
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
+      "moduleGroup": "packages/sj-cli",
+      "imports": [],
+      "importedBy": [
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/tests/graph-query.test.ts"
+      ],
+      "callTargets": [],
+      "relationships": []
+    },
+    {
       "file": "packages/sj-cli/src/commands/guide.ts",
       "moduleGroup": "packages/sj-cli",
       "imports": [
@@ -5561,6 +5659,7 @@
       "imports": [],
       "importedBy": [
         "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/tests/graph-query.test.ts",
         "packages/sj-cli/src/tests/repo-intelligence.test.ts"
       ],
       "callTargets": [],
@@ -5899,6 +5998,26 @@
       "relationships": []
     },
     {
+      "file": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "moduleGroup": "packages/sj-cli",
+      "imports": [
+        "packages/sj-cli/src/commands/graph-query.ts",
+        "packages/sj-cli/src/commands/repo-map.ts",
+        "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
+      ],
+      "importedBy": [],
+      "callTargets": [
+        "packages/sj-cli/src/commands/graph-query.ts",
+        "packages/sj-cli/src/commands/repo-map.ts",
+        "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
+      ],
+      "relationships": [
+        "packages/sj-cli/src/commands/graph-query.ts",
+        "packages/sj-cli/src/commands/repo-map.ts",
+        "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
+      ]
+    },
+    {
       "file": "packages/sj-cli/src/tests/handoff.test.ts",
       "moduleGroup": "packages/sj-cli",
       "imports": [],
@@ -5912,6 +6031,7 @@
       "imports": [],
       "importedBy": [
         "packages/sj-cli/src/tests/agent-pack.test.ts",
+        "packages/sj-cli/src/tests/graph-query.test.ts",
         "packages/sj-cli/src/tests/product-surfaces.desktop-bundles.test.ts",
         "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
         "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
@@ -6761,6 +6881,23 @@
       ]
     },
     {
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core",
+      "imports": [
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/utils/fs.ts"
+      ],
+      "importedBy": [],
+      "callTargets": [
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/utils/fs.ts"
+      ],
+      "relationships": [
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/utils/fs.ts"
+      ]
+    },
+    {
       "file": "packages/sj-core/src/core/guidance.ts",
       "moduleGroup": "packages/sj-core",
       "imports": [
@@ -7211,6 +7348,7 @@
       "importedBy": [
         "packages/sj-core/src/core/bootstrap.ts",
         "packages/sj-core/src/core/context-selector.ts",
+        "packages/sj-core/src/core/graph-query.ts",
         "packages/sj-core/src/core/ui-state.ts"
       ],
       "callTargets": [
@@ -7921,6 +8059,7 @@
         "packages/sj-core/src/core/execution-log.ts",
         "packages/sj-core/src/core/execution-state.ts",
         "packages/sj-core/src/core/executor.ts",
+        "packages/sj-core/src/core/graph-query.ts",
         "packages/sj-core/src/core/guidance.ts",
         "packages/sj-core/src/core/instruction-generator.ts",
         "packages/sj-core/src/core/launch.ts",

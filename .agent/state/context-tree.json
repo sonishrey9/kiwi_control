@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/context-tree",
   "version": 1,
-  "timestamp": "2026-04-09T13:55:58.337Z",
+  "timestamp": "2026-04-09T14:18:08.206Z",
   "targetRoot": "/Volumes/shrey ssd/shrey-junior",
   "projectType": "node",
   "languages": [
@@ -40,7 +40,7 @@
     {
       "file": "packages/sj-core/src/utils/fs.ts",
       "moduleGroup": "packages/sj-core",
-      "importedByCount": 43
+      "importedByCount": 44
     },
     {
       "file": "packages/sj-core/src/core/config.ts",
@@ -83,8 +83,8 @@
       "importedByCount": 7
     },
     {
-      "file": "packages/sj-core/src/core/git.ts",
-      "moduleGroup": "packages/sj-core",
+      "file": "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
+      "moduleGroup": "packages/sj-cli",
       "importedByCount": 7
     }
   ],
@@ -175,7 +175,7 @@
     },
     {
       "id": "packages/sj-cli",
-      "fileCount": 79,
+      "fileCount": 81,
       "files": [
         "packages/sj-cli/src/cli.ts",
         "packages/sj-cli/src/commands/agent-pack.ts",
@@ -192,6 +192,7 @@
         "packages/sj-cli/src/commands/execution-step-runner.ts",
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/fanout.ts",
+        "packages/sj-cli/src/commands/graph-query.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
@@ -233,6 +234,7 @@
         "packages/sj-cli/src/tests/execution-state.test.ts",
         "packages/sj-cli/src/tests/fs.test.ts",
         "packages/sj-cli/src/tests/git.test.ts",
+        "packages/sj-cli/src/tests/graph-query.test.ts",
         "packages/sj-cli/src/tests/handoff.test.ts",
         "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
         "packages/sj-cli/src/tests/machine-advisory.test.ts",
@@ -271,6 +273,7 @@
         "packages/sj-cli/src/commands/execution-step-runner.ts",
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/fanout.ts",
+        "packages/sj-cli/src/commands/graph-query.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
@@ -315,6 +318,7 @@
         "packages/sj-cli/src/tests/check.test.ts",
         "packages/sj-cli/src/tests/checkpoint.test.ts",
         "packages/sj-cli/src/tests/cli-ux.test.ts",
+        "packages/sj-cli/src/tests/graph-query.test.ts",
         "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
         "packages/sj-cli/src/tests/machine-advisory.test.ts",
         "packages/sj-cli/src/tests/prepare.test.ts",
@@ -346,6 +350,7 @@
         "packages/sj-cli/src/tests/execution-state.test.ts",
         "packages/sj-cli/src/tests/fs.test.ts",
         "packages/sj-cli/src/tests/git.test.ts",
+        "packages/sj-cli/src/tests/graph-query.test.ts",
         "packages/sj-cli/src/tests/handoff.test.ts",
         "packages/sj-cli/src/tests/machine-advisory.test.ts",
         "packages/sj-cli/src/tests/packets.test.ts",
@@ -371,7 +376,7 @@
     },
     {
       "id": "packages/sj-core",
-      "fileCount": 71,
+      "fileCount": 72,
       "files": [
         "packages/sj-core/src/adapters/claude.ts",
         "packages/sj-core/src/adapters/codex.ts",
@@ -394,6 +399,7 @@
         "packages/sj-core/src/core/execution-state.ts",
         "packages/sj-core/src/core/executor.ts",
         "packages/sj-core/src/core/git.ts",
+        "packages/sj-core/src/core/graph-query.ts",
         "packages/sj-core/src/core/guidance.ts",
         "packages/sj-core/src/core/handoff.ts",
         "packages/sj-core/src/core/instruction-generator.ts",
@@ -527,6 +533,7 @@
         "packages/sj-core/src/core/execution-state.ts",
         "packages/sj-core/src/core/executor.ts",
         "packages/sj-core/src/core/git.ts",
+        "packages/sj-core/src/core/graph-query.ts",
         "packages/sj-core/src/core/guidance.ts",
         "packages/sj-core/src/core/handoff.ts",
         "packages/sj-core/src/core/instruction-generator.ts",
@@ -568,6 +575,7 @@
         "packages/sj-core/src/core/bootstrap.ts",
         "packages/sj-core/src/core/discovery.ts",
         "packages/sj-core/src/core/execution-engine.ts",
+        "packages/sj-core/src/core/graph-query.ts",
         "packages/sj-core/src/core/handoff.ts",
         "packages/sj-core/src/core/instruction-generator.ts",
         "packages/sj-core/src/core/launch.ts",
@@ -1880,6 +1888,12 @@
                       "children": []
                     },
                     {
+                      "name": "graph-query.ts",
+                      "path": "packages/sj-cli/src/commands/graph-query.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
                       "name": "guide.ts",
                       "path": "packages/sj-cli/src/commands/guide.ts",
                       "kind": "file",
@@ -2142,6 +2156,12 @@
                     {
                       "name": "git.test.ts",
                       "path": "packages/sj-cli/src/tests/git.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "graph-query.test.ts",
+                      "path": "packages/sj-cli/src/tests/graph-query.test.ts",
                       "kind": "file",
                       "children": []
                     },
@@ -2459,6 +2479,12 @@
                     {
                       "name": "git.ts",
                       "path": "packages/sj-core/src/core/git.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "graph-query.ts",
+                      "path": "packages/sj-core/src/core/graph-query.ts",
                       "kind": "file",
                       "children": []
                     },
@@ -3387,6 +3413,6 @@
     "selectionDepth": 3,
     "explainDepth": 5
   },
-  "filesDiscovered": 389,
-  "importableFiles": 194
+  "filesDiscovered": 392,
+  "importableFiles": 197
 }

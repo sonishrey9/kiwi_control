@@ -1,9 +1,9 @@
 {
   "artifactType": "kiwi-control/review-context-pack",
   "version": 1,
-  "generatedAt": "2026-04-09T13:55:59.418Z",
-  "summary": "Review attention is concentrated in packages/sj-core with 16 ranked targets.",
-  "currentTask": "phase 5 agent consumption integration",
+  "generatedAt": "2026-04-09T14:18:09.192Z",
+  "summary": "Review attention is concentrated in packages/sj-cli with 16 ranked targets.",
+  "currentTask": "graph query phase",
   "readFirst": [
     ".agent/state/decision-graph.json",
     ".agent/state/history-graph.json",
@@ -173,19 +173,19 @@
     {
       "kind": "file",
       "target": "packages/sj-core/src/core/ui-state.ts",
-      "touches": 12,
-      "commits": 12
+      "touches": 13,
+      "commits": 13
     },
     {
       "kind": "file",
-      "target": "package.json",
-      "touches": 10,
-      "commits": 10
+      "target": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+      "touches": 11,
+      "commits": 11
     },
     {
       "kind": "module",
       "target": "packages/sj-cli",
-      "touches": 119,
+      "touches": 125,
       "commits": 28
     },
     {
@@ -197,8 +197,8 @@
     {
       "kind": "module",
       "target": "packages/sj-core",
-      "touches": 67,
-      "commits": 20
+      "touches": 71,
+      "commits": 21
     },
     {
       "kind": "module",
@@ -210,20 +210,20 @@
   "reviewAttention": [
     {
       "kind": "module",
-      "target": "packages/sj-core",
-      "score": 5292,
+      "target": "packages/sj-cli",
+      "score": 4627,
       "reasons": [
         "active change cluster",
+        "contains entry point",
         "repeated touches"
       ]
     },
     {
       "kind": "module",
-      "target": "packages/sj-cli",
-      "score": 4888,
+      "target": "packages/sj-core",
+      "score": 2422,
       "reasons": [
         "active change cluster",
-        "contains entry point",
         "repeated touches"
       ]
     },
@@ -276,19 +276,6 @@
     },
     {
       "kind": "file",
-      "target": "packages/sj-core/src/core/ui-state.ts",
-      "score": 176,
-      "reasons": [
-        "call relationship",
-        "changed file",
-        "changed-area cluster",
-        "history hotspot",
-        "repeated touches",
-        "reverse dependency hub"
-      ]
-    },
-    {
-      "kind": "file",
       "target": "apps/sj-ui/src/ui/contracts.ts",
       "score": 170,
       "reasons": [
@@ -302,7 +289,7 @@
     {
       "kind": "file",
       "target": "packages/sj-cli/src/cli.ts",
-      "score": 149,
+      "score": 157,
       "reasons": [
         "call relationship",
         "changed file",
@@ -310,6 +297,19 @@
         "entry point",
         "history hotspot",
         "repeated touches"
+      ]
+    },
+    {
+      "kind": "file",
+      "target": "packages/sj-core/src/core/ui-state.ts",
+      "score": 143,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "history hotspot",
+        "repeated touches",
+        "reverse dependency hub"
       ]
     }
   ],

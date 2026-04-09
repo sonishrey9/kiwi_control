@@ -1,8 +1,8 @@
 {
   "artifactType": "kiwi-control/agent-pack",
   "version": 1,
-  "generatedAt": "2026-04-09T13:55:59.420Z",
-  "summary": "Discovered 389 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts. Start with runtime truth, then use the task or review pack instead of the full graph when you do not need global repo exploration.",
+  "generatedAt": "2026-04-09T14:18:09.195Z",
+  "summary": "Discovered 392 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts. Start with runtime truth, then use the task or review pack instead of the full graph when you do not need global repo exploration.",
   "readFirst": [
     ".agent/context/agent-pack.json",
     ".agent/state/execution-state.json",
@@ -13,7 +13,7 @@
   ],
   "sourceOfTruthNote": "Canonical workflow truth remains runtime-backed execution state and execution events. Agent packs are compact read aids, not authority.",
   "repo": {
-    "summary": "Discovered 389 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
+    "summary": "Discovered 392 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
     "entryPoints": [
       "apps/sj-ui/package.json",
       "apps/sj-ui/src-tauri/Cargo.toml",
@@ -31,7 +31,7 @@
     "keyModules": [
       {
         "id": "packages/sj-cli",
-        "fileCount": 79,
+        "fileCount": 81,
         "entryPoints": [
           "packages/sj-cli/src/cli.ts",
           "packages/sj-cli/src/commands/commit-plan.ts",
@@ -52,6 +52,7 @@
           "packages/sj-cli/src/tests/execution-state.test.ts",
           "packages/sj-cli/src/tests/fs.test.ts",
           "packages/sj-cli/src/tests/git.test.ts",
+          "packages/sj-cli/src/tests/graph-query.test.ts",
           "packages/sj-cli/src/tests/handoff.test.ts",
           "packages/sj-cli/src/tests/machine-advisory.test.ts",
           "packages/sj-cli/src/tests/packets.test.ts",
@@ -77,11 +78,12 @@
       },
       {
         "id": "packages/sj-core",
-        "fileCount": 71,
+        "fileCount": 72,
         "entryPoints": [
           "packages/sj-core/src/core/bootstrap.ts",
           "packages/sj-core/src/core/discovery.ts",
           "packages/sj-core/src/core/execution-engine.ts",
+          "packages/sj-core/src/core/graph-query.ts",
           "packages/sj-core/src/core/handoff.ts",
           "packages/sj-core/src/core/instruction-generator.ts",
           "packages/sj-core/src/core/launch.ts",
@@ -151,7 +153,7 @@
       {
         "file": "packages/sj-core/src/utils/fs.ts",
         "moduleGroup": "packages/sj-core",
-        "importedByCount": 43
+        "importedByCount": 44
       },
       {
         "file": "packages/sj-core/src/core/config.ts",
@@ -328,19 +330,19 @@
     {
       "kind": "file",
       "target": "packages/sj-core/src/core/ui-state.ts",
-      "touches": 12,
-      "commits": 12
+      "touches": 13,
+      "commits": 13
     },
     {
       "kind": "file",
-      "target": "package.json",
-      "touches": 10,
-      "commits": 10
+      "target": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+      "touches": 11,
+      "commits": 11
     },
     {
       "kind": "module",
       "target": "packages/sj-cli",
-      "touches": 119,
+      "touches": 125,
       "commits": 28
     },
     {
@@ -352,8 +354,8 @@
     {
       "kind": "module",
       "target": "packages/sj-core",
-      "touches": 67,
-      "commits": 20
+      "touches": 71,
+      "commits": 21
     },
     {
       "kind": "module",
@@ -365,20 +367,20 @@
   "reviewAttention": [
     {
       "kind": "module",
-      "target": "packages/sj-core",
-      "score": 5292,
+      "target": "packages/sj-cli",
+      "score": 4627,
       "reasons": [
         "active change cluster",
+        "contains entry point",
         "repeated touches"
       ]
     },
     {
       "kind": "module",
-      "target": "packages/sj-cli",
-      "score": 4888,
+      "target": "packages/sj-core",
+      "score": 2422,
       "reasons": [
         "active change cluster",
-        "contains entry point",
         "repeated touches"
       ]
     },
@@ -431,15 +433,14 @@
     },
     {
       "kind": "file",
-      "target": "packages/sj-core/src/core/ui-state.ts",
-      "score": 176,
+      "target": "apps/sj-ui/src/ui/contracts.ts",
+      "score": 170,
       "reasons": [
-        "call relationship",
-        "changed file",
-        "changed-area cluster",
+        "dependency hub",
+        "failure-linked",
         "history hotspot",
-        "repeated touches",
-        "reverse dependency hub"
+        "repeated decision attention",
+        "repeated touches"
       ]
     }
   ],

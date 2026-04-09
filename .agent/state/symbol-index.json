@@ -1,9 +1,9 @@
 {
   "artifactType": "kiwi-control/symbol-index",
   "version": 1,
-  "generatedAt": "2026-04-09T13:55:58.337Z",
-  "totalFiles": 194,
-  "totalSymbols": 1793,
+  "generatedAt": "2026-04-09T14:18:08.206Z",
+  "totalFiles": 197,
+  "totalSymbols": 1827,
   "files": [
     {
       "file": "apps/sj-ui/src/bootcheck.ts",
@@ -641,6 +641,17 @@
       ]
     },
     {
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
+      "moduleGroup": "packages/sj-cli",
+      "exports": [
+        "runGraphQuery"
+      ],
+      "localFunctions": [
+        "normalizedFileTarget",
+        "runGraphQuery"
+      ]
+    },
+    {
       "file": "packages/sj-cli/src/commands/guide.ts",
       "moduleGroup": "packages/sj-cli",
       "exports": [
@@ -1118,6 +1129,21 @@
       "moduleGroup": "packages/sj-cli",
       "exports": [],
       "localFunctions": []
+    },
+    {
+      "file": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "moduleGroup": "packages/sj-cli",
+      "exports": [
+        "helper",
+        "login",
+        "route"
+      ],
+      "localFunctions": [
+        "capture",
+        "helper",
+        "login",
+        "route"
+      ]
     },
     {
       "file": "packages/sj-cli/src/tests/handoff.test.ts",
@@ -1857,6 +1883,36 @@
       ]
     },
     {
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core",
+      "exports": [
+        "loadGraphQueryArtifacts",
+        "queryFileSummary",
+        "queryImpact",
+        "queryModuleSummary",
+        "queryNeighbors",
+        "querySymbolLookup"
+      ],
+      "localFunctions": [
+        "deriveRelatedModules",
+        "findFileRelationship",
+        "leftScore",
+        "loadGraphQueryArtifacts",
+        "modulePeers",
+        "normalizeQueryTarget",
+        "queryFileSummary",
+        "queryImpact",
+        "queryModuleImpact",
+        "queryModuleSummary",
+        "queryNeighbors",
+        "querySymbolLookup",
+        "rightScore",
+        "symbolExportsForFile",
+        "symbolLocalsForFile",
+        "topFilesForModule"
+      ]
+    },
+    {
       "file": "packages/sj-core/src/core/guidance.ts",
       "moduleGroup": "packages/sj-core",
       "exports": [
@@ -2167,6 +2223,7 @@
         "buildRepoIntelligenceArtifacts",
         "buildReviewContextPack",
         "buildTaskPack",
+        "loadRepoIntelligenceArtifacts",
         "loadRepoIntelligenceSummary",
         "persistAgentPack",
         "persistCompactContextPack",
@@ -2205,6 +2262,7 @@
         "historyGraphPath",
         "impactMapPath",
         "linkNodeToFilesAndModules",
+        "loadRepoIntelligenceArtifacts",
         "loadRepoIntelligenceSummary",
         "persistAgentPack",
         "persistCompactContextPack",
@@ -5134,6 +5192,12 @@
       "moduleGroup": "packages/sj-cli"
     },
     {
+      "symbol": "capture",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
       "symbol": "captureScreenshot",
       "kind": "local-function",
       "file": "scripts/generate-product-media.mjs",
@@ -5942,6 +6006,12 @@
       "kind": "local-function",
       "file": "apps/sj-ui/src/ui/readiness.ts",
       "moduleGroup": "apps/sj-ui"
+    },
+    {
+      "symbol": "deriveRelatedModules",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "deriveRepoReadiness",
@@ -6928,6 +6998,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "findFileRelationship",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "findNearestSourceProductCheckout",
       "kind": "export",
       "file": "packages/sj-core/src/runtime.ts",
@@ -7542,6 +7618,18 @@
     {
       "symbol": "helper",
       "kind": "export",
+      "file": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "helper",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "helper",
+      "kind": "export",
       "file": "packages/sj-cli/src/tests/repo-intelligence.test.ts",
       "moduleGroup": "packages/sj-cli"
     },
@@ -8122,6 +8210,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "leftScore",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "lifecycleLabel",
       "kind": "export",
       "file": "packages/sj-core/src/core/repo-readiness.ts",
@@ -8518,6 +8612,18 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "loadGraphQueryArtifacts",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "loadGraphQueryArtifacts",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "loadKiwiControlState",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/ui-state.ts",
@@ -8746,6 +8852,18 @@
       "moduleGroup": "apps/sj-ui"
     },
     {
+      "symbol": "loadRepoIntelligenceArtifacts",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "loadRepoIntelligenceArtifacts",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "loadRepoIntelligenceSummary",
       "kind": "export",
       "file": "packages/sj-core/src/core/repo-intelligence.ts",
@@ -8857,6 +8975,18 @@
       "symbol": "login",
       "kind": "local-function",
       "file": "packages/sj-cli/src/tests/context-selector.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "login",
+      "kind": "export",
+      "file": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "login",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/tests/graph-query.test.ts",
       "moduleGroup": "packages/sj-cli"
     },
     {
@@ -9214,6 +9344,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "modulePeers",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "movePlanStep",
       "kind": "local-function",
       "file": "apps/sj-ui/src/main.ts",
@@ -9242,6 +9378,12 @@
       "kind": "local-function",
       "file": "packages/sj-core/src/core/context-feedback.ts",
       "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "normalizedFileTarget",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
+      "moduleGroup": "packages/sj-cli"
     },
     {
       "symbol": "normalizeDomainValidationRecords",
@@ -9307,6 +9449,12 @@
       "symbol": "normalizePathList",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/validator.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "normalizeQueryTarget",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/graph-query.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -10124,6 +10272,72 @@
       "kind": "local-function",
       "file": "packages/sj-cli/src/commands/execution-plan-recovery.ts",
       "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "queryFileSummary",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "queryFileSummary",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "queryImpact",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "queryImpact",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "queryModuleImpact",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "queryModuleSummary",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "queryModuleSummary",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "queryNeighbors",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "queryNeighbors",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "querySymbolLookup",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "querySymbolLookup",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "rankAndSelect",
@@ -11914,6 +12128,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "rightScore",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "roleFiles",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/validator.ts",
@@ -11936,6 +12156,18 @@
       "kind": "local-function",
       "file": "packages/sj-core/src/core/context-feedback.ts",
       "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "route",
+      "kind": "export",
+      "file": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "route",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/tests/graph-query.test.ts",
+      "moduleGroup": "packages/sj-cli"
     },
     {
       "symbol": "run",
@@ -12199,6 +12431,18 @@
       "symbol": "runFanout",
       "kind": "local-function",
       "file": "packages/sj-cli/src/commands/fanout.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "runGraphQuery",
+      "kind": "export",
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "runGraphQuery",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
       "moduleGroup": "packages/sj-cli"
     },
     {
@@ -13204,9 +13448,21 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "symbolExportsForFile",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/graph-query.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "symbolIndexPath",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "symbolLocalsForFile",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/graph-query.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -13399,6 +13655,12 @@
       "symbol": "toolInstalled",
       "kind": "local-function",
       "file": "packages/sj-core/src/integrations/machine-advisory.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "topFilesForModule",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/graph-query.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
