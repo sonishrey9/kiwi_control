@@ -19,3 +19,6 @@ coverage/
 .agent/state/runtime.sqlite3
 .agent/state/runtime.sqlite3-shm
 .agent/state/runtime.sqlite3-wal
+
+.git.backup-before-appledouble-clean/
+.git.backup-*/
