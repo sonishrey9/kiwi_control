@@ -204,6 +204,7 @@ test("ui command returns structured repo-control state in json mode", async () =
         readFirst: string[];
         toolEntry: { path: string };
         runtimeAuthority: { valid: boolean };
+        graphAuthority: { ready: boolean; graphRevision: number | null; graphAuthorityPath: string };
       };
       fileAnalysis: { totalFiles: number; selected: Array<{ file: string; selectionWhy?: string; dependencyChain?: string[] }> };
       contextTrace: { expansionSteps: Array<{ step: string }> };
@@ -309,6 +310,9 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(payload.kiwiControl.readySubstrate.ready, true);
   assert.equal(payload.kiwiControl.readySubstrate.status, "ready");
   assert.equal(payload.kiwiControl.readySubstrate.runtimeAuthority.valid, true);
+  assert.equal(payload.kiwiControl.readySubstrate.graphAuthority.ready, true);
+  assert.equal(typeof payload.kiwiControl.readySubstrate.graphAuthority.graphRevision, "number");
+  assert.match(payload.kiwiControl.readySubstrate.graphAuthority.graphAuthorityPath, /runtime\.sqlite3$/);
   assert.equal(payload.kiwiControl.readySubstrate.readFirst[0], ".agent/state/ready-substrate.json");
   assert.equal(payload.kiwiControl.readySubstrate.toolEntry.path, ".agent/context/agent-pack.json");
   assert.equal(typeof payload.kiwiControl.fileAnalysis.totalFiles, "number");

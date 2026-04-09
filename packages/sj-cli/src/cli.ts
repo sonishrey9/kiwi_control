@@ -21,6 +21,7 @@ import { runReconcile } from "./commands/reconcile.js";
 import { runSpecialists } from "./commands/specialists.js";
 import { runUi } from "./commands/ui.js";
 import { runAgentPack } from "./commands/agent-pack.js";
+import { runGraph } from "./commands/graph.js";
 import { runGraphQuery } from "./commands/graph-query.js";
 import { runReview } from "./commands/review.js";
 import { runPrepare } from "./commands/prepare.js";
@@ -232,6 +233,21 @@ async function main(): Promise<void> {
         logger
       });
       return;
+    case "graph": {
+      const action = (parsed.positionals[0] ?? "status").trim();
+      if (!["status", "build", "file", "module", "symbol", "neighbors", "impact"].includes(action)) {
+        throw new CliUsageError("graph requires action status, build, file, module, symbol, neighbors, or impact.");
+      }
+      process.exitCode = await runGraph({
+        repoRoot,
+        targetRoot,
+        action: action as "status" | "build" | "file" | "module" | "symbol" | "neighbors" | "impact",
+        ...(parsed.positionals.length > 1 ? { value: parsed.positionals.slice(1).join(" ") } : {}),
+        json: parsed.flags.json === true,
+        logger
+      });
+      return;
+    }
     case "graph-query":
       assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runGraphQuery({
@@ -576,6 +592,7 @@ Core commands:
   ${primaryCommand} check [--profile profile-name] [--json] [--target /path/to/repo]
   ${primaryCommand} specialists [--profile profile-name] [--json]
   ${primaryCommand} agent-pack [--task "goal"] [--review] [--json] [--target /path/to/repo]
+  ${primaryCommand} graph status|build [--json] [--target /path/to/repo]
   ${primaryCommand} graph-query --file <path> | --symbol <name> | --neighbors <file|module> | --impact <file|module> | --module <id> [--json] [--target /path/to/repo]
   ${primaryCommand} review [--base <ref>] [--json] [--target /path/to/repo]
   ${primaryCommand} checkpoint "label" [--goal text] [--tool codex|claude|copilot] [--profile profile-name] [--mode assisted|guarded|inline] [--status in-progress|complete|blocked] [--validations a,b] [--warnings a,b] [--open-issues a,b] [--next text] [--target /path/to/repo]
@@ -663,6 +680,7 @@ main().catch((error: unknown) => {
         "check",
         "specialists",
         "agent-pack",
+        "graph",
         "graph-query",
         "review",
         "checkpoint",

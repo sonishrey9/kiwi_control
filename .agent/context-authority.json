@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/context-authority",
   "version": 1,
-  "updatedAt": "2026-04-09T15:55:32.089Z",
+  "updatedAt": "2026-04-09T17:47:14.459Z",
   "projectType": "node",
   "languages": [
     "docs",
@@ -106,6 +106,7 @@
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/fanout.ts",
         "packages/sj-cli/src/commands/graph-query.ts",
+        "packages/sj-cli/src/commands/graph.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
@@ -240,6 +241,7 @@
         "packages/sj-core/src/core/product.ts",
         "packages/sj-core/src/core/profiles.ts",
         "packages/sj-core/src/core/project-detect.ts",
+        "packages/sj-core/src/core/ready-substrate.ts",
         "packages/sj-core/src/core/recommendations.ts",
         "packages/sj-core/src/core/reconcile.ts",
         "packages/sj-core/src/core/repo-intelligence.ts",
@@ -306,6 +308,7 @@
         "packages/sj-core/src/core/prepared-scope.ts",
         "packages/sj-core/src/core/profiles.ts",
         "packages/sj-core/src/core/project-detect.ts",
+        "packages/sj-core/src/core/ready-substrate.ts",
         "packages/sj-core/src/core/recommendations.ts",
         "packages/sj-core/src/core/reconcile.ts",
         "packages/sj-core/src/core/release.ts",

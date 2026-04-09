@@ -1,8 +1,8 @@
 {
   "artifactType": "kiwi-control/context-tree-view",
   "version": 1,
-  "timestamp": "2026-04-09T15:55:32.089Z",
-  "summary": "Discovered 395 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
+  "timestamp": "2026-04-09T17:47:14.459Z",
+  "summary": "Discovered 397 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
   "languages": [
     "docs",
     "javascript",
@@ -30,7 +30,7 @@
   "keyModules": [
     {
       "id": "packages/sj-cli",
-      "fileCount": 83,
+      "fileCount": 84,
       "entryPoints": [
         "packages/sj-cli/src/cli.ts",
         "packages/sj-cli/src/commands/commit-plan.ts",
@@ -78,7 +78,7 @@
     },
     {
       "id": "packages/sj-core",
-      "fileCount": 73,
+      "fileCount": 74,
       "entryPoints": [
         "packages/sj-core/src/core/bootstrap.ts",
         "packages/sj-core/src/core/discovery.ts",
@@ -154,7 +154,7 @@
     {
       "file": "packages/sj-core/src/utils/fs.ts",
       "moduleGroup": "packages/sj-core",
-      "importedByCount": 45
+      "importedByCount": 46
     },
     {
       "file": "packages/sj-core/src/core/config.ts",
@@ -1448,6 +1448,12 @@
                       "children": []
                     },
                     {
+                      "name": "graph.ts",
+                      "path": "packages/sj-cli/src/commands/graph.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
                       "name": "guide.ts",
                       "path": "packages/sj-cli/src/commands/guide.ts",
                       "kind": "file",
@@ -2135,6 +2141,12 @@
                     {
                       "name": "project-detect.ts",
                       "path": "packages/sj-core/src/core/project-detect.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "ready-substrate.ts",
+                      "path": "packages/sj-core/src/core/ready-substrate.ts",
                       "kind": "file",
                       "children": []
                     },

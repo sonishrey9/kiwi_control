@@ -3,6 +3,7 @@ import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
 import type { WriteResult } from "../utils/fs.js";
 import { ensureDir, pathExists, readJson, readText, relativeFrom, writeText } from "../utils/fs.js";
+import { getRuntimeRepoGraph, getRuntimeSnapshot, persistRuntimeRepoGraph, type RepoGraphEdge, type RepoGraphModule, type RepoGraphNode } from "../runtime/client.js";
 import type { ContextIndexFileRecord, ContextIndexState } from "./context-index.js";
 import type { RepoContextOperatorView, RepoContextTreeState } from "./context-tree.js";
 import { classifyFileArea, deriveTaskArea, deriveTaskCategory, tokenizeTaskText } from "./task-intent.js";
@@ -181,6 +182,8 @@ export interface LoadedRepoIntelligenceArtifacts extends RepoIntelligenceArtifac
   agentPack: AgentPackState | null;
   taskPack: TaskPackState | null;
 }
+
+interface RuntimeRepoGraphPayload extends RepoIntelligenceArtifacts {}
 
 export interface RepoIntelligenceSummary {
   available: boolean;
@@ -447,7 +450,7 @@ export async function persistRepoIntelligenceArtifacts(
   targetRoot: string,
   artifacts: RepoIntelligenceArtifacts
 ): Promise<WriteResult[]> {
-  return Promise.all([
+  const results = await Promise.all([
     writeJsonArtifact(repoMapPath(targetRoot), artifacts.repoMap),
     writeJsonArtifact(symbolIndexPath(targetRoot), artifacts.symbolIndex),
     writeJsonArtifact(dependencyGraphPath(targetRoot), artifacts.dependencyGraph),
@@ -456,6 +459,8 @@ export async function persistRepoIntelligenceArtifacts(
     writeJsonArtifact(historyGraphPath(targetRoot), artifacts.historyGraph),
     writeJsonArtifact(reviewGraphPath(targetRoot), artifacts.reviewGraph)
   ]);
+  await persistRepoGraphAuthority(targetRoot, artifacts);
+  return results;
 }
 
 export async function persistRepoIntelligenceIndexArtifacts(
@@ -472,6 +477,11 @@ export async function persistRepoIntelligenceIndexArtifacts(
 }
 
 export async function loadRepoIntelligenceArtifacts(targetRoot: string): Promise<LoadedRepoIntelligenceArtifacts | null> {
+  const runtimeGraph = await loadRepoGraphAuthority(targetRoot);
+  if (runtimeGraph) {
+    return runtimeGraph;
+  }
+
   const [
     repoMap,
     symbolIndex,
@@ -515,6 +525,231 @@ export async function loadRepoIntelligenceArtifacts(targetRoot: string): Promise
     agentPack,
     taskPack
   };
+}
+
+async function persistRepoGraphAuthority(
+  targetRoot: string,
+  artifacts: RepoIntelligenceArtifacts
+): Promise<void> {
+  const snapshot = await getRuntimeSnapshot(targetRoot).catch(() => null);
+  await persistRuntimeRepoGraph<RuntimeRepoGraphPayload>({
+    targetRoot,
+    summary: artifacts.repoMap.summary,
+    sourceKind: "kiwi-control/repo-intelligence",
+    sourceRevision: snapshot?.revision ?? null,
+    graph: artifacts,
+    artifactPath: ".agent/context/repo-map.json",
+    compatibilityHash: compatibilityHashForArtifacts(artifacts),
+    compatibilityArtifacts: {
+      repoMap: ".agent/context/repo-map.json",
+      symbolIndex: ".agent/state/symbol-index.json",
+      dependencyGraph: ".agent/state/dependency-graph.json",
+      impactMap: ".agent/state/impact-map.json",
+      decisionGraph: ".agent/state/decision-graph.json",
+      historyGraph: ".agent/state/history-graph.json",
+      reviewGraph: ".agent/state/review-graph.json"
+    },
+    ...toRuntimeNormalizedGraph(artifacts)
+  });
+}
+
+async function loadRepoGraphAuthority(targetRoot: string): Promise<LoadedRepoIntelligenceArtifacts | null> {
+  const snapshot = await getRuntimeRepoGraph<RuntimeRepoGraphPayload>(targetRoot).catch(() => null);
+  const graph = snapshot?.status.ready ? snapshot.graph : null;
+  if (!graph || !isRepoGraphPayload(graph)) {
+    return null;
+  }
+  const [
+    compactContextPack,
+    reviewContextPack,
+    agentPack,
+    taskPack
+  ] = await Promise.all([
+    readJsonIfPresent<CompactContextPack>(compactContextPackPath(targetRoot)),
+    readJsonIfPresent<ReviewContextPack>(reviewContextPackPath(targetRoot)),
+    readJsonIfPresent<AgentPackState>(agentPackPath(targetRoot)),
+    readJsonIfPresent<TaskPackState>(taskPackPath(targetRoot))
+  ]);
+  return {
+    ...graph,
+    compactContextPack,
+    reviewContextPack,
+    agentPack,
+    taskPack
+  };
+}
+
+function isRepoGraphPayload(value: RuntimeRepoGraphPayload): value is RuntimeRepoGraphPayload {
+  return (
+    value.repoMap?.artifactType === "kiwi-control/repo-map" &&
+    value.symbolIndex?.artifactType === "kiwi-control/symbol-index" &&
+    value.dependencyGraph?.artifactType === "kiwi-control/dependency-graph" &&
+    value.impactMap?.artifactType === "kiwi-control/impact-map" &&
+    value.decisionGraph?.artifactType === "kiwi-control/decision-graph" &&
+    value.historyGraph?.artifactType === "kiwi-control/history-graph" &&
+    value.reviewGraph?.artifactType === "kiwi-control/review-graph"
+  );
+}
+
+function toRuntimeNormalizedGraph(artifacts: RepoIntelligenceArtifacts): {
+  nodes: RepoGraphNode[];
+  edges: RepoGraphEdge[];
+  modules: RepoGraphModule[];
+} {
+  const nodeMap = new Map<string, RepoGraphNode>();
+  const edgeMap = new Map<string, RepoGraphEdge>();
+  const moduleIds = new Set<string>();
+
+  for (const module of artifacts.repoMap.keyModules) {
+    moduleIds.add(module.id);
+    nodeMap.set(moduleNodeId(module.id), graphNode({
+      nodeId: moduleNodeId(module.id),
+      nodeKind: "module",
+      moduleId: module.id,
+      displayLabel: module.id,
+      attributes: module
+    }));
+  }
+
+  for (const relationship of artifacts.dependencyGraph.fileRelationships) {
+    moduleIds.add(relationship.moduleGroup);
+    const fileId = fileNodeId(relationship.file);
+    nodeMap.set(fileId, graphNode({
+      nodeId: fileId,
+      nodeKind: "file",
+      path: relationship.file,
+      moduleId: relationship.moduleGroup,
+      displayLabel: relationship.file,
+      language: languageForFile(relationship.file),
+      attributes: relationship
+    }));
+    addEdge(edgeMap, moduleNodeId(relationship.moduleGroup), fileId, "contains", 1, { moduleGroup: relationship.moduleGroup, file: relationship.file });
+    for (const imported of relationship.imports) {
+      addEdge(edgeMap, fileId, fileNodeId(imported), "imports", 1, { from: relationship.file, to: imported });
+      const importedModule = artifacts.dependencyGraph.fileRelationships.find((entry) => entry.file === imported)?.moduleGroup;
+      if (importedModule && importedModule !== relationship.moduleGroup) {
+        addEdge(edgeMap, moduleNodeId(relationship.moduleGroup), moduleNodeId(importedModule), "imports", 0.8, {
+          fromModule: relationship.moduleGroup,
+          toModule: importedModule,
+          from: relationship.file,
+          to: imported
+        });
+      }
+    }
+    for (const callTarget of relationship.callTargets) {
+      addEdge(edgeMap, fileId, fileNodeId(callTarget), "calls", 0.7, { from: relationship.file, to: callTarget });
+    }
+  }
+
+  for (const symbol of artifacts.symbolIndex.symbols) {
+    const symbolId = symbolNodeId(symbol.file, symbol.kind, symbol.symbol);
+    nodeMap.set(symbolId, graphNode({
+      nodeId: symbolId,
+      nodeKind: "symbol",
+      path: symbol.file,
+      moduleId: symbol.moduleGroup,
+      symbol: symbol.symbol,
+      displayLabel: symbol.symbol,
+      language: languageForFile(symbol.file),
+      attributes: symbol
+    }));
+    addEdge(edgeMap, fileNodeId(symbol.file), symbolId, "defines", symbol.kind === "export" ? 1 : 0.7, symbol);
+  }
+
+  for (const [target, chain] of Object.entries(artifacts.impactMap.dependencyChains)) {
+    for (let index = 0; index < chain.length - 1; index += 1) {
+      addEdge(edgeMap, fileNodeId(chain[index] ?? target), fileNodeId(chain[index + 1] ?? target), "impacts", 1, { chain, target });
+    }
+  }
+
+  for (const decision of artifacts.decisionGraph.importantDecisions) {
+    const decisionId = stableNodeId("decision", decision.id);
+    nodeMap.set(decisionId, graphNode({
+      nodeId: decisionId,
+      nodeKind: "decision",
+      displayLabel: decision.label,
+      attributes: decision
+    }));
+    for (const file of decision.relatedFiles) {
+      addEdge(edgeMap, decisionId, fileNodeId(file), "decision-related-file", 0.8, { decision: decision.id, file });
+    }
+  }
+
+  for (const risk of artifacts.reviewGraph.fileRisks) {
+    addEdge(edgeMap, fileNodeId(risk.file), moduleNodeId(risk.moduleGroup), "review-risk", risk.score, {
+      file: risk.file,
+      score: risk.score,
+      reasons: risk.reasons
+    });
+  }
+
+  const modules = [...moduleIds].sort().map((moduleId): RepoGraphModule => ({
+    moduleId,
+    displayLabel: moduleId,
+    summary: artifacts.repoMap.keyModules.find((entry) => entry.id === moduleId)?.entryPoints.join(", ") ?? null,
+    attributes: artifacts.repoMap.keyModules.find((entry) => entry.id === moduleId) ?? { id: moduleId }
+  }));
+
+  return {
+    nodes: [...nodeMap.values()],
+    edges: [...edgeMap.values()],
+    modules
+  };
+}
+
+function graphNode(input: Partial<RepoGraphNode> & Pick<RepoGraphNode, "nodeId" | "nodeKind" | "displayLabel">): RepoGraphNode {
+  return {
+    path: null,
+    moduleId: null,
+    symbol: null,
+    language: null,
+    attributes: {},
+    ...input
+  };
+}
+
+function addEdge(
+  edgeMap: Map<string, RepoGraphEdge>,
+  fromNodeId: string,
+  toNodeId: string,
+  edgeKind: string,
+  weight: number,
+  evidence: unknown
+): void {
+  const edgeId = stableNodeId("edge", `${fromNodeId}:${edgeKind}:${toNodeId}`);
+  edgeMap.set(edgeId, {
+    edgeId,
+    fromNodeId,
+    toNodeId,
+    edgeKind,
+    weight,
+    evidence
+  });
+}
+
+function fileNodeId(file: string): string {
+  return stableNodeId("file", file);
+}
+
+function moduleNodeId(moduleId: string): string {
+  return stableNodeId("module", moduleId);
+}
+
+function symbolNodeId(file: string, kind: string, symbol: string): string {
+  return stableNodeId("symbol", `${file}:${kind}:${symbol}`);
+}
+
+function stableNodeId(kind: string, value: string): string {
+  return `${kind}:${value.replace(/[^A-Za-z0-9_.:/-]/g, "_")}`;
+}
+
+function languageForFile(file: string): string | null {
+  const ext = path.extname(file).slice(1);
+  return ext || null;
+}
+
+function compatibilityHashForArtifacts(artifacts: RepoIntelligenceArtifacts): string {
+  return `${artifacts.repoMap.generatedAt}:${artifacts.symbolIndex.totalSymbols}:${artifacts.dependencyGraph.edges.length}:${artifacts.impactMap.impactedFiles.length}`;
 }
 
 export async function loadRepoIntelligenceSummary(targetRoot: string): Promise<RepoIntelligenceSummary> {

@@ -1,6 +1,8 @@
 use crate::models::{
     DerivedOutputStatus, ExecutionArtifacts, ExecutionEventList, ListExecutionEventsQuery,
     MaterializeDerivedOutputsRequest, OpenTargetRequest, PersistDerivedOutputRequest,
+    PersistRepoGraphRequest, RepoGraphEdge, RepoGraphModule,
+    RepoGraphNode, RepoGraphNodeResult, RepoGraphQuery, RepoGraphSnapshot, RepoGraphStatus,
     RefreshDerivedOutputsRequest,
     RuntimeDecision, RuntimeDecisionAction, RuntimeDecisionRecovery, RuntimeEvent,
     RuntimeLifecycle, RuntimeReadiness, RuntimeSnapshot, TransitionExecutionStateRequest,
@@ -286,6 +288,170 @@ pub fn persist_derived_output(request: &PersistDerivedOutputRequest) -> Result<R
     get_runtime_snapshot(target_root.to_string_lossy().as_ref())
 }
 
+pub fn persist_repo_graph(request: &PersistRepoGraphRequest) -> Result<RepoGraphSnapshot> {
+    let target_root = normalize_target_root(&request.target_root)?;
+    let mut conn = open_connection(&target_root)?;
+    let target_id = ensure_initialized(&mut conn, &target_root, None, None, None)?;
+    let state = load_state_row(&conn, target_id)?;
+    let source_revision = request.source_revision.unwrap_or(state.revision);
+    let graph_json = json_string(&json!({ "nodes": request.nodes, "edges": request.edges, "modules": request.modules }))?;
+    let source_digest = request.compatibility_hash.clone().unwrap_or_else(|| digest_string(&graph_json));
+    let latest = load_normalized_repo_graph_status(&conn)?;
+
+    if let Some(latest) = latest.as_ref() {
+        if latest.source_digest == source_digest
+            && latest.source_runtime_revision == source_revision
+            && latest.status == "ready"
+        {
+            return get_repo_graph(target_root.to_string_lossy().as_ref());
+        }
+    }
+
+    let timestamp = timestamp_now();
+    let graph_revision = latest.map(|row| row.graph_revision + 1).unwrap_or(1);
+    let compatibility_json = json_string(&request.compatibility_artifacts)?;
+    let tx = conn
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .context("failed to start repo graph transaction")?;
+    tx.execute(
+        "INSERT INTO repo_graph_revisions (graph_revision, source_runtime_revision, status, summary, created_at, graph_kind, node_count, edge_count, module_count, symbol_count, artifact_path, compatibility_hash)
+         VALUES (?1, ?2, 'ready', ?3, ?4, 'repo', ?5, ?6, ?7, ?8, ?9, ?10)",
+        params![
+            graph_revision,
+            source_revision,
+            request.summary,
+            timestamp,
+            request.nodes.len() as i64,
+            request.edges.len() as i64,
+            request.modules.len() as i64,
+            request.nodes.iter().filter(|node| node.node_kind == "symbol").count() as i64,
+            request.artifact_path.clone().unwrap_or_else(|| String::from(".agent/context/repo-map.json")),
+            source_digest
+        ],
+    )?;
+    persist_normalized_repo_graph_rows(&tx, graph_revision, &request.modules, &request.nodes, &request.edges)?;
+    tx.execute(
+        "INSERT INTO repo_graph_state (target_id, graph_revision, source_revision, source_kind, source_digest, freshness, graph_json, compatibility_json, generated_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, 'fresh', ?6, ?7, ?8, ?8)
+         ON CONFLICT(target_id) DO UPDATE SET
+            graph_revision = excluded.graph_revision,
+            source_revision = excluded.source_revision,
+            source_kind = excluded.source_kind,
+            source_digest = excluded.source_digest,
+            freshness = excluded.freshness,
+            graph_json = excluded.graph_json,
+            compatibility_json = excluded.compatibility_json,
+            generated_at = excluded.generated_at,
+            updated_at = excluded.updated_at",
+        params![
+            target_id,
+            graph_revision,
+            source_revision,
+            request.source_kind,
+            source_digest,
+            graph_json,
+            compatibility_json,
+            timestamp
+        ],
+    )?;
+    tx.execute(
+        "INSERT INTO repo_graph_events (target_id, graph_revision, source_revision, event_type, source_digest, recorded_at)
+         VALUES (?1, ?2, ?3, 'graph-persisted', ?4, ?5)",
+        params![target_id, graph_revision, source_revision, source_digest, timestamp],
+    )?;
+    tx.commit()?;
+    get_repo_graph(target_root.to_string_lossy().as_ref())
+}
+
+pub fn get_repo_graph(target_root: &str) -> Result<RepoGraphSnapshot> {
+    let target_root = normalize_target_root(target_root)?;
+    let mut conn = open_connection(&target_root)?;
+    let _target_id = ensure_initialized(&mut conn, &target_root, None, None, None)?;
+    let status = get_repo_graph_status(target_root.to_string_lossy().as_ref())?;
+    let Some(graph_revision) = status.graph_revision else {
+        return Ok(RepoGraphSnapshot { status, nodes: Vec::new(), edges: Vec::new(), modules: Vec::new() });
+    };
+    Ok(RepoGraphSnapshot {
+        status,
+        nodes: load_repo_graph_nodes(&conn, graph_revision)?,
+        edges: load_repo_graph_edges(&conn, graph_revision)?,
+        modules: load_repo_graph_modules(&conn, graph_revision)?,
+    })
+}
+
+pub fn get_repo_graph_status(target_root: &str) -> Result<RepoGraphStatus> {
+    let target_root = normalize_target_root(target_root)?;
+    let mut conn = open_connection(&target_root)?;
+    let _target_id = ensure_initialized(&mut conn, &target_root, None, None, None)?;
+    repo_graph_status_from_revision(&target_root, load_normalized_repo_graph_status(&conn)?.as_ref())
+}
+
+pub fn query_repo_graph_node(query: &RepoGraphQuery) -> Result<RepoGraphNodeResult> {
+    query_repo_graph(query, "node")
+}
+
+pub fn query_repo_graph_file(query: &RepoGraphQuery) -> Result<RepoGraphNodeResult> {
+    query_repo_graph(query, "file")
+}
+
+pub fn query_repo_graph_module(query: &RepoGraphQuery) -> Result<RepoGraphNodeResult> {
+    query_repo_graph(query, "module")
+}
+
+pub fn query_repo_graph_symbol(query: &RepoGraphQuery) -> Result<RepoGraphNodeResult> {
+    query_repo_graph(query, "symbol")
+}
+
+pub fn query_repo_graph_neighbors(query: &RepoGraphQuery) -> Result<RepoGraphNodeResult> {
+    query_repo_graph(query, "neighbors")
+}
+
+pub fn query_repo_graph_impact(query: &RepoGraphQuery) -> Result<RepoGraphNodeResult> {
+    query_repo_graph(query, "impact")
+}
+
+fn query_repo_graph(query: &RepoGraphQuery, query_kind: &str) -> Result<RepoGraphNodeResult> {
+    let target_root = normalize_target_root(&query.target_root)?;
+    let mut conn = open_connection(&target_root)?;
+    let _target_id = ensure_initialized(&mut conn, &target_root, None, None, None)?;
+    let status = get_repo_graph_status(target_root.to_string_lossy().as_ref())?;
+    let Some(graph_revision) = status.graph_revision else {
+        return Ok(RepoGraphNodeResult {
+            status,
+            node: None,
+            matches: Vec::new(),
+            incoming: Vec::new(),
+            outgoing: Vec::new(),
+        });
+    };
+    let matches = resolve_repo_graph_query_nodes(&conn, graph_revision, query, query_kind)?;
+    let node = matches.first().cloned();
+    log_repo_graph_query(&conn, graph_revision, query_kind, query)?;
+    let (incoming, outgoing) = if let Some(node) = node.as_ref() {
+        if query_kind == "impact" {
+            (
+                load_edges_touching_node(&conn, graph_revision, &node.node_id, true)?,
+                load_edges_touching_node(&conn, graph_revision, &node.node_id, false)?,
+            )
+        } else {
+            (
+                load_repo_graph_incoming_edges(&conn, graph_revision, &node.node_id)?,
+                load_repo_graph_outgoing_edges(&conn, graph_revision, &node.node_id)?,
+            )
+        }
+    } else {
+        (Vec::new(), Vec::new())
+    };
+
+    Ok(RepoGraphNodeResult {
+        status,
+        node,
+        matches,
+        incoming,
+        outgoing,
+    })
+}
+
 fn materialize_outputs_for_target(target_root: &str, outputs: &[&str]) -> Result<()> {
     let target_root = normalize_target_root(target_root)?;
     let mut conn = open_connection(&target_root)?;
@@ -459,7 +625,95 @@ fn open_connection(target_root: &Path) -> Result<Connection> {
             last_error TEXT,
             PRIMARY KEY(target_id, output_name),
             FOREIGN KEY(target_id) REFERENCES repo_targets(id)
+         );
+         CREATE TABLE IF NOT EXISTS repo_graph_state (
+            target_id INTEGER PRIMARY KEY,
+            graph_revision INTEGER NOT NULL,
+            source_revision INTEGER NOT NULL,
+            source_kind TEXT NOT NULL,
+            source_digest TEXT NOT NULL,
+            freshness TEXT NOT NULL,
+            graph_json TEXT NOT NULL,
+            compatibility_json TEXT NOT NULL,
+            generated_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(target_id) REFERENCES repo_targets(id)
+         );
+         CREATE TABLE IF NOT EXISTS repo_graph_events (
+            event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            target_id INTEGER NOT NULL,
+            graph_revision INTEGER NOT NULL,
+            source_revision INTEGER NOT NULL,
+            event_type TEXT NOT NULL,
+            source_digest TEXT NOT NULL,
+            recorded_at TEXT NOT NULL,
+            FOREIGN KEY(target_id) REFERENCES repo_targets(id)
+         );
+         CREATE TABLE IF NOT EXISTS repo_graph_revisions (
+            graph_revision INTEGER PRIMARY KEY,
+            source_runtime_revision INTEGER NOT NULL,
+            status TEXT NOT NULL,
+            summary TEXT,
+            created_at TEXT NOT NULL,
+            graph_kind TEXT NOT NULL DEFAULT 'repo',
+            node_count INTEGER NOT NULL DEFAULT 0,
+            edge_count INTEGER NOT NULL DEFAULT 0,
+            module_count INTEGER NOT NULL DEFAULT 0,
+            symbol_count INTEGER NOT NULL DEFAULT 0,
+            artifact_path TEXT,
+            compatibility_hash TEXT
+         );
+         CREATE TABLE IF NOT EXISTS repo_graph_nodes (
+            graph_revision INTEGER NOT NULL,
+            node_id TEXT NOT NULL,
+            node_kind TEXT NOT NULL,
+            path TEXT,
+            module_id TEXT,
+            symbol TEXT,
+            display_label TEXT NOT NULL,
+            language TEXT,
+            attributes_json TEXT NOT NULL,
+            PRIMARY KEY(graph_revision, node_id),
+            FOREIGN KEY(graph_revision) REFERENCES repo_graph_revisions(graph_revision)
+         );
+         CREATE TABLE IF NOT EXISTS repo_graph_edges (
+            graph_revision INTEGER NOT NULL,
+            edge_id TEXT NOT NULL,
+            from_node_id TEXT NOT NULL,
+            to_node_id TEXT NOT NULL,
+            edge_kind TEXT NOT NULL,
+            weight REAL,
+            evidence_json TEXT NOT NULL,
+            PRIMARY KEY(graph_revision, edge_id),
+            FOREIGN KEY(graph_revision) REFERENCES repo_graph_revisions(graph_revision)
+         );
+         CREATE TABLE IF NOT EXISTS repo_graph_modules (
+            graph_revision INTEGER NOT NULL,
+            module_id TEXT NOT NULL,
+            display_label TEXT NOT NULL,
+            summary TEXT,
+            attributes_json TEXT NOT NULL,
+            PRIMARY KEY(graph_revision, module_id),
+            FOREIGN KEY(graph_revision) REFERENCES repo_graph_revisions(graph_revision)
+         );
+         CREATE TABLE IF NOT EXISTS repo_graph_query_log (
+            id INTEGER PRIMARY KEY,
+            graph_revision INTEGER NOT NULL,
+            query_kind TEXT NOT NULL,
+            query_value TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(graph_revision) REFERENCES repo_graph_revisions(graph_revision)
          );",
+    )?;
+    conn.execute_batch(
+        "CREATE INDEX IF NOT EXISTS idx_repo_graph_revisions_latest ON repo_graph_revisions(graph_revision DESC);
+         CREATE INDEX IF NOT EXISTS idx_repo_graph_nodes_kind ON repo_graph_nodes(graph_revision, node_kind);
+         CREATE INDEX IF NOT EXISTS idx_repo_graph_nodes_path ON repo_graph_nodes(graph_revision, path);
+         CREATE INDEX IF NOT EXISTS idx_repo_graph_nodes_module ON repo_graph_nodes(graph_revision, module_id);
+         CREATE INDEX IF NOT EXISTS idx_repo_graph_nodes_symbol ON repo_graph_nodes(graph_revision, symbol);
+         CREATE INDEX IF NOT EXISTS idx_repo_graph_edges_from ON repo_graph_edges(graph_revision, from_node_id);
+         CREATE INDEX IF NOT EXISTS idx_repo_graph_edges_to ON repo_graph_edges(graph_revision, to_node_id);
+         CREATE INDEX IF NOT EXISTS idx_repo_graph_edges_kind ON repo_graph_edges(graph_revision, edge_kind);",
     )?;
     Ok(conn)
 }
@@ -1268,6 +1522,351 @@ fn output_path(target_root: &Path, output_name: &str) -> PathBuf {
         OUTPUT_DECISION_LOGIC => state_root.join("decision-logic.json"),
         other => state_root.join(format!("{other}.json")),
     }
+}
+
+fn graph_authority_path(target_root: &Path) -> String {
+    runtime_db_path(target_root.to_string_lossy().as_ref())
+        .to_string_lossy()
+        .to_string()
+}
+
+fn digest_string(value: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(value.as_bytes());
+    hex::encode(hasher.finalize())
+}
+
+#[derive(Clone, Debug)]
+struct StoredNormalizedRepoGraphStatus {
+    graph_revision: i64,
+    source_runtime_revision: i64,
+    status: String,
+    created_at: String,
+    graph_kind: String,
+    node_count: i64,
+    edge_count: i64,
+    module_count: i64,
+    symbol_count: i64,
+    artifact_path: Option<String>,
+    compatibility_hash: Option<String>,
+    source_digest: String,
+}
+
+fn persist_normalized_repo_graph_rows(
+    tx: &Transaction<'_>,
+    graph_revision: i64,
+    modules: &[RepoGraphModule],
+    nodes: &[RepoGraphNode],
+    edges: &[RepoGraphEdge],
+) -> Result<()> {
+    for module in modules {
+        tx.execute(
+            "INSERT INTO repo_graph_modules (graph_revision, module_id, display_label, summary, attributes_json)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                graph_revision,
+                module.module_id,
+                module.display_label,
+                module.summary,
+                json_string(&module.attributes)?,
+            ],
+        )?;
+    }
+    for node in nodes {
+        tx.execute(
+            "INSERT INTO repo_graph_nodes (graph_revision, node_id, node_kind, path, module_id, symbol, display_label, language, attributes_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            params![
+                graph_revision,
+                node.node_id,
+                node.node_kind,
+                node.path,
+                node.module_id,
+                node.symbol,
+                node.display_label,
+                node.language,
+                json_string(&node.attributes)?,
+            ],
+        )?;
+    }
+    for edge in edges {
+        tx.execute(
+            "INSERT INTO repo_graph_edges (graph_revision, edge_id, from_node_id, to_node_id, edge_kind, weight, evidence_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                graph_revision,
+                edge.edge_id,
+                edge.from_node_id,
+                edge.to_node_id,
+                edge.edge_kind,
+                edge.weight,
+                json_string(&edge.evidence)?,
+            ],
+        )?;
+    }
+    Ok(())
+}
+
+fn load_normalized_repo_graph_status(conn: &Connection) -> Result<Option<StoredNormalizedRepoGraphStatus>> {
+    conn.query_row(
+        "SELECT graph_revision, source_runtime_revision, status, summary, created_at, graph_kind, node_count, edge_count, module_count, symbol_count, artifact_path, compatibility_hash
+           FROM repo_graph_revisions
+          ORDER BY graph_revision DESC
+          LIMIT 1",
+        [],
+        |row| {
+            let compatibility_hash: Option<String> = row.get(11)?;
+            Ok(StoredNormalizedRepoGraphStatus {
+                graph_revision: row.get(0)?,
+                source_runtime_revision: row.get(1)?,
+                status: row.get(2)?,
+                created_at: row.get(4)?,
+                graph_kind: row.get(5)?,
+                node_count: row.get(6)?,
+                edge_count: row.get(7)?,
+                module_count: row.get(8)?,
+                symbol_count: row.get(9)?,
+                artifact_path: row.get(10)?,
+                compatibility_hash: compatibility_hash.clone(),
+                source_digest: compatibility_hash.unwrap_or_default(),
+            })
+        },
+    )
+    .optional()
+    .context("failed to load normalized repo graph status")
+}
+
+fn repo_graph_status_from_revision(
+    target_root: &Path,
+    row: Option<&StoredNormalizedRepoGraphStatus>,
+) -> Result<RepoGraphStatus> {
+    Ok(match row {
+        Some(row) => RepoGraphStatus {
+            target_root: target_root.to_string_lossy().to_string(),
+            ready: row.status == "ready",
+            status: row.status.clone(),
+            freshness: if row.status == "ready" { String::from("fresh") } else { row.status.clone() },
+            graph_revision: Some(row.graph_revision),
+            source_revision: Some(row.source_runtime_revision),
+            source_runtime_revision: Some(row.source_runtime_revision),
+            generated_at: Some(row.created_at.clone()),
+            source_kind: Some(row.graph_kind.clone()),
+            source_digest: Some(row.source_digest.clone()),
+            graph_authority_path: graph_authority_path(target_root),
+            graph_authority_kind: String::from("runtime-sqlite-normalized"),
+            node_count: row.node_count,
+            edge_count: row.edge_count,
+            module_count: row.module_count,
+            symbol_count: row.symbol_count,
+            artifact_path: row.artifact_path.clone(),
+            compatibility_hash: row.compatibility_hash.clone(),
+            compatibility_export_ready: row.artifact_path.as_ref().map(|relative| target_root.join(relative).exists()).unwrap_or(false),
+            compatibility_in_sync: row.compatibility_hash.is_some(),
+            compatibility_artifacts: None,
+        },
+        None => RepoGraphStatus {
+            target_root: target_root.to_string_lossy().to_string(),
+            ready: false,
+            status: String::from("missing"),
+            freshness: String::from("missing"),
+            graph_revision: None,
+            source_revision: None,
+            source_runtime_revision: None,
+            generated_at: None,
+            source_kind: None,
+            source_digest: None,
+            graph_authority_path: graph_authority_path(target_root),
+            graph_authority_kind: String::from("runtime-sqlite-normalized"),
+            node_count: 0,
+            edge_count: 0,
+            module_count: 0,
+            symbol_count: 0,
+            artifact_path: None,
+            compatibility_hash: None,
+            compatibility_export_ready: false,
+            compatibility_in_sync: false,
+            compatibility_artifacts: None,
+        },
+    })
+}
+
+fn load_repo_graph_nodes(conn: &Connection, graph_revision: i64) -> Result<Vec<RepoGraphNode>> {
+    let mut statement = conn.prepare(
+        "SELECT node_id, node_kind, path, module_id, symbol, display_label, language, attributes_json
+           FROM repo_graph_nodes
+          WHERE graph_revision = ?1
+          ORDER BY node_kind ASC, display_label ASC
+          LIMIT 5000",
+    )?;
+    let rows = statement.query_map(params![graph_revision], node_from_row)?;
+    collect_rows(rows)
+}
+
+fn load_repo_graph_edges(conn: &Connection, graph_revision: i64) -> Result<Vec<RepoGraphEdge>> {
+    let mut statement = conn.prepare(
+        "SELECT edge_id, from_node_id, to_node_id, edge_kind, weight, evidence_json
+           FROM repo_graph_edges
+          WHERE graph_revision = ?1
+          ORDER BY edge_kind ASC, edge_id ASC
+          LIMIT 10000",
+    )?;
+    let rows = statement.query_map(params![graph_revision], edge_from_row)?;
+    collect_rows(rows)
+}
+
+fn load_repo_graph_modules(conn: &Connection, graph_revision: i64) -> Result<Vec<RepoGraphModule>> {
+    let mut statement = conn.prepare(
+        "SELECT module_id, display_label, summary, attributes_json
+           FROM repo_graph_modules
+          WHERE graph_revision = ?1
+          ORDER BY module_id ASC",
+    )?;
+    let rows = statement.query_map(params![graph_revision], |row| {
+        let attributes_json = row.get::<_, String>(3)?;
+        Ok(RepoGraphModule {
+            module_id: row.get(0)?,
+            display_label: row.get(1)?,
+            summary: row.get(2)?,
+            attributes: serde_json::from_str(&attributes_json).map_err(|_| rusqlite::Error::InvalidQuery)?,
+        })
+    })?;
+    collect_rows(rows)
+}
+
+fn load_repo_graph_outgoing_edges(conn: &Connection, graph_revision: i64, node_id: &str) -> Result<Vec<RepoGraphEdge>> {
+    let mut statement = conn.prepare(
+        "SELECT edge_id, from_node_id, to_node_id, edge_kind, weight, evidence_json
+           FROM repo_graph_edges
+          WHERE graph_revision = ?1 AND from_node_id = ?2
+          ORDER BY edge_kind ASC, weight DESC
+          LIMIT 80",
+    )?;
+    let rows = statement.query_map(params![graph_revision, node_id], edge_from_row)?;
+    collect_rows(rows)
+}
+
+fn load_repo_graph_incoming_edges(conn: &Connection, graph_revision: i64, node_id: &str) -> Result<Vec<RepoGraphEdge>> {
+    let mut statement = conn.prepare(
+        "SELECT edge_id, from_node_id, to_node_id, edge_kind, weight, evidence_json
+           FROM repo_graph_edges
+          WHERE graph_revision = ?1 AND to_node_id = ?2
+          ORDER BY edge_kind ASC, weight DESC
+          LIMIT 80",
+    )?;
+    let rows = statement.query_map(params![graph_revision, node_id], edge_from_row)?;
+    collect_rows(rows)
+}
+
+fn load_edges_touching_node(conn: &Connection, graph_revision: i64, node_id: &str, incoming: bool) -> Result<Vec<RepoGraphEdge>> {
+    if incoming {
+        load_repo_graph_incoming_edges(conn, graph_revision, node_id)
+    } else {
+        load_repo_graph_outgoing_edges(conn, graph_revision, node_id)
+    }
+}
+
+fn resolve_repo_graph_query_nodes(
+    conn: &Connection,
+    graph_revision: i64,
+    query: &RepoGraphQuery,
+    query_kind: &str,
+) -> Result<Vec<RepoGraphNode>> {
+    if let Some(node_id) = query.node_id.as_deref().filter(|value| !value.trim().is_empty()) {
+        return query_nodes_by_clause(conn, graph_revision, "node_id = ?2", node_id, 20);
+    }
+    if query_kind == "module" {
+        if let Some(module_id) = query.module_id.as_deref().filter(|value| !value.trim().is_empty()) {
+            return query_nodes_by_clause(conn, graph_revision, "node_id = ?2", &format!("module:{module_id}"), 20);
+        }
+    }
+    if query_kind == "symbol" {
+        if let Some(symbol) = query.symbol.as_deref().filter(|value| !value.trim().is_empty()) {
+            return query_nodes_by_clause(conn, graph_revision, "symbol = ?2", symbol, 40);
+        }
+    }
+    if let Some(path) = query.path.as_deref().filter(|value| !value.trim().is_empty()) {
+        return query_nodes_by_clause(conn, graph_revision, "path = ?2", path, 40);
+    }
+    if let Some(module_id) = query.module_id.as_deref().filter(|value| !value.trim().is_empty()) {
+        return query_nodes_by_clause(conn, graph_revision, "module_id = ?2", module_id, 80);
+    }
+    if let Some(symbol) = query.symbol.as_deref().filter(|value| !value.trim().is_empty()) {
+        return query_nodes_by_clause(conn, graph_revision, "symbol = ?2", symbol, 40);
+    }
+    Ok(Vec::new())
+}
+
+fn query_nodes_by_clause(
+    conn: &Connection,
+    graph_revision: i64,
+    clause: &str,
+    value: &str,
+    limit: i64,
+) -> Result<Vec<RepoGraphNode>> {
+    let sql = format!(
+        "SELECT node_id, node_kind, path, module_id, symbol, display_label, language, attributes_json
+           FROM repo_graph_nodes
+          WHERE graph_revision = ?1 AND {clause}
+          ORDER BY node_kind ASC, display_label ASC
+          LIMIT ?3"
+    );
+    let mut statement = conn.prepare(&sql)?;
+    let rows = statement.query_map(params![graph_revision, value, limit], node_from_row)?;
+    collect_rows(rows)
+}
+
+fn node_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RepoGraphNode> {
+    let attributes_json = row.get::<_, String>(7)?;
+    Ok(RepoGraphNode {
+        node_id: row.get(0)?,
+        node_kind: row.get(1)?,
+        path: row.get(2)?,
+        module_id: row.get(3)?,
+        symbol: row.get(4)?,
+        display_label: row.get(5)?,
+        language: row.get(6)?,
+        attributes: serde_json::from_str(&attributes_json).map_err(|_| rusqlite::Error::InvalidQuery)?,
+    })
+}
+
+fn edge_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RepoGraphEdge> {
+    let evidence_json = row.get::<_, String>(5)?;
+    Ok(RepoGraphEdge {
+        edge_id: row.get(0)?,
+        from_node_id: row.get(1)?,
+        to_node_id: row.get(2)?,
+        edge_kind: row.get(3)?,
+        weight: row.get(4)?,
+        evidence: serde_json::from_str(&evidence_json).map_err(|_| rusqlite::Error::InvalidQuery)?,
+    })
+}
+
+fn log_repo_graph_query(
+    conn: &Connection,
+    graph_revision: i64,
+    query_kind: &str,
+    query: &RepoGraphQuery,
+) -> Result<()> {
+    let query_value = query.node_id.as_ref()
+        .or(query.path.as_ref())
+        .or(query.module_id.as_ref())
+        .or(query.symbol.as_ref())
+        .cloned()
+        .unwrap_or_default();
+    conn.execute(
+        "INSERT INTO repo_graph_query_log (graph_revision, query_kind, query_value, created_at)
+         VALUES (?1, ?2, ?3, ?4)",
+        params![graph_revision, query_kind, query_value, timestamp_now()],
+    )?;
+    Ok(())
+}
+
+fn collect_rows<T>(rows: rusqlite::MappedRows<'_, impl FnMut(&rusqlite::Row<'_>) -> rusqlite::Result<T>>) -> Result<Vec<T>> {
+    let mut values = Vec::new();
+    for row in rows {
+        values.push(row?);
+    }
+    Ok(values)
 }
 
 fn readiness_from_state(state: &StoredExecutionState) -> RuntimeReadiness {

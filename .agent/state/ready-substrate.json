@@ -1,0 +1,142 @@
+{
+  "artifactType": "kiwi-control/ready-substrate",
+  "version": 1,
+  "generatedAt": "2026-04-09T17:47:16.478Z",
+  "targetRoot": "/Volumes/shrey ssd/shrey-junior",
+  "status": "ready",
+  "ready": true,
+  "summary": "Ready repo substrate is available at runtime revision 17.",
+  "runtimeAuthority": {
+    "valid": true,
+    "revision": 17,
+    "lifecycle": "blocked",
+    "sourceCommand": "kiwi-control validate \"update README docs\"",
+    "nextCommand": "kiwi-control prepare \"update README docs\"",
+    "lastUpdatedAt": "2026-04-09T17:47:16Z",
+    "sqlitePath": ".agent/state/runtime.sqlite3",
+    "compatibilityStatePath": ".agent/state/execution-state.json",
+    "compatibilityEventsPath": ".agent/state/execution-events.ndjson",
+    "note": "Runtime SQLite and runtime events are canonical. JSON execution files are compatibility outputs."
+  },
+  "graphAuthority": {
+    "valid": true,
+    "ready": true,
+    "status": "ready",
+    "freshness": "fresh",
+    "graphRevision": 7,
+    "sourceRevision": 16,
+    "sourceRuntimeRevision": 16,
+    "generatedAt": "2026-04-09T17:47:16Z",
+    "graphAuthorityPath": "/Volumes/shrey ssd/shrey-junior/.agent/state/runtime.sqlite3",
+    "kind": "runtime-sqlite-normalized",
+    "nodeCount": 2118,
+    "edgeCount": 2913,
+    "moduleCount": 6,
+    "symbolCount": 1898,
+    "artifactPath": ".agent/context/repo-map.json",
+    "compatibilityExportReady": true,
+    "compatibilityInSync": true,
+    "compatibilityArtifacts": null,
+    "note": "Canonical repo graph lives in runtime SQLite. JSON graph files are compatibility/export views."
+  },
+  "artifacts": {
+    "repoMap": {
+      "path": ".agent/context/repo-map.json",
+      "valid": true,
+      "required": true,
+      "role": "repo-map"
+    },
+    "symbolIndex": {
+      "path": ".agent/state/symbol-index.json",
+      "valid": true,
+      "required": true,
+      "role": "graph"
+    },
+    "dependencyGraph": {
+      "path": ".agent/state/dependency-graph.json",
+      "valid": true,
+      "required": true,
+      "role": "graph"
+    },
+    "impactMap": {
+      "path": ".agent/state/impact-map.json",
+      "valid": true,
+      "required": true,
+      "role": "impact"
+    },
+    "decisionGraph": {
+      "path": ".agent/state/decision-graph.json",
+      "valid": true,
+      "required": true,
+      "role": "graph"
+    },
+    "historyGraph": {
+      "path": ".agent/state/history-graph.json",
+      "valid": true,
+      "required": true,
+      "role": "graph"
+    },
+    "reviewGraph": {
+      "path": ".agent/state/review-graph.json",
+      "valid": true,
+      "required": true,
+      "role": "review"
+    },
+    "compactContextPack": {
+      "path": ".agent/context/compact-context-pack.json",
+      "valid": true,
+      "required": true,
+      "role": "pack"
+    },
+    "reviewContextPack": {
+      "path": ".agent/context/review-context-pack.json",
+      "valid": true,
+      "required": true,
+      "role": "review"
+    },
+    "taskPack": {
+      "path": ".agent/context/task-pack.json",
+      "valid": true,
+      "required": true,
+      "role": "pack"
+    },
+    "agentPack": {
+      "path": ".agent/context/agent-pack.json",
+      "valid": true,
+      "required": true,
+      "role": "tool-entry"
+    },
+    "reviewPack": {
+      "path": ".agent/context/review-pack.json",
+      "valid": true,
+      "required": false,
+      "role": "review"
+    },
+    "executionStateCompat": {
+      "path": ".agent/state/execution-state.json",
+      "valid": true,
+      "required": false,
+      "role": "runtime-compat"
+    },
+    "executionEventsCompat": {
+      "path": ".agent/state/execution-events.ndjson",
+      "valid": true,
+      "required": false,
+      "role": "runtime-compat"
+    }
+  },
+  "readFirst": [
+    ".agent/state/ready-substrate.json",
+    ".agent/context/agent-pack.json",
+    ".agent/state/execution-state.json",
+    ".agent/state/execution-events.ndjson",
+    ".agent/context/task-pack.json",
+    ".agent/context/review-context-pack.json",
+    ".agent/context/repo-map.json"
+  ],
+  "toolEntry": {
+    "path": ".agent/context/agent-pack.json",
+    "note": "External coding tools should start with agent-pack.json, then follow readFirst and packPointers."
+  },
+  "missingRequired": []
+}

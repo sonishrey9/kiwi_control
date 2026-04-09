@@ -10,6 +10,7 @@ import { buildRepoControlState } from "@shrey-junior/sj-core/core/ui-state.js";
 import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
 import { writeLatestTaskPacketSet, writeHandoffArtifacts, type HandoffRecord } from "@shrey-junior/sj-core/core/state.js";
 import { runAgentPack } from "../commands/agent-pack.js";
+import { runGraph } from "../commands/graph.js";
 import { repoRoot } from "./helpers/desktop-launch.js";
 
 test("agent-pack returns compact general, task, and review pack surfaces", async () => {
@@ -167,4 +168,30 @@ test("agent-pack returns compact general, task, and review pack surfaces", async
   assert.equal(controlState.kiwiControl.repoIntelligence.reviewContextPackPath, ".agent/context/review-context-pack.json");
   assert.equal(controlState.kiwiControl.readySubstrate.ready, true);
   assert.equal(controlState.kiwiControl.readySubstrate.toolEntry.path, ".agent/context/agent-pack.json");
+  assert.equal(controlState.kiwiControl.readySubstrate.graphAuthority.ready, true);
+
+  const graphLines: string[] = [];
+  const graphExitCode = await runGraph({
+    repoRoot: repoRootPath,
+    targetRoot: target,
+    action: "status",
+    json: true,
+    logger: {
+      info(message: string) {
+        graphLines.push(message);
+      },
+      warn() {},
+      error() {}
+    } as never
+  });
+  const graphPayload = JSON.parse(graphLines.join("\n")) as {
+    graph: { ready: boolean; graphRevision: number | null; graphAuthorityPath: string };
+    readySubstrate: { ready: boolean; graphAuthority: { ready: boolean } };
+  };
+  assert.equal(graphExitCode, 0);
+  assert.equal(graphPayload.graph.ready, true);
+  assert.equal(typeof graphPayload.graph.graphRevision, "number");
+  assert.match(graphPayload.graph.graphAuthorityPath, /runtime\.sqlite3$/);
+  assert.equal(graphPayload.readySubstrate.ready, true);
+  assert.equal(graphPayload.readySubstrate.graphAuthority.ready, true);
 });

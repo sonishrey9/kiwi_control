@@ -1,9 +1,9 @@
 {
   "artifactType": "kiwi-control/repo-map",
   "version": 1,
-  "generatedAt": "2026-04-09T15:55:32.089Z",
+  "generatedAt": "2026-04-09T17:47:14.459Z",
   "projectType": "node",
-  "summary": "Discovered 395 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
+  "summary": "Discovered 397 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
   "languages": [
     "docs",
     "javascript",
@@ -31,7 +31,7 @@
   "keyModules": [
     {
       "id": "packages/sj-cli",
-      "fileCount": 83,
+      "fileCount": 84,
       "entryPoints": [
         "packages/sj-cli/src/cli.ts",
         "packages/sj-cli/src/commands/commit-plan.ts",
@@ -79,7 +79,7 @@
     },
     {
       "id": "packages/sj-core",
-      "fileCount": 73,
+      "fileCount": 74,
       "entryPoints": [
         "packages/sj-core/src/core/bootstrap.ts",
         "packages/sj-core/src/core/discovery.ts",
@@ -155,7 +155,7 @@
     {
       "file": "packages/sj-core/src/utils/fs.ts",
       "moduleGroup": "packages/sj-core",
-      "importedByCount": 45
+      "importedByCount": 46
     },
     {
       "file": "packages/sj-core/src/core/config.ts",
@@ -203,7 +203,7 @@
       "importedByCount": 8
     }
   ],
-  "filesDiscovered": 395,
-  "importableFiles": 200,
-  "indexedFiles": 200
+  "filesDiscovered": 397,
+  "importableFiles": 202,
+  "indexedFiles": 202
 }

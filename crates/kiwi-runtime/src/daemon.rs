@@ -1,10 +1,11 @@
 use crate::db;
 use crate::models::{
     ListExecutionEventsQuery, MaterializeDerivedOutputsRequest, OpenTargetRequest,
-    PersistDerivedOutputRequest, RefreshDerivedOutputsRequest, RuntimeDaemonMetadata,
-    RuntimeIdentity, TransitionExecutionStateRequest,
+    PersistDerivedOutputRequest, PersistRepoGraphRequest, RefreshDerivedOutputsRequest,
+    RepoGraphQuery, RuntimeDaemonMetadata, RuntimeIdentity, TransitionExecutionStateRequest,
 };
 use anyhow::{Context, Result};
+use axum::extract::DefaultBodyLimit;
 use axum::extract::Query;
 use axum::http::StatusCode;
 use axum::routing::{get, post};
@@ -81,7 +82,20 @@ pub async fn run_daemon(
         .route("/transition-execution-state", post(transition_execution_state))
         .route("/materialize-derived-outputs", post(materialize_outputs))
         .route("/persist-derived-output", post(persist_derived_output))
+        .route("/repo-graph", get(repo_graph))
+        .route("/repo-graph", post(persist_repo_graph))
+        .route("/repo-graph/build", post(persist_repo_graph))
+        .route("/repo-graph-status", get(repo_graph_status))
+        .route("/repo-graph/status", get(repo_graph_status))
+        .route("/repo-graph/revision", get(repo_graph_status))
+        .route("/repo-graph/node", get(repo_graph_node))
+        .route("/repo-graph/file", get(repo_graph_file))
+        .route("/repo-graph/module", get(repo_graph_module))
+        .route("/repo-graph/symbol", get(repo_graph_symbol))
+        .route("/repo-graph/neighbors", get(repo_graph_neighbors))
+        .route("/repo-graph/impact", get(repo_graph_impact))
         .route("/refresh-derived-outputs", post(refresh_derived_outputs))
+        .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
         .with_state(AppState { identity });
 
     axum::serve(listener, app)
@@ -150,6 +164,62 @@ async fn refresh_derived_outputs(
 ) -> HttpResult<serde_json::Value> {
     db::refresh_derived_outputs(&request)
         .map(|snapshot| Json(json!(snapshot)))
+        .map_err(internal_error)
+}
+
+async fn persist_repo_graph(
+    Json(request): Json<PersistRepoGraphRequest>,
+) -> HttpResult<serde_json::Value> {
+    db::persist_repo_graph(&request)
+        .map(|snapshot| Json(json!(snapshot)))
+        .map_err(internal_error)
+}
+
+async fn repo_graph(Query(query): Query<SnapshotQuery>) -> HttpResult<serde_json::Value> {
+    db::get_repo_graph(&query.target_root)
+        .map(|snapshot| Json(json!(snapshot)))
+        .map_err(internal_error)
+}
+
+async fn repo_graph_status(Query(query): Query<SnapshotQuery>) -> HttpResult<serde_json::Value> {
+    db::get_repo_graph_status(&query.target_root)
+        .map(|status| Json(json!(status)))
+        .map_err(internal_error)
+}
+
+async fn repo_graph_node(Query(query): Query<RepoGraphQuery>) -> HttpResult<serde_json::Value> {
+    db::query_repo_graph_node(&query)
+        .map(|payload| Json(json!(payload)))
+        .map_err(internal_error)
+}
+
+async fn repo_graph_file(Query(query): Query<RepoGraphQuery>) -> HttpResult<serde_json::Value> {
+    db::query_repo_graph_file(&query)
+        .map(|payload| Json(json!(payload)))
+        .map_err(internal_error)
+}
+
+async fn repo_graph_module(Query(query): Query<RepoGraphQuery>) -> HttpResult<serde_json::Value> {
+    db::query_repo_graph_module(&query)
+        .map(|payload| Json(json!(payload)))
+        .map_err(internal_error)
+}
+
+async fn repo_graph_symbol(Query(query): Query<RepoGraphQuery>) -> HttpResult<serde_json::Value> {
+    db::query_repo_graph_symbol(&query)
+        .map(|payload| Json(json!(payload)))
+        .map_err(internal_error)
+}
+
+async fn repo_graph_neighbors(Query(query): Query<RepoGraphQuery>) -> HttpResult<serde_json::Value> {
+    db::query_repo_graph_neighbors(&query)
+        .map(|payload| Json(json!(payload)))
+        .map_err(internal_error)
+}
+
+async fn repo_graph_impact(Query(query): Query<RepoGraphQuery>) -> HttpResult<serde_json::Value> {
+    db::query_repo_graph_impact(&query)
+        .map(|payload| Json(json!(payload)))
         .map_err(internal_error)
 }
 

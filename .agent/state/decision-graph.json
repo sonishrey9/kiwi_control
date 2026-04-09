@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/decision-graph",
   "version": 1,
-  "generatedAt": "2026-04-09T15:55:32.089Z",
+  "generatedAt": "2026-04-09T17:47:14.459Z",
   "currentTask": "update README docs",
   "nodes": [
     {
@@ -104,11 +104,11 @@
       "task": "update README docs"
     },
     {
-      "id": "execution-state:14",
+      "id": "execution-state:16",
       "kind": "execution-event",
       "label": "blocked",
       "summary": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
-      "timestamp": "2026-04-09T15:46:40Z",
+      "timestamp": "2026-04-09T17:45:54Z",
       "status": "blocked",
       "task": "update README docs"
     },
@@ -849,107 +849,107 @@
       "kind": "references-task"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "file:.agent/context-authority.json",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "file:.agent/context/context-tree.json",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "file:.agent/context/generated-instructions.md",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "file:.agent/context/repo-map.json",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "file:.agent/context/review-pack.json",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "file:.agent/eval/eval-log.json",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "file:.agent/state/context-index.json",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "file:.agent/state/context-selection.json",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "file:.agent/state/context-tree.json",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "file:.agent/state/decision-graph.json",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "file:.agent/state/decision-logic.json",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "file:.agent/state/dependency-graph.json",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "file:.agent/state/execution-events.ndjson",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "file:.agent/state/execution-plan.json",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "file:.agent/state/execution-state.json",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "file:.agent/state/token-usage.json",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "module:.agent",
       "kind": "touches-module"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "module:.agent/context",
       "kind": "touches-module"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "module:.agent/eval",
       "kind": "touches-module"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "module:.agent/state",
       "kind": "touches-module"
     },
     {
-      "from": "execution-state:14",
+      "from": "execution-state:16",
       "to": "task:update README docs",
       "kind": "references-task"
     },
@@ -1111,7 +1111,7 @@
   ],
   "importantDecisions": [
     {
-      "id": "execution-state:14",
+      "id": "execution-state:16",
       "kind": "execution-event",
       "label": "blocked",
       "summary": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",

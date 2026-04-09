@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/context-tree",
   "version": 1,
-  "timestamp": "2026-04-09T15:55:32.089Z",
+  "timestamp": "2026-04-09T17:47:14.459Z",
   "targetRoot": "/Volumes/shrey ssd/shrey-junior",
   "projectType": "node",
   "languages": [
@@ -40,7 +40,7 @@
     {
       "file": "packages/sj-core/src/utils/fs.ts",
       "moduleGroup": "packages/sj-core",
-      "importedByCount": 45
+      "importedByCount": 46
     },
     {
       "file": "packages/sj-core/src/core/config.ts",
@@ -175,7 +175,7 @@
     },
     {
       "id": "packages/sj-cli",
-      "fileCount": 83,
+      "fileCount": 84,
       "files": [
         "packages/sj-cli/src/cli.ts",
         "packages/sj-cli/src/commands/agent-pack.ts",
@@ -193,6 +193,7 @@
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/fanout.ts",
         "packages/sj-cli/src/commands/graph-query.ts",
+        "packages/sj-cli/src/commands/graph.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
@@ -276,6 +277,7 @@
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/fanout.ts",
         "packages/sj-cli/src/commands/graph-query.ts",
+        "packages/sj-cli/src/commands/graph.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
@@ -381,7 +383,7 @@
     },
     {
       "id": "packages/sj-core",
-      "fileCount": 73,
+      "fileCount": 74,
       "files": [
         "packages/sj-core/src/adapters/claude.ts",
         "packages/sj-core/src/adapters/codex.ts",
@@ -419,6 +421,7 @@
         "packages/sj-core/src/core/product.ts",
         "packages/sj-core/src/core/profiles.ts",
         "packages/sj-core/src/core/project-detect.ts",
+        "packages/sj-core/src/core/ready-substrate.ts",
         "packages/sj-core/src/core/recommendations.ts",
         "packages/sj-core/src/core/reconcile.ts",
         "packages/sj-core/src/core/release.ts",
@@ -486,6 +489,7 @@
         "packages/sj-core/src/core/product.ts",
         "packages/sj-core/src/core/profiles.ts",
         "packages/sj-core/src/core/project-detect.ts",
+        "packages/sj-core/src/core/ready-substrate.ts",
         "packages/sj-core/src/core/recommendations.ts",
         "packages/sj-core/src/core/reconcile.ts",
         "packages/sj-core/src/core/repo-intelligence.ts",
@@ -552,6 +556,7 @@
         "packages/sj-core/src/core/prepared-scope.ts",
         "packages/sj-core/src/core/profiles.ts",
         "packages/sj-core/src/core/project-detect.ts",
+        "packages/sj-core/src/core/ready-substrate.ts",
         "packages/sj-core/src/core/recommendations.ts",
         "packages/sj-core/src/core/reconcile.ts",
         "packages/sj-core/src/core/release.ts",
@@ -1902,6 +1907,12 @@
                       "children": []
                     },
                     {
+                      "name": "graph.ts",
+                      "path": "packages/sj-cli/src/commands/graph.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
                       "name": "guide.ts",
                       "path": "packages/sj-cli/src/commands/guide.ts",
                       "kind": "file",
@@ -2589,6 +2600,12 @@
                     {
                       "name": "project-detect.ts",
                       "path": "packages/sj-core/src/core/project-detect.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "ready-substrate.ts",
+                      "path": "packages/sj-core/src/core/ready-substrate.ts",
                       "kind": "file",
                       "children": []
                     },
@@ -3439,6 +3456,6 @@
     "selectionDepth": 3,
     "explainDepth": 5
   },
-  "filesDiscovered": 395,
-  "importableFiles": 200
+  "filesDiscovered": 397,
+  "importableFiles": 202
 }

@@ -1,85 +1,46 @@
 {
   "artifactType": "kiwi-control/review-pack",
   "version": 1,
-  "generatedAt": "2026-04-09T15:55:33.189Z",
-  "summary": "Review packages/sj-core first across 18 changed file(s), 12 ranked file target(s), and 3 ranked module target(s).",
+  "generatedAt": "2026-04-09T17:45:54.120Z",
+  "summary": "Review packages/sj-cli first across 13 changed file(s), 12 ranked file target(s), and 2 ranked module target(s).",
   "source": "working-tree",
   "baseRef": null,
   "task": null,
   "changedFiles": [
-    "apps/sj-ui/src-tauri/src/main.rs",
-    "apps/sj-ui/src-tauri/src/state_watch.rs",
-    "apps/sj-ui/src/main.ts",
-    "apps/sj-ui/src/ui/TopBar.ts",
-    "apps/sj-ui/src/ui/command-help.ts",
-    "apps/sj-ui/src/ui/contracts.ts",
+    "crates/kiwi-runtime/src/daemon.rs",
+    "crates/kiwi-runtime/src/db.rs",
+    "crates/kiwi-runtime/src/models.rs",
     "packages/sj-cli/src/cli.ts",
-    "packages/sj-cli/src/commands/ui.ts",
+    "packages/sj-cli/src/commands/graph-query.ts",
+    "packages/sj-cli/src/commands/guide.ts",
+    "packages/sj-cli/src/tests/agent-pack.test.ts",
     "packages/sj-cli/src/tests/cli-ux.test.ts",
-    "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
     "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-    "packages/sj-core/src/core/context.ts",
-    "packages/sj-core/src/core/execution-state.ts",
+    "packages/sj-core/src/core/ready-substrate.ts",
     "packages/sj-core/src/core/repo-intelligence.ts",
-    "packages/sj-core/src/core/ui-state.ts",
-    "packages/sj-cli/src/commands/review.ts",
-    "packages/sj-cli/src/tests/review.test.ts",
-    "packages/sj-core/src/core/review-pack.ts"
+    "packages/sj-core/src/runtime/client.ts",
+    "packages/sj-cli/src/commands/graph.ts"
   ],
   "rankedFiles": [
     {
-      "file": "apps/sj-ui/src/main.ts",
-      "moduleGroup": "apps/sj-ui",
-      "score": 271,
+      "file": "packages/sj-cli/src/cli.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 165,
       "reasons": [
         "call relationship",
         "changed file",
         "changed-area cluster",
         "entry point",
-        "failure-linked",
         "history hotspot",
-        "repeated decision attention",
         "repeated touches"
       ],
-      "touches": 16,
-      "failures": 2
-    },
-    {
-      "file": "apps/sj-ui/src/ui/contracts.ts",
-      "moduleGroup": "apps/sj-ui",
-      "score": 213,
-      "reasons": [
-        "changed file",
-        "changed-area cluster",
-        "failure-linked",
-        "forward dependency",
-        "history hotspot",
-        "repeated decision attention",
-        "repeated touches",
-        "reverse dependency hub"
-      ],
-      "touches": 12,
-      "failures": 2
-    },
-    {
-      "file": "packages/sj-core/src/core/ui-state.ts",
-      "moduleGroup": "packages/sj-core",
-      "score": 184,
-      "reasons": [
-        "call relationship",
-        "changed file",
-        "changed-area cluster",
-        "history hotspot",
-        "repeated touches",
-        "reverse dependency hub"
-      ],
-      "touches": 13,
+      "touches": 8,
       "failures": 0
     },
     {
-      "file": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+      "file": "packages/sj-cli/src/tests/cli-ux.test.ts",
       "moduleGroup": "packages/sj-cli",
-      "score": 168,
+      "score": 160,
       "reasons": [
         "call relationship",
         "changed file",
@@ -88,41 +49,56 @@
         "repeated touches",
         "reverse dependent"
       ],
-      "touches": 11,
+      "touches": 10,
       "failures": 0
     },
     {
-      "file": "packages/sj-cli/src/cli.ts",
+      "file": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
       "moduleGroup": "packages/sj-cli",
-      "score": 157,
+      "score": 156,
+      "reasons": [
+        "changed file",
+        "changed-area cluster",
+        "history hotspot",
+        "repeated touches"
+      ],
+      "touches": 12,
+      "failures": 0
+    },
+    {
+      "file": "packages/sj-core/src/core/ui-state.ts",
+      "moduleGroup": "packages/sj-core",
+      "score": 143,
       "reasons": [
         "call relationship",
-        "changed file",
         "changed-area cluster",
-        "entry point",
+        "dependency chain",
         "history hotspot",
-        "repeated touches"
+        "repeated touches",
+        "reverse dependency hub"
       ],
-      "touches": 7,
-      "failures": 0
-    },
-    {
-      "file": "packages/sj-cli/src/tests/cli-ux.test.ts",
-      "moduleGroup": "packages/sj-cli",
-      "score": 132,
-      "reasons": [
-        "changed file",
-        "changed-area cluster",
-        "history hotspot",
-        "repeated touches"
-      ],
-      "touches": 9,
+      "touches": 13,
       "failures": 0
     },
     {
       "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core",
       "score": 130,
+      "reasons": [
+        "call relationship",
+        "changed file",
+        "changed-area cluster",
+        "history hotspot",
+        "repeated touches",
+        "reverse dependency hub"
+      ],
+      "touches": 6,
+      "failures": 0
+    },
+    {
+      "file": "packages/sj-core/src/runtime/client.ts",
+      "moduleGroup": "packages/sj-core",
+      "score": 121,
       "reasons": [
         "call relationship",
         "changed file",
@@ -135,58 +111,33 @@
       "failures": 0
     },
     {
-      "file": "packages/sj-cli/src/commands/ui.ts",
-      "moduleGroup": "packages/sj-cli",
-      "score": 128,
+      "file": "packages/sj-core/src/core/execution-state.ts",
+      "moduleGroup": "packages/sj-core",
+      "score": 96,
       "reasons": [
         "call relationship",
-        "changed file",
         "changed-area cluster",
+        "dependency chain",
+        "forward dependency",
+        "history hotspot",
+        "repeated touches"
+      ],
+      "touches": 5,
+      "failures": 0
+    },
+    {
+      "file": "packages/sj-cli/src/commands/ui.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 86,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
         "forward dependency",
         "history hotspot",
         "repeated touches"
       ],
       "touches": 6,
-      "failures": 0
-    },
-    {
-      "file": "apps/sj-ui/src-tauri/src/main.rs",
-      "moduleGroup": "apps/sj-ui",
-      "score": 114,
-      "reasons": [
-        "failure-linked",
-        "history hotspot",
-        "repeated decision attention",
-        "repeated touches"
-      ],
-      "touches": 9,
-      "failures": 2
-    },
-    {
-      "file": "packages/sj-core/src/core/context.ts",
-      "moduleGroup": "packages/sj-core",
-      "score": 91,
-      "reasons": [
-        "call relationship",
-        "changed file",
-        "changed-area cluster",
-        "dependency hub",
-        "forward dependency"
-      ],
-      "touches": 0,
-      "failures": 0
-    },
-    {
-      "file": "apps/sj-ui/src/ui/TopBar.ts",
-      "moduleGroup": "apps/sj-ui",
-      "score": 90,
-      "reasons": [
-        "call relationship",
-        "changed file",
-        "changed-area cluster",
-        "forward dependency"
-      ],
-      "touches": 0,
       "failures": 0
     },
     {
@@ -203,30 +154,53 @@
       ],
       "touches": 6,
       "failures": 0
+    },
+    {
+      "file": "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "moduleGroup": "packages/sj-cli",
+      "score": 80,
+      "reasons": [
+        "call relationship",
+        "changed file",
+        "changed-area cluster",
+        "reverse dependent"
+      ],
+      "touches": 0,
+      "failures": 0
+    },
+    {
+      "file": "packages/sj-core/src/core/ready-substrate.ts",
+      "moduleGroup": "packages/sj-core",
+      "score": 80,
+      "reasons": [
+        "call relationship",
+        "changed file",
+        "changed-area cluster",
+        "reverse dependency hub"
+      ],
+      "touches": 0,
+      "failures": 0
+    },
+    {
+      "file": "packages/sj-core/src/core/bootstrap.ts",
+      "moduleGroup": "packages/sj-core",
+      "score": 79,
+      "reasons": [
+        "call relationship",
+        "changed-area cluster",
+        "dependency chain",
+        "history hotspot",
+        "repeated touches",
+        "reverse dependent"
+      ],
+      "touches": 5,
+      "failures": 0
     }
   ],
   "rankedModules": [
     {
-      "id": "packages/sj-core",
-      "score": 5452,
-      "reasons": [
-        "active change cluster",
-        "repeated touches"
-      ],
-      "files": [
-        "packages/sj-core/package.json",
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/context-selector.ts",
-        "packages/sj-core/src/core/context-tree.ts",
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/core/execution-engine.ts",
-        "packages/sj-core/src/core/execution-state.ts",
-        "packages/sj-core/src/core/executor.ts"
-      ]
-    },
-    {
       "id": "packages/sj-cli",
-      "score": 5449,
+      "score": 5437,
       "reasons": [
         "active change cluster",
         "contains entry point",
@@ -244,39 +218,51 @@
       ]
     },
     {
-      "id": "apps/sj-ui",
-      "score": 2977,
+      "id": "packages/sj-core",
+      "score": 3149,
       "reasons": [
         "active change cluster",
-        "contains entry point",
-        "failure-linked",
         "repeated touches"
       ],
       "files": [
-        "apps/sj-ui/package.json",
-        "apps/sj-ui/src-tauri/Cargo.lock",
-        "apps/sj-ui/src-tauri/Cargo.toml",
-        "apps/sj-ui/src-tauri/gen/schemas/acl-manifests.json",
-        "apps/sj-ui/src-tauri/gen/schemas/desktop-schema.json",
-        "apps/sj-ui/src-tauri/gen/schemas/macOS-schema.json",
-        "apps/sj-ui/src-tauri/src/main.rs",
-        "apps/sj-ui/src-tauri/src/state_watch.rs"
+        "packages/sj-core/package.json",
+        "packages/sj-core/src/core/bootstrap.ts",
+        "packages/sj-core/src/core/context-selector.ts",
+        "packages/sj-core/src/core/context-tree.ts",
+        "packages/sj-core/src/core/context.ts",
+        "packages/sj-core/src/core/execution-engine.ts",
+        "packages/sj-core/src/core/execution-state.ts",
+        "packages/sj-core/src/core/executor.ts"
       ]
     }
   ],
   "impactChains": [
     {
-      "file": "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
+      "file": "packages/sj-core/src/core/workflow-engine.ts",
       "chain": [
-        "packages/sj-cli/src/commands/ui.ts",
-        "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
+        "packages/sj-core/src/runtime/client.ts",
+        "packages/sj-core/src/core/workflow-engine.ts"
       ]
     },
     {
-      "file": "packages/sj-core/src/core/reconcile.ts",
+      "file": "packages/sj-core/src/core/execution-state.ts",
       "chain": [
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/core/reconcile.ts"
+        "packages/sj-core/src/runtime/client.ts",
+        "packages/sj-core/src/core/execution-state.ts"
+      ]
+    },
+    {
+      "file": "packages/sj-core/src/core/next-action.ts",
+      "chain": [
+        "packages/sj-core/src/runtime/client.ts",
+        "packages/sj-core/src/core/next-action.ts"
+      ]
+    },
+    {
+      "file": "packages/sj-core/src/core/runtime-lifecycle.ts",
+      "chain": [
+        "packages/sj-core/src/runtime/client.ts",
+        "packages/sj-core/src/core/runtime-lifecycle.ts"
       ]
     },
     {
@@ -287,181 +273,106 @@
       ]
     },
     {
-      "file": "packages/sj-core/src/core/prepared-scope.ts",
+      "file": "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
       "chain": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/prepared-scope.ts"
+        "packages/sj-cli/src/tests/agent-pack.test.ts",
+        "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
       ]
     },
     {
-      "file": "packages/sj-core/src/core/validator.ts",
-      "chain": [
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/core/validator.ts"
-      ]
-    },
-    {
-      "file": "apps/sj-ui/src/ui/OnboardingPanel.ts",
-      "chain": [
-        "apps/sj-ui/src/ui/contracts.ts",
-        "apps/sj-ui/src/ui/OnboardingPanel.ts"
-      ]
-    },
-    {
-      "file": "packages/sj-core/src/core/next-action.ts",
+      "file": "packages/sj-core/src/core/state.ts",
       "chain": [
         "packages/sj-core/src/core/repo-intelligence.ts",
-        "packages/sj-core/src/core/next-action.ts"
+        "packages/sj-core/src/core/state.ts"
       ]
     },
     {
-      "file": "apps/sj-ui/src/ui/ContextTreePanel.ts",
+      "file": "packages/sj-core/src/core/task-intent.ts",
       "chain": [
-        "apps/sj-ui/src/ui/contracts.ts",
-        "apps/sj-ui/src/ui/ContextTreePanel.ts"
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/core/task-intent.ts"
       ]
     },
     {
-      "file": "apps/sj-ui/src/ui/ExecutionPlanPanel.ts",
+      "file": "packages/sj-core/src/core/ui-state.ts",
       "chain": [
-        "apps/sj-ui/src/ui/contracts.ts",
-        "apps/sj-ui/src/ui/ExecutionPlanPanel.ts"
+        "packages/sj-core/src/core/ready-substrate.ts",
+        "packages/sj-core/src/core/ui-state.ts"
       ]
     },
     {
-      "file": "apps/sj-ui/src/ui/GraphPanel.ts",
+      "file": "packages/sj-core/src/utils/fs.ts",
       "chain": [
-        "apps/sj-ui/src/ui/contracts.ts",
-        "apps/sj-ui/src/ui/GraphPanel.ts"
+        "packages/sj-core/src/core/ready-substrate.ts",
+        "packages/sj-core/src/utils/fs.ts"
       ]
     },
     {
-      "file": "apps/sj-ui/src/ui/InspectorPanel.ts",
+      "file": "packages/sj-cli/src/tests/graph-query.test.ts",
       "chain": [
-        "apps/sj-ui/src/ui/contracts.ts",
-        "apps/sj-ui/src/ui/InspectorPanel.ts"
+        "packages/sj-cli/src/commands/graph-query.ts",
+        "packages/sj-cli/src/tests/graph-query.test.ts"
       ]
     },
     {
-      "file": "apps/sj-ui/src/ui/MachinePanel.ts",
+      "file": "packages/sj-core/src/core/bootstrap.ts",
       "chain": [
-        "apps/sj-ui/src/ui/contracts.ts",
-        "apps/sj-ui/src/ui/MachinePanel.ts"
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/core/bootstrap.ts"
       ]
     }
   ],
   "repeatedTouchAreas": [
     {
       "kind": "file",
-      "target": "apps/sj-ui/src/main.ts",
-      "touches": 16,
-      "commits": 16
-    },
-    {
-      "kind": "file",
-      "target": "packages/sj-core/src/core/ui-state.ts",
-      "touches": 13,
-      "commits": 13
-    },
-    {
-      "kind": "file",
-      "target": "apps/sj-ui/src/ui/contracts.ts",
+      "target": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
       "touches": 12,
       "commits": 12
     },
     {
       "kind": "file",
-      "target": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-      "touches": 11,
-      "commits": 11
+      "target": "packages/sj-cli/src/tests/cli-ux.test.ts",
+      "touches": 10,
+      "commits": 10
+    },
+    {
+      "kind": "file",
+      "target": "packages/sj-cli/src/cli.ts",
+      "touches": 8,
+      "commits": 8
+    },
+    {
+      "kind": "file",
+      "target": "packages/sj-core/src/core/repo-intelligence.ts",
+      "touches": 6,
+      "commits": 6
     },
     {
       "kind": "module",
       "target": "packages/sj-cli",
-      "touches": 122,
+      "touches": 134,
       "commits": 26
     },
     {
       "kind": "module",
-      "target": "apps/sj-ui",
-      "touches": 95,
-      "commits": 20
-    },
-    {
-      "kind": "module",
       "target": "packages/sj-core",
-      "touches": 73,
+      "touches": 76,
       "commits": 22
     }
   ],
-  "failureLinkedAreas": [
-    {
-      "kind": "file",
-      "target": "apps/sj-ui/src/main.ts",
-      "reasons": [
-        "call relationship",
-        "changed file",
-        "changed-area cluster",
-        "entry point",
-        "failure-linked",
-        "history hotspot",
-        "repeated decision attention",
-        "repeated touches"
-      ]
-    },
-    {
-      "kind": "file",
-      "target": "apps/sj-ui/src/ui/contracts.ts",
-      "reasons": [
-        "changed file",
-        "changed-area cluster",
-        "failure-linked",
-        "forward dependency",
-        "history hotspot",
-        "repeated decision attention",
-        "repeated touches",
-        "reverse dependency hub"
-      ]
-    },
-    {
-      "kind": "file",
-      "target": "apps/sj-ui/src-tauri/src/main.rs",
-      "reasons": [
-        "failure-linked",
-        "history hotspot",
-        "repeated decision attention",
-        "repeated touches"
-      ]
-    },
-    {
-      "kind": "module",
-      "target": "apps/sj-ui",
-      "reasons": [
-        "active change cluster",
-        "contains entry point",
-        "failure-linked",
-        "repeated touches"
-      ]
-    }
-  ],
+  "failureLinkedAreas": [],
   "likelyMissingValidation": [
-    "No changed test detected alongside apps/sj-ui/src-tauri/src/main.rs.",
-    "No changed test detected alongside apps/sj-ui/src-tauri/src/state_watch.rs.",
-    "No changed test detected alongside apps/sj-ui/src/main.ts.",
-    "No changed test detected alongside apps/sj-ui/src/ui/TopBar.ts.",
-    "No changed test detected alongside apps/sj-ui/src/ui/command-help.ts.",
-    "No changed test detected alongside apps/sj-ui/src/ui/contracts.ts.",
-    "No changed test detected alongside packages/sj-core/src/core/context.ts.",
-    "No changed test detected alongside packages/sj-core/src/core/execution-state.ts.",
+    "No changed test detected alongside crates/kiwi-runtime/src/daemon.rs.",
+    "No changed test detected alongside crates/kiwi-runtime/src/db.rs.",
+    "No changed test detected alongside crates/kiwi-runtime/src/models.rs.",
+    "No changed test detected alongside packages/sj-cli/src/commands/graph-query.ts.",
+    "No changed test detected alongside packages/sj-cli/src/commands/guide.ts.",
+    "No changed test detected alongside packages/sj-core/src/core/ready-substrate.ts.",
     "No changed test detected alongside packages/sj-core/src/core/repo-intelligence.ts.",
-    "No changed test detected alongside packages/sj-core/src/core/ui-state.ts."
+    "No changed test detected alongside packages/sj-core/src/runtime/client.ts.",
+    "No changed test detected alongside packages/sj-cli/src/commands/graph.ts."
   ],
   "reviewOrder": [
-    {
-      "kind": "module",
-      "target": "packages/sj-core",
-      "reason": "active change cluster"
-    },
     {
       "kind": "module",
       "target": "packages/sj-cli",
@@ -469,28 +380,8 @@
     },
     {
       "kind": "module",
-      "target": "apps/sj-ui",
+      "target": "packages/sj-core",
       "reason": "active change cluster"
-    },
-    {
-      "kind": "file",
-      "target": "apps/sj-ui/src/main.ts",
-      "reason": "call relationship"
-    },
-    {
-      "kind": "file",
-      "target": "apps/sj-ui/src/ui/contracts.ts",
-      "reason": "changed file"
-    },
-    {
-      "kind": "file",
-      "target": "packages/sj-core/src/core/ui-state.ts",
-      "reason": "call relationship"
-    },
-    {
-      "kind": "file",
-      "target": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-      "reason": "call relationship"
     },
     {
       "kind": "file",
@@ -500,11 +391,31 @@
     {
       "kind": "file",
       "target": "packages/sj-cli/src/tests/cli-ux.test.ts",
+      "reason": "call relationship"
+    },
+    {
+      "kind": "file",
+      "target": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
       "reason": "changed file"
     },
     {
       "kind": "file",
+      "target": "packages/sj-core/src/core/ui-state.ts",
+      "reason": "call relationship"
+    },
+    {
+      "kind": "file",
       "target": "packages/sj-core/src/core/repo-intelligence.ts",
+      "reason": "call relationship"
+    },
+    {
+      "kind": "file",
+      "target": "packages/sj-core/src/runtime/client.ts",
+      "reason": "call relationship"
+    },
+    {
+      "kind": "file",
+      "target": "packages/sj-core/src/core/execution-state.ts",
       "reason": "call relationship"
     },
     {
@@ -514,32 +425,37 @@
     },
     {
       "kind": "file",
-      "target": "apps/sj-ui/src-tauri/src/main.rs",
-      "reason": "failure-linked"
-    },
-    {
-      "kind": "file",
-      "target": "packages/sj-core/src/core/context.ts",
-      "reason": "call relationship"
-    },
-    {
-      "kind": "file",
-      "target": "apps/sj-ui/src/ui/TopBar.ts",
-      "reason": "call relationship"
-    },
-    {
-      "kind": "file",
       "target": "packages/sj-cli/src/commands/doctor.ts",
+      "reason": "call relationship"
+    },
+    {
+      "kind": "file",
+      "target": "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "reason": "call relationship"
+    },
+    {
+      "kind": "file",
+      "target": "packages/sj-core/src/core/ready-substrate.ts",
+      "reason": "call relationship"
+    },
+    {
+      "kind": "file",
+      "target": "packages/sj-core/src/core/bootstrap.ts",
       "reason": "call relationship"
     },
     {
       "kind": "decision",
       "target": "blocked",
       "reason": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+    },
+    {
+      "kind": "decision",
+      "target": "run-auto-blocked",
+      "reason": "Touched files do not satisfy the task-category goal heuristic."
     }
   ],
   "reviewerHandoff": {
-    "summary": "Review apps/sj-ui/src/main.ts first, then the highest-risk changed modules.",
+    "summary": "Review packages/sj-cli/src/cli.ts first, then the highest-risk changed modules.",
     "readFirst": [
       ".agent/context/review-pack.json",
       ".agent/state/review-graph.json",

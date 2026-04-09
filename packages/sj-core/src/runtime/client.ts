@@ -169,8 +169,99 @@ export interface RuntimeProof {
   derivedFreshness: RuntimeDerivedOutputStatus[];
 }
 
+export interface RepoGraphCompatibilityArtifacts {
+  repoMap?: string | null;
+  symbolIndex?: string | null;
+  dependencyGraph?: string | null;
+  impactMap?: string | null;
+  decisionGraph?: string | null;
+  historyGraph?: string | null;
+  reviewGraph?: string | null;
+}
+
+export interface RepoGraphStatus {
+  targetRoot: string;
+  ready: boolean;
+  status: string;
+  freshness: string;
+  graphRevision: number | null;
+  sourceRevision: number | null;
+  sourceRuntimeRevision: number | null;
+  generatedAt: string | null;
+  sourceKind: string | null;
+  sourceDigest: string | null;
+  graphAuthorityPath: string;
+  graphAuthorityKind: string;
+  nodeCount: number;
+  edgeCount: number;
+  moduleCount: number;
+  symbolCount: number;
+  artifactPath: string | null;
+  compatibilityHash: string | null;
+  compatibilityExportReady: boolean;
+  compatibilityInSync: boolean;
+  compatibilityArtifacts: RepoGraphCompatibilityArtifacts | null;
+}
+
+export interface RepoGraphSnapshot<T = unknown> {
+  status: RepoGraphStatus;
+  graph?: T | null;
+  nodes?: RepoGraphNode[];
+  edges?: RepoGraphEdge[];
+  modules?: RepoGraphModule[];
+}
+
+export interface RepoGraphNode {
+  nodeId: string;
+  nodeKind: string;
+  path: string | null;
+  moduleId: string | null;
+  symbol: string | null;
+  displayLabel: string;
+  language: string | null;
+  attributes: unknown;
+}
+
+export interface RepoGraphEdge {
+  edgeId: string;
+  fromNodeId: string;
+  toNodeId: string;
+  edgeKind: string;
+  weight: number | null;
+  evidence: unknown;
+}
+
+export interface RepoGraphModule {
+  moduleId: string;
+  displayLabel: string;
+  summary: string | null;
+  attributes: unknown;
+}
+
+export interface RepoGraphNodeResult {
+  status: RepoGraphStatus;
+  node: RepoGraphNode | null;
+  matches: RepoGraphNode[];
+  incoming: RepoGraphEdge[];
+  outgoing: RepoGraphEdge[];
+}
+
+export interface PersistRuntimeRepoGraphRequest {
+  targetRoot: string;
+  sourceKind: string;
+  summary?: string | null;
+  sourceRevision?: number | null;
+  graph?: unknown;
+  artifactPath?: string | null;
+  compatibilityHash?: string | null;
+  compatibilityArtifacts: RepoGraphCompatibilityArtifacts;
+  nodes: RepoGraphNode[];
+  edges: RepoGraphEdge[];
+  modules: RepoGraphModule[];
+}
+
 const RUNTIME_METADATA_FILE = "daemon.json";
-const RUNTIME_HEALTH_TIMEOUT_MS = 4_000;
+const RUNTIME_HEALTH_TIMEOUT_MS = 20_000;
 const RUNTIME_START_TIMEOUT_MS = 20_000;
 const RUNTIME_START_POLL_MS = 200;
 
@@ -234,6 +325,38 @@ export async function refreshRuntimeDerivedOutputs(
     method: "POST",
     body: JSON.stringify(request)
   });
+}
+
+export async function persistRuntimeRepoGraph<T = unknown>(
+  request: PersistRuntimeRepoGraphRequest
+): Promise<RepoGraphSnapshot<T>> {
+  return runtimeRequest<RepoGraphSnapshot<T>>("/repo-graph", {
+    method: "POST",
+    body: JSON.stringify(request)
+  });
+}
+
+export async function getRuntimeRepoGraph<T = unknown>(
+  targetRoot: string
+): Promise<RepoGraphSnapshot<T>> {
+  return runtimeRequest<RepoGraphSnapshot<T>>(`/repo-graph?targetRoot=${encodeURIComponent(path.resolve(targetRoot))}`);
+}
+
+export async function getRuntimeRepoGraphStatus(targetRoot: string): Promise<RepoGraphStatus> {
+  return runtimeRequest<RepoGraphStatus>(`/repo-graph-status?targetRoot=${encodeURIComponent(path.resolve(targetRoot))}`);
+}
+
+export async function queryRuntimeRepoGraph(
+  targetRoot: string,
+  kind: "node" | "file" | "module" | "symbol" | "neighbors" | "impact",
+  query: { nodeId?: string; path?: string; moduleId?: string; symbol?: string }
+): Promise<RepoGraphNodeResult> {
+  const search = new URLSearchParams({ targetRoot: path.resolve(targetRoot) });
+  if (query.nodeId) search.set("nodeId", query.nodeId);
+  if (query.path) search.set("path", query.path);
+  if (query.moduleId) search.set("moduleId", query.moduleId);
+  if (query.symbol) search.set("symbol", query.symbol);
+  return runtimeRequest<RepoGraphNodeResult>(`/repo-graph/${kind}?${search.toString()}`);
 }
 
 export async function ensureRuntimeDaemon(): Promise<RuntimeDaemonMetadata> {

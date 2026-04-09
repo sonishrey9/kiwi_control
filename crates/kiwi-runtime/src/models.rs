@@ -245,6 +245,123 @@ pub struct RefreshDerivedOutputsRequest {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct RepoGraphCompatibilityArtifacts {
+    pub repo_map: Option<String>,
+    pub symbol_index: Option<String>,
+    pub dependency_graph: Option<String>,
+    pub impact_map: Option<String>,
+    pub decision_graph: Option<String>,
+    pub history_graph: Option<String>,
+    pub review_graph: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PersistRepoGraphRequest {
+    pub target_root: String,
+    pub source_kind: String,
+    pub summary: Option<String>,
+    pub source_revision: Option<i64>,
+    #[serde(default)]
+    pub graph: Option<Value>,
+    pub artifact_path: Option<String>,
+    pub compatibility_hash: Option<String>,
+    pub compatibility_artifacts: RepoGraphCompatibilityArtifacts,
+    pub nodes: Vec<RepoGraphNode>,
+    pub edges: Vec<RepoGraphEdge>,
+    pub modules: Vec<RepoGraphModule>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RepoGraphNode {
+    pub node_id: String,
+    pub node_kind: String,
+    pub path: Option<String>,
+    pub module_id: Option<String>,
+    pub symbol: Option<String>,
+    pub display_label: String,
+    pub language: Option<String>,
+    pub attributes: Value,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RepoGraphEdge {
+    pub edge_id: String,
+    pub from_node_id: String,
+    pub to_node_id: String,
+    pub edge_kind: String,
+    pub weight: Option<f64>,
+    pub evidence: Value,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RepoGraphModule {
+    pub module_id: String,
+    pub display_label: String,
+    pub summary: Option<String>,
+    pub attributes: Value,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RepoGraphStatus {
+    pub target_root: String,
+    pub ready: bool,
+    pub status: String,
+    pub freshness: String,
+    pub graph_revision: Option<i64>,
+    pub source_revision: Option<i64>,
+    pub source_runtime_revision: Option<i64>,
+    pub generated_at: Option<String>,
+    pub source_kind: Option<String>,
+    pub source_digest: Option<String>,
+    pub graph_authority_path: String,
+    pub graph_authority_kind: String,
+    pub node_count: i64,
+    pub edge_count: i64,
+    pub module_count: i64,
+    pub symbol_count: i64,
+    pub artifact_path: Option<String>,
+    pub compatibility_hash: Option<String>,
+    pub compatibility_export_ready: bool,
+    pub compatibility_in_sync: bool,
+    pub compatibility_artifacts: Option<RepoGraphCompatibilityArtifacts>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RepoGraphSnapshot {
+    pub status: RepoGraphStatus,
+    pub nodes: Vec<RepoGraphNode>,
+    pub edges: Vec<RepoGraphEdge>,
+    pub modules: Vec<RepoGraphModule>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RepoGraphQuery {
+    pub target_root: String,
+    pub node_id: Option<String>,
+    pub path: Option<String>,
+    pub module_id: Option<String>,
+    pub symbol: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RepoGraphNodeResult {
+    pub status: RepoGraphStatus,
+    pub node: Option<RepoGraphNode>,
+    pub matches: Vec<RepoGraphNode>,
+    pub incoming: Vec<RepoGraphEdge>,
+    pub outgoing: Vec<RepoGraphEdge>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RuntimeProofResponse {
     pub identity: RuntimeIdentity,
     pub snapshot: RuntimeSnapshot,

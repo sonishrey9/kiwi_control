@@ -1,10 +1,11 @@
 {
   "artifactType": "kiwi-control/agent-pack",
   "version": 1,
-  "generatedAt": "2026-04-09T14:18:09.195Z",
-  "summary": "Discovered 392 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts. Start with runtime truth, then use the task or review pack instead of the full graph when you do not need global repo exploration.",
+  "generatedAt": "2026-04-09T17:45:58.255Z",
+  "summary": "Discovered 397 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts. Start with runtime truth, then use the task or review pack instead of the full graph when you do not need global repo exploration.",
   "readFirst": [
     ".agent/context/agent-pack.json",
+    ".agent/state/ready-substrate.json",
     ".agent/state/execution-state.json",
     ".agent/state/execution-events.ndjson",
     ".agent/context/task-pack.json",
@@ -13,7 +14,7 @@
   ],
   "sourceOfTruthNote": "Canonical workflow truth remains runtime-backed execution state and execution events. Agent packs are compact read aids, not authority.",
   "repo": {
-    "summary": "Discovered 392 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
+    "summary": "Discovered 397 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
     "entryPoints": [
       "apps/sj-ui/package.json",
       "apps/sj-ui/src-tauri/Cargo.toml",
@@ -31,7 +32,7 @@
     "keyModules": [
       {
         "id": "packages/sj-cli",
-        "fileCount": 81,
+        "fileCount": 84,
         "entryPoints": [
           "packages/sj-cli/src/cli.ts",
           "packages/sj-cli/src/commands/commit-plan.ts",
@@ -65,6 +66,7 @@
           "packages/sj-cli/src/tests/reconcile.test.ts",
           "packages/sj-cli/src/tests/redact.test.ts",
           "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+          "packages/sj-cli/src/tests/review.test.ts",
           "packages/sj-cli/src/tests/router.test.ts",
           "packages/sj-cli/src/tests/runtime-identity.test.ts",
           "packages/sj-cli/src/tests/runtime.test.ts",
@@ -78,7 +80,7 @@
       },
       {
         "id": "packages/sj-core",
-        "fileCount": 72,
+        "fileCount": 74,
         "entryPoints": [
           "packages/sj-core/src/core/bootstrap.ts",
           "packages/sj-core/src/core/discovery.ts",
@@ -89,6 +91,7 @@
           "packages/sj-core/src/core/launch.ts",
           "packages/sj-core/src/core/logger.ts",
           "packages/sj-core/src/core/release.ts",
+          "packages/sj-core/src/core/review-pack.ts",
           "packages/sj-core/src/index.ts",
           "packages/sj-core/src/runtime/ui-bridge.ts"
         ]
@@ -153,7 +156,7 @@
       {
         "file": "packages/sj-core/src/utils/fs.ts",
         "moduleGroup": "packages/sj-core",
-        "importedByCount": 44
+        "importedByCount": 46
       },
       {
         "file": "packages/sj-core/src/core/config.ts",
@@ -188,17 +191,68 @@
       {
         "file": "packages/sj-core/src/core/task-intent.ts",
         "moduleGroup": "packages/sj-core",
-        "importedByCount": 8
+        "importedByCount": 9
       }
     ]
   },
   "decisions": [
     {
-      "id": "execution-state:9",
+      "id": "execution-state:16",
       "kind": "execution-event",
-      "label": "packet-created",
-      "summary": "Prepared 43 selected files for \"update README docs\".",
-      "status": "packet-created",
+      "label": "blocked",
+      "summary": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
+      "status": "blocked",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/context-authority.json",
+        ".agent/context/context-tree.json",
+        ".agent/context/generated-instructions.md",
+        ".agent/context/repo-map.json",
+        ".agent/context/review-pack.json",
+        ".agent/eval/eval-log.json",
+        ".agent/state/context-index.json",
+        ".agent/state/context-selection.json"
+      ],
+      "relatedModules": [
+        ".agent",
+        ".agent/context",
+        ".agent/eval",
+        ".agent/state"
+      ],
+      "nextCommand": "kiwi-control prepare \"update README docs\""
+    },
+    {
+      "id": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "kind": "runtime-lifecycle",
+      "label": "blocked",
+      "summary": "Run kiwi-control prepare \"update README docs\", then rerun kiwi-control validate \"update README docs\".",
+      "status": "error",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/context-authority.json",
+        ".agent/context/context-tree.json",
+        ".agent/context/repo-map.json",
+        ".agent/eval/eval-log.json",
+        ".agent/state/context-index.json",
+        ".agent/state/context-tree.json",
+        ".agent/state/decision-graph.json",
+        ".agent/state/decision-logic.json"
+      ],
+      "relatedModules": [
+        ".agent",
+        ".agent/context",
+        ".agent/eval",
+        ".agent/state",
+        "apps/sj-ui"
+      ],
+      "nextCommand": null
+    },
+    {
+      "id": "execution-event:10",
+      "kind": "execution-event",
+      "label": "validation-started",
+      "summary": "Validating \"update README docs\".",
+      "status": "running",
       "task": "update README docs",
       "relatedFiles": [
         ".agent/context/generated-instructions.md",
@@ -209,7 +263,7 @@
         ".agent/context",
         ".agent/state"
       ],
-      "nextCommand": "kiwi-control run \"update README docs\""
+      "nextCommand": "kiwi-control prepare \"update README docs\""
     },
     {
       "id": "execution-event:9",
@@ -227,30 +281,7 @@
         ".agent/context",
         ".agent/state"
       ],
-      "nextCommand": "kiwi-control run \"update README docs\""
-    },
-    {
-      "id": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
-      "kind": "runtime-lifecycle",
-      "label": "prepared",
-      "summary": "Open the generated instructions and work inside the prepared scope.",
-      "status": "ok",
-      "task": "update README docs",
-      "relatedFiles": [
-        "apps/sj-ui/src/bootcheck.ts",
-        "apps/sj-ui/src/main.ts",
-        "apps/sj-ui/src/ui/contracts.ts",
-        "apps/sj-ui/src/ui/guidance.test.ts",
-        "apps/sj-ui/src/ui/guidance.ts",
-        "apps/sj-ui/src/ui/readiness.test.ts",
-        "apps/sj-ui/src/ui/readiness.ts",
-        "packages/sj-cli/src/commands/checkpoint.ts"
-      ],
-      "relatedModules": [
-        "apps/sj-ui",
-        "packages/sj-cli"
-      ],
-      "nextCommand": null
+      "nextCommand": "kiwi-control prepare \"update README docs\""
     },
     {
       "id": "execution-event:8",
@@ -275,7 +306,7 @@
         "apps/sj-ui",
         "packages/sj-cli"
       ],
-      "nextCommand": "kiwi-control run \"update README docs\""
+      "nextCommand": "kiwi-control prepare \"update README docs\""
     },
     {
       "id": "execution-event:7",
@@ -300,32 +331,15 @@
         "apps/sj-ui",
         "packages/sj-cli"
       ],
-      "nextCommand": "kiwi-control run \"update README docs\""
-    },
-    {
-      "id": "execution-event:6",
-      "kind": "execution-event",
-      "label": "validation-started",
-      "summary": "Validating \"update README docs\".",
-      "status": "running",
-      "task": "update README docs",
-      "relatedFiles": [],
-      "relatedModules": [],
-      "nextCommand": "kiwi-control run \"update README docs\""
+      "nextCommand": "kiwi-control prepare \"update README docs\""
     }
   ],
   "hotspots": [
     {
       "kind": "file",
       "target": "apps/sj-ui/src/main.ts",
-      "touches": 18,
-      "commits": 18
-    },
-    {
-      "kind": "file",
-      "target": "apps/sj-ui/src/ui/contracts.ts",
-      "touches": 14,
-      "commits": 14
+      "touches": 16,
+      "commits": 16
     },
     {
       "kind": "file",
@@ -335,27 +349,33 @@
     },
     {
       "kind": "file",
+      "target": "apps/sj-ui/src/ui/contracts.ts",
+      "touches": 12,
+      "commits": 12
+    },
+    {
+      "kind": "file",
       "target": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-      "touches": 11,
-      "commits": 11
+      "touches": 12,
+      "commits": 12
     },
     {
       "kind": "module",
       "target": "packages/sj-cli",
-      "touches": 125,
-      "commits": 28
+      "touches": 134,
+      "commits": 26
     },
     {
       "kind": "module",
       "target": "apps/sj-ui",
-      "touches": 101,
-      "commits": 22
+      "touches": 98,
+      "commits": 20
     },
     {
       "kind": "module",
       "target": "packages/sj-core",
-      "touches": 71,
-      "commits": 21
+      "touches": 76,
+      "commits": 22
     },
     {
       "kind": "module",
@@ -368,7 +388,7 @@
     {
       "kind": "module",
       "target": "packages/sj-cli",
-      "score": 4627,
+      "score": 5437,
       "reasons": [
         "active change cluster",
         "contains entry point",
@@ -378,7 +398,7 @@
     {
       "kind": "module",
       "target": "packages/sj-core",
-      "score": 2422,
+      "score": 3149,
       "reasons": [
         "active change cluster",
         "repeated touches"
@@ -387,7 +407,7 @@
     {
       "kind": "module",
       "target": "apps/sj-ui",
-      "score": 1188,
+      "score": 1150,
       "reasons": [
         "contains entry point",
         "failure-linked",
@@ -422,7 +442,7 @@
     {
       "kind": "file",
       "target": "apps/sj-ui/src/main.ts",
-      "score": 204,
+      "score": 182,
       "reasons": [
         "entry point",
         "failure-linked",
@@ -433,18 +453,20 @@
     },
     {
       "kind": "file",
-      "target": "apps/sj-ui/src/ui/contracts.ts",
-      "score": 170,
+      "target": "packages/sj-cli/src/cli.ts",
+      "score": 165,
       "reasons": [
-        "dependency hub",
-        "failure-linked",
+        "call relationship",
+        "changed file",
+        "changed-area cluster",
+        "entry point",
         "history hotspot",
-        "repeated decision attention",
         "repeated touches"
       ]
     }
   ],
   "packPointers": {
+    "readySubstrate": ".agent/state/ready-substrate.json",
     "repoMap": ".agent/context/repo-map.json",
     "taskPack": ".agent/context/task-pack.json",
     "reviewContextPack": ".agent/context/review-context-pack.json",

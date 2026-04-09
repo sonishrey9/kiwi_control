@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/dependency-graph",
   "version": 1,
-  "generatedAt": "2026-04-09T15:55:32.089Z",
+  "generatedAt": "2026-04-09T17:47:14.459Z",
   "nodes": [
     {
       "file": "apps/sj-ui/src/bootcheck.ts",
@@ -15,7 +15,7 @@
       "file": "apps/sj-ui/src/main.ts",
       "moduleGroup": "apps/sj-ui",
       "exports": 0,
-      "localFunctions": 179,
+      "localFunctions": 180,
       "imports": 6,
       "importedBy": 0
     },
@@ -207,8 +207,8 @@
       "file": "packages/sj-cli/src/cli.ts",
       "moduleGroup": "packages/sj-cli",
       "exports": 0,
-      "localFunctions": 7,
-      "imports": 37,
+      "localFunctions": 8,
+      "imports": 38,
       "importedBy": 0
     },
     {
@@ -327,7 +327,15 @@
       "file": "packages/sj-cli/src/commands/graph-query.ts",
       "moduleGroup": "packages/sj-cli",
       "exports": 1,
-      "localFunctions": 4,
+      "localFunctions": 13,
+      "imports": 0,
+      "importedBy": 2
+    },
+    {
+      "file": "packages/sj-cli/src/commands/graph.ts",
+      "moduleGroup": "packages/sj-cli",
+      "exports": 1,
+      "localFunctions": 5,
       "imports": 0,
       "importedBy": 2
     },
@@ -503,7 +511,7 @@
       "file": "packages/sj-cli/src/commands/status.ts",
       "moduleGroup": "packages/sj-cli",
       "exports": 1,
-      "localFunctions": 8,
+      "localFunctions": 9,
       "imports": 0,
       "importedBy": 2
     },
@@ -560,7 +568,7 @@
       "moduleGroup": "packages/sj-cli",
       "exports": 2,
       "localFunctions": 3,
-      "imports": 2,
+      "imports": 3,
       "importedBy": 0
     },
     {
@@ -1156,6 +1164,14 @@
       "importedBy": 4
     },
     {
+      "file": "packages/sj-core/src/core/ready-substrate.ts",
+      "moduleGroup": "packages/sj-core",
+      "exports": 4,
+      "localFunctions": 5,
+      "imports": 2,
+      "importedBy": 1
+    },
+    {
       "file": "packages/sj-core/src/core/recommendations.ts",
       "moduleGroup": "packages/sj-core",
       "exports": 5,
@@ -1183,8 +1199,8 @@
       "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core",
       "exports": 13,
-      "localFunctions": 50,
-      "imports": 11,
+      "localFunctions": 61,
+      "imports": 12,
       "importedBy": 5
     },
     {
@@ -1296,7 +1312,7 @@
       "moduleGroup": "packages/sj-core",
       "exports": 5,
       "localFunctions": 38,
-      "imports": 32,
+      "imports": 33,
       "importedBy": 1
     },
     {
@@ -1406,10 +1422,10 @@
     {
       "file": "packages/sj-core/src/runtime/client.ts",
       "moduleGroup": "packages/sj-core",
-      "exports": 9,
-      "localFunctions": 26,
+      "exports": 13,
+      "localFunctions": 30,
       "imports": 1,
-      "importedBy": 6
+      "importedBy": 8
     },
     {
       "file": "packages/sj-core/src/runtime/ui-bridge.ts",
@@ -1433,7 +1449,7 @@
       "exports": 27,
       "localFunctions": 30,
       "imports": 0,
-      "importedBy": 45
+      "importedBy": 46
     },
     {
       "file": "packages/sj-core/src/utils/redact.ts",
@@ -1912,6 +1928,16 @@
     },
     {
       "from": "packages/sj-cli/src/cli.ts",
+      "to": "packages/sj-cli/src/commands/graph.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-cli/src/cli.ts",
+      "to": "packages/sj-cli/src/commands/graph.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-cli/src/cli.ts",
       "to": "packages/sj-cli/src/commands/guide.ts",
       "kind": "call"
     },
@@ -2348,6 +2374,16 @@
     {
       "from": "packages/sj-cli/src/tests/agent-pack.test.ts",
       "to": "packages/sj-cli/src/commands/agent-pack.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "to": "packages/sj-cli/src/commands/graph.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-cli/src/tests/agent-pack.test.ts",
+      "to": "packages/sj-cli/src/commands/graph.ts",
       "kind": "import"
     },
     {
@@ -3886,6 +3922,26 @@
       "kind": "import"
     },
     {
+      "from": "packages/sj-core/src/core/ready-substrate.ts",
+      "to": "packages/sj-core/src/runtime/client.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-core/src/core/ready-substrate.ts",
+      "to": "packages/sj-core/src/runtime/client.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-core/src/core/ready-substrate.ts",
+      "to": "packages/sj-core/src/utils/fs.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-core/src/core/ready-substrate.ts",
+      "to": "packages/sj-core/src/utils/fs.ts",
+      "kind": "import"
+    },
+    {
       "from": "packages/sj-core/src/core/recommendations.ts",
       "to": "packages/sj-core/src/core/config.ts",
       "kind": "import"
@@ -4073,6 +4129,16 @@
     {
       "from": "packages/sj-core/src/core/repo-intelligence.ts",
       "to": "packages/sj-core/src/core/workflow-engine.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-core/src/core/repo-intelligence.ts",
+      "to": "packages/sj-core/src/runtime/client.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-core/src/core/repo-intelligence.ts",
+      "to": "packages/sj-core/src/runtime/client.ts",
       "kind": "import"
     },
     {
@@ -4478,6 +4544,16 @@
     {
       "from": "packages/sj-core/src/core/ui-state.ts",
       "to": "packages/sj-core/src/core/project-detect.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-core/src/core/ui-state.ts",
+      "to": "packages/sj-core/src/core/ready-substrate.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-core/src/core/ui-state.ts",
+      "to": "packages/sj-core/src/core/ready-substrate.ts",
       "kind": "import"
     },
     {
@@ -5319,6 +5395,7 @@
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/fanout.ts",
         "packages/sj-cli/src/commands/graph-query.ts",
+        "packages/sj-cli/src/commands/graph.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
@@ -5359,6 +5436,7 @@
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/fanout.ts",
         "packages/sj-cli/src/commands/graph-query.ts",
+        "packages/sj-cli/src/commands/graph.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
@@ -5398,6 +5476,7 @@
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/fanout.ts",
         "packages/sj-cli/src/commands/graph-query.ts",
+        "packages/sj-cli/src/commands/graph.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
@@ -5611,6 +5690,17 @@
       "importedBy": [
         "packages/sj-cli/src/cli.ts",
         "packages/sj-cli/src/tests/graph-query.test.ts"
+      ],
+      "callTargets": [],
+      "relationships": []
+    },
+    {
+      "file": "packages/sj-cli/src/commands/graph.ts",
+      "moduleGroup": "packages/sj-cli",
+      "imports": [],
+      "importedBy": [
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/tests/agent-pack.test.ts"
       ],
       "callTargets": [],
       "relationships": []
@@ -5974,15 +6064,18 @@
       "moduleGroup": "packages/sj-cli",
       "imports": [
         "packages/sj-cli/src/commands/agent-pack.ts",
+        "packages/sj-cli/src/commands/graph.ts",
         "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
       ],
       "importedBy": [],
       "callTargets": [
         "packages/sj-cli/src/commands/agent-pack.ts",
+        "packages/sj-cli/src/commands/graph.ts",
         "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
       ],
       "relationships": [
         "packages/sj-cli/src/commands/agent-pack.ts",
+        "packages/sj-cli/src/commands/graph.ts",
         "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
       ]
     },
@@ -7379,6 +7472,25 @@
       ]
     },
     {
+      "file": "packages/sj-core/src/core/ready-substrate.ts",
+      "moduleGroup": "packages/sj-core",
+      "imports": [
+        "packages/sj-core/src/runtime/client.ts",
+        "packages/sj-core/src/utils/fs.ts"
+      ],
+      "importedBy": [
+        "packages/sj-core/src/core/ui-state.ts"
+      ],
+      "callTargets": [
+        "packages/sj-core/src/runtime/client.ts",
+        "packages/sj-core/src/utils/fs.ts"
+      ],
+      "relationships": [
+        "packages/sj-core/src/runtime/client.ts",
+        "packages/sj-core/src/utils/fs.ts"
+      ]
+    },
+    {
       "file": "packages/sj-core/src/core/recommendations.ts",
       "moduleGroup": "packages/sj-core",
       "imports": [
@@ -7479,6 +7591,7 @@
         "packages/sj-core/src/core/state.ts",
         "packages/sj-core/src/core/task-intent.ts",
         "packages/sj-core/src/core/workflow-engine.ts",
+        "packages/sj-core/src/runtime/client.ts",
         "packages/sj-core/src/utils/fs.ts"
       ],
       "importedBy": [
@@ -7493,6 +7606,7 @@
         "packages/sj-core/src/core/reconcile.ts",
         "packages/sj-core/src/core/state.ts",
         "packages/sj-core/src/core/task-intent.ts",
+        "packages/sj-core/src/runtime/client.ts",
         "packages/sj-core/src/utils/fs.ts"
       ],
       "relationships": [
@@ -7506,6 +7620,7 @@
         "packages/sj-core/src/core/state.ts",
         "packages/sj-core/src/core/task-intent.ts",
         "packages/sj-core/src/core/workflow-engine.ts",
+        "packages/sj-core/src/runtime/client.ts",
         "packages/sj-core/src/utils/fs.ts"
       ]
     },
@@ -7821,6 +7936,7 @@
         "packages/sj-core/src/core/product.ts",
         "packages/sj-core/src/core/profiles.ts",
         "packages/sj-core/src/core/project-detect.ts",
+        "packages/sj-core/src/core/ready-substrate.ts",
         "packages/sj-core/src/core/recommendations.ts",
         "packages/sj-core/src/core/reconcile.ts",
         "packages/sj-core/src/core/repo-intelligence.ts",
@@ -7854,6 +7970,7 @@
         "packages/sj-core/src/core/prepared-scope.ts",
         "packages/sj-core/src/core/profiles.ts",
         "packages/sj-core/src/core/project-detect.ts",
+        "packages/sj-core/src/core/ready-substrate.ts",
         "packages/sj-core/src/core/recommendations.ts",
         "packages/sj-core/src/core/reconcile.ts",
         "packages/sj-core/src/core/repo-intelligence.ts",
@@ -7886,6 +8003,7 @@
         "packages/sj-core/src/core/product.ts",
         "packages/sj-core/src/core/profiles.ts",
         "packages/sj-core/src/core/project-detect.ts",
+        "packages/sj-core/src/core/ready-substrate.ts",
         "packages/sj-core/src/core/recommendations.ts",
         "packages/sj-core/src/core/reconcile.ts",
         "packages/sj-core/src/core/repo-intelligence.ts",
@@ -8155,6 +8273,8 @@
         "packages/sj-core/src/core/execution-engine.ts",
         "packages/sj-core/src/core/execution-state.ts",
         "packages/sj-core/src/core/next-action.ts",
+        "packages/sj-core/src/core/ready-substrate.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/runtime-lifecycle.ts",
         "packages/sj-core/src/core/ui-state.ts",
         "packages/sj-core/src/core/workflow-engine.ts"
@@ -8230,6 +8350,7 @@
         "packages/sj-core/src/core/prepared-scope.ts",
         "packages/sj-core/src/core/profiles.ts",
         "packages/sj-core/src/core/project-detect.ts",
+        "packages/sj-core/src/core/ready-substrate.ts",
         "packages/sj-core/src/core/reconcile.ts",
         "packages/sj-core/src/core/release.ts",
         "packages/sj-core/src/core/repo-intelligence.ts",

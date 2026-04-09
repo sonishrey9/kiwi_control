@@ -1,9 +1,9 @@
 {
   "artifactType": "kiwi-control/symbol-index",
   "version": 1,
-  "generatedAt": "2026-04-09T15:55:32.089Z",
-  "totalFiles": 200,
-  "totalSymbols": 1852,
+  "generatedAt": "2026-04-09T17:47:14.459Z",
+  "totalFiles": 202,
+  "totalSymbols": 1898,
   "files": [
     {
       "file": "apps/sj-ui/src/bootcheck.ts",
@@ -118,6 +118,7 @@
         "normalizeRenderProbeView",
         "noteReadyState",
         "openRepoPath",
+        "openTerminalForKiwiCommand",
         "parseKiwiCommand",
         "patchGraphSurface",
         "plan",
@@ -478,6 +479,7 @@
       "moduleGroup": "packages/sj-cli",
       "exports": [],
       "localFunctions": [
+        "action",
         "assertNoUnexpectedPositionals",
         "looksLikeTruncatedPath",
         "main",
@@ -648,10 +650,33 @@
         "runGraphQuery"
       ],
       "localFunctions": [
+        "edgeEvidenceStrings",
+        "edgeSummary",
+        "graphStatusSummary",
         "normalizedFileTarget",
         "rebuildRepoIntelligence",
         "runGraphQuery",
-        "runQuery"
+        "runQuery",
+        "runtimeFilePayload",
+        "runtimeImpactPayload",
+        "runtimeModulePayload",
+        "runtimeNeighborsPayload",
+        "runtimeSymbolPayload",
+        "tryRuntimeGraphQuery"
+      ]
+    },
+    {
+      "file": "packages/sj-cli/src/commands/graph.ts",
+      "moduleGroup": "packages/sj-cli",
+      "exports": [
+        "runGraph"
+      ],
+      "localFunctions": [
+        "buildCanonicalGraph",
+        "recordGraphBuildRuntimeEvent",
+        "renderQueryText",
+        "runGraph",
+        "runGraphQueryAction"
       ]
     },
     {
@@ -887,6 +912,7 @@
         "renderContextTreeSummary",
         "renderExecutionPlan",
         "renderNextActionSummary",
+        "renderSubstrateSummary",
         "renderTokenSummary",
         "runStatus"
       ]
@@ -2174,6 +2200,23 @@
       ]
     },
     {
+      "file": "packages/sj-core/src/core/ready-substrate.ts",
+      "moduleGroup": "packages/sj-core",
+      "exports": [
+        "buildReadyRepoSubstrate",
+        "loadReadyRepoSubstrate",
+        "persistReadyRepoSubstrate",
+        "readySubstratePath"
+      ],
+      "localFunctions": [
+        "artifact",
+        "buildReadyRepoSubstrate",
+        "loadReadyRepoSubstrate",
+        "persistReadyRepoSubstrate",
+        "readySubstratePath"
+      ]
+    },
+    {
       "file": "packages/sj-core/src/core/recommendations.ts",
       "moduleGroup": "packages/sj-core",
       "exports": [
@@ -2280,6 +2323,7 @@
         "buildSymbolIndex",
         "buildTaskPack",
         "compactContextPackPath",
+        "compatibilityHashForArtifacts",
         "decisionGraphPath",
         "dependencyGraphPath",
         "deriveImpactClusterId",
@@ -2288,14 +2332,21 @@
         "ensureTaskNode",
         "extractCommandFromDecisionNode",
         "extractTaskFromCommand",
+        "fileNodeId",
         "flattenArtifactFiles",
+        "graphNode",
         "historyGraphPath",
         "impactMapPath",
+        "isRepoGraphPayload",
+        "languageForFile",
         "linkNodeToFilesAndModules",
+        "loadRepoGraphAuthority",
         "loadRepoIntelligenceArtifacts",
         "loadRepoIntelligenceSummary",
+        "moduleNodeId",
         "persistAgentPack",
         "persistCompactContextPack",
+        "persistRepoGraphAuthority",
         "persistRepoIntelligenceArtifacts",
         "persistRepoIntelligenceIndexArtifacts",
         "persistReviewContextPack",
@@ -2308,8 +2359,11 @@
         "reviewContextPackPath",
         "reviewGraphPath",
         "shouldIncludeHistoryFile",
+        "stableNodeId",
         "symbolIndexPath",
+        "symbolNodeId",
         "taskPackPath",
+        "toRuntimeNormalizedGraph",
         "uniqueEdges",
         "uniqueStrings",
         "writeJsonArtifact"
@@ -2959,11 +3013,15 @@
       "exports": [
         "ensureRuntimeDaemon",
         "getRuntimeIdentity",
+        "getRuntimeRepoGraph",
+        "getRuntimeRepoGraphStatus",
         "getRuntimeSnapshot",
         "listRuntimeExecutionEvents",
         "materializeRuntimeDerivedOutputs",
         "openRuntimeTarget",
         "persistRuntimeDerivedOutput",
+        "persistRuntimeRepoGraph",
+        "queryRuntimeRepoGraph",
         "refreshRuntimeDerivedOutputs",
         "transitionRuntimeExecutionState"
       ],
@@ -2973,12 +3031,16 @@
         "currentRustTargetTriple",
         "ensureRuntimeDaemon",
         "getRuntimeIdentity",
+        "getRuntimeRepoGraph",
+        "getRuntimeRepoGraphStatus",
         "getRuntimeSnapshot",
         "isRuntimeSnapshotPayload",
         "listRuntimeExecutionEvents",
         "materializeRuntimeDerivedOutputs",
         "openRuntimeTarget",
         "persistRuntimeDerivedOutput",
+        "persistRuntimeRepoGraph",
+        "queryRuntimeRepoGraph",
         "readRuntimeMetadata",
         "refreshRuntimeDerivedOutputs",
         "resolveRuntimeBinaryPath",
@@ -3375,6 +3437,12 @@
       "moduleGroup": "apps/sj-ui"
     },
     {
+      "symbol": "action",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/cli.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
       "symbol": "addDecisionNode",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/repo-intelligence.ts",
@@ -3570,6 +3638,12 @@
       "symbol": "applyWritePlan",
       "kind": "local-function",
       "file": "packages/sj-core/src/utils/fs.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "artifact",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/ready-substrate.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -3865,6 +3939,12 @@
       "kind": "local-function",
       "file": "apps/sj-ui/src/main.ts",
       "moduleGroup": "apps/sj-ui"
+    },
+    {
+      "symbol": "buildCanonicalGraph",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph.ts",
+      "moduleGroup": "packages/sj-cli"
     },
     {
       "symbol": "buildCanonicalReadNext",
@@ -4713,6 +4793,18 @@
       "moduleGroup": "apps/sj-ui"
     },
     {
+      "symbol": "buildReadyRepoSubstrate",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/ready-substrate.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "buildReadyRepoSubstrate",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/ready-substrate.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "buildRecentTouchedFiles",
       "kind": "local-function",
       "file": "apps/sj-ui/src/main.ts",
@@ -5556,6 +5648,12 @@
       "symbol": "compareDiscoveryEntries",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/context-selector.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "compatibilityHashForArtifacts",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -6429,6 +6527,18 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "edgeEvidenceStrings",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "edgeSummary",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
       "symbol": "emptyCodexUsage",
       "kind": "local-function",
       "file": "packages/sj-core/src/integrations/machine-advisory.ts",
@@ -6961,6 +7071,12 @@
       "kind": "local-function",
       "file": "hooks/post-edit.ts",
       "moduleGroup": "hooks"
+    },
+    {
+      "symbol": "fileNodeId",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "files",
@@ -7539,6 +7655,30 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "getRuntimeRepoGraph",
+      "kind": "export",
+      "file": "packages/sj-core/src/runtime/client.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "getRuntimeRepoGraph",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/runtime/client.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "getRuntimeRepoGraphStatus",
+      "kind": "export",
+      "file": "packages/sj-core/src/runtime/client.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "getRuntimeRepoGraphStatus",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/runtime/client.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "getRuntimeSnapshot",
       "kind": "export",
       "file": "packages/sj-core/src/runtime/client.ts",
@@ -7579,6 +7719,18 @@
       "kind": "local-function",
       "file": "packages/sj-core/src/core/router.ts",
       "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "graphNode",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "graphStatusSummary",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
+      "moduleGroup": "packages/sj-cli"
     },
     {
       "symbol": "groupGuidance",
@@ -8157,6 +8309,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "isRepoGraphPayload",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "isRepoMatch",
       "kind": "local-function",
       "file": "packages/sj-core/src/integrations/ccusage.ts",
@@ -8269,6 +8427,12 @@
       "kind": "local-function",
       "file": "scripts/run-ui-desktop-build.mjs",
       "moduleGroup": "scripts"
+    },
+    {
+      "symbol": "languageForFile",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "launchAndCollectProbe",
@@ -8931,10 +9095,28 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "loadReadyRepoSubstrate",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/ready-substrate.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "loadReadyRepoSubstrate",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/ready-substrate.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "loadRepoControlState",
       "kind": "local-function",
       "file": "apps/sj-ui/src/main.ts",
       "moduleGroup": "apps/sj-ui"
+    },
+    {
+      "symbol": "loadRepoGraphAuthority",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "loadRepoIntelligenceArtifacts",
@@ -9435,6 +9617,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "moduleNodeId",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "modulePeers",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/graph-query.ts",
@@ -9649,6 +9837,12 @@
       "kind": "local-function",
       "file": "packages/sj-core/src/runtime/client.ts",
       "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "openTerminalForKiwiCommand",
+      "kind": "local-function",
+      "file": "apps/sj-ui/src/main.ts",
+      "moduleGroup": "apps/sj-ui"
     },
     {
       "symbol": "optimizationLayer",
@@ -10035,6 +10229,18 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "persistReadyRepoSubstrate",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/ready-substrate.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "persistReadyRepoSubstrate",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/ready-substrate.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "persistRepoContextSeedArtifacts",
       "kind": "export",
       "file": "packages/sj-core/src/core/context-tree.ts",
@@ -10068,6 +10274,12 @@
       "symbol": "persistRepoControlSnapshot",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/ui-state.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "persistRepoGraphAuthority",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -10140,6 +10352,18 @@
       "symbol": "persistRuntimeLifecycle",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/runtime-lifecycle.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "persistRuntimeRepoGraph",
+      "kind": "export",
+      "file": "packages/sj-core/src/runtime/client.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "persistRuntimeRepoGraph",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/runtime/client.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -10437,6 +10661,18 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "queryRuntimeRepoGraph",
+      "kind": "export",
+      "file": "packages/sj-core/src/runtime/client.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "queryRuntimeRepoGraph",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/runtime/client.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "querySymbolLookup",
       "kind": "export",
       "file": "packages/sj-core/src/core/graph-query.ts",
@@ -10593,6 +10829,18 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "readySubstratePath",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/ready-substrate.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "readySubstratePath",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/ready-substrate.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "rebuildRepoIntelligence",
       "kind": "local-function",
       "file": "packages/sj-cli/src/commands/graph-query.ts",
@@ -10681,6 +10929,12 @@
       "kind": "local-function",
       "file": "packages/sj-core/src/core/execution-state.ts",
       "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "recordGraphBuildRuntimeEvent",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph.ts",
+      "moduleGroup": "packages/sj-cli"
     },
     {
       "symbol": "recordPlanStepResult",
@@ -11421,6 +11675,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "renderQueryText",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
       "symbol": "renderRailNav",
       "kind": "local-function",
       "file": "apps/sj-ui/src/main.ts",
@@ -11527,6 +11787,12 @@
       "kind": "local-function",
       "file": "apps/sj-ui/src/ui/ExecutionPlanPanel.ts",
       "moduleGroup": "apps/sj-ui"
+    },
+    {
+      "symbol": "renderSubstrateSummary",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/status.ts",
+      "moduleGroup": "packages/sj-cli"
     },
     {
       "symbol": "renderSurfaceBody",
@@ -12591,6 +12857,18 @@
       "moduleGroup": "packages/sj-cli"
     },
     {
+      "symbol": "runGraph",
+      "kind": "export",
+      "file": "packages/sj-cli/src/commands/graph.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "runGraph",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
       "symbol": "runGraphQuery",
       "kind": "export",
       "file": "packages/sj-cli/src/commands/graph-query.ts",
@@ -12600,6 +12878,12 @@
       "symbol": "runGraphQuery",
       "kind": "local-function",
       "file": "packages/sj-cli/src/commands/graph-query.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "runGraphQueryAction",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph.ts",
       "moduleGroup": "packages/sj-cli"
     },
     {
@@ -12951,6 +13235,18 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "runtimeFilePayload",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "runtimeImpactPayload",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
       "symbol": "runtimeMetadataDir",
       "kind": "local-function",
       "file": "packages/sj-core/src/runtime/client.ts",
@@ -12961,6 +13257,18 @@
       "kind": "local-function",
       "file": "packages/sj-core/src/runtime/client.ts",
       "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "runtimeModulePayload",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "runtimeNeighborsPayload",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
+      "moduleGroup": "packages/sj-cli"
     },
     {
       "symbol": "runtimeRequest",
@@ -12991,6 +13299,12 @@
       "kind": "local-function",
       "file": "packages/sj-core/src/core/ui-state.ts",
       "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "runtimeSymbolPayload",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
+      "moduleGroup": "packages/sj-cli"
     },
     {
       "symbol": "runToolchain",
@@ -13359,6 +13673,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "stableNodeId",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "stageCliBundle",
       "kind": "local-function",
       "file": "scripts/prepare-release-manifest.mjs",
@@ -13653,6 +13973,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "symbolNodeId",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "syncBundleArtifacts",
       "kind": "local-function",
       "file": "scripts/run-ui-desktop-build.mjs",
@@ -13857,6 +14183,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "toRuntimeNormalizedGraph",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "transitionRuntimeExecutionState",
       "kind": "export",
       "file": "packages/sj-core/src/runtime/client.ts",
@@ -13914,6 +14246,12 @@
       "symbol": "tryLaunchDesktopCandidate",
       "kind": "local-function",
       "file": "packages/sj-cli/src/commands/ui.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "tryRuntimeGraphQuery",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
       "moduleGroup": "packages/sj-cli"
     },
     {

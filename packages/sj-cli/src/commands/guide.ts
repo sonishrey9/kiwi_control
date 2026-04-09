@@ -46,6 +46,7 @@ export async function runGuide(options: GuideOptions): Promise<number> {
       ready: readySubstrate.ready,
       readFirst: readySubstrate.readFirst,
       toolEntry: readySubstrate.toolEntry,
+      graphAuthority: readySubstrate.graphAuthority,
       missingRequired: readySubstrate.missingRequired
     },
     ...(runtimeDecision.recovery || plan.lastError

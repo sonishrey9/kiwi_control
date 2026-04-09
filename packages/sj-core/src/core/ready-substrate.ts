@@ -1,5 +1,5 @@
 import path from "node:path";
-import { getRuntimeSnapshot, type RuntimeSnapshot } from "../runtime/client.js";
+import { getRuntimeRepoGraphStatus, getRuntimeSnapshot, type RepoGraphStatus, type RuntimeSnapshot } from "../runtime/client.js";
 import { ensureDir, pathExists, readJson, writeText } from "../utils/fs.js";
 
 export type ReadySubstrateStatus = "ready" | "partial" | "missing";
@@ -29,6 +29,27 @@ export interface ReadyRepoSubstrateState {
     sqlitePath: string;
     compatibilityStatePath: string;
     compatibilityEventsPath: string;
+    note: string;
+  };
+  graphAuthority: {
+    valid: boolean;
+    ready: boolean;
+    status: string;
+    freshness: string;
+    graphRevision: number | null;
+    sourceRevision: number | null;
+    sourceRuntimeRevision: number | null;
+    generatedAt: string | null;
+    graphAuthorityPath: string;
+    kind: string;
+    nodeCount: number;
+    edgeCount: number;
+    moduleCount: number;
+    symbolCount: number;
+    artifactPath: string | null;
+    compatibilityExportReady: boolean;
+    compatibilityInSync: boolean;
+    compatibilityArtifacts: RepoGraphStatus["compatibilityArtifacts"];
     note: string;
   };
   artifacts: Record<string, ReadySubstrateArtifact>;
@@ -69,6 +90,7 @@ export async function buildReadyRepoSubstrate(
   runtimeSnapshot?: RuntimeSnapshot | null
 ): Promise<ReadyRepoSubstrateState> {
   const snapshot = runtimeSnapshot ?? await getRuntimeSnapshot(targetRoot).catch(() => null);
+  const graphStatus = await getRuntimeRepoGraphStatus(targetRoot).catch(() => null);
   const artifacts: Record<string, ReadySubstrateArtifact> = {};
   for (const [name, entry] of [...REQUIRED_ARTIFACTS, ...OPTIONAL_ARTIFACTS]) {
     artifacts[name] = { ...entry };
@@ -93,6 +115,7 @@ export async function buildReadyRepoSubstrate(
 
   const missingRequired = [
     ...(runtimeAuthority.valid ? [] : ["runtimeAuthority"]),
+    ...(graphStatus?.ready ? [] : ["graphAuthority"]),
     ...Object.entries(artifacts)
       .filter(([, entry]) => entry.required && !entry.valid)
       .map(([name]) => name)
@@ -115,6 +138,27 @@ export async function buildReadyRepoSubstrate(
       ? `Ready repo substrate is available at runtime revision ${runtimeAuthority.revision}.`
       : `Repo substrate is ${status}; missing ${missingRequired.join(", ")}.`,
     runtimeAuthority,
+    graphAuthority: {
+      valid: Boolean(graphStatus),
+      ready: graphStatus?.ready ?? false,
+      status: graphStatus?.status ?? "missing",
+      freshness: graphStatus?.freshness ?? "missing",
+      graphRevision: graphStatus?.graphRevision ?? null,
+      sourceRevision: graphStatus?.sourceRevision ?? null,
+      sourceRuntimeRevision: graphStatus?.sourceRuntimeRevision ?? graphStatus?.sourceRevision ?? null,
+      generatedAt: graphStatus?.generatedAt ?? null,
+      graphAuthorityPath: graphStatus?.graphAuthorityPath ?? path.join(targetRoot, ".agent", "state", "runtime.sqlite3"),
+      kind: graphStatus?.graphAuthorityKind ?? "runtime-sqlite-normalized",
+      nodeCount: graphStatus?.nodeCount ?? 0,
+      edgeCount: graphStatus?.edgeCount ?? 0,
+      moduleCount: graphStatus?.moduleCount ?? 0,
+      symbolCount: graphStatus?.symbolCount ?? 0,
+      artifactPath: graphStatus?.artifactPath ?? null,
+      compatibilityExportReady: graphStatus?.compatibilityExportReady ?? false,
+      compatibilityInSync: graphStatus?.compatibilityInSync ?? false,
+      compatibilityArtifacts: graphStatus?.compatibilityArtifacts ?? null,
+      note: "Canonical repo graph lives in runtime SQLite. JSON graph files are compatibility/export views."
+    },
     artifacts,
     readFirst: [
       ".agent/state/ready-substrate.json",
