@@ -1,0 +1,1444 @@
+{
+  "artifactType": "kiwi-control/history-graph",
+  "version": 1,
+  "generatedAt": "2026-04-09T13:13:02.048Z",
+  "commitWindow": 40,
+  "gitHistoryAvailable": true,
+  "commitsAnalyzed": 40,
+  "recentCommits": [
+    {
+      "sha": "23ec1f5cf03dd6af9bcb67f4c1e831eb157c8ca8",
+      "authoredAt": "2026-04-09T18:25:23+05:30",
+      "subject": "Strengthen the existing repo-intelligence core",
+      "files": [
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/commands/plan.ts",
+        "packages/sj-cli/src/commands/repo-map.ts",
+        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+        "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+        "packages/sj-core/src/core/bootstrap.ts",
+        "packages/sj-core/src/core/context.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/core/ui-state.ts"
+      ],
+      "modules": [
+        "packages/sj-cli",
+        "packages/sj-core"
+      ]
+    },
+    {
+      "sha": "d6df6a9bd625040df0d74d7c9b57bebfa7bb1be0",
+      "authoredAt": "2026-04-09T17:53:15+05:30",
+      "subject": "deterministic repo-intelligence pack from existing",
+      "files": [
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/ExecutionPlanPanel.ts",
+        "apps/sj-ui/src/ui/InspectorPanel.ts",
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/commands/plan.ts",
+        "packages/sj-cli/src/commands/repo-map.ts",
+        "packages/sj-cli/src/commands/runtime.ts",
+        "packages/sj-cli/src/commands/status.ts",
+        "packages/sj-cli/src/tests/cli-ux.test.ts",
+        "packages/sj-cli/src/tests/context-selector.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+        "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+        "packages/sj-cli/src/tests/runtime-identity.test.ts",
+        "packages/sj-core/src/core/bootstrap.ts",
+        "packages/sj-core/src/core/context-selector.ts",
+        "packages/sj-core/src/core/context.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/core/ui-state.ts",
+        "scripts/prepare-runtime-sidecar.mjs"
+      ],
+      "modules": [
+        "apps/sj-ui",
+        "packages/sj-cli",
+        "packages/sj-core",
+        "scripts"
+      ]
+    },
+    {
+      "sha": "ae65e2ad55cb9bcdd4cdd343e08b8792ce4858ac",
+      "authoredAt": "2026-04-09T15:59:40+05:30",
+      "subject": "repo-control-snapshot is no longer pretending to be authoritative runtime truth. It is now treated as a cache artifact",
+      "files": [
+        ".claude/settings.json",
+        "crates/kiwi-runtime/src/db.rs",
+        "crates/kiwi-runtime/src/models.rs",
+        "packages/sj-cli/src/commands/runtime.ts",
+        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+        "packages/sj-cli/src/tests/runtime-identity.test.ts",
+        "packages/sj-core/src/core/ui-state.ts",
+        "packages/sj-core/src/runtime/client.ts",
+        "shrey-junior"
+      ],
+      "modules": [
+        ".claude",
+        "crates/kiwi-runtime",
+        "packages/sj-cli",
+        "packages/sj-core",
+        "shrey-junior"
+      ]
+    },
+    {
+      "sha": "e24f298a3e62f027f90d76f4fd9e4094a2617da5",
+      "authoredAt": "2026-04-09T14:51:03+05:30",
+      "subject": "repo-control-snapshot refresh is fully correct through the explicit CLI/runtime proof path",
+      "files": [
+        "apps/sj-ui/src-tauri/src/main.rs",
+        "apps/sj-ui/src-tauri/src/state_watch.rs",
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/contracts.ts",
+        "apps/sj-ui/src/ui/ExecutionPlanPanel.ts",
+        "apps/sj-ui/src/ui/InspectorPanel.ts",
+        "crates/kiwi-runtime/src/daemon.rs",
+        "crates/kiwi-runtime/src/db.rs",
+        "crates/kiwi-runtime/src/main.rs",
+        "crates/kiwi-runtime/src/models.rs",
+        "package.json",
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/commands/runtime.ts",
+        "packages/sj-cli/src/tests/cli-ux.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.desktop-bundles.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+        "packages/sj-cli/src/tests/runtime-identity.test.ts",
+        "packages/sj-core/src/core/ui-state.ts",
+        "packages/sj-core/src/runtime/client.ts",
+        "scripts/run-ui-desktop-test.mjs"
+      ],
+      "modules": [
+        "apps/sj-ui",
+        "crates/kiwi-runtime",
+        "package.json",
+        "packages/sj-cli",
+        "packages/sj-core",
+        "scripts"
+      ]
+    },
+    {
+      "sha": "8b72f952a4736f9e4e016f9063ee33e64862f16d",
+      "authoredAt": "2026-04-09T13:49:02+05:30",
+      "subject": "auri now declares the runtime as an externalBin, and scripts/prepare-runtime-sidecar.mjs stages the real Rust kiwi-control-runtime",
+      "files": [
+        ".gitignore",
+        "apps/sj-ui/src-tauri/src/main.rs",
+        "apps/sj-ui/src-tauri/src/state_watch.rs",
+        "apps/sj-ui/src-tauri/tauri.conf.json",
+        "apps/sj-ui/src-tauri/tauri.conf.snippet.json",
+        "crates/kiwi-runtime/src/daemon.rs",
+        "crates/kiwi-runtime/src/db.rs",
+        "crates/kiwi-runtime/src/main.rs",
+        "crates/kiwi-runtime/src/models.rs",
+        "package.json",
+        "packages/sj-cli/package.json",
+        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+        "packages/sj-core/src/core/execution-engine.ts",
+        "packages/sj-core/src/core/execution-state.ts",
+        "packages/sj-core/src/core/next-action.ts",
+        "packages/sj-core/src/core/runtime-lifecycle.ts",
+        "packages/sj-core/src/core/ui-state.ts",
+        "packages/sj-core/src/core/workflow-engine.ts",
+        "packages/sj-core/src/runtime/client.ts",
+        "scripts/prepare-release-manifest.mjs",
+        "scripts/prepare-runtime-sidecar.mjs",
+        "scripts/run-ui-desktop-build.mjs",
+        "scripts/smoke-test.sh",
+        "scripts/stage-cli-bundle.mjs"
+      ],
+      "modules": [
+        ".gitignore",
+        "apps/sj-ui",
+        "crates/kiwi-runtime",
+        "package.json",
+        "packages/sj-cli",
+        "packages/sj-core",
+        "scripts"
+      ]
+    },
+    {
+      "sha": "c05ed3c374c7d42e507be767f5f52a66852aebf6",
+      "authoredAt": "2026-04-09T00:49:24+05:30",
+      "subject": "Kiwi Control’s operator-facing execution/readiness path is now runtime-first",
+      "files": [
+        ".gitignore",
+        "apps/sj-ui/src-tauri/src/state_watch.rs",
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/contracts.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts",
+        "apps/sj-ui/src/ui/guidance.ts",
+        "apps/sj-ui/src/ui/view-models.ts",
+        "crates/kiwi-runtime/src/db.rs",
+        "crates/kiwi-runtime/src/models.rs",
+        "output/phase2-proof/current-ready.png",
+        "output/phase2-proof/external-blocked.png",
+        "output/phase2-proof/external-recovered.png",
+        "packages/sj-cli/src/commands/checkpoint.ts",
+        "packages/sj-cli/src/commands/doctor.ts",
+        "packages/sj-cli/src/commands/execution-step-runner.ts",
+        "packages/sj-cli/src/commands/explain.ts",
+        "packages/sj-cli/src/commands/guide.ts",
+        "packages/sj-cli/src/commands/handoff.ts",
+        "packages/sj-cli/src/commands/next.ts",
+        "packages/sj-cli/src/commands/prepare.ts",
+        "packages/sj-cli/src/commands/run-auto.ts",
+        "packages/sj-cli/src/commands/run.ts",
+        "packages/sj-cli/src/commands/status.ts",
+        "packages/sj-cli/src/commands/sync.ts",
+        "packages/sj-cli/src/commands/trace.ts",
+        "packages/sj-cli/src/commands/validate.ts",
+        "packages/sj-cli/src/tests/cli-ux.test.ts",
+        "packages/sj-core/src/core/execution-state.ts",
+        "packages/sj-core/src/core/next-action.ts",
+        "packages/sj-core/src/core/runtime-decision.ts",
+        "packages/sj-core/src/core/ui-state.ts",
+        "packages/sj-core/src/runtime/client.ts"
+      ],
+      "modules": [
+        ".gitignore",
+        "apps/sj-ui",
+        "crates/kiwi-runtime",
+        "output/phase2-proof",
+        "packages/sj-cli",
+        "packages/sj-core"
+      ]
+    },
+    {
+      "sha": "3cb50715318c944bc21ce384a2878ae156c89180",
+      "authoredAt": "2026-04-08T23:51:52+05:30",
+      "subject": "standalone Rust runtime authority for execution state, backed by repo-local SQLite WAL, without touching any React migration work.",
+      "files": [
+        ".cargo/config.toml",
+        ".gitignore",
+        "apps/sj-ui/src-tauri/Cargo.lock",
+        "apps/sj-ui/src-tauri/Cargo.toml",
+        "apps/sj-ui/src-tauri/src/state_watch.rs",
+        "ARCHITECTURE.md",
+        "crates/kiwi-runtime/Cargo.lock",
+        "crates/kiwi-runtime/Cargo.toml",
+        "crates/kiwi-runtime/src/daemon.rs",
+        "crates/kiwi-runtime/src/db.rs",
+        "crates/kiwi-runtime/src/lib.rs",
+        "crates/kiwi-runtime/src/main.rs",
+        "crates/kiwi-runtime/src/models.rs",
+        "docs/architecture.md",
+        "packages/sj-cli/src/tests/execution-state.test.ts",
+        "packages/sj-core/src/core/execution-engine.ts",
+        "packages/sj-core/src/core/execution-state.ts",
+        "packages/sj-core/src/runtime/client.ts",
+        "scripts/smoke-test.sh"
+      ],
+      "modules": [
+        ".cargo",
+        ".gitignore",
+        "apps/sj-ui",
+        "ARCHITECTURE.md",
+        "crates/kiwi-runtime",
+        "docs",
+        "packages/sj-cli",
+        "packages/sj-core",
+        "scripts"
+      ]
+    },
+    {
+      "sha": "d9cdf47fdfed11583ccee6e42c5fcf93b25ba986",
+      "authoredAt": "2026-04-08T11:54:50+05:30",
+      "subject": "architectural truth repair-phase 1",
+      "files": [
+        "apps/sj-ui/src-tauri/src/main.rs",
+        "apps/sj-ui/src-tauri/src/state_watch.rs",
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/contracts.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts",
+        "apps/sj-ui/src/ui/guidance.ts",
+        "apps/sj-ui/src/ui/readiness.test.ts",
+        "apps/sj-ui/src/ui/readiness.ts",
+        "packages/sj-cli/src/commands/checkpoint.ts",
+        "packages/sj-cli/src/commands/doctor.ts",
+        "packages/sj-cli/src/commands/execution-step-runner.ts",
+        "packages/sj-cli/src/commands/handoff.ts",
+        "packages/sj-cli/src/commands/init.ts",
+        "packages/sj-cli/src/commands/prepare.ts",
+        "packages/sj-cli/src/commands/run-auto.ts",
+        "packages/sj-cli/src/commands/run.ts",
+        "packages/sj-cli/src/commands/status.ts",
+        "packages/sj-cli/src/commands/sync.ts",
+        "packages/sj-cli/src/commands/ui.ts",
+        "packages/sj-cli/src/commands/validate.ts",
+        "packages/sj-cli/src/tests/execution-state.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+        "packages/sj-cli/src/tests/project-detect.test.ts",
+        "packages/sj-cli/src/tests/sync.test.ts",
+        "packages/sj-core/src/core/bootstrap.ts",
+        "packages/sj-core/src/core/execution-state.ts",
+        "packages/sj-core/src/core/project-detect.ts",
+        "packages/sj-core/src/core/repo-readiness.ts",
+        "packages/sj-core/src/core/ui-state.ts",
+        "packages/sj-core/src/runtime/ui-bridge.ts",
+        "scripts/smoke-test.sh",
+        "scripts/test-desktop-features.sh",
+        "scripts/verify-cli-ui-truth.mjs",
+        "scripts/verify-rendered-desktop.mjs"
+      ],
+      "modules": [
+        "apps/sj-ui",
+        "packages/sj-cli",
+        "packages/sj-core",
+        "scripts"
+      ]
+    },
+    {
+      "sha": "3d384db80bfa79adf181ba48065125368f9cc4a3",
+      "authoredAt": "2026-04-08T02:32:08+05:30",
+      "subject": "fix: restore required public docs placeholders",
+      "files": [
+        "docs/discovery-report.md",
+        "docs/final-global-closeout.md",
+        "docs/global-accelerators.md",
+        "docs/global-adapter-strategy.md",
+        "docs/global-bootstrap.md",
+        "docs/global-integration.md",
+        "docs/mcp-inventory.md",
+        "docs/migration-plan.md",
+        "docs/repo-first-upgrade-closeout.md",
+        "docs/repo-first-upgrade-plan.md",
+        "docs/skill-inventory.md",
+        "docs/tool-global-rollbacks.md"
+      ],
+      "modules": [
+        "docs"
+      ]
+    },
+    {
+      "sha": "d7c8c31d3f880082d078ed9446a61205553d20eb",
+      "authoredAt": "2026-04-08T02:23:12+05:30",
+      "subject": "wesbite updates and fixes",
+      "files": [
+        "CONTRIBUTING.md",
+        "docs/discovery-report.md",
+        "docs/final-global-closeout.md",
+        "docs/global-accelerators.md",
+        "docs/global-adapter-strategy.md",
+        "docs/global-bootstrap.md",
+        "docs/global-integration.md",
+        "docs/install.md",
+        "docs/mcp-inventory.md",
+        "docs/migration-plan.md",
+        "docs/README.md",
+        "docs/release-packaging.md",
+        "docs/repo-first-upgrade-closeout.md",
+        "docs/repo-first-upgrade-plan.md",
+        "docs/skill-inventory.md",
+        "docs/tool-global-rollbacks.md",
+        "package.json",
+        "README.md",
+        "scripts/clean-macos-sidecars.sh",
+        "SECURITY.md",
+        "SUPPORT.md",
+        "website/app.js",
+        "website/beta/index.html",
+        "website/index.html",
+        "website/install/index.html",
+        "website/styles.css",
+        "website/support/index.html"
+      ],
+      "modules": [
+        "CONTRIBUTING.md",
+        "docs",
+        "package.json",
+        "README.md",
+        "scripts",
+        "SECURITY.md",
+        "SUPPORT.md",
+        "website",
+        "website/beta",
+        "website/install",
+        "website/support"
+      ]
+    },
+    {
+      "sha": "02ea3bb3d6af4e9c80d8674a1a5c0eaea5686525",
+      "authoredAt": "2026-04-08T01:37:43+05:30",
+      "subject": "fix: allow http-based pages validation",
+      "files": [
+        "scripts/ensure-cloudflare-pages-project.mjs",
+        "scripts/upsert-route53-pages-record.mjs"
+      ],
+      "modules": [
+        "scripts"
+      ]
+    },
+    {
+      "sha": "88aa432fe14eb51497c3422313eff48c72e32433",
+      "authoredAt": "2026-04-08T01:34:44+05:30",
+      "subject": "fix: slim deploy site release gate",
+      "files": [
+        ".github/workflows/deploy-site.yml"
+      ],
+      "modules": [
+        ".github/workflows"
+      ]
+    }
+  ],
+  "hotspotFiles": [
+    {
+      "file": "apps/sj-ui/src/main.ts",
+      "moduleGroup": "apps/sj-ui",
+      "touches": 20,
+      "commits": 20,
+      "lastTouchedAt": "2026-04-09T17:53:15+05:30"
+    },
+    {
+      "file": "apps/sj-ui/src/ui/contracts.ts",
+      "moduleGroup": "apps/sj-ui",
+      "touches": 15,
+      "commits": 15,
+      "lastTouchedAt": "2026-04-09T14:51:03+05:30"
+    },
+    {
+      "file": "apps/sj-ui/src-tauri/src/main.rs",
+      "moduleGroup": "apps/sj-ui",
+      "touches": 10,
+      "commits": 10,
+      "lastTouchedAt": "2026-04-09T14:51:03+05:30"
+    },
+    {
+      "file": "package.json",
+      "moduleGroup": "package.json",
+      "touches": 10,
+      "commits": 10,
+      "lastTouchedAt": "2026-04-09T14:51:03+05:30"
+    },
+    {
+      "file": "packages/sj-core/src/core/ui-state.ts",
+      "moduleGroup": "packages/sj-core",
+      "touches": 10,
+      "commits": 10,
+      "lastTouchedAt": "2026-04-09T18:25:23+05:30"
+    },
+    {
+      "file": "packages/sj-cli/src/tests/cli-ux.test.ts",
+      "moduleGroup": "packages/sj-cli",
+      "touches": 8,
+      "commits": 8,
+      "lastTouchedAt": "2026-04-09T17:53:15+05:30"
+    },
+    {
+      "file": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+      "moduleGroup": "packages/sj-cli",
+      "touches": 8,
+      "commits": 8,
+      "lastTouchedAt": "2026-04-09T18:25:23+05:30"
+    },
+    {
+      "file": "apps/sj-ui/src/ui/TopBar.ts",
+      "moduleGroup": "apps/sj-ui",
+      "touches": 7,
+      "commits": 7,
+      "lastTouchedAt": "2026-04-06T21:50:19+05:30"
+    },
+    {
+      "file": "packages/sj-cli/src/commands/ui.ts",
+      "moduleGroup": "packages/sj-cli",
+      "touches": 7,
+      "commits": 7,
+      "lastTouchedAt": "2026-04-08T11:54:50+05:30"
+    },
+    {
+      "file": "README.md",
+      "moduleGroup": "README.md",
+      "touches": 7,
+      "commits": 7,
+      "lastTouchedAt": "2026-04-08T02:23:12+05:30"
+    },
+    {
+      "file": "packages/sj-cli/src/commands/doctor.ts",
+      "moduleGroup": "packages/sj-cli",
+      "touches": 6,
+      "commits": 6,
+      "lastTouchedAt": "2026-04-09T00:49:24+05:30"
+    },
+    {
+      "file": "packages/sj-cli/src/tests/product-surfaces.test.ts",
+      "moduleGroup": "packages/sj-cli/src/tests",
+      "touches": 6,
+      "commits": 6,
+      "lastTouchedAt": "2026-04-06T20:39:17+05:30"
+    },
+    {
+      "file": ".gitignore",
+      "moduleGroup": ".gitignore",
+      "touches": 5,
+      "commits": 5,
+      "lastTouchedAt": "2026-04-09T13:49:02+05:30"
+    },
+    {
+      "file": "apps/sj-ui/src-tauri/src/state_watch.rs",
+      "moduleGroup": "apps/sj-ui",
+      "touches": 5,
+      "commits": 5,
+      "lastTouchedAt": "2026-04-09T14:51:03+05:30"
+    },
+    {
+      "file": "apps/sj-ui/src/styles.css",
+      "moduleGroup": "apps/sj-ui/src/styles.css",
+      "touches": 5,
+      "commits": 5,
+      "lastTouchedAt": "2026-04-06T16:51:15+05:30"
+    },
+    {
+      "file": "apps/sj-ui/src/ui/ExecutionPlanPanel.ts",
+      "moduleGroup": "apps/sj-ui",
+      "touches": 5,
+      "commits": 5,
+      "lastTouchedAt": "2026-04-09T17:53:15+05:30"
+    },
+    {
+      "file": "crates/kiwi-runtime/src/db.rs",
+      "moduleGroup": "crates/kiwi-runtime",
+      "touches": 5,
+      "commits": 5,
+      "lastTouchedAt": "2026-04-09T15:59:40+05:30"
+    },
+    {
+      "file": "crates/kiwi-runtime/src/models.rs",
+      "moduleGroup": "crates/kiwi-runtime",
+      "touches": 5,
+      "commits": 5,
+      "lastTouchedAt": "2026-04-09T15:59:40+05:30"
+    },
+    {
+      "file": "docs/release-packaging.md",
+      "moduleGroup": "docs",
+      "touches": 5,
+      "commits": 5,
+      "lastTouchedAt": "2026-04-08T02:23:12+05:30"
+    },
+    {
+      "file": "packages/sj-cli/src/cli.ts",
+      "moduleGroup": "packages/sj-cli",
+      "touches": 5,
+      "commits": 5,
+      "lastTouchedAt": "2026-04-09T18:25:23+05:30"
+    },
+    {
+      "file": "packages/sj-cli/src/commands/guide.ts",
+      "moduleGroup": "packages/sj-cli",
+      "touches": 5,
+      "commits": 5,
+      "lastTouchedAt": "2026-04-09T00:49:24+05:30"
+    },
+    {
+      "file": "packages/sj-cli/src/tests/machine-advisory.test.ts",
+      "moduleGroup": "packages/sj-cli",
+      "touches": 5,
+      "commits": 5,
+      "lastTouchedAt": "2026-04-06T20:39:17+05:30"
+    },
+    {
+      "file": "packages/sj-core/src/integrations/machine-advisory.ts",
+      "moduleGroup": "packages/sj-core",
+      "touches": 5,
+      "commits": 5,
+      "lastTouchedAt": "2026-04-06T20:39:17+05:30"
+    },
+    {
+      "file": "packages/sj-core/src/runtime/client.ts",
+      "moduleGroup": "packages/sj-core",
+      "touches": 5,
+      "commits": 5,
+      "lastTouchedAt": "2026-04-09T15:59:40+05:30"
+    }
+  ],
+  "hotspotModules": [
+    {
+      "id": "packages/sj-cli",
+      "touches": 115,
+      "commits": 27,
+      "files": [
+        "packages/sj-cli/agents.md",
+        "packages/sj-cli/package.json",
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/commands/check.ts",
+        "packages/sj-cli/src/commands/checkpoint.ts",
+        "packages/sj-cli/src/commands/doctor.ts",
+        "packages/sj-cli/src/commands/execution-plan-recovery.ts",
+        "packages/sj-cli/src/commands/execution-step-runner.ts",
+        "packages/sj-cli/src/commands/explain.ts",
+        "packages/sj-cli/src/commands/guide.ts",
+        "packages/sj-cli/src/commands/handoff.ts",
+        "packages/sj-cli/src/commands/init.ts",
+        "packages/sj-cli/src/commands/next.ts",
+        "packages/sj-cli/src/commands/plan.ts",
+        "packages/sj-cli/src/commands/prepare.ts",
+        "packages/sj-cli/src/commands/repo-map.ts",
+        "packages/sj-cli/src/commands/run-auto.ts",
+        "packages/sj-cli/src/commands/run.ts",
+        "packages/sj-cli/src/commands/runtime.ts",
+        "packages/sj-cli/src/commands/status.ts",
+        "packages/sj-cli/src/commands/sync.ts",
+        "packages/sj-cli/src/commands/toolchain.ts",
+        "packages/sj-cli/src/commands/trace.ts",
+        "packages/sj-cli/src/commands/ui.ts",
+        "packages/sj-cli/src/commands/usage.ts",
+        "packages/sj-cli/src/commands/validate.ts",
+        "packages/sj-cli/src/tests/check.test.ts",
+        "packages/sj-cli/src/tests/cli-ux.test.ts",
+        "packages/sj-cli/src/tests/context-selector.test.ts",
+        "packages/sj-cli/src/tests/context-tree.test.ts",
+        "packages/sj-cli/src/tests/execution-state.test.ts",
+        "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
+        "packages/sj-cli/src/tests/machine-advisory.test.ts",
+        "packages/sj-cli/src/tests/prepare.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.desktop-bundles.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+        "packages/sj-cli/src/tests/project-detect.test.ts",
+        "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+        "packages/sj-cli/src/tests/runtime-identity.test.ts",
+        "packages/sj-cli/src/tests/runtime.test.ts",
+        "packages/sj-cli/src/tests/sync.test.ts",
+        "packages/sj-cli/src/utils/cli-output.ts"
+      ],
+      "lastTouchedAt": "2026-04-09T18:25:23+05:30"
+    },
+    {
+      "id": "apps/sj-ui",
+      "touches": 112,
+      "commits": 24,
+      "files": [
+        "apps/sj-ui/agents.md",
+        "apps/sj-ui/package.json",
+        "apps/sj-ui/src-tauri/Cargo.lock",
+        "apps/sj-ui/src-tauri/Cargo.toml",
+        "apps/sj-ui/src-tauri/gen/schemas/acl-manifests.json",
+        "apps/sj-ui/src-tauri/gen/schemas/desktop-schema.json",
+        "apps/sj-ui/src-tauri/gen/schemas/macOS-schema.json",
+        "apps/sj-ui/src-tauri/src/main.rs",
+        "apps/sj-ui/src-tauri/src/state_watch.rs",
+        "apps/sj-ui/src-tauri/tauri.conf.json",
+        "apps/sj-ui/src-tauri/tauri.conf.snippet.json",
+        "apps/sj-ui/src/bootcheck.ts",
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/command-help.test.ts",
+        "apps/sj-ui/src/ui/command-help.ts",
+        "apps/sj-ui/src/ui/ContextTreePanel.ts",
+        "apps/sj-ui/src/ui/contracts.ts",
+        "apps/sj-ui/src/ui/ExecutionPlanPanel.ts",
+        "apps/sj-ui/src/ui/graph-model.ts",
+        "apps/sj-ui/src/ui/GraphPanel.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts",
+        "apps/sj-ui/src/ui/guidance.ts",
+        "apps/sj-ui/src/ui/InspectorPanel.ts",
+        "apps/sj-ui/src/ui/MachinePanel.ts",
+        "apps/sj-ui/src/ui/OnboardingPanel.test.ts",
+        "apps/sj-ui/src/ui/OnboardingPanel.ts",
+        "apps/sj-ui/src/ui/readiness.test.ts",
+        "apps/sj-ui/src/ui/readiness.ts",
+        "apps/sj-ui/src/ui/TopBar.ts",
+        "apps/sj-ui/src/ui/view-models.test.ts",
+        "apps/sj-ui/src/ui/view-models.ts",
+        "apps/sj-ui/tsconfig.json",
+        "apps/sj-ui/tsconfig.test.json"
+      ],
+      "lastTouchedAt": "2026-04-09T17:53:15+05:30"
+    },
+    {
+      "id": "packages/sj-core",
+      "touches": 62,
+      "commits": 19,
+      "files": [
+        "packages/sj-core/agents.md",
+        "packages/sj-core/package.json",
+        "packages/sj-core/src/core/bootstrap.ts",
+        "packages/sj-core/src/core/context-selector.ts",
+        "packages/sj-core/src/core/context-tree.ts",
+        "packages/sj-core/src/core/context.ts",
+        "packages/sj-core/src/core/execution-engine.ts",
+        "packages/sj-core/src/core/execution-state.ts",
+        "packages/sj-core/src/core/executor.ts",
+        "packages/sj-core/src/core/next-action.ts",
+        "packages/sj-core/src/core/planner.ts",
+        "packages/sj-core/src/core/product.ts",
+        "packages/sj-core/src/core/project-detect.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/core/repo-readiness.ts",
+        "packages/sj-core/src/core/runtime-decision.ts",
+        "packages/sj-core/src/core/runtime-lifecycle.ts",
+        "packages/sj-core/src/core/token-estimator.ts",
+        "packages/sj-core/src/core/ui-state.ts",
+        "packages/sj-core/src/core/workflow-engine.ts",
+        "packages/sj-core/src/integrations/machine-advisory-cache.ts",
+        "packages/sj-core/src/integrations/machine-advisory-guidance.ts",
+        "packages/sj-core/src/integrations/machine-advisory-score.ts",
+        "packages/sj-core/src/integrations/machine-advisory-summary.ts",
+        "packages/sj-core/src/integrations/machine-advisory.ts",
+        "packages/sj-core/src/runtime.ts",
+        "packages/sj-core/src/runtime/client.ts",
+        "packages/sj-core/src/runtime/ui-bridge.ts",
+        "packages/sj-core/src/utils/fs.ts"
+      ],
+      "lastTouchedAt": "2026-04-09T18:25:23+05:30"
+    },
+    {
+      "id": "scripts",
+      "touches": 42,
+      "commits": 17,
+      "files": [
+        "scripts/clean-macos-sidecars.sh",
+        "scripts/copy-runtime-assets.mjs",
+        "scripts/ensure-cloudflare-pages-project.mjs",
+        "scripts/generate-product-media.mjs",
+        "scripts/generate-release-checksums.mjs",
+        "scripts/package-release-assets.mjs",
+        "scripts/prepare-release-manifest.mjs",
+        "scripts/prepare-runtime-sidecar.mjs",
+        "scripts/run-ui-desktop-build.mjs",
+        "scripts/run-ui-desktop-test.mjs",
+        "scripts/smoke-test.sh",
+        "scripts/stage-cli-bundle.mjs",
+        "scripts/test-cli-features.sh",
+        "scripts/test-core-features.sh",
+        "scripts/test-desktop-features.sh",
+        "scripts/test-product-features.sh",
+        "scripts/upsert-route53-pages-record.mjs",
+        "scripts/verify-bundled-cli-install.mjs",
+        "scripts/verify-cli-ui-truth.mjs",
+        "scripts/verify-installed-launch-flow.mjs",
+        "scripts/verify-rendered-desktop.mjs"
+      ],
+      "lastTouchedAt": "2026-04-09T17:53:15+05:30"
+    },
+    {
+      "id": "docs",
+      "touches": 38,
+      "commits": 7,
+      "files": [
+        "docs/architecture.md",
+        "docs/beta-limitations.md",
+        "docs/beta-readiness-checklist.md",
+        "docs/discovery-report.md",
+        "docs/final-global-closeout.md",
+        "docs/global-accelerators.md",
+        "docs/global-adapter-strategy.md",
+        "docs/global-bootstrap.md",
+        "docs/global-integration.md",
+        "docs/install.md",
+        "docs/mcp-inventory.md",
+        "docs/migration-plan.md",
+        "docs/README.md",
+        "docs/release-packaging.md",
+        "docs/repo-first-upgrade-closeout.md",
+        "docs/repo-first-upgrade-plan.md",
+        "docs/skill-inventory.md",
+        "docs/tool-global-rollbacks.md"
+      ],
+      "lastTouchedAt": "2026-04-08T23:51:52+05:30"
+    },
+    {
+      "id": "crates/kiwi-runtime",
+      "touches": 19,
+      "commits": 5,
+      "files": [
+        "crates/kiwi-runtime/Cargo.lock",
+        "crates/kiwi-runtime/Cargo.toml",
+        "crates/kiwi-runtime/src/daemon.rs",
+        "crates/kiwi-runtime/src/db.rs",
+        "crates/kiwi-runtime/src/lib.rs",
+        "crates/kiwi-runtime/src/main.rs",
+        "crates/kiwi-runtime/src/models.rs"
+      ],
+      "lastTouchedAt": "2026-04-09T15:59:40+05:30"
+    },
+    {
+      "id": "website",
+      "touches": 13,
+      "commits": 6,
+      "files": [
+        "website/_redirects",
+        "website/app.js",
+        "website/index.html",
+        "website/README.md",
+        "website/styles.css"
+      ],
+      "lastTouchedAt": "2026-04-08T02:23:12+05:30"
+    },
+    {
+      "id": ".github/workflows",
+      "touches": 12,
+      "commits": 8,
+      "files": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/deploy-site.yml",
+        ".github/workflows/release.yml",
+        ".github/workflows/shrey-junior-contract.yml"
+      ],
+      "lastTouchedAt": "2026-04-08T01:34:44+05:30"
+    },
+    {
+      "id": "package.json",
+      "touches": 10,
+      "commits": 10,
+      "files": [
+        "package.json"
+      ],
+      "lastTouchedAt": "2026-04-09T14:51:03+05:30"
+    },
+    {
+      "id": "README.md",
+      "touches": 7,
+      "commits": 7,
+      "files": [
+        "README.md"
+      ],
+      "lastTouchedAt": "2026-04-08T02:23:12+05:30"
+    },
+    {
+      "id": ".github/agents",
+      "touches": 7,
+      "commits": 1,
+      "files": [
+        ".github/agents/architecture-specialist.md",
+        ".github/agents/backend-specialist.md",
+        ".github/agents/frontend-specialist.md",
+        ".github/agents/fullstack-specialist.md",
+        ".github/agents/qa-specialist.md",
+        ".github/agents/review-specialist.md",
+        ".github/agents/shrey-junior.md"
+      ],
+      "lastTouchedAt": "2026-04-06T20:39:17+05:30"
+    },
+    {
+      "id": "packages/sj-cli/src/tests",
+      "touches": 6,
+      "commits": 6,
+      "files": [
+        "packages/sj-cli/src/tests/product-surfaces.test.ts"
+      ],
+      "lastTouchedAt": "2026-04-06T20:39:17+05:30"
+    },
+    {
+      "id": ".gitignore",
+      "touches": 5,
+      "commits": 5,
+      "files": [
+        ".gitignore"
+      ],
+      "lastTouchedAt": "2026-04-09T13:49:02+05:30"
+    },
+    {
+      "id": "apps/sj-ui/src/styles.css",
+      "touches": 5,
+      "commits": 5,
+      "files": [
+        "apps/sj-ui/src/styles.css"
+      ],
+      "lastTouchedAt": "2026-04-06T16:51:15+05:30"
+    },
+    {
+      "id": "SECURITY.md",
+      "touches": 5,
+      "commits": 5,
+      "files": [
+        "SECURITY.md"
+      ],
+      "lastTouchedAt": "2026-04-08T02:23:12+05:30"
+    },
+    {
+      "id": "SUPPORT.md",
+      "touches": 5,
+      "commits": 5,
+      "files": [
+        "SUPPORT.md"
+      ],
+      "lastTouchedAt": "2026-04-08T02:23:12+05:30"
+    }
+  ],
+  "repeatedTouchModules": [
+    {
+      "id": "packages/sj-cli",
+      "touches": 115,
+      "commits": 27,
+      "files": [
+        "packages/sj-cli/agents.md",
+        "packages/sj-cli/package.json",
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/commands/check.ts",
+        "packages/sj-cli/src/commands/checkpoint.ts",
+        "packages/sj-cli/src/commands/doctor.ts",
+        "packages/sj-cli/src/commands/execution-plan-recovery.ts",
+        "packages/sj-cli/src/commands/execution-step-runner.ts",
+        "packages/sj-cli/src/commands/explain.ts",
+        "packages/sj-cli/src/commands/guide.ts",
+        "packages/sj-cli/src/commands/handoff.ts",
+        "packages/sj-cli/src/commands/init.ts",
+        "packages/sj-cli/src/commands/next.ts",
+        "packages/sj-cli/src/commands/plan.ts",
+        "packages/sj-cli/src/commands/prepare.ts",
+        "packages/sj-cli/src/commands/repo-map.ts",
+        "packages/sj-cli/src/commands/run-auto.ts",
+        "packages/sj-cli/src/commands/run.ts",
+        "packages/sj-cli/src/commands/runtime.ts",
+        "packages/sj-cli/src/commands/status.ts",
+        "packages/sj-cli/src/commands/sync.ts",
+        "packages/sj-cli/src/commands/toolchain.ts",
+        "packages/sj-cli/src/commands/trace.ts",
+        "packages/sj-cli/src/commands/ui.ts",
+        "packages/sj-cli/src/commands/usage.ts",
+        "packages/sj-cli/src/commands/validate.ts",
+        "packages/sj-cli/src/tests/check.test.ts",
+        "packages/sj-cli/src/tests/cli-ux.test.ts",
+        "packages/sj-cli/src/tests/context-selector.test.ts",
+        "packages/sj-cli/src/tests/context-tree.test.ts",
+        "packages/sj-cli/src/tests/execution-state.test.ts",
+        "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
+        "packages/sj-cli/src/tests/machine-advisory.test.ts",
+        "packages/sj-cli/src/tests/prepare.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.desktop-bundles.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+        "packages/sj-cli/src/tests/project-detect.test.ts",
+        "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+        "packages/sj-cli/src/tests/runtime-identity.test.ts",
+        "packages/sj-cli/src/tests/runtime.test.ts",
+        "packages/sj-cli/src/tests/sync.test.ts",
+        "packages/sj-cli/src/utils/cli-output.ts"
+      ],
+      "lastTouchedAt": "2026-04-09T18:25:23+05:30"
+    },
+    {
+      "id": "apps/sj-ui",
+      "touches": 112,
+      "commits": 24,
+      "files": [
+        "apps/sj-ui/agents.md",
+        "apps/sj-ui/package.json",
+        "apps/sj-ui/src-tauri/Cargo.lock",
+        "apps/sj-ui/src-tauri/Cargo.toml",
+        "apps/sj-ui/src-tauri/gen/schemas/acl-manifests.json",
+        "apps/sj-ui/src-tauri/gen/schemas/desktop-schema.json",
+        "apps/sj-ui/src-tauri/gen/schemas/macOS-schema.json",
+        "apps/sj-ui/src-tauri/src/main.rs",
+        "apps/sj-ui/src-tauri/src/state_watch.rs",
+        "apps/sj-ui/src-tauri/tauri.conf.json",
+        "apps/sj-ui/src-tauri/tauri.conf.snippet.json",
+        "apps/sj-ui/src/bootcheck.ts",
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/command-help.test.ts",
+        "apps/sj-ui/src/ui/command-help.ts",
+        "apps/sj-ui/src/ui/ContextTreePanel.ts",
+        "apps/sj-ui/src/ui/contracts.ts",
+        "apps/sj-ui/src/ui/ExecutionPlanPanel.ts",
+        "apps/sj-ui/src/ui/graph-model.ts",
+        "apps/sj-ui/src/ui/GraphPanel.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts",
+        "apps/sj-ui/src/ui/guidance.ts",
+        "apps/sj-ui/src/ui/InspectorPanel.ts",
+        "apps/sj-ui/src/ui/MachinePanel.ts",
+        "apps/sj-ui/src/ui/OnboardingPanel.test.ts",
+        "apps/sj-ui/src/ui/OnboardingPanel.ts",
+        "apps/sj-ui/src/ui/readiness.test.ts",
+        "apps/sj-ui/src/ui/readiness.ts",
+        "apps/sj-ui/src/ui/TopBar.ts",
+        "apps/sj-ui/src/ui/view-models.test.ts",
+        "apps/sj-ui/src/ui/view-models.ts",
+        "apps/sj-ui/tsconfig.json",
+        "apps/sj-ui/tsconfig.test.json"
+      ],
+      "lastTouchedAt": "2026-04-09T17:53:15+05:30"
+    },
+    {
+      "id": "packages/sj-core",
+      "touches": 62,
+      "commits": 19,
+      "files": [
+        "packages/sj-core/agents.md",
+        "packages/sj-core/package.json",
+        "packages/sj-core/src/core/bootstrap.ts",
+        "packages/sj-core/src/core/context-selector.ts",
+        "packages/sj-core/src/core/context-tree.ts",
+        "packages/sj-core/src/core/context.ts",
+        "packages/sj-core/src/core/execution-engine.ts",
+        "packages/sj-core/src/core/execution-state.ts",
+        "packages/sj-core/src/core/executor.ts",
+        "packages/sj-core/src/core/next-action.ts",
+        "packages/sj-core/src/core/planner.ts",
+        "packages/sj-core/src/core/product.ts",
+        "packages/sj-core/src/core/project-detect.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/core/repo-readiness.ts",
+        "packages/sj-core/src/core/runtime-decision.ts",
+        "packages/sj-core/src/core/runtime-lifecycle.ts",
+        "packages/sj-core/src/core/token-estimator.ts",
+        "packages/sj-core/src/core/ui-state.ts",
+        "packages/sj-core/src/core/workflow-engine.ts",
+        "packages/sj-core/src/integrations/machine-advisory-cache.ts",
+        "packages/sj-core/src/integrations/machine-advisory-guidance.ts",
+        "packages/sj-core/src/integrations/machine-advisory-score.ts",
+        "packages/sj-core/src/integrations/machine-advisory-summary.ts",
+        "packages/sj-core/src/integrations/machine-advisory.ts",
+        "packages/sj-core/src/runtime.ts",
+        "packages/sj-core/src/runtime/client.ts",
+        "packages/sj-core/src/runtime/ui-bridge.ts",
+        "packages/sj-core/src/utils/fs.ts"
+      ],
+      "lastTouchedAt": "2026-04-09T18:25:23+05:30"
+    },
+    {
+      "id": "scripts",
+      "touches": 42,
+      "commits": 17,
+      "files": [
+        "scripts/clean-macos-sidecars.sh",
+        "scripts/copy-runtime-assets.mjs",
+        "scripts/ensure-cloudflare-pages-project.mjs",
+        "scripts/generate-product-media.mjs",
+        "scripts/generate-release-checksums.mjs",
+        "scripts/package-release-assets.mjs",
+        "scripts/prepare-release-manifest.mjs",
+        "scripts/prepare-runtime-sidecar.mjs",
+        "scripts/run-ui-desktop-build.mjs",
+        "scripts/run-ui-desktop-test.mjs",
+        "scripts/smoke-test.sh",
+        "scripts/stage-cli-bundle.mjs",
+        "scripts/test-cli-features.sh",
+        "scripts/test-core-features.sh",
+        "scripts/test-desktop-features.sh",
+        "scripts/test-product-features.sh",
+        "scripts/upsert-route53-pages-record.mjs",
+        "scripts/verify-bundled-cli-install.mjs",
+        "scripts/verify-cli-ui-truth.mjs",
+        "scripts/verify-installed-launch-flow.mjs",
+        "scripts/verify-rendered-desktop.mjs"
+      ],
+      "lastTouchedAt": "2026-04-09T17:53:15+05:30"
+    },
+    {
+      "id": "docs",
+      "touches": 38,
+      "commits": 7,
+      "files": [
+        "docs/architecture.md",
+        "docs/beta-limitations.md",
+        "docs/beta-readiness-checklist.md",
+        "docs/discovery-report.md",
+        "docs/final-global-closeout.md",
+        "docs/global-accelerators.md",
+        "docs/global-adapter-strategy.md",
+        "docs/global-bootstrap.md",
+        "docs/global-integration.md",
+        "docs/install.md",
+        "docs/mcp-inventory.md",
+        "docs/migration-plan.md",
+        "docs/README.md",
+        "docs/release-packaging.md",
+        "docs/repo-first-upgrade-closeout.md",
+        "docs/repo-first-upgrade-plan.md",
+        "docs/skill-inventory.md",
+        "docs/tool-global-rollbacks.md"
+      ],
+      "lastTouchedAt": "2026-04-08T23:51:52+05:30"
+    },
+    {
+      "id": "crates/kiwi-runtime",
+      "touches": 19,
+      "commits": 5,
+      "files": [
+        "crates/kiwi-runtime/Cargo.lock",
+        "crates/kiwi-runtime/Cargo.toml",
+        "crates/kiwi-runtime/src/daemon.rs",
+        "crates/kiwi-runtime/src/db.rs",
+        "crates/kiwi-runtime/src/lib.rs",
+        "crates/kiwi-runtime/src/main.rs",
+        "crates/kiwi-runtime/src/models.rs"
+      ],
+      "lastTouchedAt": "2026-04-09T15:59:40+05:30"
+    },
+    {
+      "id": "website",
+      "touches": 13,
+      "commits": 6,
+      "files": [
+        "website/_redirects",
+        "website/app.js",
+        "website/index.html",
+        "website/README.md",
+        "website/styles.css"
+      ],
+      "lastTouchedAt": "2026-04-08T02:23:12+05:30"
+    },
+    {
+      "id": ".github/workflows",
+      "touches": 12,
+      "commits": 8,
+      "files": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/deploy-site.yml",
+        ".github/workflows/release.yml",
+        ".github/workflows/shrey-junior-contract.yml"
+      ],
+      "lastTouchedAt": "2026-04-08T01:34:44+05:30"
+    },
+    {
+      "id": "package.json",
+      "touches": 10,
+      "commits": 10,
+      "files": [
+        "package.json"
+      ],
+      "lastTouchedAt": "2026-04-09T14:51:03+05:30"
+    },
+    {
+      "id": "README.md",
+      "touches": 7,
+      "commits": 7,
+      "files": [
+        "README.md"
+      ],
+      "lastTouchedAt": "2026-04-08T02:23:12+05:30"
+    },
+    {
+      "id": "packages/sj-cli/src/tests",
+      "touches": 6,
+      "commits": 6,
+      "files": [
+        "packages/sj-cli/src/tests/product-surfaces.test.ts"
+      ],
+      "lastTouchedAt": "2026-04-06T20:39:17+05:30"
+    },
+    {
+      "id": ".gitignore",
+      "touches": 5,
+      "commits": 5,
+      "files": [
+        ".gitignore"
+      ],
+      "lastTouchedAt": "2026-04-09T13:49:02+05:30"
+    }
+  ],
+  "changeClusters": [
+    {
+      "id": "packages/sj-cli/src/commands",
+      "commits": 18,
+      "touches": 63,
+      "files": [
+        "packages/sj-cli/src/commands/check.ts",
+        "packages/sj-cli/src/commands/checkpoint.ts",
+        "packages/sj-cli/src/commands/doctor.ts",
+        "packages/sj-cli/src/commands/execution-plan-recovery.ts",
+        "packages/sj-cli/src/commands/execution-step-runner.ts",
+        "packages/sj-cli/src/commands/explain.ts",
+        "packages/sj-cli/src/commands/guide.ts",
+        "packages/sj-cli/src/commands/handoff.ts",
+        "packages/sj-cli/src/commands/init.ts",
+        "packages/sj-cli/src/commands/next.ts",
+        "packages/sj-cli/src/commands/plan.ts",
+        "packages/sj-cli/src/commands/prepare.ts",
+        "packages/sj-cli/src/commands/repo-map.ts",
+        "packages/sj-cli/src/commands/run-auto.ts",
+        "packages/sj-cli/src/commands/run.ts",
+        "packages/sj-cli/src/commands/runtime.ts",
+        "packages/sj-cli/src/commands/status.ts",
+        "packages/sj-cli/src/commands/sync.ts",
+        "packages/sj-cli/src/commands/toolchain.ts",
+        "packages/sj-cli/src/commands/trace.ts",
+        "packages/sj-cli/src/commands/ui.ts",
+        "packages/sj-cli/src/commands/usage.ts",
+        "packages/sj-cli/src/commands/validate.ts"
+      ],
+      "modules": [
+        "packages/sj-cli"
+      ]
+    },
+    {
+      "id": "apps/sj-ui/src/ui",
+      "commits": 18,
+      "touches": 59,
+      "files": [
+        "apps/sj-ui/src/ui/command-help.test.ts",
+        "apps/sj-ui/src/ui/command-help.ts",
+        "apps/sj-ui/src/ui/ContextTreePanel.ts",
+        "apps/sj-ui/src/ui/contracts.ts",
+        "apps/sj-ui/src/ui/ExecutionPlanPanel.ts",
+        "apps/sj-ui/src/ui/graph-model.ts",
+        "apps/sj-ui/src/ui/GraphPanel.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts",
+        "apps/sj-ui/src/ui/guidance.ts",
+        "apps/sj-ui/src/ui/InspectorPanel.ts",
+        "apps/sj-ui/src/ui/MachinePanel.ts",
+        "apps/sj-ui/src/ui/OnboardingPanel.test.ts",
+        "apps/sj-ui/src/ui/OnboardingPanel.ts",
+        "apps/sj-ui/src/ui/readiness.test.ts",
+        "apps/sj-ui/src/ui/readiness.ts",
+        "apps/sj-ui/src/ui/TopBar.ts",
+        "apps/sj-ui/src/ui/view-models.test.ts",
+        "apps/sj-ui/src/ui/view-models.ts"
+      ],
+      "modules": [
+        "apps/sj-ui"
+      ]
+    },
+    {
+      "id": "packages/sj-cli/src/tests",
+      "commits": 24,
+      "touches": 48,
+      "files": [
+        "packages/sj-cli/src/tests/check.test.ts",
+        "packages/sj-cli/src/tests/cli-ux.test.ts",
+        "packages/sj-cli/src/tests/context-selector.test.ts",
+        "packages/sj-cli/src/tests/context-tree.test.ts",
+        "packages/sj-cli/src/tests/execution-state.test.ts",
+        "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
+        "packages/sj-cli/src/tests/machine-advisory.test.ts",
+        "packages/sj-cli/src/tests/prepare.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.desktop-bundles.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+        "packages/sj-cli/src/tests/project-detect.test.ts",
+        "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+        "packages/sj-cli/src/tests/runtime-identity.test.ts",
+        "packages/sj-cli/src/tests/runtime.test.ts",
+        "packages/sj-cli/src/tests/sync.test.ts"
+      ],
+      "modules": [
+        "packages/sj-cli",
+        "packages/sj-cli/src/tests"
+      ]
+    },
+    {
+      "id": "scripts",
+      "commits": 17,
+      "touches": 42,
+      "files": [
+        "scripts/clean-macos-sidecars.sh",
+        "scripts/copy-runtime-assets.mjs",
+        "scripts/ensure-cloudflare-pages-project.mjs",
+        "scripts/generate-product-media.mjs",
+        "scripts/generate-release-checksums.mjs",
+        "scripts/package-release-assets.mjs",
+        "scripts/prepare-release-manifest.mjs",
+        "scripts/prepare-runtime-sidecar.mjs",
+        "scripts/run-ui-desktop-build.mjs",
+        "scripts/run-ui-desktop-test.mjs",
+        "scripts/smoke-test.sh",
+        "scripts/stage-cli-bundle.mjs",
+        "scripts/test-cli-features.sh",
+        "scripts/test-core-features.sh",
+        "scripts/test-desktop-features.sh",
+        "scripts/test-product-features.sh",
+        "scripts/upsert-route53-pages-record.mjs",
+        "scripts/verify-bundled-cli-install.mjs",
+        "scripts/verify-cli-ui-truth.mjs",
+        "scripts/verify-installed-launch-flow.mjs",
+        "scripts/verify-rendered-desktop.mjs"
+      ],
+      "modules": [
+        "scripts"
+      ]
+    },
+    {
+      "id": "packages/sj-core/src/core",
+      "commits": 15,
+      "touches": 41,
+      "files": [
+        "packages/sj-core/src/core/bootstrap.ts",
+        "packages/sj-core/src/core/context-selector.ts",
+        "packages/sj-core/src/core/context-tree.ts",
+        "packages/sj-core/src/core/context.ts",
+        "packages/sj-core/src/core/execution-engine.ts",
+        "packages/sj-core/src/core/execution-state.ts",
+        "packages/sj-core/src/core/executor.ts",
+        "packages/sj-core/src/core/next-action.ts",
+        "packages/sj-core/src/core/planner.ts",
+        "packages/sj-core/src/core/product.ts",
+        "packages/sj-core/src/core/project-detect.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/core/repo-readiness.ts",
+        "packages/sj-core/src/core/runtime-decision.ts",
+        "packages/sj-core/src/core/runtime-lifecycle.ts",
+        "packages/sj-core/src/core/token-estimator.ts",
+        "packages/sj-core/src/core/ui-state.ts",
+        "packages/sj-core/src/core/workflow-engine.ts"
+      ],
+      "modules": [
+        "packages/sj-core"
+      ]
+    },
+    {
+      "id": "docs",
+      "commits": 7,
+      "touches": 38,
+      "files": [
+        "docs/architecture.md",
+        "docs/beta-limitations.md",
+        "docs/beta-readiness-checklist.md",
+        "docs/discovery-report.md",
+        "docs/final-global-closeout.md",
+        "docs/global-accelerators.md",
+        "docs/global-adapter-strategy.md",
+        "docs/global-bootstrap.md",
+        "docs/global-integration.md",
+        "docs/install.md",
+        "docs/mcp-inventory.md",
+        "docs/migration-plan.md",
+        "docs/README.md",
+        "docs/release-packaging.md",
+        "docs/repo-first-upgrade-closeout.md",
+        "docs/repo-first-upgrade-plan.md",
+        "docs/skill-inventory.md",
+        "docs/tool-global-rollbacks.md"
+      ],
+      "modules": [
+        "docs"
+      ]
+    },
+    {
+      "id": "apps/sj-ui",
+      "commits": 14,
+      "touches": 32,
+      "files": [
+        "apps/sj-ui/agents.md",
+        "apps/sj-ui/package.json",
+        "apps/sj-ui/src-tauri/Cargo.lock",
+        "apps/sj-ui/src-tauri/Cargo.toml",
+        "apps/sj-ui/src-tauri/gen/schemas/acl-manifests.json",
+        "apps/sj-ui/src-tauri/gen/schemas/desktop-schema.json",
+        "apps/sj-ui/src-tauri/gen/schemas/macOS-schema.json",
+        "apps/sj-ui/src-tauri/src/main.rs",
+        "apps/sj-ui/src-tauri/src/state_watch.rs",
+        "apps/sj-ui/src-tauri/tauri.conf.json",
+        "apps/sj-ui/src-tauri/tauri.conf.snippet.json",
+        "apps/sj-ui/tsconfig.json",
+        "apps/sj-ui/tsconfig.test.json"
+      ],
+      "modules": [
+        "apps/sj-ui"
+      ]
+    },
+    {
+      "id": "apps/sj-ui/src/main.ts",
+      "commits": 20,
+      "touches": 20,
+      "files": [
+        "apps/sj-ui/src/main.ts"
+      ],
+      "modules": [
+        "apps/sj-ui"
+      ]
+    },
+    {
+      "id": "crates/kiwi-runtime",
+      "commits": 5,
+      "touches": 19,
+      "files": [
+        "crates/kiwi-runtime/Cargo.lock",
+        "crates/kiwi-runtime/Cargo.toml",
+        "crates/kiwi-runtime/src/daemon.rs",
+        "crates/kiwi-runtime/src/db.rs",
+        "crates/kiwi-runtime/src/lib.rs",
+        "crates/kiwi-runtime/src/main.rs",
+        "crates/kiwi-runtime/src/models.rs"
+      ],
+      "modules": [
+        "crates/kiwi-runtime"
+      ]
+    },
+    {
+      "id": "website",
+      "commits": 6,
+      "touches": 13,
+      "files": [
+        "website/_redirects",
+        "website/app.js",
+        "website/index.html",
+        "website/README.md",
+        "website/styles.css"
+      ],
+      "modules": [
+        "website"
+      ]
+    },
+    {
+      "id": ".github/workflows",
+      "commits": 8,
+      "touches": 12,
+      "files": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/deploy-site.yml",
+        ".github/workflows/release.yml",
+        ".github/workflows/shrey-junior-contract.yml"
+      ],
+      "modules": [
+        ".github/workflows"
+      ]
+    },
+    {
+      "id": "package.json",
+      "commits": 10,
+      "touches": 10,
+      "files": [
+        "package.json"
+      ],
+      "modules": [
+        "package.json"
+      ]
+    },
+    {
+      "id": "packages/sj-core/src/integrations",
+      "commits": 5,
+      "touches": 9,
+      "files": [
+        "packages/sj-core/src/integrations/machine-advisory-cache.ts",
+        "packages/sj-core/src/integrations/machine-advisory-guidance.ts",
+        "packages/sj-core/src/integrations/machine-advisory-score.ts",
+        "packages/sj-core/src/integrations/machine-advisory-summary.ts",
+        "packages/sj-core/src/integrations/machine-advisory.ts"
+      ],
+      "modules": [
+        "packages/sj-core"
+      ]
+    },
+    {
+      "id": "packages/sj-core/src/runtime",
+      "commits": 8,
+      "touches": 8,
+      "files": [
+        "packages/sj-core/src/runtime/client.ts",
+        "packages/sj-core/src/runtime/ui-bridge.ts"
+      ],
+      "modules": [
+        "packages/sj-core"
+      ]
+    },
+    {
+      "id": "README.md",
+      "commits": 7,
+      "touches": 7,
+      "files": [
+        "README.md"
+      ],
+      "modules": [
+        "README.md"
+      ]
+    },
+    {
+      "id": ".github/agents",
+      "commits": 1,
+      "touches": 7,
+      "files": [
+        ".github/agents/architecture-specialist.md",
+        ".github/agents/backend-specialist.md",
+        ".github/agents/frontend-specialist.md",
+        ".github/agents/fullstack-specialist.md",
+        ".github/agents/qa-specialist.md",
+        ".github/agents/review-specialist.md",
+        ".github/agents/shrey-junior.md"
+      ],
+      "modules": [
+        ".github/agents"
+      ]
+    }
+  ]
+}

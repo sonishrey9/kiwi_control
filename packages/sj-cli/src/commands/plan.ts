@@ -1,6 +1,6 @@
 import { contextSelector } from "@shrey-junior/sj-core/core/context-selector.js";
 import { buildRepoContextTree, persistRepoContextTreeArtifacts } from "@shrey-junior/sj-core/core/context-tree.js";
-import { buildCompactContextPack, buildRepoIntelligenceArtifacts, persistCompactContextPack, persistRepoIntelligenceArtifacts } from "@shrey-junior/sj-core/core/repo-intelligence.js";
+import { buildCompactContextPack, buildRepoIntelligenceArtifacts, buildReviewContextPack, persistCompactContextPack, persistRepoIntelligenceArtifacts, persistReviewContextPack } from "@shrey-junior/sj-core/core/repo-intelligence.js";
 import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
 import { inspectBootstrapTarget } from "@shrey-junior/sj-core/core/project-detect.js";
@@ -24,6 +24,7 @@ export async function runPlan(options: PlanOptions): Promise<number> {
   const { state, view, index } = await buildRepoContextTree(options.targetRoot, inspection.projectType);
   await persistRepoContextTreeArtifacts(options.targetRoot, state, view);
   const intelligenceArtifacts = await buildRepoIntelligenceArtifacts({
+    targetRoot: options.targetRoot,
     tree: state,
     view,
     index
@@ -39,6 +40,16 @@ export async function runPlan(options: PlanOptions): Promise<number> {
       repoMap: intelligenceArtifacts.repoMap,
       impactMap: intelligenceArtifacts.impactMap,
       mode: index.lastImpact.changedFiles.length > 0 ? "changed" : "overview",
+      task: options.task
+    })
+  );
+  await persistReviewContextPack(
+    options.targetRoot,
+    buildReviewContextPack({
+      targetRoot: options.targetRoot,
+      decisionGraph: intelligenceArtifacts.decisionGraph,
+      historyGraph: intelligenceArtifacts.historyGraph,
+      reviewGraph: intelligenceArtifacts.reviewGraph,
       task: options.task
     })
   );

@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/context-tree-view",
   "version": 1,
-  "timestamp": "2026-04-09T12:35:43.797Z",
+  "timestamp": "2026-04-09T13:13:02.048Z",
   "summary": "Discovered 385 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
   "languages": [
     "docs",
@@ -159,7 +159,7 @@
     {
       "file": "packages/sj-core/src/core/state.ts",
       "moduleGroup": "packages/sj-core",
-      "importedByCount": 17
+      "importedByCount": 18
     },
     {
       "file": "packages/sj-core/src/core/product.ts",

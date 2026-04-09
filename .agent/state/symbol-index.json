@@ -1,9 +1,9 @@
 {
   "artifactType": "kiwi-control/symbol-index",
   "version": 1,
-  "generatedAt": "2026-04-09T12:35:43.797Z",
+  "generatedAt": "2026-04-09T13:13:02.048Z",
   "totalFiles": 190,
-  "totalSymbols": 1732,
+  "totalSymbols": 1755,
   "files": [
     {
       "file": "apps/sj-ui/src/bootcheck.ts",
@@ -2130,30 +2130,53 @@
       "exports": [
         "buildCompactContextPack",
         "buildRepoIntelligenceArtifacts",
-        "loadRepoIntelligenceSummary",
-        "persistCompactContextPack",
-        "persistRepoIntelligenceArtifacts",
-        "persistRepoIntelligenceIndexArtifacts"
-      ],
-      "localFunctions": [
-        "addRank",
-        "buildCompactContextPack",
-        "buildDependencyGraph",
-        "buildImpactMap",
-        "buildRepoIntelligenceArtifacts",
-        "buildRepoMap",
-        "buildSymbolIndex",
-        "compactContextPackPath",
-        "dependencyGraphPath",
-        "deriveImpactClusterId",
-        "impactMapPath",
+        "buildReviewContextPack",
         "loadRepoIntelligenceSummary",
         "persistCompactContextPack",
         "persistRepoIntelligenceArtifacts",
         "persistRepoIntelligenceIndexArtifacts",
+        "persistReviewContextPack"
+      ],
+      "localFunctions": [
+        "addDecisionNode",
+        "addEdge",
+        "addRank",
+        "buildCompactContextPack",
+        "buildDecisionGraph",
+        "buildDependencyGraph",
+        "buildHistoryGraph",
+        "buildImpactMap",
+        "buildRepoIntelligenceArtifacts",
+        "buildRepoMap",
+        "buildReviewContextPack",
+        "buildReviewGraph",
+        "buildSymbolIndex",
+        "compactContextPackPath",
+        "decisionGraphPath",
+        "dependencyGraphPath",
+        "deriveImpactClusterId",
+        "ensureFileNode",
+        "ensureModuleNode",
+        "ensureTaskNode",
+        "extractCommandFromDecisionNode",
+        "extractTaskFromCommand",
+        "flattenArtifactFiles",
+        "historyGraphPath",
+        "impactMapPath",
+        "linkNodeToFilesAndModules",
+        "loadRepoIntelligenceSummary",
+        "persistCompactContextPack",
+        "persistRepoIntelligenceArtifacts",
+        "persistRepoIntelligenceIndexArtifacts",
+        "persistReviewContextPack",
+        "readExecutionEvents",
         "readJsonIfPresent",
+        "readRecentGitHistory",
         "repoMapPath",
         "resolveFocusTargets",
+        "reviewContextPackPath",
+        "reviewGraphPath",
+        "shouldIncludeHistoryFile",
         "symbolIndexPath",
         "uniqueEdges",
         "uniqueStrings",
@@ -3175,6 +3198,18 @@
       "moduleGroup": "apps/sj-ui"
     },
     {
+      "symbol": "addDecisionNode",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "addEdge",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "addRank",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/repo-intelligence.ts",
@@ -3739,6 +3774,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "buildDecisionGraph",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "buildDecisionLogicArtifact",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/execution-state.ts",
@@ -4090,6 +4131,12 @@
       "symbol": "buildHandoffRecord",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/handoff.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "buildHistoryGraph",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -4600,6 +4647,24 @@
       "symbol": "buildReverseDependencyMap",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/context-index.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "buildReviewContextPack",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "buildReviewContextPack",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "buildReviewGraph",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -5455,6 +5520,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "decisionGraphPath",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "dedupe",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/launch.ts",
@@ -6133,6 +6204,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "ensureFileNode",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "ensureFocusedItem",
       "kind": "local-function",
       "file": "apps/sj-ui/src/main.ts",
@@ -6148,6 +6225,12 @@
       "symbol": "ensureMemoryLayout",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/memory.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "ensureModuleNode",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -6178,6 +6261,12 @@
       "symbol": "ensureStateLayout",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/state.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "ensureTaskNode",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -6433,6 +6522,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "extractCommandFromDecisionNode",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "extractExports",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/context-index.ts",
@@ -6496,6 +6591,12 @@
       "symbol": "extractTaggedLines",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/dispatch.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "extractTaskFromCommand",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -6694,6 +6795,12 @@
       "symbol": "firstNonEmpty",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/skills-registry.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "flattenArtifactFiles",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -7253,6 +7360,12 @@
       "kind": "local-function",
       "file": "apps/sj-ui/src/bootcheck.ts",
       "moduleGroup": "apps/sj-ui"
+    },
+    {
+      "symbol": "historyGraphPath",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "homePage",
@@ -7822,6 +7935,12 @@
       "symbol": "lifecyclePath",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/runtime-lifecycle.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "linkNodeToFilesAndModules",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -9523,6 +9642,18 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "persistReviewContextPack",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "persistReviewContextPack",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "persistRuntimeDerivedOutput",
       "kind": "export",
       "file": "packages/sj-core/src/runtime/client.ts",
@@ -9793,6 +9924,12 @@
       "moduleGroup": "packages/sj-cli"
     },
     {
+      "symbol": "readExecutionEvents",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "readExecutionStateRevision",
       "kind": "export",
       "file": "packages/sj-core/src/core/execution-state.ts",
@@ -9850,6 +9987,12 @@
       "symbol": "readLegacyJson",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/execution-state.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "readRecentGitHistory",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -11533,6 +11676,18 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "reviewContextPackPath",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "reviewGraphPath",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "roleFiles",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/validator.ts",
@@ -12412,6 +12567,12 @@
       "symbol": "shouldExpandContextTreeDirectory",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/ui-state.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "shouldIncludeHistoryFile",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core"
     },
     {

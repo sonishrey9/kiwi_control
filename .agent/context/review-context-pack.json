@@ -1,0 +1,326 @@
+{
+  "artifactType": "kiwi-control/review-context-pack",
+  "version": 1,
+  "generatedAt": "2026-04-09T13:13:03.511Z",
+  "summary": "Review attention is concentrated in packages/sj-core with 16 ranked targets.",
+  "currentTask": "phase 3 decision history review graph",
+  "readFirst": [
+    ".agent/state/decision-graph.json",
+    ".agent/state/history-graph.json",
+    ".agent/state/review-graph.json",
+    ".agent/state/checkpoints/latest.json",
+    ".agent/memory/current-focus.json",
+    ".agent/state/execution-state.json",
+    ".agent/state/execution-events.ndjson"
+  ],
+  "decisions": [
+    {
+      "id": "execution-state:9",
+      "kind": "execution-event",
+      "label": "packet-created",
+      "summary": "Prepared 43 selected files for \"update README docs\".",
+      "status": "packet-created",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/context/generated-instructions.md",
+        ".agent/state/context-selection.json",
+        ".agent/state/token-usage.json"
+      ],
+      "relatedModules": [
+        ".agent/context",
+        ".agent/state"
+      ],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "execution-event:9",
+      "kind": "execution-event",
+      "label": "prepare-completed",
+      "summary": "Prepared 43 selected files for \"update README docs\".",
+      "status": "packet-created",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/context/generated-instructions.md",
+        ".agent/state/context-selection.json",
+        ".agent/state/token-usage.json"
+      ],
+      "relatedModules": [
+        ".agent/context",
+        ".agent/state"
+      ],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "kind": "runtime-lifecycle",
+      "label": "prepared",
+      "summary": "Open the generated instructions and work inside the prepared scope.",
+      "status": "ok",
+      "task": "update README docs",
+      "relatedFiles": [
+        "apps/sj-ui/src/bootcheck.ts",
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/contracts.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts",
+        "apps/sj-ui/src/ui/guidance.ts",
+        "apps/sj-ui/src/ui/readiness.test.ts",
+        "apps/sj-ui/src/ui/readiness.ts",
+        "packages/sj-cli/src/commands/checkpoint.ts"
+      ],
+      "relatedModules": [
+        "apps/sj-ui",
+        "packages/sj-cli"
+      ],
+      "nextCommand": null
+    },
+    {
+      "id": "execution-event:8",
+      "kind": "execution-event",
+      "label": "run-auto-blocked",
+      "summary": "Touched files do not satisfy the task-category goal heuristic.",
+      "status": "blocked",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/memory/current-focus.json",
+        ".agent/state/active-role-hints.json",
+        ".agent/state/context-index.json",
+        ".agent/state/execution-plan.json",
+        "apps/sj-ui/src-tauri/src/main.rs",
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/contracts.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts"
+      ],
+      "relatedModules": [
+        ".agent/memory",
+        ".agent/state",
+        "apps/sj-ui",
+        "packages/sj-cli"
+      ],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "execution-event:7",
+      "kind": "execution-event",
+      "label": "validation-failed",
+      "summary": "Touched files do not satisfy the task-category goal heuristic.",
+      "status": "blocked",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/memory/current-focus.json",
+        ".agent/state/active-role-hints.json",
+        ".agent/state/context-index.json",
+        ".agent/state/execution-plan.json",
+        "apps/sj-ui/src-tauri/src/main.rs",
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/contracts.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts"
+      ],
+      "relatedModules": [
+        ".agent/memory",
+        ".agent/state",
+        "apps/sj-ui",
+        "packages/sj-cli"
+      ],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "execution-event:6",
+      "kind": "execution-event",
+      "label": "validation-started",
+      "summary": "Validating \"update README docs\".",
+      "status": "running",
+      "task": "update README docs",
+      "relatedFiles": [],
+      "relatedModules": [],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "execution-event:5",
+      "kind": "execution-event",
+      "label": "execution-step-started",
+      "summary": "Executing validate.",
+      "status": "running",
+      "task": "update README docs",
+      "relatedFiles": [],
+      "relatedModules": [],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "execution-event:4",
+      "kind": "execution-event",
+      "label": "run-auto-step-started",
+      "summary": "Auto run is executing validate.",
+      "status": "running",
+      "task": "update README docs",
+      "relatedFiles": [],
+      "relatedModules": [],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    }
+  ],
+  "hotspots": [
+    {
+      "kind": "file",
+      "target": "apps/sj-ui/src/main.ts",
+      "touches": 20,
+      "commits": 20
+    },
+    {
+      "kind": "file",
+      "target": "apps/sj-ui/src/ui/contracts.ts",
+      "touches": 15,
+      "commits": 15
+    },
+    {
+      "kind": "file",
+      "target": "apps/sj-ui/src-tauri/src/main.rs",
+      "touches": 10,
+      "commits": 10
+    },
+    {
+      "kind": "file",
+      "target": "package.json",
+      "touches": 10,
+      "commits": 10
+    },
+    {
+      "kind": "module",
+      "target": "packages/sj-cli",
+      "touches": 115,
+      "commits": 27
+    },
+    {
+      "kind": "module",
+      "target": "apps/sj-ui",
+      "touches": 112,
+      "commits": 24
+    },
+    {
+      "kind": "module",
+      "target": "packages/sj-core",
+      "touches": 62,
+      "commits": 19
+    },
+    {
+      "kind": "module",
+      "target": "scripts",
+      "touches": 42,
+      "commits": 17
+    }
+  ],
+  "reviewAttention": [
+    {
+      "kind": "module",
+      "target": "packages/sj-core",
+      "score": 5167,
+      "reasons": [
+        "active change cluster",
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "module",
+      "target": "packages/sj-cli",
+      "score": 2195,
+      "reasons": [
+        "active change cluster",
+        "contains entry point",
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "module",
+      "target": "apps/sj-ui",
+      "score": 1306,
+      "reasons": [
+        "contains entry point",
+        "failure-linked",
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "module",
+      "target": "scripts",
+      "score": 488,
+      "reasons": [
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "module",
+      "target": "docs",
+      "score": 408,
+      "reasons": [
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "file",
+      "target": "apps/sj-ui/src/main.ts",
+      "score": 220,
+      "reasons": [
+        "entry point",
+        "failure-linked",
+        "history hotspot",
+        "repeated decision attention",
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "module",
+      "target": "crates/kiwi-runtime",
+      "score": 210,
+      "reasons": [
+        "contains entry point",
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "file",
+      "target": "apps/sj-ui/src/ui/contracts.ts",
+      "score": 178,
+      "reasons": [
+        "dependency hub",
+        "failure-linked",
+        "history hotspot",
+        "repeated decision attention",
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "file",
+      "target": "packages/sj-core/src/core/ui-state.ts",
+      "score": 160,
+      "reasons": [
+        "call relationship",
+        "changed file",
+        "changed-area cluster",
+        "history hotspot",
+        "repeated touches",
+        "reverse dependency hub"
+      ]
+    },
+    {
+      "kind": "file",
+      "target": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+      "score": 124,
+      "reasons": [
+        "changed file",
+        "changed-area cluster",
+        "history hotspot",
+        "repeated touches"
+      ]
+    }
+  ],
+  "globalSignals": [
+    {
+      "signal": "blocked decisions",
+      "detail": "2 recent decision(s) are blocked or failed.",
+      "severity": "high"
+    },
+    {
+      "signal": "repeated-touch modules",
+      "detail": "12 module(s) have repeated recent touches.",
+      "severity": "warn"
+    }
+  ]
+}

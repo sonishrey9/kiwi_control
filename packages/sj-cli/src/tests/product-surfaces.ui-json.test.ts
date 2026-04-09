@@ -142,6 +142,12 @@ test("ui command returns structured repo-control state in json mode", async () =
         symbolIndexPath: string | null;
         dependencyGraphPath: string | null;
         impactMapPath: string | null;
+        decisionGraphPath: string | null;
+        historyGraphPath: string | null;
+        reviewGraphPath: string | null;
+        importantDecisions: number;
+        hotspotFiles: number;
+        reviewRiskTargets: number;
         compactContextPackAvailable: boolean;
         compactContextPackPath: string | null;
         compactContextPackMode: string | null;
@@ -219,6 +225,12 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(payload.kiwiControl.repoIntelligence.symbolIndexPath, ".agent/state/symbol-index.json");
   assert.equal(payload.kiwiControl.repoIntelligence.dependencyGraphPath, ".agent/state/dependency-graph.json");
   assert.equal(payload.kiwiControl.repoIntelligence.impactMapPath, ".agent/state/impact-map.json");
+  assert.equal(payload.kiwiControl.repoIntelligence.decisionGraphPath, ".agent/state/decision-graph.json");
+  assert.equal(payload.kiwiControl.repoIntelligence.historyGraphPath, ".agent/state/history-graph.json");
+  assert.equal(payload.kiwiControl.repoIntelligence.reviewGraphPath, ".agent/state/review-graph.json");
+  assert.equal(typeof payload.kiwiControl.repoIntelligence.importantDecisions, "number");
+  assert.equal(typeof payload.kiwiControl.repoIntelligence.hotspotFiles, "number");
+  assert.equal(typeof payload.kiwiControl.repoIntelligence.reviewRiskTargets, "number");
   assert.equal(payload.kiwiControl.repoIntelligence.compactContextPackAvailable, true);
   assert.equal(payload.kiwiControl.repoIntelligence.compactContextPackPath, ".agent/context/compact-context-pack.json");
   assert.match(payload.kiwiControl.repoIntelligence.compactContextPackMode ?? "", /overview|focus|changed/);

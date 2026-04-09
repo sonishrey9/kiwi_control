@@ -2,7 +2,7 @@ import type { GlobalBootstrapDefaults, LoadedConfig, ProjectType } from "./confi
 import { getGlobalHomeRoot, loadGlobalBootstrapDefaults } from "./config.js";
 import { initOrSyncTarget, summarizeWrites } from "./executor.js";
 import { buildRepoContextSeedArtifacts, buildRepoContextTree, persistRepoContextSeedArtifacts, persistRepoContextTreeArtifacts } from "./context-tree.js";
-import { buildCompactContextPack, buildRepoIntelligenceArtifacts, persistCompactContextPack, persistRepoIntelligenceArtifacts } from "./repo-intelligence.js";
+import { buildCompactContextPack, buildRepoIntelligenceArtifacts, buildReviewContextPack, persistCompactContextPack, persistRepoIntelligenceArtifacts, persistReviewContextPack } from "./repo-intelligence.js";
 import { buildBootstrapNextAction, buildBootstrapNextFileToRead, buildBootstrapNextSuggestedCommand, buildChecksToRun, buildFirstReadContract } from "./guidance.js";
 import { inspectBootstrapTarget, type BootstrapInspection } from "./project-detect.js";
 import { PRODUCT_METADATA } from "./product.js";
@@ -311,6 +311,7 @@ export async function syncRepoAwareBootstrapArtifacts(
   const { state, view, index } = await buildRepoContextTree(targetRoot, options.projectType);
   const treeResults = await persistRepoContextTreeArtifacts(targetRoot, state, view);
   const intelligenceArtifacts = await buildRepoIntelligenceArtifacts({
+    targetRoot,
     tree: state,
     view,
     index
@@ -326,6 +327,15 @@ export async function syncRepoAwareBootstrapArtifacts(
       repoMap: intelligenceArtifacts.repoMap,
       impactMap: intelligenceArtifacts.impactMap,
       mode: "overview"
+    })
+  );
+  const reviewContextResult = await persistReviewContextPack(
+    targetRoot,
+    buildReviewContextPack({
+      targetRoot,
+      decisionGraph: intelligenceArtifacts.decisionGraph,
+      historyGraph: intelligenceArtifacts.historyGraph,
+      reviewGraph: intelligenceArtifacts.reviewGraph
     })
   );
   const memoryResults = await persistRepoContextSeedArtifacts(
@@ -363,7 +373,7 @@ export async function syncRepoAwareBootstrapArtifacts(
     nextSuggestedMcpPack: preserveContinuity ? existingHints?.nextSuggestedMcpPack ?? options.recommendedMcpPack : options.recommendedMcpPack,
     latestMemoryFocus: ".agent/memory/current-focus.json"
   }).catch(() => null);
-  return [...treeResults, ...intelligenceResults, compactContextResult, ...memoryResults];
+  return [...treeResults, ...intelligenceResults, compactContextResult, reviewContextResult, ...memoryResults];
 }
 
 function resolveStarterSpecialists(

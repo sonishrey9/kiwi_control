@@ -4,8 +4,10 @@ import { buildRepoContextTree, persistRepoContextTreeArtifacts } from "@shrey-ju
 import {
   buildCompactContextPack,
   buildRepoIntelligenceArtifacts,
+  buildReviewContextPack,
   persistCompactContextPack,
-  persistRepoIntelligenceArtifacts
+  persistRepoIntelligenceArtifacts,
+  persistReviewContextPack
 } from "@shrey-junior/sj-core/core/repo-intelligence.js";
 import { inspectBootstrapTarget } from "@shrey-junior/sj-core/core/project-detect.js";
 import { normalizeRepoPath, relativeFrom } from "@shrey-junior/sj-core/utils/fs.js";
@@ -32,6 +34,7 @@ export async function runRepoMap(options: RepoMapOptions): Promise<number> {
   const { state, view, index } = await buildRepoContextTree(options.targetRoot, inspection.projectType);
   await persistRepoContextTreeArtifacts(options.targetRoot, state, view);
   const artifacts = await buildRepoIntelligenceArtifacts({
+    targetRoot: options.targetRoot,
     tree: state,
     view,
     index
@@ -48,6 +51,14 @@ export async function runRepoMap(options: RepoMapOptions): Promise<number> {
     ...(typeof options.limit === "number" ? { limit: options.limit } : {})
   });
   await persistCompactContextPack(options.targetRoot, compactContextPack);
+  const reviewContextPack = buildReviewContextPack({
+    targetRoot: options.targetRoot,
+    decisionGraph: artifacts.decisionGraph,
+    historyGraph: artifacts.historyGraph,
+    reviewGraph: artifacts.reviewGraph,
+    ...(options.task ? { task: options.task } : {})
+  });
+  await persistReviewContextPack(options.targetRoot, reviewContextPack);
 
   const payload = {
     artifactPaths: {
@@ -55,14 +66,22 @@ export async function runRepoMap(options: RepoMapOptions): Promise<number> {
       symbolIndex: ".agent/state/symbol-index.json",
       dependencyGraph: ".agent/state/dependency-graph.json",
       impactMap: ".agent/state/impact-map.json",
+      decisionGraph: ".agent/state/decision-graph.json",
+      historyGraph: ".agent/state/history-graph.json",
+      reviewGraph: ".agent/state/review-graph.json",
       compactContextPack: ".agent/context/compact-context-pack.json",
+      reviewContextPack: ".agent/context/review-context-pack.json",
       contextTree: ".agent/context/context-tree.json"
     },
     repoMap: artifacts.repoMap,
     symbolIndex: artifacts.symbolIndex,
     dependencyGraph: artifacts.dependencyGraph,
     impactMap: artifacts.impactMap,
-    compactContextPack
+    decisionGraph: artifacts.decisionGraph,
+    historyGraph: artifacts.historyGraph,
+    reviewGraph: artifacts.reviewGraph,
+    compactContextPack,
+    reviewContextPack
   };
 
   if (options.json) {

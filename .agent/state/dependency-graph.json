@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/dependency-graph",
   "version": 1,
-  "generatedAt": "2026-04-09T12:35:43.797Z",
+  "generatedAt": "2026-04-09T13:13:02.048Z",
   "nodes": [
     {
       "file": "apps/sj-ui/src/bootcheck.ts",
@@ -961,7 +961,7 @@
       "exports": 7,
       "localFunctions": 27,
       "imports": 1,
-      "importedBy": 3
+      "importedBy": 4
     },
     {
       "file": "packages/sj-core/src/core/executor.ts",
@@ -1025,7 +1025,7 @@
       "exports": 6,
       "localFunctions": 7,
       "imports": 4,
-      "importedBy": 5
+      "importedBy": 6
     },
     {
       "file": "packages/sj-core/src/core/next-action.ts",
@@ -1033,7 +1033,7 @@
       "exports": 1,
       "localFunctions": 4,
       "imports": 4,
-      "importedBy": 1
+      "importedBy": 2
     },
     {
       "file": "packages/sj-core/src/core/packets.ts",
@@ -1105,7 +1105,7 @@
       "exports": 4,
       "localFunctions": 10,
       "imports": 8,
-      "importedBy": 5
+      "importedBy": 6
     },
     {
       "file": "packages/sj-core/src/core/release.ts",
@@ -1118,9 +1118,9 @@
     {
       "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core",
-      "exports": 6,
-      "localFunctions": 22,
-      "imports": 4,
+      "exports": 8,
+      "localFunctions": 43,
+      "imports": 11,
       "importedBy": 3
     },
     {
@@ -1161,7 +1161,7 @@
       "exports": 3,
       "localFunctions": 5,
       "imports": 3,
-      "importedBy": 1
+      "importedBy": 2
     },
     {
       "file": "packages/sj-core/src/core/skills-registry.ts",
@@ -1185,7 +1185,7 @@
       "exports": 18,
       "localFunctions": 19,
       "imports": 4,
-      "importedBy": 17
+      "importedBy": 18
     },
     {
       "file": "packages/sj-core/src/core/task-intent.ts",
@@ -1241,7 +1241,7 @@
       "exports": 8,
       "localFunctions": 20,
       "imports": 3,
-      "importedBy": 4
+      "importedBy": 5
     },
     {
       "file": "packages/sj-core/src/index.ts",
@@ -3777,12 +3777,62 @@
     },
     {
       "from": "packages/sj-core/src/core/repo-intelligence.ts",
+      "to": "packages/sj-core/src/core/execution-state.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-core/src/core/repo-intelligence.ts",
+      "to": "packages/sj-core/src/core/memory.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-core/src/core/repo-intelligence.ts",
+      "to": "packages/sj-core/src/core/memory.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-core/src/core/repo-intelligence.ts",
+      "to": "packages/sj-core/src/core/next-action.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-core/src/core/repo-intelligence.ts",
+      "to": "packages/sj-core/src/core/reconcile.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-core/src/core/repo-intelligence.ts",
+      "to": "packages/sj-core/src/core/reconcile.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-core/src/core/repo-intelligence.ts",
+      "to": "packages/sj-core/src/core/runtime-lifecycle.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-core/src/core/repo-intelligence.ts",
+      "to": "packages/sj-core/src/core/state.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-core/src/core/repo-intelligence.ts",
+      "to": "packages/sj-core/src/core/state.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-core/src/core/repo-intelligence.ts",
       "to": "packages/sj-core/src/core/task-intent.ts",
       "kind": "call"
     },
     {
       "from": "packages/sj-core/src/core/repo-intelligence.ts",
       "to": "packages/sj-core/src/core/task-intent.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-core/src/core/repo-intelligence.ts",
+      "to": "packages/sj-core/src/core/workflow-engine.ts",
       "kind": "import"
     },
     {
@@ -6480,6 +6530,7 @@
       ],
       "importedBy": [
         "packages/sj-core/src/core/execution-engine.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/repo-readiness.ts",
         "packages/sj-core/src/core/ui-state.ts"
       ],
@@ -6674,6 +6725,7 @@
       ],
       "importedBy": [
         "packages/sj-core/src/core/context-selector.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/state.ts",
         "packages/sj-core/src/core/token-estimator.ts",
         "packages/sj-core/src/core/ui-state.ts",
@@ -6700,6 +6752,7 @@
         "packages/sj-core/src/utils/fs.ts"
       ],
       "importedBy": [
+        "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/ui-state.ts"
       ],
       "callTargets": [
@@ -6930,6 +6983,7 @@
         "packages/sj-core/src/core/launch.ts",
         "packages/sj-core/src/core/policies.ts",
         "packages/sj-core/src/core/release.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/ui-state.ts",
         "packages/sj-core/src/core/validator.ts"
       ],
@@ -6986,7 +7040,14 @@
       "imports": [
         "packages/sj-core/src/core/context-index.ts",
         "packages/sj-core/src/core/context-tree.ts",
+        "packages/sj-core/src/core/execution-state.ts",
+        "packages/sj-core/src/core/memory.ts",
+        "packages/sj-core/src/core/next-action.ts",
+        "packages/sj-core/src/core/reconcile.ts",
+        "packages/sj-core/src/core/runtime-lifecycle.ts",
+        "packages/sj-core/src/core/state.ts",
         "packages/sj-core/src/core/task-intent.ts",
+        "packages/sj-core/src/core/workflow-engine.ts",
         "packages/sj-core/src/utils/fs.ts"
       ],
       "importedBy": [
@@ -6995,13 +7056,23 @@
         "packages/sj-core/src/core/ui-state.ts"
       ],
       "callTargets": [
+        "packages/sj-core/src/core/memory.ts",
+        "packages/sj-core/src/core/reconcile.ts",
+        "packages/sj-core/src/core/state.ts",
         "packages/sj-core/src/core/task-intent.ts",
         "packages/sj-core/src/utils/fs.ts"
       ],
       "relationships": [
         "packages/sj-core/src/core/context-index.ts",
         "packages/sj-core/src/core/context-tree.ts",
+        "packages/sj-core/src/core/execution-state.ts",
+        "packages/sj-core/src/core/memory.ts",
+        "packages/sj-core/src/core/next-action.ts",
+        "packages/sj-core/src/core/reconcile.ts",
+        "packages/sj-core/src/core/runtime-lifecycle.ts",
+        "packages/sj-core/src/core/state.ts",
         "packages/sj-core/src/core/task-intent.ts",
+        "packages/sj-core/src/core/workflow-engine.ts",
         "packages/sj-core/src/utils/fs.ts"
       ]
     },
@@ -7089,6 +7160,7 @@
         "packages/sj-core/src/utils/fs.ts"
       ],
       "importedBy": [
+        "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/ui-state.ts"
       ],
       "callTargets": [
@@ -7170,6 +7242,7 @@
         "packages/sj-core/src/core/policies.ts",
         "packages/sj-core/src/core/reconcile.ts",
         "packages/sj-core/src/core/release.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/token-estimator.ts",
         "packages/sj-core/src/core/ui-state.ts",
         "packages/sj-core/src/core/validator.ts"
@@ -7448,6 +7521,7 @@
       "importedBy": [
         "packages/sj-core/src/core/execution-engine.ts",
         "packages/sj-core/src/core/execution-log.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/runtime-lifecycle.ts",
         "packages/sj-core/src/core/ui-state.ts"
       ],

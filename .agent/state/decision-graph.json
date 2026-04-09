@@ -1,0 +1,1144 @@
+{
+  "artifactType": "kiwi-control/decision-graph",
+  "version": 1,
+  "generatedAt": "2026-04-09T13:13:02.048Z",
+  "currentTask": "update README docs",
+  "nodes": [
+    {
+      "id": "checkpoint:bootstrap-initialized",
+      "kind": "checkpoint",
+      "label": "bootstrap initialized",
+      "summary": "Bootstrap seed only. Fill in the repo context, then replace this with a real checkpoint after meaningful work.",
+      "timestamp": "2026-04-06T15:07:32.854Z",
+      "status": "recorded",
+      "task": "Establish the repo-local Shrey Junior contract and initial context."
+    },
+    {
+      "id": "execution-event:1",
+      "kind": "execution-event",
+      "label": "prepare-completed",
+      "summary": "Prepared 43 selected files for \"update README docs\".",
+      "timestamp": "2026-04-07T21:51:50.905Z",
+      "status": "packet-created",
+      "task": "update README docs"
+    },
+    {
+      "id": "execution-event:2",
+      "kind": "execution-event",
+      "label": "run-packetized",
+      "summary": "Generated 3 task packets for \"update README docs\".",
+      "timestamp": "2026-04-07T21:51:51.478Z",
+      "status": "queued",
+      "task": "update README docs"
+    },
+    {
+      "id": "execution-event:3",
+      "kind": "execution-event",
+      "label": "run-auto-queued",
+      "summary": "Auto run queued the current execution plan.",
+      "timestamp": "2026-04-07T21:51:53.081Z",
+      "status": "queued",
+      "task": "update README docs"
+    },
+    {
+      "id": "execution-event:4",
+      "kind": "execution-event",
+      "label": "run-auto-step-started",
+      "summary": "Auto run is executing validate.",
+      "timestamp": "2026-04-07T21:51:53.082Z",
+      "status": "running",
+      "task": "update README docs"
+    },
+    {
+      "id": "execution-event:5",
+      "kind": "execution-event",
+      "label": "execution-step-started",
+      "summary": "Executing validate.",
+      "timestamp": "2026-04-07T21:51:53.129Z",
+      "status": "running",
+      "task": "update README docs"
+    },
+    {
+      "id": "execution-event:6",
+      "kind": "execution-event",
+      "label": "validation-started",
+      "summary": "Validating \"update README docs\".",
+      "timestamp": "2026-04-07T21:51:53.173Z",
+      "status": "running",
+      "task": "update README docs"
+    },
+    {
+      "id": "execution-event:7",
+      "kind": "execution-event",
+      "label": "validation-failed",
+      "summary": "Touched files do not satisfy the task-category goal heuristic.",
+      "timestamp": "2026-04-07T21:51:53.287Z",
+      "status": "blocked",
+      "task": "update README docs"
+    },
+    {
+      "id": "execution-event:8",
+      "kind": "execution-event",
+      "label": "run-auto-blocked",
+      "summary": "Touched files do not satisfy the task-category goal heuristic.",
+      "timestamp": "2026-04-07T21:51:53.332Z",
+      "status": "blocked",
+      "task": "update README docs"
+    },
+    {
+      "id": "execution-event:9",
+      "kind": "execution-event",
+      "label": "prepare-completed",
+      "summary": "Prepared 43 selected files for \"update README docs\".",
+      "timestamp": "2026-04-07T21:52:02.653Z",
+      "status": "packet-created",
+      "task": "update README docs"
+    },
+    {
+      "id": "execution-state:9",
+      "kind": "execution-event",
+      "label": "packet-created",
+      "summary": "Prepared 43 selected files for \"update README docs\".",
+      "timestamp": "2026-04-07T21:52:02.653Z",
+      "status": "packet-created",
+      "task": "update README docs"
+    },
+    {
+      "id": "file:.agent/context/generated-instructions.md",
+      "kind": "file",
+      "label": ".agent/context/generated-instructions.md",
+      "summary": ".agent/context/generated-instructions.md",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/memory/current-focus.json",
+      "kind": "file",
+      "label": ".agent/memory/current-focus.json",
+      "summary": ".agent/memory/current-focus.json",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/state/active-role-hints.json",
+      "kind": "file",
+      "label": ".agent/state/active-role-hints.json",
+      "summary": ".agent/state/active-role-hints.json",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/state/context-index.json",
+      "kind": "file",
+      "label": ".agent/state/context-index.json",
+      "summary": ".agent/state/context-index.json",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/state/context-selection.json",
+      "kind": "file",
+      "label": ".agent/state/context-selection.json",
+      "summary": ".agent/state/context-selection.json",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/state/execution-plan.json",
+      "kind": "file",
+      "label": ".agent/state/execution-plan.json",
+      "summary": ".agent/state/execution-plan.json",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/state/latest-task-packets.json",
+      "kind": "file",
+      "label": ".agent/state/latest-task-packets.json",
+      "summary": ".agent/state/latest-task-packets.json",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/state/token-usage.json",
+      "kind": "file",
+      "label": ".agent/state/token-usage.json",
+      "summary": ".agent/state/token-usage.json",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/tasks/run-20260407-215151-update-readme-docs/claude.md",
+      "kind": "file",
+      "label": ".agent/tasks/run-20260407-215151-update-readme-docs/claude.md",
+      "summary": ".agent/tasks/run-20260407-215151-update-readme-docs/claude.md",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/tasks/run-20260407-215151-update-readme-docs/codex.md",
+      "kind": "file",
+      "label": ".agent/tasks/run-20260407-215151-update-readme-docs/codex.md",
+      "summary": ".agent/tasks/run-20260407-215151-update-readme-docs/codex.md",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/tasks/run-20260407-215151-update-readme-docs/copilot.md",
+      "kind": "file",
+      "label": ".agent/tasks/run-20260407-215151-update-readme-docs/copilot.md",
+      "summary": ".agent/tasks/run-20260407-215151-update-readme-docs/copilot.md",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:apps/sj-ui/src-tauri/src/main.rs",
+      "kind": "file",
+      "label": "apps/sj-ui/src-tauri/src/main.rs",
+      "summary": "apps/sj-ui/src-tauri/src/main.rs",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:apps/sj-ui/src/bootcheck.ts",
+      "kind": "file",
+      "label": "apps/sj-ui/src/bootcheck.ts",
+      "summary": "apps/sj-ui/src/bootcheck.ts",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:apps/sj-ui/src/main.ts",
+      "kind": "file",
+      "label": "apps/sj-ui/src/main.ts",
+      "summary": "apps/sj-ui/src/main.ts",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:apps/sj-ui/src/ui/contracts.ts",
+      "kind": "file",
+      "label": "apps/sj-ui/src/ui/contracts.ts",
+      "summary": "apps/sj-ui/src/ui/contracts.ts",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:apps/sj-ui/src/ui/guidance.test.ts",
+      "kind": "file",
+      "label": "apps/sj-ui/src/ui/guidance.test.ts",
+      "summary": "apps/sj-ui/src/ui/guidance.test.ts",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:apps/sj-ui/src/ui/guidance.ts",
+      "kind": "file",
+      "label": "apps/sj-ui/src/ui/guidance.ts",
+      "summary": "apps/sj-ui/src/ui/guidance.ts",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:apps/sj-ui/src/ui/readiness.test.ts",
+      "kind": "file",
+      "label": "apps/sj-ui/src/ui/readiness.test.ts",
+      "summary": "apps/sj-ui/src/ui/readiness.test.ts",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:apps/sj-ui/src/ui/readiness.ts",
+      "kind": "file",
+      "label": "apps/sj-ui/src/ui/readiness.ts",
+      "summary": "apps/sj-ui/src/ui/readiness.ts",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:packages/sj-cli/src/commands/checkpoint.ts",
+      "kind": "file",
+      "label": "packages/sj-cli/src/commands/checkpoint.ts",
+      "summary": "packages/sj-cli/src/commands/checkpoint.ts",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:packages/sj-cli/src/commands/execution-step-runner.ts",
+      "kind": "file",
+      "label": "packages/sj-cli/src/commands/execution-step-runner.ts",
+      "summary": "packages/sj-cli/src/commands/execution-step-runner.ts",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:packages/sj-cli/src/commands/handoff.ts",
+      "kind": "file",
+      "label": "packages/sj-cli/src/commands/handoff.ts",
+      "summary": "packages/sj-cli/src/commands/handoff.ts",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:packages/sj-cli/src/commands/prepare.ts",
+      "kind": "file",
+      "label": "packages/sj-cli/src/commands/prepare.ts",
+      "summary": "packages/sj-cli/src/commands/prepare.ts",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:packages/sj-cli/src/commands/run-auto.ts",
+      "kind": "file",
+      "label": "packages/sj-cli/src/commands/run-auto.ts",
+      "summary": "packages/sj-cli/src/commands/run-auto.ts",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:packages/sj-cli/src/commands/run.ts",
+      "kind": "file",
+      "label": "packages/sj-cli/src/commands/run.ts",
+      "summary": "packages/sj-cli/src/commands/run.ts",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:packages/sj-cli/src/commands/sync.ts",
+      "kind": "file",
+      "label": "packages/sj-cli/src/commands/sync.ts",
+      "summary": "packages/sj-cli/src/commands/sync.ts",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:packages/sj-cli/src/commands/ui.ts",
+      "kind": "file",
+      "label": "packages/sj-cli/src/commands/ui.ts",
+      "summary": "packages/sj-cli/src/commands/ui.ts",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
+      "kind": "file",
+      "label": "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
+      "summary": "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "focus:current",
+      "kind": "focus",
+      "label": "frontend-specialist",
+      "summary": "Open .agent/state/latest-task-packets.json and execute the claude run packet before validating the outcome.",
+      "timestamp": "2026-04-07T21:51:51.433Z",
+      "status": "active",
+      "task": "update README docs"
+    },
+    {
+      "id": "module:.agent/context",
+      "kind": "module",
+      "label": ".agent/context",
+      "summary": ".agent/context",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "module:.agent/memory",
+      "kind": "module",
+      "label": ".agent/memory",
+      "summary": ".agent/memory",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "module:.agent/state",
+      "kind": "module",
+      "label": ".agent/state",
+      "summary": ".agent/state",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "module:.agent/tasks",
+      "kind": "module",
+      "label": ".agent/tasks",
+      "summary": ".agent/tasks",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "module:apps/sj-ui",
+      "kind": "module",
+      "label": "apps/sj-ui",
+      "summary": "apps/sj-ui",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "module:packages/sj-cli",
+      "kind": "module",
+      "label": "packages/sj-cli",
+      "summary": "packages/sj-cli",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "phase:bootstrap-initialized",
+      "kind": "phase",
+      "label": "bootstrap initialized",
+      "summary": "Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+      "timestamp": "2026-04-06T15:07:32.854Z",
+      "status": "complete",
+      "task": "Establish the repo-local Shrey Junior contract and start from repo-aware state."
+    },
+    {
+      "id": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "kind": "runtime-lifecycle",
+      "label": "prepared",
+      "summary": "Open the generated instructions and work inside the prepared scope.",
+      "timestamp": "2026-04-07T21:52:02.601Z",
+      "status": "ok",
+      "task": "update README docs"
+    },
+    {
+      "id": "task-packet-set:2026-04-07T21:51:51.428Z",
+      "kind": "task-packet-set",
+      "label": ".agent/tasks/run-20260407-215151-update-readme-docs",
+      "summary": "Latest packet set with 3 file(s).",
+      "timestamp": "2026-04-07T21:51:51.428Z",
+      "status": "ready",
+      "task": null
+    },
+    {
+      "id": "task:Establish the repo-local Shrey Junior contract and initial context.",
+      "kind": "task",
+      "label": "Establish the repo-local Shrey Junior contract and initial context.",
+      "summary": "Establish the repo-local Shrey Junior contract and initial context.",
+      "timestamp": null,
+      "status": null,
+      "task": "Establish the repo-local Shrey Junior contract and initial context."
+    },
+    {
+      "id": "task:Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+      "kind": "task",
+      "label": "Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+      "summary": "Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+      "timestamp": null,
+      "status": null,
+      "task": "Establish the repo-local Shrey Junior contract and start from repo-aware state."
+    },
+    {
+      "id": "task:update README docs",
+      "kind": "task",
+      "label": "update README docs",
+      "summary": "update README docs",
+      "timestamp": null,
+      "status": null,
+      "task": "update README docs"
+    }
+  ],
+  "edges": [
+    {
+      "from": "checkpoint:bootstrap-initialized",
+      "to": "task:Establish the repo-local Shrey Junior contract and initial context.",
+      "kind": "references-task"
+    },
+    {
+      "from": "execution-event:1",
+      "to": "file:.agent/context/generated-instructions.md",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:1",
+      "to": "file:.agent/state/context-selection.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:1",
+      "to": "file:.agent/state/token-usage.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:1",
+      "to": "module:.agent/context",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-event:1",
+      "to": "module:.agent/state",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-event:1",
+      "to": "task:update README docs",
+      "kind": "references-task"
+    },
+    {
+      "from": "execution-event:2",
+      "to": "file:.agent/state/latest-task-packets.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:2",
+      "to": "file:.agent/tasks/run-20260407-215151-update-readme-docs/claude.md",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:2",
+      "to": "file:.agent/tasks/run-20260407-215151-update-readme-docs/codex.md",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:2",
+      "to": "file:.agent/tasks/run-20260407-215151-update-readme-docs/copilot.md",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:2",
+      "to": "module:.agent/state",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-event:2",
+      "to": "module:.agent/tasks",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-event:2",
+      "to": "task:update README docs",
+      "kind": "references-task"
+    },
+    {
+      "from": "execution-event:3",
+      "to": "task:update README docs",
+      "kind": "references-task"
+    },
+    {
+      "from": "execution-event:4",
+      "to": "task:update README docs",
+      "kind": "references-task"
+    },
+    {
+      "from": "execution-event:5",
+      "to": "task:update README docs",
+      "kind": "references-task"
+    },
+    {
+      "from": "execution-event:6",
+      "to": "task:update README docs",
+      "kind": "references-task"
+    },
+    {
+      "from": "execution-event:7",
+      "to": "file:.agent/memory/current-focus.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:7",
+      "to": "file:.agent/state/active-role-hints.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:7",
+      "to": "file:.agent/state/context-index.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:7",
+      "to": "file:.agent/state/execution-plan.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:7",
+      "to": "file:apps/sj-ui/src-tauri/src/main.rs",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:7",
+      "to": "file:apps/sj-ui/src/main.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:7",
+      "to": "file:apps/sj-ui/src/ui/contracts.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:7",
+      "to": "file:apps/sj-ui/src/ui/guidance.test.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:7",
+      "to": "file:apps/sj-ui/src/ui/guidance.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:7",
+      "to": "file:apps/sj-ui/src/ui/readiness.test.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:7",
+      "to": "file:apps/sj-ui/src/ui/readiness.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:7",
+      "to": "file:packages/sj-cli/src/commands/checkpoint.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:7",
+      "to": "module:.agent/memory",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-event:7",
+      "to": "module:.agent/state",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-event:7",
+      "to": "module:apps/sj-ui",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-event:7",
+      "to": "module:packages/sj-cli",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-event:7",
+      "to": "task:update README docs",
+      "kind": "references-task"
+    },
+    {
+      "from": "execution-event:8",
+      "to": "file:.agent/memory/current-focus.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:8",
+      "to": "file:.agent/state/active-role-hints.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:8",
+      "to": "file:.agent/state/context-index.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:8",
+      "to": "file:.agent/state/execution-plan.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:8",
+      "to": "file:apps/sj-ui/src-tauri/src/main.rs",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:8",
+      "to": "file:apps/sj-ui/src/main.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:8",
+      "to": "file:apps/sj-ui/src/ui/contracts.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:8",
+      "to": "file:apps/sj-ui/src/ui/guidance.test.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:8",
+      "to": "file:apps/sj-ui/src/ui/guidance.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:8",
+      "to": "file:apps/sj-ui/src/ui/readiness.test.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:8",
+      "to": "file:apps/sj-ui/src/ui/readiness.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:8",
+      "to": "file:packages/sj-cli/src/commands/checkpoint.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:8",
+      "to": "module:.agent/memory",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-event:8",
+      "to": "module:.agent/state",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-event:8",
+      "to": "module:apps/sj-ui",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-event:8",
+      "to": "module:packages/sj-cli",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-event:8",
+      "to": "task:update README docs",
+      "kind": "references-task"
+    },
+    {
+      "from": "execution-event:9",
+      "to": "file:.agent/context/generated-instructions.md",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:9",
+      "to": "file:.agent/state/context-selection.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:9",
+      "to": "file:.agent/state/token-usage.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:9",
+      "to": "module:.agent/context",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-event:9",
+      "to": "module:.agent/state",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-event:9",
+      "to": "task:update README docs",
+      "kind": "references-task"
+    },
+    {
+      "from": "execution-state:9",
+      "to": "file:.agent/context/generated-instructions.md",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-state:9",
+      "to": "file:.agent/state/context-selection.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-state:9",
+      "to": "file:.agent/state/token-usage.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-state:9",
+      "to": "module:.agent/context",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-state:9",
+      "to": "module:.agent/state",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-state:9",
+      "to": "task:update README docs",
+      "kind": "references-task"
+    },
+    {
+      "from": "focus:current",
+      "to": "file:.agent/tasks/run-20260407-215151-update-readme-docs/codex.md",
+      "kind": "touches-file"
+    },
+    {
+      "from": "focus:current",
+      "to": "module:.agent/tasks",
+      "kind": "touches-module"
+    },
+    {
+      "from": "focus:current",
+      "to": "task:update README docs",
+      "kind": "continues"
+    },
+    {
+      "from": "focus:current",
+      "to": "task:update README docs",
+      "kind": "references-task"
+    },
+    {
+      "from": "phase:bootstrap-initialized",
+      "to": "task:Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+      "kind": "references-task"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "file:apps/sj-ui/src/bootcheck.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "file:apps/sj-ui/src/main.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "file:apps/sj-ui/src/ui/contracts.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "file:apps/sj-ui/src/ui/guidance.test.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "file:apps/sj-ui/src/ui/guidance.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "file:apps/sj-ui/src/ui/readiness.test.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "file:apps/sj-ui/src/ui/readiness.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "file:packages/sj-cli/src/commands/checkpoint.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "file:packages/sj-cli/src/commands/execution-step-runner.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "file:packages/sj-cli/src/commands/handoff.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "file:packages/sj-cli/src/commands/prepare.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "file:packages/sj-cli/src/commands/run-auto.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "file:packages/sj-cli/src/commands/run.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "file:packages/sj-cli/src/commands/sync.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "file:packages/sj-cli/src/commands/ui.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "file:packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "module:apps/sj-ui",
+      "kind": "touches-module"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "module:packages/sj-cli",
+      "kind": "touches-module"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "to": "task:update README docs",
+      "kind": "references-task"
+    },
+    {
+      "from": "task-packet-set:2026-04-07T21:51:51.428Z",
+      "to": "file:.agent/tasks/run-20260407-215151-update-readme-docs/claude.md",
+      "kind": "touches-file"
+    },
+    {
+      "from": "task-packet-set:2026-04-07T21:51:51.428Z",
+      "to": "file:.agent/tasks/run-20260407-215151-update-readme-docs/codex.md",
+      "kind": "touches-file"
+    },
+    {
+      "from": "task-packet-set:2026-04-07T21:51:51.428Z",
+      "to": "file:.agent/tasks/run-20260407-215151-update-readme-docs/copilot.md",
+      "kind": "touches-file"
+    },
+    {
+      "from": "task-packet-set:2026-04-07T21:51:51.428Z",
+      "to": "module:.agent/tasks",
+      "kind": "touches-module"
+    }
+  ],
+  "importantDecisions": [
+    {
+      "id": "execution-state:9",
+      "kind": "execution-event",
+      "label": "packet-created",
+      "summary": "Prepared 43 selected files for \"update README docs\".",
+      "status": "packet-created",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/context/generated-instructions.md",
+        ".agent/state/context-selection.json",
+        ".agent/state/token-usage.json"
+      ],
+      "relatedModules": [
+        ".agent/context",
+        ".agent/state"
+      ],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "execution-event:9",
+      "kind": "execution-event",
+      "label": "prepare-completed",
+      "summary": "Prepared 43 selected files for \"update README docs\".",
+      "status": "packet-created",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/context/generated-instructions.md",
+        ".agent/state/context-selection.json",
+        ".agent/state/token-usage.json"
+      ],
+      "relatedModules": [
+        ".agent/context",
+        ".agent/state"
+      ],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "kind": "runtime-lifecycle",
+      "label": "prepared",
+      "summary": "Open the generated instructions and work inside the prepared scope.",
+      "status": "ok",
+      "task": "update README docs",
+      "relatedFiles": [
+        "apps/sj-ui/src/bootcheck.ts",
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/contracts.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts",
+        "apps/sj-ui/src/ui/guidance.ts",
+        "apps/sj-ui/src/ui/readiness.test.ts",
+        "apps/sj-ui/src/ui/readiness.ts",
+        "packages/sj-cli/src/commands/checkpoint.ts"
+      ],
+      "relatedModules": [
+        "apps/sj-ui",
+        "packages/sj-cli"
+      ],
+      "nextCommand": null
+    },
+    {
+      "id": "execution-event:8",
+      "kind": "execution-event",
+      "label": "run-auto-blocked",
+      "summary": "Touched files do not satisfy the task-category goal heuristic.",
+      "status": "blocked",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/memory/current-focus.json",
+        ".agent/state/active-role-hints.json",
+        ".agent/state/context-index.json",
+        ".agent/state/execution-plan.json",
+        "apps/sj-ui/src-tauri/src/main.rs",
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/contracts.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts"
+      ],
+      "relatedModules": [
+        ".agent/memory",
+        ".agent/state",
+        "apps/sj-ui",
+        "packages/sj-cli"
+      ],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "execution-event:7",
+      "kind": "execution-event",
+      "label": "validation-failed",
+      "summary": "Touched files do not satisfy the task-category goal heuristic.",
+      "status": "blocked",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/memory/current-focus.json",
+        ".agent/state/active-role-hints.json",
+        ".agent/state/context-index.json",
+        ".agent/state/execution-plan.json",
+        "apps/sj-ui/src-tauri/src/main.rs",
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/contracts.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts"
+      ],
+      "relatedModules": [
+        ".agent/memory",
+        ".agent/state",
+        "apps/sj-ui",
+        "packages/sj-cli"
+      ],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "execution-event:6",
+      "kind": "execution-event",
+      "label": "validation-started",
+      "summary": "Validating \"update README docs\".",
+      "status": "running",
+      "task": "update README docs",
+      "relatedFiles": [],
+      "relatedModules": [],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "execution-event:5",
+      "kind": "execution-event",
+      "label": "execution-step-started",
+      "summary": "Executing validate.",
+      "status": "running",
+      "task": "update README docs",
+      "relatedFiles": [],
+      "relatedModules": [],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "execution-event:4",
+      "kind": "execution-event",
+      "label": "run-auto-step-started",
+      "summary": "Auto run is executing validate.",
+      "status": "running",
+      "task": "update README docs",
+      "relatedFiles": [],
+      "relatedModules": [],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "execution-event:3",
+      "kind": "execution-event",
+      "label": "run-auto-queued",
+      "summary": "Auto run queued the current execution plan.",
+      "status": "queued",
+      "task": "update README docs",
+      "relatedFiles": [],
+      "relatedModules": [],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "execution-event:2",
+      "kind": "execution-event",
+      "label": "run-packetized",
+      "summary": "Generated 3 task packets for \"update README docs\".",
+      "status": "queued",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/state/latest-task-packets.json",
+        ".agent/tasks/run-20260407-215151-update-readme-docs/claude.md",
+        ".agent/tasks/run-20260407-215151-update-readme-docs/codex.md",
+        ".agent/tasks/run-20260407-215151-update-readme-docs/copilot.md"
+      ],
+      "relatedModules": [
+        ".agent/state",
+        ".agent/tasks"
+      ],
+      "nextCommand": "kiwi-control run \"update README docs\""
+    },
+    {
+      "id": "focus:current",
+      "kind": "focus",
+      "label": "frontend-specialist",
+      "summary": "Open .agent/state/latest-task-packets.json and execute the claude run packet before validating the outcome.",
+      "status": "active",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/tasks/run-20260407-215151-update-readme-docs/codex.md"
+      ],
+      "relatedModules": [
+        ".agent/tasks"
+      ],
+      "nextCommand": "kiwi-control validate \"update README docs\""
+    },
+    {
+      "id": "task-packet-set:2026-04-07T21:51:51.428Z",
+      "kind": "task-packet-set",
+      "label": ".agent/tasks/run-20260407-215151-update-readme-docs",
+      "summary": "Latest packet set with 3 file(s).",
+      "status": "ready",
+      "task": null,
+      "relatedFiles": [
+        ".agent/tasks/run-20260407-215151-update-readme-docs/claude.md",
+        ".agent/tasks/run-20260407-215151-update-readme-docs/codex.md",
+        ".agent/tasks/run-20260407-215151-update-readme-docs/copilot.md"
+      ],
+      "relatedModules": [
+        ".agent/tasks"
+      ],
+      "nextCommand": null
+    }
+  ]
+}
