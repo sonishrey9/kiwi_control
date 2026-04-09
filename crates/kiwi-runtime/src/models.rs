@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::BTreeMap;
 
 pub type ExecutionArtifacts = BTreeMap<String, Vec<String>>;
@@ -183,6 +184,15 @@ pub struct MaterializeDerivedOutputsRequest {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct PersistDerivedOutputRequest {
+    pub target_root: String,
+    pub output_name: String,
+    pub payload: Value,
+    pub source_revision: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ListExecutionEventsQuery {
     pub target_root: String,
     pub after_revision: Option<i64>,
@@ -203,4 +213,6 @@ pub struct RuntimeDaemonMetadata {
     pub port: u16,
     pub base_url: String,
     pub started_at: String,
+    pub launch_mode: Option<String>,
+    pub binary_path: Option<String>,
 }

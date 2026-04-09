@@ -10,6 +10,8 @@ cp -R "$ROOT/examples/sample-project" "$TARGET"
 
 cd "$ROOT"
 
+node "$ROOT/scripts/prepare-runtime-sidecar.mjs" >/dev/null
+
 node "$CLI" init --target "$TARGET" --profile product-build
 node "$CLI" sync --target "$TARGET" --dry-run --diff-summary
 node "$CLI" sync --target "$TARGET" --backup

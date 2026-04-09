@@ -9,6 +9,8 @@ export interface RuntimeDaemonMetadata {
   port: number;
   baseUrl: string;
   startedAt: string;
+  launchMode?: string;
+  binaryPath?: string | null;
 }
 
 export interface RuntimeReadiness {
@@ -132,6 +134,13 @@ export interface MaterializeDerivedOutputsRequest {
   outputs: string[];
 }
 
+export interface PersistDerivedOutputRequest {
+  targetRoot: string;
+  outputName: string;
+  payload: unknown;
+  sourceRevision?: number | null;
+}
+
 const RUNTIME_METADATA_FILE = "daemon.json";
 const RUNTIME_HEALTH_TIMEOUT_MS = 4_000;
 const RUNTIME_START_TIMEOUT_MS = 20_000;
@@ -172,6 +181,15 @@ export async function materializeRuntimeDerivedOutputs(
   request: MaterializeDerivedOutputsRequest
 ): Promise<RuntimeSnapshot> {
   return runtimeRequest<RuntimeSnapshot>("/materialize-derived-outputs", {
+    method: "POST",
+    body: JSON.stringify(request)
+  });
+}
+
+export async function persistRuntimeDerivedOutput(
+  request: PersistDerivedOutputRequest
+): Promise<RuntimeSnapshot> {
+  return runtimeRequest<RuntimeSnapshot>("/persist-derived-output", {
     method: "POST",
     body: JSON.stringify(request)
   });
@@ -230,6 +248,10 @@ async function runtimeRequestWithMetadata<T>(
   const response = await fetch(url, requestInit);
   if (!response.ok) {
     const detail = await response.text();
+    if (allowRestart && response.status === 404) {
+      const restarted = await restartRuntimeDaemon(metadata);
+      return runtimeRequestWithMetadata<T>(pathname, init, restarted, false);
+    }
     throw new Error(detail || `Kiwi runtime request failed: ${response.status}`);
   }
   const payload = await response.json() as T;
@@ -272,8 +294,22 @@ function resolveRuntimeLaunch(): { command: string; args: string[] } {
   if (directBinary) {
     return {
       command: directBinary,
-      args: ["daemon", "--metadata-file", runtimeMetadataPath()]
+      args: [
+        "daemon",
+        "--metadata-file",
+        runtimeMetadataPath(),
+        "--launch-mode",
+        resolveRuntimeLaunchMode(directBinary),
+        "--binary-path",
+        directBinary
+      ]
     };
+  }
+
+  if (!allowDevRuntimeFallback()) {
+    throw new Error(
+      "Kiwi runtime binary is not staged. Run `node scripts/prepare-runtime-sidecar.mjs` first, or set KIWI_CONTROL_ALLOW_DEV_RUNTIME_FALLBACK=1 for an explicit cargo fallback."
+    );
   }
 
   const cargoCommand = process.platform === "win32" ? "cargo.exe" : "cargo";
@@ -289,7 +325,11 @@ function resolveRuntimeLaunch(): { command: string; args: string[] } {
       "--",
       "daemon",
       "--metadata-file",
-      runtimeMetadataPath()
+      runtimeMetadataPath(),
+      "--launch-mode",
+      "dev-cargo-fallback",
+      "--binary-path",
+      path.join(resolveShreyJuniorProductRoot(), "crates", "kiwi-runtime", "Cargo.toml")
     ]
   };
 }
@@ -315,16 +355,17 @@ function resolveRuntimeBinaryPath(): string | null {
     return path.resolve(envOverride);
   }
 
-  if (isSourceProductCheckout(resolveShreyJuniorProductRoot())) {
+  const productRoot = resolveShreyJuniorProductRoot();
+  const stagedBinary = resolveStagedRuntimeBinaryPath(productRoot);
+  if (stagedBinary) {
+    return stagedBinary;
+  }
+
+  if (isSourceProductCheckout(productRoot)) {
     return null;
   }
 
-  const executableName = process.platform === "win32" ? "kiwi-control-runtime.exe" : "kiwi-control-runtime";
-  const candidates = [
-    path.join(resolveGlobalHomeRoot(), "bin", executableName)
-  ];
-
-  return candidates.find((candidate) => existsSync(candidate)) ?? null;
+  return null;
 }
 
 function runtimeMetadataDir(): string {
@@ -352,4 +393,71 @@ function isRuntimeSnapshotPayload(value: unknown): value is RuntimeSnapshot {
     && "targetRoot" in value
     && "revision" in value
     && "lifecycle" in value;
+}
+
+function resolveRuntimeLaunchMode(binaryPath: string): string {
+  const normalizedBinaryPath = path.resolve(binaryPath);
+  const productRoot = resolveShreyJuniorProductRoot();
+  if (isSourceProductCheckout(productRoot)) {
+    return (
+      normalizedBinaryPath.includes(`${path.sep}src-tauri${path.sep}binaries${path.sep}`)
+      || normalizedBinaryPath.includes(`${path.sep}dist${path.sep}runtime${path.sep}bin${path.sep}`)
+    )
+      ? "local-staged"
+      : "env-override";
+  }
+
+  if (normalizedBinaryPath.includes(`${path.sep}runtime${path.sep}bin${path.sep}`)) {
+    return "bundled-runtime";
+  }
+
+  return "env-override";
+}
+
+function resolveStagedRuntimeBinaryPath(productRoot: string): string | null {
+  const executableName = currentRuntimeExecutableName();
+  const sidecarTriple = currentRustTargetTriple();
+  const candidates = isSourceProductCheckout(productRoot)
+    ? [
+        path.join(productRoot, "apps", "sj-ui", "src-tauri", "binaries", `kiwi-control-runtime-${sidecarTriple}${process.platform === "win32" ? ".exe" : ""}`),
+        path.join(productRoot, "packages", "sj-core", "dist", "runtime", "bin", executableName)
+      ]
+    : [
+        path.join(productRoot, "bin", executableName)
+      ];
+
+  return candidates.find((candidate) => existsSync(candidate)) ?? null;
+}
+
+function currentRuntimeExecutableName(): string {
+  return process.platform === "win32" ? "kiwi-control-runtime.exe" : "kiwi-control-runtime";
+}
+
+function currentRustTargetTriple(): string {
+  if (process.platform === "darwin" && process.arch === "arm64") {
+    return "aarch64-apple-darwin";
+  }
+  if (process.platform === "darwin" && process.arch === "x64") {
+    return "x86_64-apple-darwin";
+  }
+  if (process.platform === "linux" && process.arch === "arm64") {
+    return "aarch64-unknown-linux-gnu";
+  }
+  if (process.platform === "linux" && process.arch === "x64") {
+    return "x86_64-unknown-linux-gnu";
+  }
+  if (process.platform === "win32" && process.arch === "arm64") {
+    return "aarch64-pc-windows-msvc";
+  }
+  if (process.platform === "win32" && process.arch === "x64") {
+    return "x86_64-pc-windows-msvc";
+  }
+
+  throw new Error(`Unsupported runtime target: ${process.platform}/${process.arch}`);
+}
+
+function allowDevRuntimeFallback(): boolean {
+  const value = process.env.KIWI_CONTROL_ALLOW_DEV_RUNTIME_FALLBACK?.trim().toLowerCase()
+    || process.env.SHREY_JUNIOR_ALLOW_DEV_RUNTIME_FALLBACK?.trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes";
 }

@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { removeMacMetadataArtifacts } from "./remove-macos-metadata.mjs";
+import { prepareRuntimeSidecar } from "./prepare-runtime-sidecar.mjs";
 import { stageDesktopInstallerResources } from "./stage-cli-bundle.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -45,8 +46,11 @@ async function main() {
     resourcesRoot: installerResourcesDir,
     nodeBinaryPath: process.execPath
   });
-
   const cargoTargetDir = await resolveCargoTargetDir();
+  await prepareRuntimeSidecar({
+    repoRoot,
+    cargoTargetDir: path.join(cargoTargetDir, "runtime-sidecar")
+  });
   await killRunningDesktopBundles(cargoTargetDir);
   await fs.rm(cargoTargetDir, { recursive: true, force: true });
 

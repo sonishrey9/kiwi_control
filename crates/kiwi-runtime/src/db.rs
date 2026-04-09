@@ -1,8 +1,8 @@
 use crate::models::{
     DerivedOutputStatus, ExecutionArtifacts, ExecutionEventList, ListExecutionEventsQuery,
-    MaterializeDerivedOutputsRequest, OpenTargetRequest, RuntimeDecision, RuntimeDecisionAction,
-    RuntimeDecisionRecovery, RuntimeEvent, RuntimeLifecycle, RuntimeReadiness, RuntimeSnapshot,
-    TransitionExecutionStateRequest,
+    MaterializeDerivedOutputsRequest, OpenTargetRequest, PersistDerivedOutputRequest,
+    RuntimeDecision, RuntimeDecisionAction, RuntimeDecisionRecovery, RuntimeEvent,
+    RuntimeLifecycle, RuntimeReadiness, RuntimeSnapshot, TransitionExecutionStateRequest,
 };
 use anyhow::{anyhow, Context, Result};
 use rusqlite::{params, Connection, OptionalExtension, Transaction, TransactionBehavior};
@@ -246,6 +246,24 @@ pub fn transition_execution_state(request: &TransitionExecutionStateRequest) -> 
 pub fn materialize_derived_outputs(request: &MaterializeDerivedOutputsRequest) -> Result<RuntimeSnapshot> {
     materialize_outputs_for_target(&request.target_root, &request.outputs.iter().map(String::as_str).collect::<Vec<_>>())?;
     get_runtime_snapshot(&request.target_root)
+}
+
+pub fn persist_derived_output(request: &PersistDerivedOutputRequest) -> Result<RuntimeSnapshot> {
+    let target_root = normalize_target_root(&request.target_root)?;
+    let mut conn = open_connection(&target_root)?;
+    let target_id = ensure_initialized(&mut conn, &target_root, None, None, None)?;
+    let state = load_state_row(&conn, target_id)?;
+    let output_file_path = output_path(&target_root, &request.output_name);
+    write_json_file(&output_file_path, &request.payload)?;
+    mark_output_fresh(
+        &conn,
+        target_id,
+        &request.output_name,
+        &output_file_path,
+        request.source_revision.unwrap_or(state.revision),
+        &timestamp_now(),
+    )?;
+    get_runtime_snapshot(target_root.to_string_lossy().as_ref())
 }
 
 fn materialize_outputs_for_target(target_root: &str, outputs: &[&str]) -> Result<()> {

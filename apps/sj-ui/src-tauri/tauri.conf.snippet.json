@@ -21,6 +21,9 @@
     "active": true,
     "targets": "all",
     "createUpdaterArtifacts": false,
+    "externalBin": [
+      "binaries/kiwi-control-runtime"
+    ],
     "resources": {
       "resources/desktop/": "desktop/"
     }

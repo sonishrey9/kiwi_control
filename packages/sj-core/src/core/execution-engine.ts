@@ -7,7 +7,7 @@ import { loadCurrentPhase, loadLatestCheckpoint, loadLatestHandoff, loadActiveRo
 import { PRODUCT_METADATA } from "./product.js";
 import { classifyFileArea, deriveTaskCategory, deriveTaskArea, parseTaskIntent, type ParsedTaskIntent } from "./task-intent.js";
 import { summarizeEval, type EvalSummary } from "./eval.js";
-import { pathExists, readJson, writeText } from "../utils/fs.js";
+import { pathExists, readJson } from "../utils/fs.js";
 import type { ValidationIssue } from "./validator.js";
 import type { ContextSelectionState } from "./context-selector.js";
 import type { RepoContextTreeState } from "./context-tree.js";
@@ -15,6 +15,7 @@ import type { WorkflowState } from "./workflow-engine.js";
 import { loadWorkflowState } from "./workflow-engine.js";
 import type { ExecutionStateRecord } from "./execution-state.js";
 import { loadExecutionState } from "./execution-state.js";
+import { persistRuntimeDerivedOutput } from "../runtime/client.js";
 
 export type ExecutionEngineState =
   | "idle"
@@ -151,7 +152,11 @@ export async function persistExecutionPlan(
   plan: ExecutionPlanState
 ): Promise<string> {
   const outputPath = executionPlanPath(targetRoot);
-  await writeText(outputPath, `${JSON.stringify(plan, null, 2)}\n`);
+  await persistRuntimeDerivedOutput({
+    targetRoot,
+    outputName: "execution-plan",
+    payload: plan
+  });
   return outputPath;
 }
 

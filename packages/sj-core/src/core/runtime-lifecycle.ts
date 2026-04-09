@@ -1,6 +1,7 @@
 import path from "node:path";
 import { recordWorkflowProgress } from "./workflow-engine.js";
-import { pathExists, readJson, writeText } from "../utils/fs.js";
+import { pathExists, readJson } from "../utils/fs.js";
+import { persistRuntimeDerivedOutput } from "../runtime/client.js";
 
 export type RuntimeLifecycleStage =
   | "idle"
@@ -172,6 +173,10 @@ export async function persistRuntimeLifecycle(
   state: RuntimeLifecycleState
 ): Promise<string> {
   const outputPath = lifecyclePath(targetRoot);
-  await writeText(outputPath, `${JSON.stringify(state, null, 2)}\n`);
+  await persistRuntimeDerivedOutput({
+    targetRoot,
+    outputName: "runtime-lifecycle",
+    payload: state
+  });
   return outputPath;
 }

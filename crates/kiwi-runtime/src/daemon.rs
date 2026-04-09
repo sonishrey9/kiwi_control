@@ -1,7 +1,7 @@
 use crate::db;
 use crate::models::{
     ListExecutionEventsQuery, MaterializeDerivedOutputsRequest, OpenTargetRequest,
-    RuntimeDaemonMetadata, TransitionExecutionStateRequest,
+    PersistDerivedOutputRequest, RuntimeDaemonMetadata, TransitionExecutionStateRequest,
 };
 use anyhow::{Context, Result};
 use axum::extract::Query;
@@ -32,7 +32,11 @@ struct HealthResponse {
     pid: u32,
 }
 
-pub async fn run_daemon(metadata_file: PathBuf) -> Result<()> {
+pub async fn run_daemon(
+    metadata_file: PathBuf,
+    launch_mode: Option<String>,
+    binary_path: Option<String>,
+) -> Result<()> {
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .context("failed to bind kiwi-runtime daemon")?;
@@ -42,6 +46,8 @@ pub async fn run_daemon(metadata_file: PathBuf) -> Result<()> {
         port: address.port(),
         base_url: format!("http://127.0.0.1:{}", address.port()),
         started_at: metadata_started_at(),
+        launch_mode,
+        binary_path,
     };
     write_metadata(&metadata_file, &metadata)?;
 
@@ -52,6 +58,7 @@ pub async fn run_daemon(metadata_file: PathBuf) -> Result<()> {
         .route("/execution-events", get(execution_events))
         .route("/transition-execution-state", post(transition_execution_state))
         .route("/materialize-derived-outputs", post(materialize_outputs))
+        .route("/persist-derived-output", post(persist_derived_output))
         .with_state(AppState);
 
     axum::serve(listener, app)
@@ -97,6 +104,14 @@ async fn materialize_outputs(
     Json(request): Json<MaterializeDerivedOutputsRequest>,
 ) -> HttpResult<serde_json::Value> {
     db::materialize_derived_outputs(&request)
+        .map(|snapshot| Json(json!(snapshot)))
+        .map_err(internal_error)
+}
+
+async fn persist_derived_output(
+    Json(request): Json<PersistDerivedOutputRequest>,
+) -> HttpResult<serde_json::Value> {
+    db::persist_derived_output(&request)
         .map(|snapshot| Json(json!(snapshot)))
         .map_err(internal_error)
 }

@@ -1,6 +1,7 @@
 import path from "node:path";
 import { chmod, cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { prepareRuntimeSidecar } from "./prepare-runtime-sidecar.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const rootPackage = JSON.parse(await readFile(path.join(repoRoot, "package.json"), "utf8"));
@@ -17,6 +18,11 @@ export async function stageCliBundle(options = {}) {
   const yamlPackageDir = path.join(bundlePath, "node_modules", "yaml");
   const binDir = path.join(bundlePath, "bin");
   const libDir = path.join(bundlePath, "lib");
+
+  await prepareRuntimeSidecar({
+    repoRoot: resolvedRepoRoot,
+    cargoTargetDir: path.join(resolvedRepoRoot, "target", "runtime-sidecar")
+  });
 
   await rm(bundlePath, { recursive: true, force: true });
   await mkdir(binDir, { recursive: true });

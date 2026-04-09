@@ -1,6 +1,7 @@
 import path from "node:path";
 import { PRODUCT_METADATA } from "./product.js";
-import { pathExists, readJson, writeText } from "../utils/fs.js";
+import { pathExists, readJson } from "../utils/fs.js";
+import { persistRuntimeDerivedOutput } from "../runtime/client.js";
 
 export type WorkflowStepStatus = "pending" | "running" | "success" | "failed";
 export type WorkflowStatus = "pending" | "running" | "success" | "failed";
@@ -473,7 +474,11 @@ export async function recordWorkflowProgress(
 
 export async function persistWorkflowState(targetRoot: string, state: WorkflowState): Promise<string> {
   const outputPath = workflowPath(targetRoot);
-  await writeText(outputPath, `${JSON.stringify(state, null, 2)}\n`);
+  await persistRuntimeDerivedOutput({
+    targetRoot,
+    outputName: "workflow",
+    payload: state
+  });
   return outputPath;
 }
 

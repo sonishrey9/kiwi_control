@@ -5,9 +5,14 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import { bootstrapTarget } from "@shrey-junior/sj-core/core/bootstrap.js";
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
+import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
 import { recordRuntimeProgress } from "@shrey-junior/sj-core/core/runtime-lifecycle.js";
+import {
+  buildRuntimeDecision,
+  buildRuntimeDecisionAction,
+  buildRuntimeDecisionRecovery
+} from "@shrey-junior/sj-core/core/runtime-decision.js";
 import { buildRepoControlState, loadWarmRepoControlSnapshot } from "@shrey-junior/sj-core/core/ui-state.js";
-import { failWorkflowStep } from "@shrey-junior/sj-core/core/workflow-engine.js";
 import { runSpecialists } from "../commands/specialists.js";
 import { runUi } from "../commands/ui.js";
 import { repoRoot } from "./helpers/desktop-launch.js";
@@ -52,6 +57,29 @@ test("ui command returns structured repo-control state in json mode", async () =
     },
     config
   );
+  await recordExecutionState(target, {
+    type: "prepare-completed",
+    lifecycle: "packet-created",
+    task: "demo task",
+    sourceCommand: 'kiwi-control prepare "demo task"',
+    reason: "Prepared the repo for a bounded task.",
+    nextCommand: 'kiwi-control run "demo task"',
+    decision: buildRuntimeDecision({
+      currentStepId: "generate_packets",
+      currentStepStatus: "pending",
+      nextCommand: 'kiwi-control run "demo task"',
+      readinessLabel: "Packet created",
+      readinessTone: "ready",
+      readinessDetail: "Prepared the repo for a bounded task.",
+      nextAction: buildRuntimeDecisionAction(
+        "Generate run packets",
+        'kiwi-control run "demo task"',
+        "Prepared the repo for a bounded task.",
+        "high"
+      ),
+      decisionSource: "test-seed"
+    })
+  });
   await recordRuntimeProgress(target, {
     type: "prepare_completed",
     stage: "prepared",
@@ -191,11 +219,11 @@ test("ui command returns structured repo-control state in json mode", async () =
 
   for (const relativePath of [
     ".agent/state/decision-logic.json",
-    ".agent/state/execution-plan.json",
-    ".agent/state/repo-control-snapshot.json"
+    ".agent/state/execution-plan.json"
   ]) {
-    await assert.rejects(fs.access(path.join(target, relativePath)));
+    await fs.access(path.join(target, relativePath));
   }
+  await assert.rejects(fs.access(path.join(target, ".agent/state/repo-control-snapshot.json")));
 });
 
 test("ui command exposes blocked execution-plan details in json mode when workflow execution is blocked", async () => {
@@ -213,12 +241,35 @@ test("ui command exposes blocked execution-plan details in json mode when workfl
     },
     config
   );
-
-  await failWorkflowStep(target, {
+  await recordExecutionState(target, {
+    type: "run-packet-generation-failed",
+    lifecycle: "blocked",
     task: "stabilize product surface launch semantics",
-    stepId: "generate-run-packets",
-    failureReason: "Run packets could not be generated for the current repo guidance state.",
-    validation: "Generate run packets before execution can continue."
+    sourceCommand: 'kiwi-control run "stabilize product surface launch semantics"',
+    reason: "Run packets could not be generated for the current repo guidance state.",
+    nextCommand: 'kiwi-control prepare "stabilize product surface launch semantics"',
+    blockedBy: ["Run packets could not be generated for the current repo guidance state."],
+    decision: buildRuntimeDecision({
+      currentStepId: "generate_packets",
+      currentStepStatus: "failed",
+      nextCommand: 'kiwi-control prepare "stabilize product surface launch semantics"',
+      readinessLabel: "Workflow blocked",
+      readinessTone: "blocked",
+      readinessDetail: "Run packets could not be generated for the current repo guidance state.",
+      nextAction: buildRuntimeDecisionAction(
+        "Refresh the prepared scope",
+        'kiwi-control prepare "stabilize product surface launch semantics"',
+        "Run packets could not be generated for the current repo guidance state.",
+        "critical"
+      ),
+      recovery: buildRuntimeDecisionRecovery(
+        "blocked",
+        "Run packets could not be generated for the current repo guidance state.",
+        'kiwi-control prepare "stabilize product surface launch semantics"',
+        'kiwi-control run "stabilize product surface launch semantics"'
+      ),
+      decisionSource: "test-seed"
+    })
   });
 
   const logs: string[] = [];

@@ -1,7 +1,7 @@
 import path from "node:path";
 import type { ValidationIssue } from "./validator.js";
-import { pathExists, writeText } from "../utils/fs.js";
-import { getRuntimeSnapshot } from "../runtime/client.js";
+import { pathExists } from "../utils/fs.js";
+import { getRuntimeSnapshot, persistRuntimeDerivedOutput } from "../runtime/client.js";
 import { runtimeDecisionFromSnapshot } from "./runtime-decision.js";
 
 export interface NextAction {
@@ -125,7 +125,11 @@ async function persistDecisionLogic(
   logic: DecisionLogicState
 ): Promise<string> {
   const statePath = path.join(targetRoot, ".agent", "state", "decision-logic.json");
-  await writeText(statePath, `${JSON.stringify(logic, null, 2)}\n`);
+  await persistRuntimeDerivedOutput({
+    targetRoot,
+    outputName: "decision-logic",
+    payload: logic
+  });
   return statePath;
 }
 

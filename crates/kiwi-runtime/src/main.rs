@@ -14,6 +14,8 @@ async fn main() -> Result<()> {
     match command.as_str() {
         "daemon" => {
             let mut metadata_file = None;
+            let mut launch_mode = None;
+            let mut binary_path = None;
             while let Some(argument) = args.next() {
                 match argument.as_str() {
                     "--metadata-file" => {
@@ -21,6 +23,18 @@ async fn main() -> Result<()> {
                             return Err(anyhow!("--metadata-file requires a value"));
                         };
                         metadata_file = Some(PathBuf::from(value));
+                    }
+                    "--launch-mode" => {
+                        let Some(value) = args.next() else {
+                            return Err(anyhow!("--launch-mode requires a value"));
+                        };
+                        launch_mode = Some(value);
+                    }
+                    "--binary-path" => {
+                        let Some(value) = args.next() else {
+                            return Err(anyhow!("--binary-path requires a value"));
+                        };
+                        binary_path = Some(value);
                     }
                     other => {
                         return Err(anyhow!("unsupported runtime argument: {other}"));
@@ -30,7 +44,7 @@ async fn main() -> Result<()> {
 
             let metadata_file = metadata_file
                 .ok_or_else(|| anyhow!("daemon requires --metadata-file <path>"))?;
-            run_daemon(metadata_file).await
+            run_daemon(metadata_file, launch_mode, binary_path).await
         }
         other => Err(anyhow!("unsupported runtime command: {other}")),
     }

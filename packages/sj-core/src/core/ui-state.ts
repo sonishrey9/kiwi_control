@@ -6,7 +6,12 @@ import { compileRepoContext } from "./context.js";
 import { syncExecutionPlan } from "./execution-plan.js";
 import type { ExecutionPlanState } from "./execution-plan.js";
 import { loadExecutionState, type ExecutionStateRecord } from "./execution-state.js";
-import { openRuntimeTarget, type RuntimeDecision, type RuntimeSnapshot } from "../runtime/client.js";
+import {
+  openRuntimeTarget,
+  persistRuntimeDerivedOutput,
+  type RuntimeDecision,
+  type RuntimeSnapshot
+} from "../runtime/client.js";
 import { getMemoryPaths, loadOpenRisks } from "./memory.js";
 import { inspectBootstrapTarget } from "./project-detect.js";
 import { loadProjectOverlay, resolveExecutionMode, resolveProfileSelection } from "./profiles.js";
@@ -22,7 +27,7 @@ import {
 import { loadActiveRoleHints, loadContinuitySnapshot, loadLatestTaskPacketSet } from "./state.js";
 import type { ValidationIssue } from "./validator.js";
 import { validateControlPlane, validateTargetRepo } from "./validator.js";
-import { pathExists, readJson, renderDisplayPath, writeText } from "../utils/fs.js";
+import { pathExists, readJson, renderDisplayPath } from "../utils/fs.js";
 import type { ContextSelectionState } from "./context-selector.js";
 import type { ContextTraceState, FileAnalysisEntry, IndexingState, SkippedPathEntry } from "./context-trace.js";
 import type { RuntimeLifecycleState } from "./runtime-lifecycle.js";
@@ -507,7 +512,12 @@ export async function persistRepoControlSnapshot(targetRoot: string, state: Repo
     savedAt,
     state: withFreshLoadState(state, state.loadState?.generatedAt ?? savedAt)
   };
-  await writeText(snapshotFilePath, `${JSON.stringify(artifact, null, 2)}\n`);
+  await persistRuntimeDerivedOutput({
+    targetRoot,
+    outputName: "repo-control-snapshot",
+    payload: artifact,
+    sourceRevision: state.executionState.revision
+  });
   return snapshotFilePath;
 }
 

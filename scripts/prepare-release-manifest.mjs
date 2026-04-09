@@ -127,7 +127,7 @@ const manifest = {
     ...cliArtifacts,
     {
       artifactType: "runtime",
-      description: "Bundled runtime assets copied from canonical configs, prompts, templates, docs, and scripts",
+      description: "Bundled Kiwi Control runtime binary plus canonical configs, prompts, templates, docs, and scripts",
       fileName: `${artifactPrefix}-runtime-${version}-\${os}-\${arch}.tar.gz`,
       sourcePath: "packages/sj-core/dist/runtime",
       checksumAlgorithm: "sha256"

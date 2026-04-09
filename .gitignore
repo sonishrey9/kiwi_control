@@ -1,7 +1,9 @@
 node_modules/
 dist/
+target/
 apps/sj-ui/dist-types/
 apps/sj-ui/src-tauri/target/
+apps/sj-ui/src-tauri/binaries/
 apps/sj-ui/src-tauri/resources/
 crates/kiwi-runtime/target/
 .DS_Store

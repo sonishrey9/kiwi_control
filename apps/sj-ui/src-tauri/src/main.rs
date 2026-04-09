@@ -484,11 +484,12 @@ fn append_ui_launch_log(
 
 #[tauri::command]
 fn set_active_repo_target(
+    app: AppHandle,
     state: State<RepoStateWatchState>,
     target_root: String,
     revision: u64,
 ) -> Result<(), String> {
-    update_active_repo_target(&state, target_root, revision)
+    update_active_repo_target(&app, &state, target_root, revision)
 }
 
 fn main() {
