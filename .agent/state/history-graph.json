@@ -1,11 +1,36 @@
 {
   "artifactType": "kiwi-control/history-graph",
   "version": 1,
-  "generatedAt": "2026-04-09T17:47:14.459Z",
+  "generatedAt": "2026-04-09T18:12:14.356Z",
   "commitWindow": 40,
   "gitHistoryAvailable": true,
   "commitsAnalyzed": 40,
   "recentCommits": [
+    {
+      "sha": "58ae6a333ac436d950d7b0c6c7bac938c03f8f3d",
+      "authoredAt": "2026-04-09T23:27:13+05:30",
+      "subject": "Graph DB is now implemented",
+      "files": [
+        "crates/kiwi-runtime/src/daemon.rs",
+        "crates/kiwi-runtime/src/db.rs",
+        "crates/kiwi-runtime/src/models.rs",
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/commands/graph-query.ts",
+        "packages/sj-cli/src/commands/graph.ts",
+        "packages/sj-cli/src/commands/guide.ts",
+        "packages/sj-cli/src/tests/agent-pack.test.ts",
+        "packages/sj-cli/src/tests/cli-ux.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+        "packages/sj-core/src/core/ready-substrate.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/runtime/client.ts"
+      ],
+      "modules": [
+        "crates/kiwi-runtime",
+        "packages/sj-cli",
+        "packages/sj-core"
+      ]
+    },
     {
       "sha": "58345bb688772f60d6f6d00081848044df9510e5",
       "authoredAt": "2026-04-09T22:03:44+05:30",
@@ -251,55 +276,22 @@
         "packages/sj-core",
         "scripts"
       ]
-    },
-    {
-      "sha": "8b72f952a4736f9e4e016f9063ee33e64862f16d",
-      "authoredAt": "2026-04-09T13:49:02+05:30",
-      "subject": "auri now declares the runtime as an externalBin, and scripts/prepare-runtime-sidecar.mjs stages the real Rust kiwi-control-runtime",
-      "files": [
-        ".gitignore",
-        "apps/sj-ui/src-tauri/src/main.rs",
-        "apps/sj-ui/src-tauri/src/state_watch.rs",
-        "apps/sj-ui/src-tauri/tauri.conf.json",
-        "apps/sj-ui/src-tauri/tauri.conf.snippet.json",
-        "crates/kiwi-runtime/src/daemon.rs",
-        "crates/kiwi-runtime/src/db.rs",
-        "crates/kiwi-runtime/src/main.rs",
-        "crates/kiwi-runtime/src/models.rs",
-        "package.json",
-        "packages/sj-cli/package.json",
-        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-        "packages/sj-core/src/core/execution-engine.ts",
-        "packages/sj-core/src/core/execution-state.ts",
-        "packages/sj-core/src/core/next-action.ts",
-        "packages/sj-core/src/core/runtime-lifecycle.ts",
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/workflow-engine.ts",
-        "packages/sj-core/src/runtime/client.ts",
-        "scripts/prepare-release-manifest.mjs",
-        "scripts/prepare-runtime-sidecar.mjs",
-        "scripts/run-ui-desktop-build.mjs",
-        "scripts/smoke-test.sh",
-        "scripts/stage-cli-bundle.mjs"
-      ],
-      "modules": [
-        ".gitignore",
-        "apps/sj-ui",
-        "crates/kiwi-runtime",
-        "package.json",
-        "packages/sj-cli",
-        "packages/sj-core",
-        "scripts"
-      ]
     }
   ],
   "hotspotFiles": [
     {
       "file": "apps/sj-ui/src/main.ts",
       "moduleGroup": "apps/sj-ui",
-      "touches": 16,
-      "commits": 16,
+      "touches": 15,
+      "commits": 15,
       "lastTouchedAt": "2026-04-09T22:03:44+05:30"
+    },
+    {
+      "file": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+      "moduleGroup": "packages/sj-cli",
+      "touches": 13,
+      "commits": 13,
+      "lastTouchedAt": "2026-04-09T23:27:13+05:30"
     },
     {
       "file": "packages/sj-core/src/core/ui-state.ts",
@@ -311,16 +303,16 @@
     {
       "file": "apps/sj-ui/src/ui/contracts.ts",
       "moduleGroup": "apps/sj-ui",
-      "touches": 12,
-      "commits": 12,
+      "touches": 11,
+      "commits": 11,
       "lastTouchedAt": "2026-04-09T22:03:44+05:30"
     },
     {
-      "file": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+      "file": "packages/sj-cli/src/tests/cli-ux.test.ts",
       "moduleGroup": "packages/sj-cli",
-      "touches": 12,
-      "commits": 12,
-      "lastTouchedAt": "2026-04-09T22:03:44+05:30"
+      "touches": 11,
+      "commits": 11,
+      "lastTouchedAt": "2026-04-09T23:27:13+05:30"
     },
     {
       "file": "package.json",
@@ -330,25 +322,25 @@
       "lastTouchedAt": "2026-04-09T14:51:03+05:30"
     },
     {
-      "file": "packages/sj-cli/src/tests/cli-ux.test.ts",
+      "file": "packages/sj-cli/src/cli.ts",
       "moduleGroup": "packages/sj-cli",
-      "touches": 10,
-      "commits": 10,
-      "lastTouchedAt": "2026-04-09T22:03:44+05:30"
+      "touches": 9,
+      "commits": 9,
+      "lastTouchedAt": "2026-04-09T23:27:13+05:30"
     },
     {
       "file": "apps/sj-ui/src-tauri/src/main.rs",
       "moduleGroup": "apps/sj-ui",
-      "touches": 9,
-      "commits": 9,
-      "lastTouchedAt": "2026-04-09T22:03:44+05:30"
-    },
-    {
-      "file": "packages/sj-cli/src/cli.ts",
-      "moduleGroup": "packages/sj-cli",
       "touches": 8,
       "commits": 8,
       "lastTouchedAt": "2026-04-09T22:03:44+05:30"
+    },
+    {
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core",
+      "touches": 7,
+      "commits": 7,
+      "lastTouchedAt": "2026-04-09T23:27:13+05:30"
     },
     {
       "file": ".gitignore",
@@ -365,6 +357,20 @@
       "lastTouchedAt": "2026-04-09T22:03:44+05:30"
     },
     {
+      "file": "crates/kiwi-runtime/src/db.rs",
+      "moduleGroup": "crates/kiwi-runtime",
+      "touches": 6,
+      "commits": 6,
+      "lastTouchedAt": "2026-04-09T23:27:13+05:30"
+    },
+    {
+      "file": "crates/kiwi-runtime/src/models.rs",
+      "moduleGroup": "crates/kiwi-runtime",
+      "touches": 6,
+      "commits": 6,
+      "lastTouchedAt": "2026-04-09T23:27:13+05:30"
+    },
+    {
       "file": "packages/sj-cli/src/commands/doctor.ts",
       "moduleGroup": "packages/sj-cli",
       "touches": 6,
@@ -372,39 +378,11 @@
       "lastTouchedAt": "2026-04-09T00:49:24+05:30"
     },
     {
-      "file": "packages/sj-cli/src/commands/ui.ts",
-      "moduleGroup": "packages/sj-cli",
-      "touches": 6,
-      "commits": 6,
-      "lastTouchedAt": "2026-04-09T22:03:44+05:30"
-    },
-    {
-      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "file": "packages/sj-core/src/runtime/client.ts",
       "moduleGroup": "packages/sj-core",
       "touches": 6,
       "commits": 6,
-      "lastTouchedAt": "2026-04-09T22:03:44+05:30"
-    },
-    {
-      "file": "apps/sj-ui/src/ui/TopBar.ts",
-      "moduleGroup": "apps/sj-ui",
-      "touches": 5,
-      "commits": 5,
-      "lastTouchedAt": "2026-04-09T22:03:44+05:30"
-    },
-    {
-      "file": "crates/kiwi-runtime/src/db.rs",
-      "moduleGroup": "crates/kiwi-runtime",
-      "touches": 5,
-      "commits": 5,
-      "lastTouchedAt": "2026-04-09T15:59:40+05:30"
-    },
-    {
-      "file": "crates/kiwi-runtime/src/models.rs",
-      "moduleGroup": "crates/kiwi-runtime",
-      "touches": 5,
-      "commits": 5,
-      "lastTouchedAt": "2026-04-09T15:59:40+05:30"
+      "lastTouchedAt": "2026-04-09T23:27:13+05:30"
     },
     {
       "file": "docs/release-packaging.md",
@@ -412,6 +390,13 @@
       "touches": 5,
       "commits": 5,
       "lastTouchedAt": "2026-04-08T02:23:12+05:30"
+    },
+    {
+      "file": "packages/sj-cli/src/commands/guide.ts",
+      "moduleGroup": "packages/sj-cli",
+      "touches": 5,
+      "commits": 5,
+      "lastTouchedAt": "2026-04-09T23:27:13+05:30"
     },
     {
       "file": "packages/sj-cli/src/commands/repo-map.ts",
@@ -422,6 +407,13 @@
     },
     {
       "file": "packages/sj-cli/src/commands/status.ts",
+      "moduleGroup": "packages/sj-cli",
+      "touches": 5,
+      "commits": 5,
+      "lastTouchedAt": "2026-04-09T22:03:44+05:30"
+    },
+    {
+      "file": "packages/sj-cli/src/commands/ui.ts",
       "moduleGroup": "packages/sj-cli",
       "touches": 5,
       "commits": 5,
@@ -454,19 +446,12 @@
       "touches": 5,
       "commits": 5,
       "lastTouchedAt": "2026-04-09T22:03:44+05:30"
-    },
-    {
-      "file": "packages/sj-core/src/runtime/client.ts",
-      "moduleGroup": "packages/sj-core",
-      "touches": 5,
-      "commits": 5,
-      "lastTouchedAt": "2026-04-09T15:59:40+05:30"
     }
   ],
   "hotspotModules": [
     {
       "id": "packages/sj-cli",
-      "touches": 134,
+      "touches": 140,
       "commits": 26,
       "files": [
         "packages/sj-cli/package.json",
@@ -479,6 +464,7 @@
         "packages/sj-cli/src/commands/execution-step-runner.ts",
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/graph-query.ts",
+        "packages/sj-cli/src/commands/graph.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
@@ -517,12 +503,12 @@
         "packages/sj-cli/src/tests/runtime.test.ts",
         "packages/sj-cli/src/tests/sync.test.ts"
       ],
-      "lastTouchedAt": "2026-04-09T22:03:44+05:30"
+      "lastTouchedAt": "2026-04-09T23:27:13+05:30"
     },
     {
       "id": "apps/sj-ui",
-      "touches": 98,
-      "commits": 20,
+      "touches": 93,
+      "commits": 19,
       "files": [
         "apps/sj-ui/package.json",
         "apps/sj-ui/src-tauri/Cargo.lock",
@@ -560,8 +546,8 @@
     },
     {
       "id": "packages/sj-core",
-      "touches": 76,
-      "commits": 22,
+      "touches": 79,
+      "commits": 23,
       "files": [
         "packages/sj-core/package.json",
         "packages/sj-core/src/core/bootstrap.ts",
@@ -596,12 +582,12 @@
         "packages/sj-core/src/runtime/ui-bridge.ts",
         "packages/sj-core/src/utils/fs.ts"
       ],
-      "lastTouchedAt": "2026-04-09T22:03:44+05:30"
+      "lastTouchedAt": "2026-04-09T23:27:13+05:30"
     },
     {
       "id": "scripts",
-      "touches": 42,
-      "commits": 17,
+      "touches": 41,
+      "commits": 16,
       "files": [
         "scripts/clean-macos-sidecars.sh",
         "scripts/copy-runtime-assets.mjs",
@@ -655,8 +641,8 @@
     },
     {
       "id": "crates/kiwi-runtime",
-      "touches": 19,
-      "commits": 5,
+      "touches": 22,
+      "commits": 6,
       "files": [
         "crates/kiwi-runtime/Cargo.lock",
         "crates/kiwi-runtime/Cargo.toml",
@@ -666,7 +652,7 @@
         "crates/kiwi-runtime/src/main.rs",
         "crates/kiwi-runtime/src/models.rs"
       ],
-      "lastTouchedAt": "2026-04-09T15:59:40+05:30"
+      "lastTouchedAt": "2026-04-09T23:27:13+05:30"
     },
     {
       "id": "website",
@@ -763,19 +749,19 @@
       "lastTouchedAt": "2026-04-08T02:23:12+05:30"
     },
     {
-      "id": "packages/sj-cli/src/tests",
+      "id": "SECURITY.md",
       "touches": 4,
       "commits": 4,
       "files": [
-        "packages/sj-cli/src/tests/product-surfaces.test.ts"
+        "SECURITY.md"
       ],
-      "lastTouchedAt": "2026-04-06T20:39:17+05:30"
+      "lastTouchedAt": "2026-04-08T02:23:12+05:30"
     }
   ],
   "repeatedTouchModules": [
     {
       "id": "packages/sj-cli",
-      "touches": 134,
+      "touches": 140,
       "commits": 26,
       "files": [
         "packages/sj-cli/package.json",
@@ -788,6 +774,7 @@
         "packages/sj-cli/src/commands/execution-step-runner.ts",
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/graph-query.ts",
+        "packages/sj-cli/src/commands/graph.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
@@ -826,12 +813,12 @@
         "packages/sj-cli/src/tests/runtime.test.ts",
         "packages/sj-cli/src/tests/sync.test.ts"
       ],
-      "lastTouchedAt": "2026-04-09T22:03:44+05:30"
+      "lastTouchedAt": "2026-04-09T23:27:13+05:30"
     },
     {
       "id": "apps/sj-ui",
-      "touches": 98,
-      "commits": 20,
+      "touches": 93,
+      "commits": 19,
       "files": [
         "apps/sj-ui/package.json",
         "apps/sj-ui/src-tauri/Cargo.lock",
@@ -869,8 +856,8 @@
     },
     {
       "id": "packages/sj-core",
-      "touches": 76,
-      "commits": 22,
+      "touches": 79,
+      "commits": 23,
       "files": [
         "packages/sj-core/package.json",
         "packages/sj-core/src/core/bootstrap.ts",
@@ -905,12 +892,12 @@
         "packages/sj-core/src/runtime/ui-bridge.ts",
         "packages/sj-core/src/utils/fs.ts"
       ],
-      "lastTouchedAt": "2026-04-09T22:03:44+05:30"
+      "lastTouchedAt": "2026-04-09T23:27:13+05:30"
     },
     {
       "id": "scripts",
-      "touches": 42,
-      "commits": 17,
+      "touches": 41,
+      "commits": 16,
       "files": [
         "scripts/clean-macos-sidecars.sh",
         "scripts/copy-runtime-assets.mjs",
@@ -964,8 +951,8 @@
     },
     {
       "id": "crates/kiwi-runtime",
-      "touches": 19,
-      "commits": 5,
+      "touches": 22,
+      "commits": 6,
       "files": [
         "crates/kiwi-runtime/Cargo.lock",
         "crates/kiwi-runtime/Cargo.toml",
@@ -975,7 +962,7 @@
         "crates/kiwi-runtime/src/main.rs",
         "crates/kiwi-runtime/src/models.rs"
       ],
-      "lastTouchedAt": "2026-04-09T15:59:40+05:30"
+      "lastTouchedAt": "2026-04-09T23:27:13+05:30"
     },
     {
       "id": "website",
@@ -1043,7 +1030,7 @@
     {
       "id": "packages/sj-cli/src/commands",
       "commits": 19,
-      "touches": 70,
+      "touches": 72,
       "files": [
         "packages/sj-cli/src/commands/agent-pack.ts",
         "packages/sj-cli/src/commands/check.ts",
@@ -1053,6 +1040,7 @@
         "packages/sj-cli/src/commands/execution-step-runner.ts",
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/graph-query.ts",
+        "packages/sj-cli/src/commands/graph.ts",
         "packages/sj-cli/src/commands/guide.ts",
         "packages/sj-cli/src/commands/handoff.ts",
         "packages/sj-cli/src/commands/init.ts",
@@ -1079,7 +1067,7 @@
     {
       "id": "packages/sj-cli/src/tests",
       "commits": 25,
-      "touches": 58,
+      "touches": 60,
       "files": [
         "packages/sj-cli/src/tests/agent-pack.test.ts",
         "packages/sj-cli/src/tests/check.test.ts",
@@ -1109,8 +1097,8 @@
     },
     {
       "id": "packages/sj-core/src/core",
-      "commits": 19,
-      "touches": 57,
+      "commits": 20,
+      "touches": 59,
       "files": [
         "packages/sj-core/src/core/bootstrap.ts",
         "packages/sj-core/src/core/context-selector.ts",
@@ -1140,8 +1128,8 @@
     },
     {
       "id": "apps/sj-ui/src/ui",
-      "commits": 15,
-      "touches": 51,
+      "commits": 14,
+      "touches": 48,
       "files": [
         "apps/sj-ui/src/ui/command-help.test.ts",
         "apps/sj-ui/src/ui/command-help.ts",
@@ -1167,8 +1155,8 @@
     },
     {
       "id": "scripts",
-      "commits": 17,
-      "touches": 42,
+      "commits": 16,
+      "touches": 41,
       "files": [
         "scripts/clean-macos-sidecars.sh",
         "scripts/copy-runtime-assets.mjs",
@@ -1226,8 +1214,8 @@
     },
     {
       "id": "apps/sj-ui",
-      "commits": 12,
-      "touches": 30,
+      "commits": 11,
+      "touches": 29,
       "files": [
         "apps/sj-ui/package.json",
         "apps/sj-ui/src-tauri/Cargo.lock",
@@ -1248,8 +1236,8 @@
     },
     {
       "id": "crates/kiwi-runtime",
-      "commits": 5,
-      "touches": 19,
+      "commits": 6,
+      "touches": 22,
       "files": [
         "crates/kiwi-runtime/Cargo.lock",
         "crates/kiwi-runtime/Cargo.toml",
@@ -1265,8 +1253,8 @@
     },
     {
       "id": "apps/sj-ui/src/main.ts",
-      "commits": 16,
-      "touches": 16,
+      "commits": 15,
+      "touches": 15,
       "files": [
         "apps/sj-ui/src/main.ts"
       ],
@@ -1315,6 +1303,17 @@
       ]
     },
     {
+      "id": "packages/sj-cli/src/cli.ts",
+      "commits": 9,
+      "touches": 9,
+      "files": [
+        "packages/sj-cli/src/cli.ts"
+      ],
+      "modules": [
+        "packages/sj-cli"
+      ]
+    },
+    {
       "id": "packages/sj-core/src/integrations",
       "commits": 5,
       "touches": 9,
@@ -1331,20 +1330,9 @@
       ]
     },
     {
-      "id": "packages/sj-cli/src/cli.ts",
+      "id": "packages/sj-core/src/runtime",
       "commits": 8,
       "touches": 8,
-      "files": [
-        "packages/sj-cli/src/cli.ts"
-      ],
-      "modules": [
-        "packages/sj-cli"
-      ]
-    },
-    {
-      "id": "packages/sj-core/src/runtime",
-      "commits": 7,
-      "touches": 7,
       "files": [
         "packages/sj-core/src/runtime/client.ts",
         "packages/sj-core/src/runtime/ui-bridge.ts"

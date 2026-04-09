@@ -187,6 +187,8 @@ export interface RepoGraphStatus {
   graphRevision: number | null;
   sourceRevision: number | null;
   sourceRuntimeRevision: number | null;
+  runtimeRevisionDrift: number;
+  stale: boolean;
   generatedAt: string | null;
   sourceKind: string | null;
   sourceDigest: string | null;
@@ -240,10 +242,19 @@ export interface RepoGraphModule {
 
 export interface RepoGraphNodeResult {
   status: RepoGraphStatus;
+  queryResolution: RepoGraphQueryResolution | null;
   node: RepoGraphNode | null;
   matches: RepoGraphNode[];
   incoming: RepoGraphEdge[];
   outgoing: RepoGraphEdge[];
+}
+
+export interface RepoGraphQueryResolution {
+  queriedValue: string;
+  resolvedNodeId: string | null;
+  resolvedModuleId: string | null;
+  resolution: string;
+  candidates: string[];
 }
 
 export interface PersistRuntimeRepoGraphRequest {

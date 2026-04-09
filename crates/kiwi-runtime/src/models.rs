@@ -315,6 +315,8 @@ pub struct RepoGraphStatus {
     pub graph_revision: Option<i64>,
     pub source_revision: Option<i64>,
     pub source_runtime_revision: Option<i64>,
+    pub runtime_revision_drift: i64,
+    pub stale: bool,
     pub generated_at: Option<String>,
     pub source_kind: Option<String>,
     pub source_digest: Option<String>,
@@ -354,10 +356,21 @@ pub struct RepoGraphQuery {
 #[serde(rename_all = "camelCase")]
 pub struct RepoGraphNodeResult {
     pub status: RepoGraphStatus,
+    pub query_resolution: Option<RepoGraphQueryResolution>,
     pub node: Option<RepoGraphNode>,
     pub matches: Vec<RepoGraphNode>,
     pub incoming: Vec<RepoGraphEdge>,
     pub outgoing: Vec<RepoGraphEdge>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RepoGraphQueryResolution {
+    pub queried_value: String,
+    pub resolved_node_id: Option<String>,
+    pub resolved_module_id: Option<String>,
+    pub resolution: String,
+    pub candidates: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
