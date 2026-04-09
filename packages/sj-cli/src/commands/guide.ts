@@ -3,6 +3,7 @@ import { loadPreparedScope } from "@shrey-junior/sj-core/core/prepared-scope.js"
 import { runtimeDecisionFromSnapshot } from "@shrey-junior/sj-core/core/runtime-decision.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
 import { getRuntimeSnapshot } from "@shrey-junior/sj-core/runtime/client.js";
+import { buildReadyRepoSubstrate } from "@shrey-junior/sj-core/core/ready-substrate.js";
 import { createSpinner, printSection, success, warn } from "../utils/cli-output.js";
 import { buildPlanRecoveryWorkflow, selectPrimaryPlanCommand } from "./execution-plan-recovery.js";
 
@@ -20,6 +21,7 @@ export async function runGuide(options: GuideOptions): Promise<number> {
     loadPreparedScope(options.targetRoot),
     getRuntimeSnapshot(options.targetRoot)
   ]);
+  const readySubstrate = await buildReadyRepoSubstrate(options.targetRoot, runtimeSnapshot);
   spinner?.succeed(`Guide ready for ${options.targetRoot}`);
   const runtimeDecision = runtimeDecisionFromSnapshot(runtimeSnapshot);
   const step = getCurrentExecutionStep(plan);
@@ -39,6 +41,13 @@ export async function runGuide(options: GuideOptions): Promise<number> {
     currentStep: runtimeDecision.currentStepId ?? step?.id ?? null,
     validationStatus: step?.validation ?? preparedScope?.task ?? null,
     impactPreview: plan.impactPreview,
+    readySubstrate: {
+      status: readySubstrate.status,
+      ready: readySubstrate.ready,
+      readFirst: readySubstrate.readFirst,
+      toolEntry: readySubstrate.toolEntry,
+      missingRequired: readySubstrate.missingRequired
+    },
     ...(runtimeDecision.recovery || plan.lastError
       ? {
           blockingIssue: {
@@ -83,6 +92,7 @@ export async function runGuide(options: GuideOptions): Promise<number> {
     options.logger.info(`subtasks: ${plan.hierarchy.subtasks.map((entry) => entry.title).join(" -> ")}`);
   }
   options.logger.info(`impact preview: ${plan.impactPreview.likelyFiles.slice(0, 8).join(", ") || "none"}`);
+  options.logger.info(`ready substrate: ${readySubstrate.status} — ${readySubstrate.toolEntry.path}`);
   options.logger.info(`${success("next command")}: ${nextCommand}`);
   return 0;
 }

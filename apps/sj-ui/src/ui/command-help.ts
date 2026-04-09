@@ -13,6 +13,7 @@ const REPO_SCOPED_CLI_COMMANDS = new Set([
   "retry",
   "resume",
   "guide",
+  "review",
   "prepare",
   "validate",
   "explain",
@@ -92,6 +93,11 @@ export function buildTerminalHelpEntries(params: {
       command: formatCliCommand("kc validate", params.targetRoot),
       label: "Validate repo contract",
       detail: "Check repo-local validation state before checkpoint, handoff, or execution."
+    },
+    {
+      command: formatCliCommand("kc review", params.targetRoot),
+      label: "Review current changes",
+      detail: "Write the local review pack for the current diff with ranked risk and validation gaps."
     },
     {
       command: formatCliCommand("kc ui", params.targetRoot),

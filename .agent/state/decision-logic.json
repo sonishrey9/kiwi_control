@@ -1,18 +1,19 @@
 {
   "artifactType": "kiwi-control/decision-logic",
-  "version": 1,
-  "timestamp": "2026-04-05T18:22:26.822Z",
-  "summary": "Prepare bounded context: Context selection and prepared scope must be recorded before execution.",
-  "decisionPriority": "high",
+  "decisionPriority": "critical",
+  "ignoredSignals": [
+    "Compatibility artifacts are derived and do not override canonical runtime decision state."
+  ],
   "inputSignals": [
-    "execution state: idle",
-    "current step index: 0",
-    "risk: low",
-    "39 validation issue(s)"
+    "execution lifecycle: blocked",
+    "current step: validate",
+    "decision source: validate-command"
   ],
   "reasoningChain": [
-    "ExecutionPlan is the canonical source of truth for next-step decisions.",
-    "The active plan step is prepare."
+    "Runtime decision state is the canonical source of truth for next-step decisions.",
+    "The active runtime step is validate."
   ],
-  "ignoredSignals": []
+  "summary": "Fix the blocking execution issue: Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
+  "timestamp": "2026-04-09T15:46:40Z",
+  "version": 1
 }

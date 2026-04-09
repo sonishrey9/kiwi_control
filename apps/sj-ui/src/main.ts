@@ -478,6 +478,12 @@ type KiwiControlExecutionPlan = {
   } | null;
 };
 
+type KiwiControlRepoIntelligence = {
+  reviewPackAvailable: boolean;
+  reviewPackPath: string | null;
+  reviewPackSummary: string | null;
+};
+
 type KiwiControlState = {
   contextView: KiwiControlContextView;
   tokenAnalytics: KiwiControlTokenAnalytics;
@@ -498,6 +504,7 @@ type KiwiControlState = {
   workflow: KiwiControlWorkflow;
   executionTrace: KiwiControlExecutionTrace;
   executionPlan: KiwiControlExecutionPlan;
+  repoIntelligence: KiwiControlRepoIntelligence;
 };
 
 type RepoControlState = {
@@ -724,7 +731,7 @@ type RepoControlState = {
 type LaunchRequestPayload = {
   requestId: string;
   targetRoot: string;
-  launchSource?: "source-bundle" | "installed-bundle" | "fallback-launcher";
+  launchSource?: "source-bundle" | "installed-bundle" | "fallback-launcher" | "existing-session";
 };
 
 type RepoStateChangedPayload = {
@@ -984,6 +991,11 @@ const EMPTY_KC: KiwiControlState = {
     steps: [],
     nextCommands: [],
     lastError: null
+  },
+  repoIntelligence: {
+    reviewPackAvailable: false,
+    reviewPackPath: null,
+    reviewPackSummary: null
   }
 };
 
@@ -1004,6 +1016,7 @@ let currentState = buildBridgeUnavailableState("");
 let activeTheme: ThemeMode = loadStoredTheme();
 let activeMode: UiMode = "execution";
 const platformMode = detectPlatform();
+const RUNTIME_REVISION_FALLBACK_POLL_MS = 1_000;
 
 let shellElement!: HTMLElement;
 let railNavElement!: HTMLElement;
@@ -1434,6 +1447,9 @@ async function boot(): Promise<void> {
   window.setInterval(() => {
     void pollPendingLaunchRequest();
   }, 250);
+  window.setInterval(() => {
+    void pollLatestRuntimeRevision();
+  }, RUNTIME_REVISION_FALLBACK_POLL_MS);
 }
 
 function resolveBrowserPreviewRequest(): { fixturePath: string } | null {
@@ -1514,6 +1530,32 @@ async function handleRepoStateChange(payload: RepoStateChangedPayload): Promise<
   await loadAndRenderTarget(payload.targetRoot, "auto", undefined, { preferSnapshot: false });
 }
 
+async function pollLatestRuntimeRevision(): Promise<void> {
+  if (
+    !currentTargetRoot
+    || !isTauriBridgeAvailable()
+    || isLoadingRepoState
+    || isRefreshingFreshRepoState
+  ) {
+    return;
+  }
+
+  try {
+    const revision = await invoke<number>("get_latest_runtime_revision", {
+      targetRoot: currentTargetRoot,
+      afterRevision: currentState.executionState.revision
+    });
+    if (revision > currentState.executionState.revision) {
+      await handleRepoStateChange({
+        targetRoot: currentTargetRoot,
+        revision
+      });
+    }
+  } catch {
+    // The Rust watcher remains primary; this runtime-backed poll is only a convergence fallback.
+  }
+}
+
 async function loadDesktopRuntimeInfo(): Promise<void> {
   if (!isTauriBridgeAvailable()) {
     return;
@@ -1585,6 +1627,30 @@ async function handleLaunchRequest(request: LaunchRequestPayload): Promise<void>
   if (isLoadingRepoState) {
     queuedLaunchRequest = request;
     await logUiEvent("ui-launch-request-queued", request.requestId, request.targetRoot);
+    return;
+  }
+
+  const sameTarget = currentTargetRoot.trim().length > 0 && request.targetRoot === currentTargetRoot;
+  const attachableCurrentState =
+    sameTarget
+    && currentState.repoState.mode !== "bridge-unavailable"
+    && !isRefreshingFreshRepoState;
+
+  if (attachableCurrentState) {
+    await logUiEvent("ui-launch-request-attached", request.requestId, request.targetRoot, currentState.loadState.source);
+    await setActiveRepoTarget(currentTargetRoot, currentState.executionState.revision);
+    bridgeNoteElement.textContent = buildBridgeNote(currentState, "cli");
+    noteReadyState(buildFinalReadyDetail(currentState));
+    renderState(currentState);
+    await acknowledgeLaunchRequest(
+      request.requestId,
+      currentTargetRoot,
+      isSnapshotLoadSource(currentState.loadState.source) ? "hydrating" : "ready",
+      isSnapshotLoadSource(currentState.loadState.source)
+        ? `Already attached to ${currentTargetRoot}. Fresh repo-local state is still hydrating.`
+        : `Already attached to ${currentTargetRoot}. Kiwi reused the active runtime-backed desktop session.`,
+      currentState.executionState.revision
+    );
     return;
   }
 
@@ -2417,13 +2483,34 @@ async function executeKiwiCommand(
     }
     return result;
   } catch (error) {
-    commandState.lastError = error instanceof Error ? error.message : String(error);
+    const hiddenCommandError = error instanceof Error ? error.message : String(error);
+    if (await openTerminalForKiwiCommand(command, args)) {
+      commandState.lastError = `Opened Terminal to run ${command} because desktop subprocess execution failed: ${hiddenCommandError}`;
+    } else {
+      commandState.lastError = hiddenCommandError;
+    }
     renderState(currentState);
     return null;
   } finally {
     commandState.loading = false;
     commandState.activeCommand = null;
     renderState(currentState);
+  }
+}
+
+async function openTerminalForKiwiCommand(command: UiCommandName, args: string[]): Promise<boolean> {
+  if (!currentTargetRoot || !isTauriBridgeAvailable()) {
+    return false;
+  }
+  try {
+    await invoke("open_terminal_command", {
+      command,
+      args,
+      targetRoot: currentTargetRoot
+    });
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -2634,6 +2721,18 @@ function parseKiwiCommand(commandText: string): { command: UiCommandName; args: 
   if (subcommand === "validate") {
     const task = rest.find((token) => !token.startsWith("--") && token !== currentTargetRoot);
     return { command: "validate", args: task ? [task] : [] };
+  }
+  if (subcommand === "review") {
+    const reviewArgs: string[] = [];
+    const baseIndex = rest.findIndex((token) => token === "--base");
+    const baseRef = baseIndex >= 0 ? rest[baseIndex + 1] : undefined;
+    if (baseRef && !baseRef.startsWith("--")) {
+      reviewArgs.push("--base", baseRef);
+    }
+    if (rest.includes("--json")) {
+      reviewArgs.push("--json");
+    }
+    return { command: "review", args: reviewArgs };
   }
   if (subcommand === "init") {
     return { command: "init", args: [] };
@@ -3579,6 +3678,13 @@ function renderOverviewView(state: RepoControlState): string {
           <div class="kc-keyline-value">
             <strong>${escapeHtml(selectedTask)}</strong>
             <span>${escapeHtml((kc.indexing.selectionReason ?? kc.contextView.reason ?? kc.nextActions.summary) || state.repoState.detail)}</span>
+          </div>
+          <div class="kc-stack-list">
+            ${renderNoteRow(
+              "Review pack",
+              kc.repoIntelligence.reviewPackAvailable ? (kc.repoIntelligence.reviewPackPath ?? "ready") : "not generated",
+              kc.repoIntelligence.reviewPackSummary ?? "Run kc review to write the compact local review workflow for the current diff."
+            )}
           </div>
         </section>
       </div>

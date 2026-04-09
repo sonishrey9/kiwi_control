@@ -2,7 +2,7 @@ import { existsSync, promises as fs, readFileSync, readdirSync, realpathSync } f
 import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import {
   PRODUCT_METADATA,
   findNearestSourceProductCheckout,
@@ -22,7 +22,7 @@ export interface UiOptions {
   logger: Logger;
 }
 
-type DesktopLaunchSource = "source-bundle" | "installed-bundle" | "fallback-launcher";
+type DesktopLaunchSource = "source-bundle" | "installed-bundle" | "fallback-launcher" | "existing-session";
 type DesktopLaunchMode = "installed-user" | "developer-source";
 
 interface DesktopInstallReceipt {
@@ -82,6 +82,7 @@ interface DesktopLaunchObservation {
 }
 
 const DESKTOP_BINARY_CANDIDATES = ["kiwi-control-ui", "kiwi-control-desktop"];
+const DESKTOP_ATTACH_WAIT_TIMEOUT_MS = 1_500;
 const DESKTOP_LAUNCH_WAIT_TIMEOUT_MS = 8_000;
 const DESKTOP_LAUNCH_POLL_INTERVAL_MS = 100;
 const DESKTOP_LAUNCH_PROBE_SETTLE_MS = 1000;
@@ -108,6 +109,51 @@ export async function runUi(options: UiOptions): Promise<number> {
     targetRoot: options.targetRoot,
     requestedAt: new Date().toISOString()
   };
+
+  const attachStatus = await tryAttachToExistingDesktopSession(launchRequest);
+  if (
+    attachStatus?.state === "ready"
+    && (!("revision" in attachStatus) || typeof attachStatus.revision !== "number" || attachStatus.revision > 0)
+  ) {
+    await appendDesktopLaunchLog({
+      event: "attach-ready",
+      requestId: attachStatus.requestId,
+      targetRoot: attachStatus.targetRoot,
+      detail: attachStatus.detail,
+      launchSource: attachStatus.launchSource ?? "existing-session"
+    });
+    options.logger.info(
+      `Attached ${PRODUCT_METADATA.desktop.appName} to the existing session for ${options.targetRoot}. Launch source: ${attachStatus.launchSource ?? "existing-session"}. ${attachStatus.detail}`
+    );
+    return 0;
+  }
+
+  if (attachStatus?.state === "hydrating") {
+    await appendDesktopLaunchLog({
+      event: "attach-hydrating",
+      requestId: attachStatus.requestId,
+      targetRoot: attachStatus.targetRoot,
+      detail: attachStatus.detail,
+      launchSource: attachStatus.launchSource ?? "existing-session"
+    });
+    options.logger.info(
+      `Attached ${PRODUCT_METADATA.desktop.appName} to the existing session for ${options.targetRoot}. Launch source: ${attachStatus.launchSource ?? "existing-session"}. ${attachStatus.detail}`
+    );
+    return 0;
+  }
+
+  if (attachStatus?.state === "error") {
+    await clearDesktopLaunchRequest();
+    await appendDesktopLaunchLog({
+      event: "attach-error",
+      requestId: attachStatus.requestId,
+      targetRoot: attachStatus.targetRoot,
+      detail: attachStatus.detail,
+      launchSource: attachStatus.launchSource ?? "existing-session"
+    });
+    options.logger.error(attachStatus.detail || buildDesktopLaunchTimeoutMessage(options.repoRoot));
+    return 1;
+  }
 
   const launched = await launchDesktopControlSurface(launchRequest, options.repoRoot);
   if (!launched) {
@@ -169,6 +215,34 @@ export async function runUi(options: UiOptions): Promise<number> {
     `${PRODUCT_METADATA.desktop.appName} launched via ${describeDesktopLaunchCandidate(launched.candidate)} (${launched.candidate.launchSource}), but repo hydration is still in progress for ${options.targetRoot}. Watch the desktop app for the final ready state.`
   );
   return 0;
+}
+
+async function tryAttachToExistingDesktopSession(
+  launchRequest: DesktopLaunchRequest
+): Promise<DesktopLaunchStatus | DesktopLaunchObservation | null> {
+  const attachRequest: DesktopLaunchRequest = {
+    ...launchRequest,
+    launchSource: "existing-session"
+  };
+  await writeDesktopLaunchRequest(attachRequest);
+  await appendDesktopLaunchLog({
+    event: "attach-requested",
+    requestId: attachRequest.requestId,
+    targetRoot: attachRequest.targetRoot,
+    launchSource: "existing-session",
+    detail: "probing for an existing desktop session"
+  });
+  const attachStatus = await waitForDesktopLaunchStatus(attachRequest.requestId, DESKTOP_ATTACH_WAIT_TIMEOUT_MS);
+  if (!attachStatus) {
+    await appendDesktopLaunchLog({
+      event: "attach-timeout",
+      requestId: attachRequest.requestId,
+      targetRoot: attachRequest.targetRoot,
+      launchSource: "existing-session",
+      detail: `no existing session acknowledged within ${DESKTOP_ATTACH_WAIT_TIMEOUT_MS}ms`
+    });
+  }
+  return attachStatus;
 }
 
 async function warmDesktopRegistration(repoRoot?: string, targetRoot?: string): Promise<void> {
@@ -712,8 +786,6 @@ async function readDesktopLaunchObservation(requestId: string): Promise<DesktopL
 }
 
 async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate, launchRequest: DesktopLaunchRequest): Promise<boolean> {
-  await terminateConflictingDesktopProcesses(candidate, launchRequest);
-
   await appendDesktopLaunchLog({
     event: "launch-attempt",
     requestId: launchRequest.requestId,
@@ -806,106 +878,6 @@ async function tryLaunchDesktopCandidate(candidate: DesktopLaunchCandidate, laun
       await settleProcessExit(code, signal);
     });
   });
-}
-
-async function terminateConflictingDesktopProcesses(
-  candidate: DesktopLaunchCandidate,
-  launchRequest: DesktopLaunchRequest
-): Promise<void> {
-  if (process.platform !== "darwin") {
-    return;
-  }
-
-  const candidateExecutable = resolveDesktopCandidateExecutablePath(candidate);
-  if (!candidateExecutable) {
-    return;
-  }
-
-  const sourceBundleLaunch = candidateExecutable.includes(`${path.sep}src-tauri${path.sep}target${path.sep}release${path.sep}bundle${path.sep}macos${path.sep}`);
-  const runningProcesses = listRunningDesktopProcesses().filter((processInfo) =>
-    sourceBundleLaunch
-      ? true
-      : !processInfo.command.includes(candidateExecutable)
-  );
-  if (runningProcesses.length === 0) {
-    return;
-  }
-
-  for (const processInfo of runningProcesses) {
-    try {
-      process.kill(processInfo.pid, "SIGTERM");
-      await appendDesktopLaunchLog({
-        event: "launch-conflict-terminated",
-        requestId: launchRequest.requestId,
-        targetRoot: launchRequest.targetRoot,
-        launchSource: candidate.launchSource,
-        command: processInfo.command,
-        detail: `terminated conflicting desktop process ${processInfo.pid}`
-      });
-    } catch (error) {
-      await appendDesktopLaunchLog({
-        event: "launch-conflict-termination-failed",
-        requestId: launchRequest.requestId,
-        targetRoot: launchRequest.targetRoot,
-        launchSource: candidate.launchSource,
-        command: processInfo.command,
-        detail: error instanceof Error ? error.message : String(error)
-      });
-    }
-  }
-
-  await delay(400);
-}
-
-function resolveDesktopCandidateExecutablePath(candidate: DesktopLaunchCandidate): string | null {
-  if (path.isAbsolute(candidate.command) && candidate.command.includes(`${PRODUCT_METADATA.desktop.appName}.app/Contents/MacOS/`)) {
-    return candidate.command;
-  }
-
-  if (candidate.command !== "open") {
-    return null;
-  }
-
-  const openTarget = candidate.args.find((arg) => arg.endsWith(".app"));
-  if (!openTarget || !path.isAbsolute(openTarget)) {
-    return null;
-  }
-
-  return resolveMacOsBundleExecutable(openTarget);
-}
-
-function listRunningDesktopProcesses(): Array<{ pid: number; command: string }> {
-  if (process.platform !== "darwin") {
-    return [];
-  }
-
-  const result = spawnSync("ps", ["-axo", "pid=,command="], {
-    encoding: "utf8"
-  });
-  if (result.status !== 0 || !result.stdout) {
-    return [];
-  }
-
-  return result.stdout
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const match = line.match(/^(\d+)\s+(.+)$/);
-      const [, pidText = "", commandText = ""] = match ?? [];
-      if (!match || !pidText || !commandText) {
-        return null;
-      }
-
-      const pid = Number.parseInt(pidText, 10);
-      const command = commandText.trim();
-      if (!Number.isFinite(pid) || !command.includes(`${PRODUCT_METADATA.desktop.appName}.app/Contents/MacOS/`)) {
-        return null;
-      }
-
-      return { pid, command };
-    })
-    .filter((entry): entry is { pid: number; command: string } => Boolean(entry));
 }
 
 async function appendDesktopLaunchLog(entry: Omit<DesktopLaunchLogEntry, "reportedAt">): Promise<void> {

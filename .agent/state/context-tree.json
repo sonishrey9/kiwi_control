@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/context-tree",
   "version": 1,
-  "timestamp": "2026-04-09T14:18:08.206Z",
+  "timestamp": "2026-04-09T15:55:32.089Z",
   "targetRoot": "/Volumes/shrey ssd/shrey-junior",
   "projectType": "node",
   "languages": [
@@ -40,7 +40,7 @@
     {
       "file": "packages/sj-core/src/utils/fs.ts",
       "moduleGroup": "packages/sj-core",
-      "importedByCount": 44
+      "importedByCount": 45
     },
     {
       "file": "packages/sj-core/src/core/config.ts",
@@ -75,17 +75,17 @@
     {
       "file": "packages/sj-core/src/core/task-intent.ts",
       "moduleGroup": "packages/sj-core",
-      "importedByCount": 8
-    },
-    {
-      "file": "apps/sj-ui/src/ui/contracts.ts",
-      "moduleGroup": "apps/sj-ui",
-      "importedByCount": 7
+      "importedByCount": 9
     },
     {
       "file": "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
       "moduleGroup": "packages/sj-cli",
-      "importedByCount": 7
+      "importedByCount": 8
+    },
+    {
+      "file": "packages/sj-core/src/core/git.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 8
     }
   ],
   "dependencyClusters": [
@@ -175,7 +175,7 @@
     },
     {
       "id": "packages/sj-cli",
-      "fileCount": 81,
+      "fileCount": 83,
       "files": [
         "packages/sj-cli/src/cli.ts",
         "packages/sj-cli/src/commands/agent-pack.ts",
@@ -208,6 +208,7 @@
         "packages/sj-cli/src/commands/repo-map.ts",
         "packages/sj-cli/src/commands/resume.ts",
         "packages/sj-cli/src/commands/retry.ts",
+        "packages/sj-cli/src/commands/review.ts",
         "packages/sj-cli/src/commands/run-auto.ts",
         "packages/sj-cli/src/commands/run.ts",
         "packages/sj-cli/src/commands/runtime.ts",
@@ -248,6 +249,7 @@
         "packages/sj-cli/src/tests/reconcile.test.ts",
         "packages/sj-cli/src/tests/redact.test.ts",
         "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+        "packages/sj-cli/src/tests/review.test.ts",
         "packages/sj-cli/src/tests/router.test.ts",
         "packages/sj-cli/src/tests/runtime-identity.test.ts",
         "packages/sj-cli/src/tests/runtime.test.ts",
@@ -286,6 +288,7 @@
         "packages/sj-cli/src/commands/repo-map.ts",
         "packages/sj-cli/src/commands/resume.ts",
         "packages/sj-cli/src/commands/retry.ts",
+        "packages/sj-cli/src/commands/review.ts",
         "packages/sj-cli/src/commands/run-auto.ts",
         "packages/sj-cli/src/commands/run.ts",
         "packages/sj-cli/src/commands/runtime.ts",
@@ -326,6 +329,7 @@
         "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
         "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
         "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+        "packages/sj-cli/src/tests/review.test.ts",
         "packages/sj-cli/src/tests/runtime-identity.test.ts",
         "packages/sj-cli/src/tests/standardize.test.ts",
         "packages/sj-cli/src/tests/sync.test.ts"
@@ -363,6 +367,7 @@
         "packages/sj-cli/src/tests/reconcile.test.ts",
         "packages/sj-cli/src/tests/redact.test.ts",
         "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+        "packages/sj-cli/src/tests/review.test.ts",
         "packages/sj-cli/src/tests/router.test.ts",
         "packages/sj-cli/src/tests/runtime-identity.test.ts",
         "packages/sj-cli/src/tests/runtime.test.ts",
@@ -376,7 +381,7 @@
     },
     {
       "id": "packages/sj-core",
-      "fileCount": 72,
+      "fileCount": 73,
       "files": [
         "packages/sj-core/src/adapters/claude.ts",
         "packages/sj-core/src/adapters/codex.ts",
@@ -419,6 +424,7 @@
         "packages/sj-core/src/core/release.ts",
         "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/repo-readiness.ts",
+        "packages/sj-core/src/core/review-pack.ts",
         "packages/sj-core/src/core/risk.ts",
         "packages/sj-core/src/core/router.ts",
         "packages/sj-core/src/core/runtime-decision.ts",
@@ -551,6 +557,7 @@
         "packages/sj-core/src/core/release.ts",
         "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/repo-readiness.ts",
+        "packages/sj-core/src/core/review-pack.ts",
         "packages/sj-core/src/core/router.ts",
         "packages/sj-core/src/core/runtime-lifecycle.ts",
         "packages/sj-core/src/core/skills-registry.ts",
@@ -581,6 +588,7 @@
         "packages/sj-core/src/core/launch.ts",
         "packages/sj-core/src/core/logger.ts",
         "packages/sj-core/src/core/release.ts",
+        "packages/sj-core/src/core/review-pack.ts",
         "packages/sj-core/src/index.ts",
         "packages/sj-core/src/runtime/ui-bridge.ts"
       ]
@@ -1984,6 +1992,12 @@
                       "children": []
                     },
                     {
+                      "name": "review.ts",
+                      "path": "packages/sj-cli/src/commands/review.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
                       "name": "run-auto.ts",
                       "path": "packages/sj-cli/src/commands/run-auto.ts",
                       "kind": "file",
@@ -2234,6 +2248,12 @@
                     {
                       "name": "repo-intelligence.test.ts",
                       "path": "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "review.test.ts",
+                      "path": "packages/sj-cli/src/tests/review.test.ts",
                       "kind": "file",
                       "children": []
                     },
@@ -2599,6 +2619,12 @@
                     {
                       "name": "repo-readiness.ts",
                       "path": "packages/sj-core/src/core/repo-readiness.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "review-pack.ts",
+                      "path": "packages/sj-core/src/core/review-pack.ts",
                       "kind": "file",
                       "children": []
                     },
@@ -3413,6 +3439,6 @@
     "selectionDepth": 3,
     "explainDepth": 5
   },
-  "filesDiscovered": 392,
-  "importableFiles": 197
+  "filesDiscovered": 395,
+  "importableFiles": 200
 }

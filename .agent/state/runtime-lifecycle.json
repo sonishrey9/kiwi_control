@@ -1,22 +1,74 @@
 {
   "artifactType": "kiwi-control/runtime-lifecycle",
-  "version": 1,
-  "timestamp": "2026-04-07T21:52:02.601Z",
+  "currentStage": "blocked",
   "currentTask": "update README docs",
-  "currentStage": "prepared",
-  "validationStatus": "ok",
-  "nextSuggestedCommand": "kiwi-control run \"update README docs\"",
-  "nextRecommendedAction": "Open the generated instructions and work inside the prepared scope.",
+  "nextRecommendedAction": "Run kiwi-control prepare \"update README docs\", then rerun kiwi-control validate \"update README docs\".",
+  "nextSuggestedCommand": "kiwi-control prepare \"update README docs\"",
   "recentEvents": [
     {
-      "timestamp": "2026-04-07T21:52:02.601Z",
-      "type": "prepare_completed",
-      "stage": "prepared",
-      "status": "ok",
-      "summary": "Prepared 43 selected files for \"update README docs\".",
+      "command": "kiwi-control prepare \"update README docs\"",
+      "failureReason": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
+      "files": [
+        ".agent/context-authority.json",
+        ".agent/context/context-tree.json",
+        ".agent/context/repo-map.json",
+        ".agent/eval/eval-log.json",
+        ".agent/state/context-index.json",
+        ".agent/state/context-tree.json",
+        ".agent/state/decision-graph.json",
+        ".agent/state/decision-logic.json",
+        ".agent/state/dependency-graph.json",
+        ".agent/state/execution-events.ndjson",
+        ".agent/state/execution-plan.json",
+        ".agent/state/execution-state.json"
+      ],
+      "skillsApplied": [],
+      "stage": "blocked",
+      "status": "error",
+      "summary": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
       "task": "update README docs",
+      "timestamp": "2026-04-09T15:46:40.279Z",
+      "tokenUsage": {
+        "estimatedTokens": null,
+        "measuredTokens": null,
+        "source": "none"
+      },
+      "type": "validation_completed",
+      "validation": "Touched files must remain inside the prepared scope."
+    },
+    {
+      "command": "kiwi-control prepare \"update README docs\"",
+      "failureReason": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
+      "files": [
+        ".agent/state/decision-logic.json",
+        ".agent/state/execution-events.ndjson",
+        ".agent/state/execution-plan.json",
+        ".agent/state/execution-state.json",
+        "apps/sj-ui/src-tauri/src/main.rs",
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/TopBar.ts",
+        "apps/sj-ui/src/ui/command-help.ts",
+        "apps/sj-ui/src/ui/contracts.ts",
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/commands/ui.ts",
+        "packages/sj-cli/src/tests/cli-ux.test.ts"
+      ],
+      "skillsApplied": [],
+      "stage": "blocked",
+      "status": "error",
+      "summary": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
+      "task": "update README docs",
+      "timestamp": "2026-04-09T15:33:05.925Z",
+      "tokenUsage": {
+        "estimatedTokens": null,
+        "measuredTokens": null,
+        "source": "none"
+      },
+      "type": "validation_completed",
+      "validation": "Touched files must remain inside the prepared scope."
+    },
+    {
       "command": null,
-      "validation": "Prepared scope exists, instructions were written, and token state was recorded.",
       "failureReason": null,
       "files": [
         "apps/sj-ui/src/ui/guidance.ts",
@@ -64,21 +116,21 @@
         "packages/sj-cli/src/tests/execution-state.test.ts"
       ],
       "skillsApplied": [],
+      "stage": "prepared",
+      "status": "ok",
+      "summary": "Prepared 43 selected files for \"update README docs\".",
+      "task": "update README docs",
+      "timestamp": "2026-04-07T21:52:02.601Z",
       "tokenUsage": {
-        "measuredTokens": null,
         "estimatedTokens": 176613,
+        "measuredTokens": null,
         "source": "estimated"
-      }
+      },
+      "type": "prepare_completed",
+      "validation": "Prepared scope exists, instructions were written, and token state was recorded."
     },
     {
-      "timestamp": "2026-04-07T21:51:53.288Z",
-      "type": "validation_completed",
-      "stage": "blocked",
-      "status": "error",
-      "summary": "Touched files do not satisfy the task-category goal heuristic.",
-      "task": "update README docs",
       "command": "kiwi-control explain",
-      "validation": "Expected changes: Documentation changes land in selected docs files.; Expected files: apps/sj-ui/src/ui/guidance.ts, packages/sj-cli/src/commands/execution-step-runner.ts, packages/sj-core/src/core/ui-state.ts, packages/sj-core/src/core/repo-readiness.ts, packages/sj-core/src/core/context.ts, packages/sj-core/src/core/router.ts",
       "failureReason": "Touched files do not satisfy the task-category goal heuristic.",
       "files": [
         ".agent/memory/current-focus.json",
@@ -95,21 +147,21 @@
         "packages/sj-cli/src/commands/checkpoint.ts"
       ],
       "skillsApplied": [],
+      "stage": "blocked",
+      "status": "error",
+      "summary": "Touched files do not satisfy the task-category goal heuristic.",
+      "task": "update README docs",
+      "timestamp": "2026-04-07T21:51:53.288Z",
       "tokenUsage": {
-        "measuredTokens": null,
         "estimatedTokens": null,
+        "measuredTokens": null,
         "source": "none"
-      }
+      },
+      "type": "validation_completed",
+      "validation": "Expected changes: Documentation changes land in selected docs files.; Expected files: apps/sj-ui/src/ui/guidance.ts, packages/sj-cli/src/commands/execution-step-runner.ts, packages/sj-core/src/core/ui-state.ts, packages/sj-core/src/core/repo-readiness.ts, packages/sj-core/src/core/context.ts, packages/sj-core/src/core/router.ts"
     },
     {
-      "timestamp": "2026-04-07T21:51:51.433Z",
-      "type": "packets_generated",
-      "stage": "packetized",
-      "status": "ok",
-      "summary": "Generated 3 task packets for \"update README docs\".",
-      "task": "update README docs",
       "command": "kiwi-control validate \"update README docs\"",
-      "validation": "Run packet generation completed and packet artifacts were written.",
       "failureReason": null,
       "files": [
         ".agent/tasks/run-20260407-215151-update-readme-docs/codex.md",
@@ -117,21 +169,21 @@
         ".agent/tasks/run-20260407-215151-update-readme-docs/copilot.md"
       ],
       "skillsApplied": [],
+      "stage": "packetized",
+      "status": "ok",
+      "summary": "Generated 3 task packets for \"update README docs\".",
+      "task": "update README docs",
+      "timestamp": "2026-04-07T21:51:51.433Z",
       "tokenUsage": {
-        "measuredTokens": null,
         "estimatedTokens": null,
+        "measuredTokens": null,
         "source": "none"
-      }
+      },
+      "type": "packets_generated",
+      "validation": "Run packet generation completed and packet artifacts were written."
     },
     {
-      "timestamp": "2026-04-07T21:51:50.856Z",
-      "type": "prepare_completed",
-      "stage": "prepared",
-      "status": "ok",
-      "summary": "Prepared 43 selected files for \"update README docs\".",
-      "task": "update README docs",
       "command": null,
-      "validation": "Prepared scope exists, instructions were written, and token state was recorded.",
       "failureReason": null,
       "files": [
         "apps/sj-ui/src/ui/guidance.ts",
@@ -179,11 +231,21 @@
         "packages/sj-cli/src/tests/execution-state.test.ts"
       ],
       "skillsApplied": [],
+      "stage": "prepared",
+      "status": "ok",
+      "summary": "Prepared 43 selected files for \"update README docs\".",
+      "task": "update README docs",
+      "timestamp": "2026-04-07T21:51:50.856Z",
       "tokenUsage": {
-        "measuredTokens": null,
         "estimatedTokens": 176613,
+        "measuredTokens": null,
         "source": "estimated"
-      }
+      },
+      "type": "prepare_completed",
+      "validation": "Prepared scope exists, instructions were written, and token state was recorded."
     }
-  ]
+  ],
+  "timestamp": "2026-04-09T15:46:40.279Z",
+  "validationStatus": "error",
+  "version": 1
 }

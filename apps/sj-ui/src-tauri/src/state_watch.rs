@@ -145,6 +145,14 @@ pub fn start_repo_state_watcher(app: AppHandle) {
     });
 }
 
+pub fn latest_runtime_revision(
+    app: &AppHandle,
+    target_root: &str,
+    after_revision: u64,
+) -> Result<u64, String> {
+    list_runtime_events(app, target_root, after_revision)
+}
+
 pub fn ensure_runtime_daemon_ready(app: &AppHandle) -> Result<(), String> {
     ensure_runtime_daemon(app).map(|_| ())
 }

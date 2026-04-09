@@ -223,6 +223,9 @@ export interface RepoIntelligenceSummary {
   reviewContextPackPath: string | null;
   reviewContextPackTask: string | null;
   reviewContextPackSummary: string | null;
+  reviewPackAvailable: boolean;
+  reviewPackPath: string | null;
+  reviewPackSummary: string | null;
 }
 
 export interface DecisionGraphState {
@@ -373,6 +376,7 @@ export interface AgentPackState {
   hotspots: ReviewContextPack["hotspots"];
   reviewAttention: ReviewGraphState["reviewAttention"];
   packPointers: {
+    readySubstrate: string;
     repoMap: string;
     taskPack: string | null;
     reviewContextPack: string;
@@ -514,11 +518,12 @@ export async function loadRepoIntelligenceArtifacts(targetRoot: string): Promise
 }
 
 export async function loadRepoIntelligenceSummary(targetRoot: string): Promise<RepoIntelligenceSummary> {
-  const [repoMap, impactMap, compactContextPack, reviewContextPack, agentPack, taskPack, hasSymbolIndex, hasDependencyGraph, hasDecisionGraph, hasHistoryGraph, hasReviewGraph, decisionGraph, historyGraph, reviewGraph] = await Promise.all([
+  const [repoMap, impactMap, compactContextPack, reviewContextPack, reviewPack, agentPack, taskPack, hasSymbolIndex, hasDependencyGraph, hasDecisionGraph, hasHistoryGraph, hasReviewGraph, decisionGraph, historyGraph, reviewGraph] = await Promise.all([
     readJsonIfPresent<RepoMapState>(repoMapPath(targetRoot)),
     readJsonIfPresent<ImpactMapState>(impactMapPath(targetRoot)),
     readJsonIfPresent<CompactContextPack>(compactContextPackPath(targetRoot)),
     readJsonIfPresent<ReviewContextPack>(reviewContextPackPath(targetRoot)),
+    readJsonIfPresent<{ summary?: string }>(path.join(targetRoot, ".agent", "context", "review-pack.json")),
     readJsonIfPresent<AgentPackState>(agentPackPath(targetRoot)),
     readJsonIfPresent<TaskPackState>(taskPackPath(targetRoot)),
     pathExists(symbolIndexPath(targetRoot)),
@@ -568,7 +573,10 @@ export async function loadRepoIntelligenceSummary(targetRoot: string): Promise<R
       reviewContextPackAvailable: false,
       reviewContextPackPath: null,
       reviewContextPackTask: null,
-      reviewContextPackSummary: null
+      reviewContextPackSummary: null,
+      reviewPackAvailable: false,
+      reviewPackPath: null,
+      reviewPackSummary: null
     };
   }
 
@@ -608,7 +616,10 @@ export async function loadRepoIntelligenceSummary(targetRoot: string): Promise<R
     reviewContextPackAvailable: Boolean(reviewContextPack),
     reviewContextPackPath: reviewContextPack ? relativeFrom(targetRoot, reviewContextPackPath(targetRoot)) : null,
     reviewContextPackTask: reviewContextPack?.currentTask ?? null,
-    reviewContextPackSummary: reviewContextPack?.summary ?? null
+    reviewContextPackSummary: reviewContextPack?.summary ?? null,
+    reviewPackAvailable: Boolean(reviewPack),
+    reviewPackPath: reviewPack ? ".agent/context/review-pack.json" : null,
+    reviewPackSummary: reviewPack?.summary ?? null
   };
 }
 
@@ -1708,6 +1719,7 @@ export function buildAgentPack(options: {
       `${options.repoMap.summary} Start with runtime truth, then use the task or review pack instead of the full graph when you do not need global repo exploration.`,
     readFirst: [
       ".agent/context/agent-pack.json",
+      ".agent/state/ready-substrate.json",
       ".agent/state/execution-state.json",
       ".agent/state/execution-events.ndjson",
       ".agent/context/task-pack.json",
@@ -1739,6 +1751,7 @@ export function buildAgentPack(options: {
     ],
     reviewAttention: options.reviewGraph.reviewAttention.slice(0, 8),
     packPointers: {
+      readySubstrate: ".agent/state/ready-substrate.json",
       repoMap: ".agent/context/repo-map.json",
       taskPack: options.compactContextPack ? ".agent/context/task-pack.json" : null,
       reviewContextPack: options.reviewContextPack ? ".agent/context/review-context-pack.json" : ".agent/context/review-context-pack.json",

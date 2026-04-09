@@ -407,6 +407,7 @@ export type UiCommandName =
   | "init"
   | "guide"
   | "next"
+  | "review"
   | "validate"
   | "sync"
   | "retry"

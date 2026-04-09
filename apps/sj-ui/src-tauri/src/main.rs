@@ -16,6 +16,7 @@ use tauri_plugin_dialog::DialogExt;
 use state_watch::{
     ensure_runtime_daemon_ready,
     get_runtime_identity,
+    latest_runtime_revision as query_latest_runtime_revision,
     runtime_metadata_file_path,
     set_active_repo_target as update_active_repo_target,
     start_repo_state_watcher,
@@ -316,6 +317,20 @@ fn run_cli_command(
 }
 
 #[tauri::command]
+fn open_terminal_command(
+    command: String,
+    args: Vec<String>,
+    target_root: String,
+) -> Result<(), String> {
+    let trimmed_target_root = target_root.trim();
+    if trimmed_target_root.is_empty() {
+        return Err(String::from("targetRoot is required"));
+    }
+    let (_command_label, cli_args) = build_allowlisted_cli_args(&command, &args, trimmed_target_root)?;
+    open_terminal_with_cli_args(&cli_args, trimmed_target_root)
+}
+
+#[tauri::command]
 fn install_bundled_cli(app: AppHandle) -> Result<CliInstallResult, String> {
     let installer_path = resolve_bundled_cli_installer_path(&app)
         .ok_or_else(|| String::from("bundled Kiwi Control CLI installer is not available in this desktop build"))?;
@@ -504,6 +519,15 @@ fn set_active_repo_target(
     update_active_repo_target(&app, &state, target_root, revision)
 }
 
+#[tauri::command]
+fn get_latest_runtime_revision(
+    app: AppHandle,
+    target_root: String,
+    after_revision: u64,
+) -> Result<u64, String> {
+    query_latest_runtime_revision(&app, target_root.trim(), after_revision)
+}
+
 fn main() {
     let mut builder = tauri::Builder::default();
 
@@ -599,11 +623,13 @@ fn main() {
             get_desktop_runtime_info,
             write_render_probe,
             run_cli_command,
+            open_terminal_command,
             install_bundled_cli,
             pick_repo_directory,
             open_path,
             ack_launch_request,
             set_active_repo_target,
+            get_latest_runtime_revision,
             append_ui_launch_log
         ])
         .run(tauri::generate_context!())
@@ -882,6 +908,19 @@ fn build_allowlisted_cli_args(
             }
             command.to_string()
         }
+        "review" => {
+            cli_args.push(String::from("review"));
+            if let Some(base_index) = args.iter().position(|arg| arg == "--base") {
+                if let Some(base_ref) = args.get(base_index + 1).filter(|value| !value.trim().is_empty()) {
+                    cli_args.push(String::from("--base"));
+                    cli_args.push(base_ref.clone());
+                }
+            }
+            if args.iter().any(|arg| arg == "--json") {
+                cli_args.push(String::from("--json"));
+            }
+            String::from("review")
+        }
         "sync" => {
             cli_args.push(String::from("sync"));
             if args.iter().any(|arg| arg == "--dry-run") {
@@ -949,6 +988,8 @@ fn run_cli_process(app: &AppHandle, args: &[String], target_root: &str) -> Resul
         if let Some(node_binary) = resolve_node_binary(None) {
             let mut command = Command::new(node_binary);
             command.current_dir(target_root);
+            command.env("KIWI_CONTROL_COMMAND_SOURCE", "desktop");
+            command.env("SHREY_JUNIOR_COMMAND_SOURCE", "desktop");
             command.arg(script_path);
             for arg in args {
                 command.arg(arg);
@@ -961,6 +1002,8 @@ fn run_cli_process(app: &AppHandle, args: &[String], target_root: &str) -> Resul
         if let Some(node_binary) = resolve_node_binary(resolve_bundled_node_binary(app)) {
             let mut command = Command::new(node_binary);
             command.current_dir(target_root);
+            command.env("KIWI_CONTROL_COMMAND_SOURCE", "desktop");
+            command.env("SHREY_JUNIOR_COMMAND_SOURCE", "desktop");
             command.arg(script_path);
             for arg in args {
                 command.arg(arg);
@@ -975,6 +1018,8 @@ fn run_cli_process(app: &AppHandle, args: &[String], target_root: &str) -> Resul
         }
         let mut command = Command::new(&cli_path);
         command.current_dir(target_root);
+        command.env("KIWI_CONTROL_COMMAND_SOURCE", "desktop");
+        command.env("SHREY_JUNIOR_COMMAND_SOURCE", "desktop");
         for arg in args {
             command.arg(arg);
         }
@@ -989,6 +1034,51 @@ fn run_cli_process(app: &AppHandle, args: &[String], target_root: &str) -> Resul
         std::io::ErrorKind::NotFound,
         "Kiwi Control CLI was not found",
     ))
+}
+
+fn open_terminal_with_cli_args(args: &[String], target_root: &str) -> Result<(), String> {
+    if cfg!(target_os = "macos") {
+        let command_text = format!(
+            "cd {} && {}",
+            shell_quote(target_root),
+            std::iter::once(String::from("kiwi-control"))
+                .chain(args.iter().cloned())
+                .map(|arg| shell_quote(&arg))
+                .collect::<Vec<String>>()
+                .join(" ")
+        );
+        let script = format!(
+            "tell application \"Terminal\"\n  activate\n  do script {}\nend tell",
+            applescript_string_literal(&command_text)
+        );
+        Command::new("osascript")
+            .arg("-e")
+            .arg(script)
+            .output()
+            .map_err(|error| format!("failed to open Terminal: {error}"))
+            .and_then(|output| {
+                if output.status.success() {
+                    Ok(())
+                } else {
+                    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+                    Err(if stderr.is_empty() {
+                        String::from("osascript failed to open Terminal")
+                    } else {
+                        stderr
+                    })
+                }
+            })
+    } else {
+        Err(String::from("terminal fallback is currently implemented for macOS Terminal only"))
+    }
+}
+
+fn shell_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\\''"))
+}
+
+fn applescript_string_literal(value: &str) -> String {
+    format!("\"{}\"", value.replace('\\', "\\\\").replace('"', "\\\""))
 }
 
 fn resolve_installed_cli_paths() -> Vec<PathBuf> {

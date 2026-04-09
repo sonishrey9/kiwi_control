@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
+import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import { runUi } from "../commands/ui.js";
 import {
@@ -10,6 +11,94 @@ import {
   waitForMarkerLines,
   withIsolatedDesktopLaunchBridge
 } from "./helpers/desktop-launch.js";
+
+test("ui command attaches to an existing desktop session before attempting a new launcher", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-attach-"));
+  const watcherPath = path.join(tempDir, "existing-session.js");
+  const launcherPath = path.join(tempDir, "desktop-launcher.js");
+  const launchAttemptPath = path.join(tempDir, "launcher-attempted.txt");
+
+  await withIsolatedDesktopLaunchBridge(async ({ launchRequestPath, launchStatusPath, launchLogPath }) => {
+    await fs.rm(launchRequestPath, { force: true });
+    await fs.rm(launchStatusPath, { force: true });
+    await fs.rm(launchLogPath, { force: true });
+
+    await fs.writeFile(
+      watcherPath,
+      `import { readFileSync, writeFileSync } from "node:fs";
+let handledRequestId = "";
+setInterval(() => {
+  try {
+    const request = JSON.parse(readFileSync(${JSON.stringify(launchRequestPath)}, "utf8"));
+    if (request.launchSource !== "existing-session" || request.requestId === handledRequestId) {
+      return;
+    }
+    handledRequestId = request.requestId;
+    writeFileSync(${JSON.stringify(launchStatusPath)}, JSON.stringify({
+      requestId: request.requestId,
+      targetRoot: request.targetRoot,
+      state: "ready",
+      detail: "attached to existing desktop window",
+      launchSource: request.launchSource,
+      reportedAt: new Date().toISOString(),
+      revision: 7
+    }, null, 2), "utf8");
+  } catch {}
+}, 25);
+setInterval(() => {}, 1_000);`,
+      "utf8"
+    );
+
+    await fs.writeFile(
+      launcherPath,
+      `import { writeFileSync } from "node:fs";
+writeFileSync(${JSON.stringify(launchAttemptPath)}, "launcher invoked\\n", "utf8");`,
+      "utf8"
+    );
+
+    const watcher = spawn(process.execPath, [watcherPath], {
+      stdio: "ignore"
+    });
+    const previousDesktopLauncher = process.env.KIWI_CONTROL_DESKTOP;
+    process.env.KIWI_CONTROL_DESKTOP = launcherPath;
+
+    try {
+      const logs: string[] = [];
+      const exitCode = await runUi({
+        repoRoot: repoRoot(),
+        targetRoot: tempDir,
+        logger: {
+          info(message: string) {
+            logs.push(message);
+          },
+          warn(message: string) {
+            logs.push(message);
+          },
+          error(message: string) {
+            logs.push(message);
+          }
+        } as never
+      });
+
+      const logPayload = await readLaunchLogEntries(launchLogPath);
+
+      assert.equal(exitCode, 0);
+      await assert.rejects(fs.access(launchAttemptPath));
+      assert.equal(
+        logPayload.some((entry) => entry.event === "attach-ready" && entry.launchSource === "existing-session"),
+        true
+      );
+      assert.match(logs.join("\n"), /Attached Kiwi Control to the existing session/i);
+    } finally {
+      watcher.kill("SIGTERM");
+      if (previousDesktopLauncher === undefined) {
+        delete process.env.KIWI_CONTROL_DESKTOP;
+      } else {
+        process.env.KIWI_CONTROL_DESKTOP = previousDesktopLauncher;
+      }
+    }
+  });
+});
 
 test("ui command waits for a matching ready status before reporting desktop launch success", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-launcher-"));

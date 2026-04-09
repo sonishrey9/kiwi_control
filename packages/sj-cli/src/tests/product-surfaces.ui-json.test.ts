@@ -13,6 +13,7 @@ import {
   buildRuntimeDecisionRecovery
 } from "@shrey-junior/sj-core/core/runtime-decision.js";
 import { buildRepoControlState, loadWarmRepoControlSnapshot } from "@shrey-junior/sj-core/core/ui-state.js";
+import { runReview } from "../commands/review.js";
 import { runSpecialists } from "../commands/specialists.js";
 import { runUi } from "../commands/ui.js";
 import { repoRoot } from "./helpers/desktop-launch.js";
@@ -87,6 +88,15 @@ test("ui command returns structured repo-control state in json mode", async () =
     summary: "Prepared the repo for a bounded task.",
     task: "demo task",
     nextRecommendedAction: "Begin work in the prepared scope."
+  });
+  await runReview({
+    repoRoot: repoRootPath,
+    targetRoot: target,
+    logger: {
+      info() {},
+      warn() {},
+      error() {}
+    } as never
   });
 
   const logs: string[] = [];
@@ -183,7 +193,17 @@ test("ui command returns structured repo-control state in json mode", async () =
         reviewContextPackPath: string | null;
         reviewContextPackTask: string | null;
         reviewContextPackSummary: string | null;
+        reviewPackAvailable: boolean;
+        reviewPackPath: string | null;
+        reviewPackSummary: string | null;
         entryPoints: string[];
+      };
+      readySubstrate: {
+        ready: boolean;
+        status: string;
+        readFirst: string[];
+        toolEntry: { path: string };
+        runtimeAuthority: { valid: boolean };
       };
       fileAnalysis: { totalFiles: number; selected: Array<{ file: string; selectionWhy?: string; dependencyChain?: string[] }> };
       contextTrace: { expansionSteps: Array<{ step: string }> };
@@ -282,7 +302,15 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(payload.kiwiControl.repoIntelligence.reviewContextPackAvailable, true);
   assert.equal(payload.kiwiControl.repoIntelligence.reviewContextPackPath, ".agent/context/review-context-pack.json");
   assert.equal(typeof payload.kiwiControl.repoIntelligence.reviewContextPackSummary, "string");
+  assert.equal(payload.kiwiControl.repoIntelligence.reviewPackAvailable, true);
+  assert.equal(payload.kiwiControl.repoIntelligence.reviewPackPath, ".agent/context/review-pack.json");
+  assert.equal(typeof payload.kiwiControl.repoIntelligence.reviewPackSummary, "string");
   assert.equal(Array.isArray(payload.kiwiControl.repoIntelligence.entryPoints), true);
+  assert.equal(payload.kiwiControl.readySubstrate.ready, true);
+  assert.equal(payload.kiwiControl.readySubstrate.status, "ready");
+  assert.equal(payload.kiwiControl.readySubstrate.runtimeAuthority.valid, true);
+  assert.equal(payload.kiwiControl.readySubstrate.readFirst[0], ".agent/state/ready-substrate.json");
+  assert.equal(payload.kiwiControl.readySubstrate.toolEntry.path, ".agent/context/agent-pack.json");
   assert.equal(typeof payload.kiwiControl.fileAnalysis.totalFiles, "number");
   assert.equal(Array.isArray(payload.kiwiControl.fileAnalysis.selected), true);
   assert.equal(

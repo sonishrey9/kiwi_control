@@ -1,9 +1,9 @@
 {
   "artifactType": "kiwi-control/symbol-index",
   "version": 1,
-  "generatedAt": "2026-04-09T14:18:08.206Z",
-  "totalFiles": 197,
-  "totalSymbols": 1827,
+  "generatedAt": "2026-04-09T15:55:32.089Z",
+  "totalFiles": 200,
+  "totalSymbols": 1852,
   "files": [
     {
       "file": "apps/sj-ui/src/bootcheck.ts",
@@ -121,6 +121,7 @@
         "parseKiwiCommand",
         "patchGraphSurface",
         "plan",
+        "pollLatestRuntimeRevision",
         "pollPendingLaunchRequest",
         "primaryActionFile",
         "pushContextOverrideHistory",
@@ -648,7 +649,9 @@
       ],
       "localFunctions": [
         "normalizedFileTarget",
-        "runGraphQuery"
+        "rebuildRepoIntelligence",
+        "runGraphQuery",
+        "runQuery"
       ]
     },
     {
@@ -807,6 +810,19 @@
       ]
     },
     {
+      "file": "packages/sj-cli/src/commands/review.ts",
+      "moduleGroup": "packages/sj-cli",
+      "exports": [
+        "runReview"
+      ],
+      "localFunctions": [
+        "recordReviewPackRuntimeEvent",
+        "resolveCommandActor",
+        "runReview",
+        "shellQuoteForStatus"
+      ]
+    },
+    {
       "file": "packages/sj-cli/src/commands/run-auto.ts",
       "moduleGroup": "packages/sj-cli",
       "exports": [
@@ -948,12 +964,10 @@
         "inferLaunchSourceForRequest",
         "isMissingFileError",
         "launchDesktopControlSurface",
-        "listRunningDesktopProcesses",
         "loadDesktopInstallReceipt",
         "readDesktopLaunchObservation",
         "readDesktopLaunchStatus",
         "resolveComparablePath",
-        "resolveDesktopCandidateExecutablePath",
         "resolveDesktopLaunchBridgeDir",
         "resolveDesktopLaunchLogPath",
         "resolveDesktopLaunchRequestPath",
@@ -963,7 +977,7 @@
         "resolveSourceDesktopLaunchBundle",
         "runUi",
         "settleProcessExit",
-        "terminateConflictingDesktopProcesses",
+        "tryAttachToExistingDesktopSession",
         "tryLaunchDesktopCandidate",
         "waitForDesktopLaunchStatus",
         "warmDesktopRegistration",
@@ -1254,6 +1268,21 @@
         "helper",
         "run",
         "runWorker"
+      ]
+    },
+    {
+      "file": "packages/sj-cli/src/tests/review.test.ts",
+      "moduleGroup": "packages/sj-cli",
+      "exports": [
+        "helper",
+        "run",
+        "worker"
+      ],
+      "localFunctions": [
+        "helper",
+        "run",
+        "runReviewJson",
+        "worker"
       ]
     },
     {
@@ -1841,6 +1870,7 @@
         "readExecutionStateRevision",
         "readLegacyJson",
         "recordExecutionState",
+        "resolveExecutionActor",
         "runtimeSnapshotToExecutionState",
         "stepStatus",
         "toRuntimeLifecycle",
@@ -2295,6 +2325,25 @@
       "localFunctions": [
         "deriveRepoReadiness",
         "lifecycleLabel"
+      ]
+    },
+    {
+      "file": "packages/sj-core/src/core/review-pack.ts",
+      "moduleGroup": "packages/sj-core",
+      "exports": [
+        "buildReviewPack",
+        "persistReviewPack",
+        "resolveReviewChangedFiles"
+      ],
+      "localFunctions": [
+        "buildLikelyMissingValidation",
+        "buildReviewPack",
+        "filterReviewableChangedFiles",
+        "isGeneratedKiwiReviewNoise",
+        "moduleGroupForFile",
+        "persistReviewPack",
+        "readGitDiffFiles",
+        "resolveReviewChangedFiles"
       ]
     },
     {
@@ -4376,6 +4425,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "buildLikelyMissingValidation",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/review-pack.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "buildLiveValidationAction",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/next-action.ts",
@@ -4841,6 +4896,18 @@
       "symbol": "buildReviewGraph",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "buildReviewPack",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/review-pack.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "buildReviewPack",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/review-pack.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -6944,6 +7011,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "filterReviewableChangedFiles",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/review-pack.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "finalizeContextTreeNode",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/ui-state.ts",
@@ -7640,6 +7713,18 @@
       "moduleGroup": "packages/sj-cli"
     },
     {
+      "symbol": "helper",
+      "kind": "export",
+      "file": "packages/sj-cli/src/tests/review.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "helper",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/tests/review.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
       "symbol": "hide",
       "kind": "local-function",
       "file": "apps/sj-ui/src/bootcheck.ts",
@@ -7949,6 +8034,12 @@
       "symbol": "isFeedbackCompletionSource",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/execution-log.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "isGeneratedKiwiReviewNoise",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/review-pack.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -8298,12 +8389,6 @@
       "kind": "local-function",
       "file": "packages/sj-core/src/core/release.ts",
       "moduleGroup": "packages/sj-core"
-    },
-    {
-      "symbol": "listRunningDesktopProcesses",
-      "kind": "local-function",
-      "file": "packages/sj-cli/src/commands/ui.ts",
-      "moduleGroup": "packages/sj-cli"
     },
     {
       "symbol": "listRuntimeExecutionEvents",
@@ -9344,6 +9429,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "moduleGroupForFile",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/review-pack.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "modulePeers",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/graph-query.ts",
@@ -10016,6 +10107,18 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "persistReviewPack",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/review-pack.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "persistReviewPack",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/review-pack.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "persistRuntimeDerivedOutput",
       "kind": "export",
       "file": "packages/sj-core/src/runtime/client.ts",
@@ -10158,6 +10261,12 @@
       "kind": "local-function",
       "file": "packages/sj-core/src/utils/fs.ts",
       "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "pollLatestRuntimeRevision",
+      "kind": "local-function",
+      "file": "apps/sj-ui/src/main.ts",
+      "moduleGroup": "apps/sj-ui"
     },
     {
       "symbol": "pollPendingLaunchRequest",
@@ -10382,6 +10491,12 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "readGitDiffFiles",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/review-pack.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "readJson",
       "kind": "export",
       "file": "packages/sj-core/src/utils/fs.ts",
@@ -10476,6 +10591,12 @@
       "kind": "local-function",
       "file": "packages/sj-core/src/utils/yaml.ts",
       "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "rebuildRepoIntelligence",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
+      "moduleGroup": "packages/sj-cli"
     },
     {
       "symbol": "recentFailures",
@@ -10590,6 +10711,12 @@
       "kind": "local-function",
       "file": "packages/sj-core/src/core/execution-log.ts",
       "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "recordReviewPackRuntimeEvent",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/review.ts",
+      "moduleGroup": "packages/sj-cli"
     },
     {
       "symbol": "recordRuntimeProgress",
@@ -11666,6 +11793,12 @@
       "moduleGroup": "scripts"
     },
     {
+      "symbol": "resolveCommandActor",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/review.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
       "symbol": "resolveComparablePath",
       "kind": "local-function",
       "file": "packages/sj-cli/src/commands/ui.ts",
@@ -11676,12 +11809,6 @@
       "kind": "local-function",
       "file": "packages/sj-core/src/core/validator.ts",
       "moduleGroup": "packages/sj-core"
-    },
-    {
-      "symbol": "resolveDesktopCandidateExecutablePath",
-      "kind": "local-function",
-      "file": "packages/sj-cli/src/commands/ui.ts",
-      "moduleGroup": "packages/sj-cli"
     },
     {
       "symbol": "resolveDesktopInstallReceiptPath",
@@ -11760,6 +11887,12 @@
       "kind": "local-function",
       "file": "packages/sj-cli/src/commands/ui.ts",
       "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "resolveExecutionActor",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/execution-state.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "resolveExecutionMode",
@@ -11921,6 +12054,18 @@
       "symbol": "resolveReleaseStatus",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/release.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "resolveReviewChangedFiles",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/review-pack.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "resolveReviewChangedFiles",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/review-pack.ts",
       "moduleGroup": "packages/sj-core"
     },
     {
@@ -12203,6 +12348,18 @@
       "symbol": "run",
       "kind": "local-function",
       "file": "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "run",
+      "kind": "export",
+      "file": "packages/sj-cli/src/tests/review.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "run",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/tests/review.test.ts",
       "moduleGroup": "packages/sj-cli"
     },
     {
@@ -12584,6 +12741,12 @@
       "moduleGroup": "packages/sj-cli"
     },
     {
+      "symbol": "runQuery",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/graph-query.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
       "symbol": "runReconcile",
       "kind": "export",
       "file": "packages/sj-cli/src/commands/reconcile.ts",
@@ -12641,6 +12804,24 @@
       "symbol": "runRetry",
       "kind": "local-function",
       "file": "packages/sj-cli/src/commands/retry.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "runReview",
+      "kind": "export",
+      "file": "packages/sj-cli/src/commands/review.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "runReview",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/review.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "runReviewJson",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/tests/review.test.ts",
       "moduleGroup": "packages/sj-cli"
     },
     {
@@ -13062,6 +13243,12 @@
       "kind": "local-function",
       "file": "apps/sj-ui/src/ui/command-help.ts",
       "moduleGroup": "apps/sj-ui"
+    },
+    {
+      "symbol": "shellQuoteForStatus",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/review.ts",
+      "moduleGroup": "packages/sj-cli"
     },
     {
       "symbol": "shouldDeferShellRenderForGraphInteraction",
@@ -13550,12 +13737,6 @@
       "moduleGroup": "packages/sj-core"
     },
     {
-      "symbol": "terminateConflictingDesktopProcesses",
-      "kind": "local-function",
-      "file": "packages/sj-cli/src/commands/ui.ts",
-      "moduleGroup": "packages/sj-cli"
-    },
-    {
       "symbol": "toggleComposer",
       "kind": "local-function",
       "file": "apps/sj-ui/src/main.ts",
@@ -13722,6 +13903,12 @@
       "kind": "local-function",
       "file": "packages/sj-core/src/core/context.ts",
       "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "tryAttachToExistingDesktopSession",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/commands/ui.ts",
+      "moduleGroup": "packages/sj-cli"
     },
     {
       "symbol": "tryLaunchDesktopCandidate",
@@ -14039,6 +14226,18 @@
       "symbol": "withIsolatedDesktopLaunchBridge",
       "kind": "local-function",
       "file": "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "worker",
+      "kind": "export",
+      "file": "packages/sj-cli/src/tests/review.test.ts",
+      "moduleGroup": "packages/sj-cli"
+    },
+    {
+      "symbol": "worker",
+      "kind": "local-function",
+      "file": "packages/sj-cli/src/tests/review.test.ts",
       "moduleGroup": "packages/sj-cli"
     },
     {

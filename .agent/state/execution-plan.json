@@ -1,957 +1,180 @@
 {
   "artifactType": "kiwi-control/execution-plan",
-  "version": 2,
-  "task": "update README docs",
-  "intent": {
-    "type": "docs",
-    "scope": "docs",
-    "expectedOutcome": "Documentation in the selected scope is updated and consistent.",
-    "confidenceAction": "guarded"
+  "blocked": true,
+  "confidence": null,
+  "contextSnapshot": {
+    "confidence": null,
+    "contextTreePath": null,
+    "dependencyChains": {},
+    "forwardDependencies": [],
+    "reverseDependencies": [],
+    "selectedFiles": [],
+    "selectedModuleGroups": []
   },
+  "currentStepIndex": 2,
+  "evalSummary": null,
   "hierarchy": {
     "goal": "update README docs",
     "subtasks": [
       {
-        "id": "scope",
-        "title": "Scope the work",
+        "id": "primary",
         "stepIds": [
-          "prepare"
-        ]
-      },
-      {
-        "id": "change",
-        "title": "Make the change",
-        "stepIds": [
-          "execute"
-        ]
-      },
-      {
-        "id": "verify",
-        "title": "Verify and checkpoint",
-        "stepIds": [
+          "prepare",
+          "execute",
           "validate",
           "checkpoint",
           "handoff"
-        ]
+        ],
+        "title": "update README docs"
       }
-    ]
-  },
-  "state": "ready",
-  "currentStepIndex": 2,
-  "confidence": "medium",
-  "risk": "low",
-  "blocked": false,
-  "summary": "logic_error: Touched files do not satisfy the task-category goal heuristic.",
-  "steps": [
-    {
-      "id": "prepare",
-      "description": "Prepare bounded context",
-      "command": "kiwi-control prepare \"update README docs\"",
-      "expectedOutput": "Prepared scope, instructions, token state, and context snapshot are ready.",
-      "expectedOutcome": {
-        "expectedFiles": [
-          "apps/sj-ui/src/ui/guidance.ts",
-          "packages/sj-cli/src/commands/execution-step-runner.ts",
-          "packages/sj-core/src/core/ui-state.ts",
-          "packages/sj-core/src/core/repo-readiness.ts",
-          "packages/sj-core/src/core/context.ts",
-          "packages/sj-core/src/core/router.ts",
-          "apps/sj-ui/src/main.ts",
-          "packages/sj-cli/src/commands/run-auto.ts"
-        ],
-        "expectedChanges": [
-          "Prepared scope is written",
-          "Instructions are generated",
-          "Token state is recorded"
-        ]
-      },
-      "validation": "Context selection and prepared scope must be recorded before execution.",
-      "status": "success",
-      "workflowStepId": "prepare-context",
-      "result": {
-        "ok": true,
-        "summary": "Prepared 43 selected files for \"update README docs\".",
-        "validation": "Prepared scope exists, instructions were written, and token state was recorded.",
-        "failureReason": null,
-        "suggestedFix": null,
-        "retryCommand": "kiwi-control prepare \"update README docs\""
-      },
-      "fixCommand": null,
-      "retryCommand": "kiwi-control prepare \"update README docs\""
-    },
-    {
-      "id": "execute",
-      "description": "Modify the selected files",
-      "command": "kiwi-control run \"update README docs\"",
-      "expectedOutput": "Run packets or equivalent execution artifacts are ready.",
-      "expectedOutcome": {
-        "expectedFiles": [
-          "apps/sj-ui/src/ui/guidance.ts",
-          "packages/sj-cli/src/commands/execution-step-runner.ts",
-          "packages/sj-core/src/core/ui-state.ts",
-          "packages/sj-core/src/core/repo-readiness.ts",
-          "packages/sj-core/src/core/context.ts",
-          "packages/sj-core/src/core/router.ts",
-          "apps/sj-ui/src/main.ts",
-          "packages/sj-cli/src/commands/run-auto.ts",
-          "apps/sj-ui/src/ui/guidance.test.ts",
-          "apps/sj-ui/src/ui/readiness.test.ts",
-          "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
-          "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts"
-        ],
-        "expectedChanges": [
-          "Documentation changes land in selected docs files.",
-          "Expected files: apps/sj-ui/src/ui/guidance.ts, packages/sj-cli/src/commands/execution-step-runner.ts, packages/sj-core/src/core/ui-state.ts, packages/sj-core/src/core/repo-readiness.ts, packages/sj-core/src/core/context.ts, packages/sj-core/src/core/router.ts"
-        ]
-      },
-      "validation": "Execution must produce packet/output artifacts inside the prepared scope.",
-      "status": "success",
-      "workflowStepId": "generate-run-packets",
-      "result": {
-        "ok": true,
-        "summary": "Generated 3 task packets for \"update README docs\".",
-        "validation": "Run packet generation completed and packet artifacts were written.",
-        "failureReason": null,
-        "suggestedFix": null,
-        "retryCommand": "kiwi-control run \"update README docs\""
-      },
-      "fixCommand": null,
-      "retryCommand": "kiwi-control run \"update README docs\""
-    },
-    {
-      "id": "validate",
-      "description": "Validate the task outcome",
-      "command": "kiwi-control validate \"update README docs\"",
-      "expectedOutput": "Final validation confirms scope and outcome correctness.",
-      "expectedOutcome": {
-        "expectedFiles": [
-          "apps/sj-ui/src/ui/guidance.ts",
-          "packages/sj-cli/src/commands/execution-step-runner.ts",
-          "packages/sj-core/src/core/ui-state.ts",
-          "packages/sj-core/src/core/repo-readiness.ts",
-          "packages/sj-core/src/core/context.ts",
-          "packages/sj-core/src/core/router.ts",
-          "apps/sj-ui/src/main.ts",
-          "packages/sj-cli/src/commands/run-auto.ts",
-          "apps/sj-ui/src/ui/guidance.test.ts",
-          "apps/sj-ui/src/ui/readiness.test.ts",
-          "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
-          "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts"
-        ],
-        "expectedChanges": [
-          "Selected files remain bounded to: apps/sj-ui/src/ui/guidance.ts, packages/sj-cli/src/commands/execution-step-runner.ts, packages/sj-core/src/core/ui-state.ts, packages/sj-core/src/core/repo-readiness.ts, packages/sj-core/src/core/context.ts, packages/sj-core/src/core/router.ts",
-          "Documentation changes land in selected docs files.",
-          "Expected files: apps/sj-ui/src/ui/guidance.ts, packages/sj-cli/src/commands/execution-step-runner.ts, packages/sj-core/src/core/ui-state.ts, packages/sj-core/src/core/repo-readiness.ts, packages/sj-core/src/core/context.ts, packages/sj-core/src/core/router.ts"
-        ]
-      },
-      "validation": "Validation must confirm expected files changed, scope remained bounded, and the task goal was achieved.",
-      "status": "failed",
-      "workflowStepId": "validate-outcome",
-      "result": {
-        "ok": false,
-        "summary": null,
-        "validation": "Expected changes: Documentation changes land in selected docs files.; Expected files: apps/sj-ui/src/ui/guidance.ts, packages/sj-cli/src/commands/execution-step-runner.ts, packages/sj-core/src/core/ui-state.ts, packages/sj-core/src/core/repo-readiness.ts, packages/sj-core/src/core/context.ts, packages/sj-core/src/core/router.ts",
-        "failureReason": "Touched files do not satisfy the task-category goal heuristic.",
-        "suggestedFix": "Run kiwi-control explain, then rerun kiwi-control validate \"update README docs\".",
-        "retryCommand": "kiwi-control validate \"update README docs\""
-      },
-      "fixCommand": "kiwi-control explain",
-      "retryCommand": "kiwi-control validate \"update README docs\""
-    },
-    {
-      "id": "checkpoint",
-      "description": "Checkpoint the validated work",
-      "command": "kiwi-control checkpoint \"validated-progress\"",
-      "expectedOutput": "Checkpoint artifacts record validated progress.",
-      "expectedOutcome": {
-        "expectedFiles": [
-          "apps/sj-ui/src/ui/guidance.ts",
-          "packages/sj-cli/src/commands/execution-step-runner.ts",
-          "packages/sj-core/src/core/ui-state.ts",
-          "packages/sj-core/src/core/repo-readiness.ts",
-          "packages/sj-core/src/core/context.ts",
-          "packages/sj-core/src/core/router.ts",
-          "apps/sj-ui/src/main.ts",
-          "packages/sj-cli/src/commands/run-auto.ts",
-          "apps/sj-ui/src/ui/guidance.test.ts",
-          "apps/sj-ui/src/ui/readiness.test.ts",
-          "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
-          "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts"
-        ],
-        "expectedChanges": [
-          "Documentation in the selected scope is updated and consistent."
-        ]
-      },
-      "validation": "Checkpointing is allowed only after validation passes.",
-      "status": "pending",
-      "workflowStepId": "checkpoint-progress",
-      "result": {
-        "ok": null,
-        "summary": null,
-        "validation": null,
-        "failureReason": null,
-        "suggestedFix": null,
-        "retryCommand": null
-      },
-      "fixCommand": null,
-      "retryCommand": "kiwi-control checkpoint \"validated-progress\""
-    },
-    {
-      "id": "handoff",
-      "description": "Handoff the work",
-      "command": "kiwi-control handoff --to fullstack-specialist",
-      "expectedOutput": "Handoff artifacts are written for the next specialist/tool.",
-      "expectedOutcome": {
-        "expectedFiles": [
-          "apps/sj-ui/src/ui/guidance.ts",
-          "packages/sj-cli/src/commands/execution-step-runner.ts",
-          "packages/sj-core/src/core/ui-state.ts",
-          "packages/sj-core/src/core/repo-readiness.ts",
-          "packages/sj-core/src/core/context.ts",
-          "packages/sj-core/src/core/router.ts",
-          "apps/sj-ui/src/main.ts",
-          "packages/sj-cli/src/commands/run-auto.ts",
-          "apps/sj-ui/src/ui/guidance.test.ts",
-          "apps/sj-ui/src/ui/readiness.test.ts",
-          "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
-          "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts"
-        ],
-        "expectedChanges": [
-          "Documentation in the selected scope is updated and consistent."
-        ]
-      },
-      "validation": "Handoff should happen after checkpoint captures validated progress.",
-      "status": "pending",
-      "workflowStepId": "handoff-work",
-      "result": {
-        "ok": null,
-        "summary": null,
-        "validation": null,
-        "failureReason": null,
-        "suggestedFix": null,
-        "retryCommand": null
-      },
-      "fixCommand": null,
-      "retryCommand": "kiwi-control handoff --to qa-specialist"
-    }
-  ],
-  "nextCommands": [
-    "kiwi-control validate \"update README docs\"",
-    "kiwi-control checkpoint \"validated-progress\"",
-    "kiwi-control handoff --to fullstack-specialist"
-  ],
-  "lastError": {
-    "errorType": "logic_error",
-    "retryStrategy": "narrow",
-    "reason": "Touched files do not satisfy the task-category goal heuristic.",
-    "fixCommand": "kiwi-control explain",
-    "retryCommand": "kiwi-control validate \"update README docs\""
-  },
-  "contextSnapshot": {
-    "selectedFiles": [
-      "apps/sj-ui/src/ui/guidance.ts",
-      "packages/sj-cli/src/commands/execution-step-runner.ts",
-      "packages/sj-core/src/core/ui-state.ts",
-      "packages/sj-core/src/core/repo-readiness.ts",
-      "packages/sj-core/src/core/context.ts",
-      "packages/sj-core/src/core/router.ts",
-      "apps/sj-ui/src/main.ts",
-      "packages/sj-cli/src/commands/run-auto.ts",
-      "apps/sj-ui/src/ui/guidance.test.ts",
-      "apps/sj-ui/src/ui/readiness.test.ts",
-      "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
-      "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-      "packages/sj-cli/src/tests/sync.test.ts",
-      "packages/sj-core/src/core/bootstrap.ts",
-      "packages/sj-core/src/runtime/ui-bridge.ts",
-      "apps/sj-ui/src/bootcheck.ts",
-      "apps/sj-ui/src/ui/contracts.ts",
-      "apps/sj-ui/src/ui/readiness.ts",
-      "packages/sj-cli/src/commands/checkpoint.ts",
-      "packages/sj-cli/src/commands/handoff.ts",
-      "packages/sj-cli/src/commands/prepare.ts",
-      "packages/sj-cli/src/commands/run.ts",
-      "packages/sj-cli/src/commands/sync.ts",
-      "packages/sj-cli/src/commands/ui.ts",
-      "packages/sj-cli/src/commands/validate.ts",
-      "packages/sj-core/src/core/project-detect.ts",
-      "packages/sj-core/src/core/execution-state.ts",
-      "packages/sj-core/src/utils/fs.ts",
-      "packages/sj-core/src/core/config.ts",
-      "packages/sj-core/src/core/state.ts",
-      "packages/sj-core/src/core/specialists.ts",
-      "packages/sj-core/src/core/product.ts",
-      "scripts/smoke-test.sh",
-      "scripts/test-desktop-features.sh",
-      "scripts/verify-rendered-desktop.mjs",
-      "scripts/verify-cli-ui-truth.mjs",
-      "apps/sj-ui/src-tauri/src/main.rs",
-      "packages/sj-cli/src/commands/doctor.ts",
-      "packages/sj-cli/src/commands/init.ts",
-      "packages/sj-cli/src/commands/status.ts",
-      "packages/sj-cli/src/tests/project-detect.test.ts",
-      "apps/sj-ui/src-tauri/src/state_watch.rs",
-      "packages/sj-cli/src/tests/execution-state.test.ts"
-    ],
-    "selectedModuleGroups": [
-      "apps/sj-ui",
-      "packages/sj-cli",
-      "packages/sj-core",
-      "scripts"
-    ],
-    "confidence": "medium",
-    "contextTreePath": ".agent/context/context-tree.json",
-    "dependencyChains": {
-      "apps/sj-ui/src/bootcheck.ts": [
-        "apps/sj-ui/src/ui/guidance.ts",
-        "apps/sj-ui/src/bootcheck.ts"
-      ],
-      "apps/sj-ui/src/ui/command-help.ts": [
-        "apps/sj-ui/src/main.ts",
-        "apps/sj-ui/src/ui/command-help.ts"
-      ],
-      "apps/sj-ui/src/ui/ContextTreePanel.ts": [
-        "apps/sj-ui/src/ui/contracts.ts",
-        "apps/sj-ui/src/ui/ContextTreePanel.ts"
-      ],
-      "apps/sj-ui/src/ui/ExecutionPlanPanel.ts": [
-        "apps/sj-ui/src/ui/contracts.ts",
-        "apps/sj-ui/src/ui/ExecutionPlanPanel.ts"
-      ],
-      "apps/sj-ui/src/ui/graph-model.ts": [
-        "apps/sj-ui/src/main.ts",
-        "apps/sj-ui/src/ui/graph-model.ts"
-      ],
-      "apps/sj-ui/src/ui/GraphPanel.ts": [
-        "apps/sj-ui/src/ui/contracts.ts",
-        "apps/sj-ui/src/ui/GraphPanel.ts"
-      ],
-      "apps/sj-ui/src/ui/InspectorPanel.ts": [
-        "apps/sj-ui/src/ui/contracts.ts",
-        "apps/sj-ui/src/ui/InspectorPanel.ts"
-      ],
-      "apps/sj-ui/src/ui/MachinePanel.ts": [
-        "apps/sj-ui/src/ui/contracts.ts",
-        "apps/sj-ui/src/ui/MachinePanel.ts"
-      ],
-      "apps/sj-ui/src/ui/OnboardingPanel.test.ts": [
-        "apps/sj-ui/src/ui/contracts.ts",
-        "apps/sj-ui/src/ui/OnboardingPanel.ts",
-        "apps/sj-ui/src/ui/OnboardingPanel.test.ts"
-      ],
-      "apps/sj-ui/src/ui/OnboardingPanel.ts": [
-        "apps/sj-ui/src/ui/contracts.ts",
-        "apps/sj-ui/src/ui/OnboardingPanel.ts"
-      ],
-      "apps/sj-ui/src/ui/TopBar.ts": [
-        "apps/sj-ui/src/ui/contracts.ts",
-        "apps/sj-ui/src/ui/TopBar.ts"
-      ],
-      "apps/sj-ui/src/ui/view-models.ts": [
-        "apps/sj-ui/src/main.ts",
-        "apps/sj-ui/src/ui/view-models.ts"
-      ],
-      "packages/sj-cli/src/cli.ts": [
-        "packages/sj-cli/src/commands/checkpoint.ts",
-        "packages/sj-cli/src/cli.ts"
-      ],
-      "packages/sj-cli/src/commands/explain.ts": [
-        "packages/sj-cli/src/commands/execution-step-runner.ts",
-        "packages/sj-cli/src/commands/explain.ts"
-      ],
-      "packages/sj-cli/src/commands/resume.ts": [
-        "packages/sj-cli/src/commands/execution-step-runner.ts",
-        "packages/sj-cli/src/commands/resume.ts"
-      ],
-      "packages/sj-cli/src/commands/retry.ts": [
-        "packages/sj-cli/src/commands/execution-step-runner.ts",
-        "packages/sj-cli/src/commands/retry.ts"
-      ],
-      "packages/sj-cli/src/commands/specialists.ts": [
-        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-        "packages/sj-cli/src/commands/specialists.ts"
-      ],
-      "packages/sj-cli/src/commands/trace.ts": [
-        "packages/sj-cli/src/commands/execution-step-runner.ts",
-        "packages/sj-cli/src/commands/trace.ts"
-      ],
-      "packages/sj-cli/src/tests/checkpoint.test.ts": [
-        "packages/sj-cli/src/commands/checkpoint.ts",
-        "packages/sj-cli/src/tests/checkpoint.test.ts"
-      ],
-      "packages/sj-cli/src/tests/cli-ux.test.ts": [
-        "packages/sj-cli/src/commands/status.ts",
-        "packages/sj-cli/src/tests/cli-ux.test.ts"
-      ],
-      "packages/sj-cli/src/tests/helpers/desktop-launch.ts": [
-        "packages/sj-cli/src/commands/ui.ts",
-        "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
-      ],
-      "packages/sj-cli/src/tests/machine-advisory.test.ts": [
-        "packages/sj-cli/src/commands/doctor.ts",
-        "packages/sj-cli/src/tests/machine-advisory.test.ts"
-      ],
-      "packages/sj-cli/src/tests/prepare.test.ts": [
-        "packages/sj-cli/src/commands/prepare.ts",
-        "packages/sj-cli/src/tests/prepare.test.ts"
-      ],
-      "packages/sj-cli/src/tests/product-surfaces.desktop-bundles.test.ts": [
-        "packages/sj-cli/src/commands/ui.ts",
-        "packages/sj-cli/src/tests/product-surfaces.desktop-bundles.test.ts"
-      ],
-      "packages/sj-core/dist/core/bootstrap.js": [
-        "scripts/verify-rendered-desktop.mjs",
-        "packages/sj-core/dist/core/bootstrap.js"
-      ],
-      "packages/sj-core/dist/core/config.js": [
-        "scripts/verify-rendered-desktop.mjs",
-        "packages/sj-core/dist/core/config.js"
-      ],
-      "packages/sj-core/dist/core/workflow-engine.js": [
-        "scripts/verify-rendered-desktop.mjs",
-        "packages/sj-core/dist/core/workflow-engine.js"
-      ],
-      "packages/sj-core/src/adapters/claude.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/executor.ts",
-        "packages/sj-core/src/adapters/claude.ts"
-      ],
-      "packages/sj-core/src/adapters/codex.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/executor.ts",
-        "packages/sj-core/src/adapters/codex.ts"
-      ],
-      "packages/sj-core/src/adapters/copilot.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/executor.ts",
-        "packages/sj-core/src/adapters/copilot.ts"
-      ],
-      "packages/sj-core/src/core/config.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/config.ts"
-      ],
-      "packages/sj-core/src/core/context-feedback.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/context-feedback.ts"
-      ],
-      "packages/sj-core/src/core/context-selector.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/context-selector.ts"
-      ],
-      "packages/sj-core/src/core/context-trace.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/context-trace.ts"
-      ],
-      "packages/sj-core/src/core/context-tree.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/context-tree.ts"
-      ],
-      "packages/sj-core/src/core/context.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/context.ts"
-      ],
-      "packages/sj-core/src/core/dispatch.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/reconcile.ts",
-        "packages/sj-core/src/core/dispatch.ts"
-      ],
-      "packages/sj-core/src/core/execution-engine.ts": [
-        "packages/sj-core/src/core/project-detect.ts",
-        "packages/sj-core/src/core/validator.ts",
-        "packages/sj-core/src/core/execution-engine.ts"
-      ],
-      "packages/sj-core/src/core/execution-log.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/execution-log.ts"
-      ],
-      "packages/sj-core/src/core/execution-plan.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/execution-plan.ts"
-      ],
-      "packages/sj-core/src/core/executor.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/executor.ts"
-      ],
-      "packages/sj-core/src/core/git.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/git.ts"
-      ],
-      "packages/sj-core/src/core/guidance.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/guidance.ts"
-      ],
-      "packages/sj-core/src/core/handoff.ts": [
-        "packages/sj-core/src/core/project-detect.ts",
-        "packages/sj-core/src/core/profiles.ts",
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/core/handoff.ts"
-      ],
-      "packages/sj-core/src/core/launch.ts": [
-        "packages/sj-core/src/core/project-detect.ts",
-        "packages/sj-core/src/core/profiles.ts",
-        "packages/sj-core/src/core/launch.ts"
-      ],
-      "packages/sj-core/src/core/memory.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/memory.ts"
-      ],
-      "packages/sj-core/src/core/next-action.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/next-action.ts"
-      ],
-      "packages/sj-core/src/core/packets.ts": [
-        "packages/sj-core/src/core/project-detect.ts",
-        "packages/sj-core/src/core/profiles.ts",
-        "packages/sj-core/src/core/context.ts",
-        "packages/sj-core/src/core/packets.ts"
-      ],
-      "packages/sj-core/src/core/planner.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/executor.ts",
-        "packages/sj-core/src/core/planner.ts"
-      ],
-      "packages/sj-core/src/core/policies.ts": [
-        "packages/sj-core/src/core/project-detect.ts",
-        "packages/sj-core/src/core/profiles.ts",
-        "packages/sj-core/src/core/policies.ts"
-      ],
-      "packages/sj-core/src/core/prepared-scope.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/prepared-scope.ts"
-      ],
-      "packages/sj-core/src/core/product.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/product.ts"
-      ],
-      "packages/sj-core/src/core/profiles.ts": [
-        "packages/sj-core/src/core/project-detect.ts",
-        "packages/sj-core/src/core/profiles.ts"
-      ],
-      "packages/sj-core/src/core/recommendations.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/recommendations.ts"
-      ],
-      "packages/sj-core/src/core/reconcile.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/reconcile.ts"
-      ],
-      "packages/sj-core/src/core/release.ts": [
-        "packages/sj-core/src/core/project-detect.ts",
-        "packages/sj-core/src/core/profiles.ts",
-        "packages/sj-core/src/core/policies.ts",
-        "packages/sj-core/src/core/release.ts"
-      ],
-      "packages/sj-core/src/core/router.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/router.ts"
-      ],
-      "packages/sj-core/src/core/runtime-lifecycle.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/runtime-lifecycle.ts"
-      ],
-      "packages/sj-core/src/core/skills-registry.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/skills-registry.ts"
-      ],
-      "packages/sj-core/src/core/specialists.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/specialists.ts"
-      ],
-      "packages/sj-core/src/core/state.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/core/state.ts"
-      ],
-      "packages/sj-core/src/core/task-intent.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/task-intent.ts"
-      ],
-      "packages/sj-core/src/core/token-estimator.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/token-estimator.ts"
-      ],
-      "packages/sj-core/src/core/token-intelligence.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/token-intelligence.ts"
-      ],
-      "packages/sj-core/src/core/validator.ts": [
-        "packages/sj-core/src/core/project-detect.ts",
-        "packages/sj-core/src/core/validator.ts"
-      ],
-      "packages/sj-core/src/core/workflow-engine.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/core/workflow-engine.ts"
-      ],
-      "packages/sj-core/src/integrations/ecosystem-catalog.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/integrations/ecosystem-catalog.ts"
-      ],
-      "packages/sj-core/src/integrations/machine-advisory.ts": [
-        "packages/sj-core/src/core/ui-state.ts",
-        "packages/sj-core/src/integrations/machine-advisory.ts"
-      ],
-      "packages/sj-core/src/runtime.ts": [
-        "packages/sj-core/src/runtime/ui-bridge.ts",
-        "packages/sj-core/src/runtime.ts"
-      ],
-      "packages/sj-core/src/utils/fs.ts": [
-        "packages/sj-core/src/core/bootstrap.ts",
-        "packages/sj-core/src/utils/fs.ts"
-      ]
-    },
-    "forwardDependencies": [
-      "apps/sj-ui/src/ui/command-help.ts",
-      "apps/sj-ui/src/ui/ContextTreePanel.ts",
-      "apps/sj-ui/src/ui/contracts.ts",
-      "apps/sj-ui/src/ui/ExecutionPlanPanel.ts",
-      "apps/sj-ui/src/ui/graph-model.ts",
-      "apps/sj-ui/src/ui/GraphPanel.ts",
-      "apps/sj-ui/src/ui/guidance.ts",
-      "apps/sj-ui/src/ui/InspectorPanel.ts",
-      "apps/sj-ui/src/ui/MachinePanel.ts",
-      "apps/sj-ui/src/ui/OnboardingPanel.ts",
-      "apps/sj-ui/src/ui/readiness.ts",
-      "apps/sj-ui/src/ui/TopBar.ts",
-      "apps/sj-ui/src/ui/view-models.ts",
-      "packages/sj-cli/src/commands/checkpoint.ts",
-      "packages/sj-cli/src/commands/execution-step-runner.ts",
-      "packages/sj-cli/src/commands/explain.ts",
-      "packages/sj-cli/src/commands/handoff.ts",
-      "packages/sj-cli/src/commands/prepare.ts",
-      "packages/sj-cli/src/commands/run.ts",
-      "packages/sj-cli/src/commands/specialists.ts",
-      "packages/sj-cli/src/commands/sync.ts",
-      "packages/sj-cli/src/commands/trace.ts",
-      "packages/sj-cli/src/commands/ui.ts",
-      "packages/sj-cli/src/commands/validate.ts",
-      "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
-      "packages/sj-core/dist/core/bootstrap.js",
-      "packages/sj-core/dist/core/config.js",
-      "packages/sj-core/dist/core/workflow-engine.js",
-      "packages/sj-core/src/core/config.ts",
-      "packages/sj-core/src/core/context-feedback.ts",
-      "packages/sj-core/src/core/context-selector.ts",
-      "packages/sj-core/src/core/context-trace.ts",
-      "packages/sj-core/src/core/context-tree.ts",
-      "packages/sj-core/src/core/context.ts",
-      "packages/sj-core/src/core/execution-log.ts",
-      "packages/sj-core/src/core/execution-plan.ts",
-      "packages/sj-core/src/core/execution-state.ts",
-      "packages/sj-core/src/core/executor.ts",
-      "packages/sj-core/src/core/git.ts",
-      "packages/sj-core/src/core/guidance.ts",
-      "packages/sj-core/src/core/memory.ts",
-      "packages/sj-core/src/core/next-action.ts",
-      "packages/sj-core/src/core/prepared-scope.ts",
-      "packages/sj-core/src/core/product.ts",
-      "packages/sj-core/src/core/profiles.ts",
-      "packages/sj-core/src/core/project-detect.ts",
-      "packages/sj-core/src/core/recommendations.ts",
-      "packages/sj-core/src/core/reconcile.ts",
-      "packages/sj-core/src/core/repo-readiness.ts",
-      "packages/sj-core/src/core/router.ts",
-      "packages/sj-core/src/core/runtime-lifecycle.ts",
-      "packages/sj-core/src/core/skills-registry.ts",
-      "packages/sj-core/src/core/specialists.ts",
-      "packages/sj-core/src/core/state.ts",
-      "packages/sj-core/src/core/task-intent.ts",
-      "packages/sj-core/src/core/token-estimator.ts",
-      "packages/sj-core/src/core/token-intelligence.ts",
-      "packages/sj-core/src/core/ui-state.ts",
-      "packages/sj-core/src/core/validator.ts",
-      "packages/sj-core/src/core/workflow-engine.ts",
-      "packages/sj-core/src/integrations/ecosystem-catalog.ts",
-      "packages/sj-core/src/integrations/machine-advisory.ts",
-      "packages/sj-core/src/runtime.ts",
-      "packages/sj-core/src/utils/fs.ts"
-    ],
-    "reverseDependencies": [
-      "apps/sj-ui/src/bootcheck.ts",
-      "apps/sj-ui/src/main.ts",
-      "apps/sj-ui/src/ui/ContextTreePanel.ts",
-      "apps/sj-ui/src/ui/ExecutionPlanPanel.ts",
-      "apps/sj-ui/src/ui/GraphPanel.ts",
-      "apps/sj-ui/src/ui/guidance.test.ts",
-      "apps/sj-ui/src/ui/guidance.ts",
-      "apps/sj-ui/src/ui/InspectorPanel.ts",
-      "apps/sj-ui/src/ui/MachinePanel.ts",
-      "apps/sj-ui/src/ui/OnboardingPanel.test.ts",
-      "apps/sj-ui/src/ui/OnboardingPanel.ts",
-      "apps/sj-ui/src/ui/readiness.test.ts",
-      "apps/sj-ui/src/ui/TopBar.ts",
-      "packages/sj-cli/src/cli.ts",
-      "packages/sj-cli/src/commands/execution-step-runner.ts",
-      "packages/sj-cli/src/commands/resume.ts",
-      "packages/sj-cli/src/commands/retry.ts",
-      "packages/sj-cli/src/commands/run-auto.ts",
-      "packages/sj-cli/src/tests/checkpoint.test.ts",
-      "packages/sj-cli/src/tests/cli-ux.test.ts",
-      "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
-      "packages/sj-cli/src/tests/machine-advisory.test.ts",
-      "packages/sj-cli/src/tests/prepare.test.ts",
-      "packages/sj-cli/src/tests/product-surfaces.desktop-bundles.test.ts",
-      "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
-      "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-      "packages/sj-cli/src/tests/sync.test.ts",
-      "packages/sj-core/src/adapters/claude.ts",
-      "packages/sj-core/src/adapters/codex.ts",
-      "packages/sj-core/src/adapters/copilot.ts",
-      "packages/sj-core/src/core/bootstrap.ts",
-      "packages/sj-core/src/core/context.ts",
-      "packages/sj-core/src/core/dispatch.ts",
-      "packages/sj-core/src/core/execution-engine.ts",
-      "packages/sj-core/src/core/executor.ts",
-      "packages/sj-core/src/core/handoff.ts",
-      "packages/sj-core/src/core/launch.ts",
-      "packages/sj-core/src/core/next-action.ts",
-      "packages/sj-core/src/core/packets.ts",
-      "packages/sj-core/src/core/planner.ts",
-      "packages/sj-core/src/core/policies.ts",
-      "packages/sj-core/src/core/profiles.ts",
-      "packages/sj-core/src/core/reconcile.ts",
-      "packages/sj-core/src/core/release.ts",
-      "packages/sj-core/src/core/repo-readiness.ts",
-      "packages/sj-core/src/core/router.ts",
-      "packages/sj-core/src/core/ui-state.ts",
-      "packages/sj-core/src/core/validator.ts",
-      "packages/sj-core/src/runtime/ui-bridge.ts"
     ]
   },
   "impactPreview": {
-    "likelyFiles": [
-      "apps/sj-ui/src/ui/guidance.ts",
-      "packages/sj-cli/src/commands/execution-step-runner.ts",
-      "packages/sj-core/src/core/ui-state.ts",
-      "packages/sj-core/src/core/repo-readiness.ts",
-      "packages/sj-core/src/core/context.ts",
-      "packages/sj-core/src/core/router.ts",
-      "apps/sj-ui/src/main.ts",
-      "packages/sj-cli/src/commands/run-auto.ts",
-      "apps/sj-ui/src/ui/guidance.test.ts",
-      "apps/sj-ui/src/ui/readiness.test.ts",
-      "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
-      "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts"
-    ],
-    "moduleGroups": [
-      "apps/sj-ui",
-      "packages/sj-cli",
-      "packages/sj-core",
-      "scripts"
-    ]
+    "likelyFiles": [],
+    "moduleGroups": []
   },
-  "verificationLayers": [
-    {
-      "id": "syntax",
-      "description": "Syntax and shape validation for the selected scope."
-    }
+  "intent": null,
+  "lastError": {
+    "errorType": "logic_error",
+    "fixCommand": "kiwi-control prepare \"update README docs\"",
+    "reason": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
+    "retryCommand": "kiwi-control validate \"update README docs\"",
+    "retryStrategy": "re-plan"
+  },
+  "nextCommands": [
+    "kiwi-control prepare \"update README docs\""
   ],
-  "partialResults": [
+  "partialResults": [],
+  "risk": "low",
+  "state": "blocked",
+  "steps": [
     {
-      "stepId": "prepare",
-      "summary": "Prepared 43 selected files for \"update README docs\"."
+      "command": "kiwi-control prepare \"update README docs\"",
+      "description": "Prepare context",
+      "expectedOutcome": {
+        "expectedChanges": [],
+        "expectedFiles": []
+      },
+      "expectedOutput": "Prepared scope and generated instructions are ready.",
+      "fixCommand": null,
+      "id": "prepare",
+      "result": {
+        "failureReason": null,
+        "ok": null,
+        "suggestedFix": null,
+        "summary": null,
+        "validation": null
+      },
+      "retryCommand": "kiwi-control prepare \"update README docs\"",
+      "status": "pending",
+      "validation": "Prepared scope exists and selected files are bounded.",
+      "workflowStepId": "prepare-context"
     },
     {
-      "stepId": "execute",
-      "summary": "Generated 3 task packets for \"update README docs\"."
+      "command": "kiwi-control run \"update README docs\"",
+      "description": "Generate and execute run packets",
+      "expectedOutcome": {
+        "expectedChanges": [],
+        "expectedFiles": []
+      },
+      "expectedOutput": "Task packets are available for execution.",
+      "fixCommand": null,
+      "id": "execute",
+      "result": {
+        "failureReason": null,
+        "ok": null,
+        "suggestedFix": null,
+        "summary": null,
+        "validation": null
+      },
+      "retryCommand": "kiwi-control run \"update README docs\"",
+      "status": "pending",
+      "validation": "Packet output exists and execution can proceed.",
+      "workflowStepId": "generate-run-packets"
+    },
+    {
+      "command": "kiwi-control validate \"update README docs\"",
+      "description": "Validate outcome",
+      "expectedOutcome": {
+        "expectedChanges": [],
+        "expectedFiles": []
+      },
+      "expectedOutput": "The prepared scope and task outcome are validated.",
+      "fixCommand": "kiwi-control prepare \"update README docs\"",
+      "id": "validate",
+      "result": {
+        "failureReason": null,
+        "ok": null,
+        "suggestedFix": null,
+        "summary": null,
+        "validation": null
+      },
+      "retryCommand": "kiwi-control validate \"update README docs\"",
+      "status": "failed",
+      "validation": "Validation confirms scope and intent stayed aligned.",
+      "workflowStepId": "validate-outcome"
+    },
+    {
+      "command": "kiwi-control checkpoint \"validated-progress\"",
+      "description": "Checkpoint progress",
+      "expectedOutcome": {
+        "expectedChanges": [],
+        "expectedFiles": []
+      },
+      "expectedOutput": "Checkpoint artifacts are written.",
+      "fixCommand": null,
+      "id": "checkpoint",
+      "result": {
+        "failureReason": null,
+        "ok": null,
+        "suggestedFix": null,
+        "summary": null,
+        "validation": null
+      },
+      "retryCommand": "kiwi-control checkpoint \"validated-progress\"",
+      "status": "pending",
+      "validation": "Checkpoint JSON exists and continuity is updated.",
+      "workflowStepId": "checkpoint-progress"
+    },
+    {
+      "command": "kiwi-control handoff",
+      "description": "Handoff work",
+      "expectedOutcome": {
+        "expectedChanges": [],
+        "expectedFiles": []
+      },
+      "expectedOutput": "Handoff artifacts are written.",
+      "fixCommand": null,
+      "id": "handoff",
+      "result": {
+        "failureReason": null,
+        "ok": null,
+        "suggestedFix": null,
+        "summary": null,
+        "validation": null
+      },
+      "retryCommand": "kiwi-control handoff",
+      "status": "pending",
+      "validation": "Handoff JSON exists and next tool/specialist is recorded.",
+      "workflowStepId": "handoff-work"
     }
   ],
-  "evalSummary": {
-    "totalRuns": 1,
-    "successRate": 0,
-    "retryRate": 0,
-    "averageContextPrecision": 1.443,
-    "averageTokenCount": 43,
-    "recentEntries": [
-      {
-        "task": "update README docs",
-        "selectedFiles": [
-          "apps/sj-ui/src/ui/guidance.ts",
-          "packages/sj-cli/src/commands/execution-step-runner.ts",
-          "packages/sj-core/src/core/ui-state.ts",
-          "packages/sj-core/src/core/repo-readiness.ts",
-          "packages/sj-core/src/core/context.ts",
-          "packages/sj-core/src/core/router.ts",
-          "apps/sj-ui/src/main.ts",
-          "packages/sj-cli/src/commands/run-auto.ts",
-          "apps/sj-ui/src/ui/guidance.test.ts",
-          "apps/sj-ui/src/ui/readiness.test.ts",
-          "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
-          "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-          "packages/sj-cli/src/tests/sync.test.ts",
-          "packages/sj-core/src/core/bootstrap.ts",
-          "packages/sj-core/src/runtime/ui-bridge.ts",
-          "apps/sj-ui/src/bootcheck.ts",
-          "apps/sj-ui/src/ui/contracts.ts",
-          "apps/sj-ui/src/ui/readiness.ts",
-          "packages/sj-cli/src/commands/checkpoint.ts",
-          "packages/sj-cli/src/commands/handoff.ts",
-          "packages/sj-cli/src/commands/prepare.ts",
-          "packages/sj-cli/src/commands/run.ts",
-          "packages/sj-cli/src/commands/sync.ts",
-          "packages/sj-cli/src/commands/ui.ts",
-          "packages/sj-cli/src/commands/validate.ts",
-          "packages/sj-core/src/core/project-detect.ts",
-          "packages/sj-core/src/core/execution-state.ts",
-          "packages/sj-core/src/utils/fs.ts",
-          "packages/sj-core/src/core/config.ts",
-          "packages/sj-core/src/core/state.ts",
-          "packages/sj-core/src/core/specialists.ts",
-          "packages/sj-core/src/core/product.ts",
-          "scripts/smoke-test.sh",
-          "scripts/test-desktop-features.sh",
-          "scripts/verify-rendered-desktop.mjs",
-          "scripts/verify-cli-ui-truth.mjs",
-          "apps/sj-ui/src-tauri/src/main.rs",
-          "packages/sj-cli/src/commands/doctor.ts",
-          "packages/sj-cli/src/commands/init.ts",
-          "packages/sj-cli/src/commands/status.ts",
-          "packages/sj-cli/src/tests/project-detect.test.ts",
-          "apps/sj-ui/src-tauri/src/state_watch.rs",
-          "packages/sj-cli/src/tests/execution-state.test.ts"
-        ],
-        "modifiedFiles": [
-          ".agent/memory/current-focus.json",
-          ".agent/state/active-role-hints.json",
-          ".agent/state/context-index.json",
-          ".agent/state/execution-plan.json",
-          "apps/sj-ui/src-tauri/src/main.rs",
-          "apps/sj-ui/src/main.ts",
-          "apps/sj-ui/src/ui/contracts.ts",
-          "apps/sj-ui/src/ui/guidance.test.ts",
-          "apps/sj-ui/src/ui/guidance.ts",
-          "apps/sj-ui/src/ui/readiness.test.ts",
-          "apps/sj-ui/src/ui/readiness.ts",
-          "packages/sj-cli/src/commands/checkpoint.ts",
-          "packages/sj-cli/src/commands/doctor.ts",
-          "packages/sj-cli/src/commands/execution-step-runner.ts",
-          "packages/sj-cli/src/commands/handoff.ts",
-          "packages/sj-cli/src/commands/init.ts",
-          "packages/sj-cli/src/commands/prepare.ts",
-          "packages/sj-cli/src/commands/run-auto.ts",
-          "packages/sj-cli/src/commands/run.ts",
-          "packages/sj-cli/src/commands/status.ts",
-          "packages/sj-cli/src/commands/sync.ts",
-          "packages/sj-cli/src/commands/ui.ts",
-          "packages/sj-cli/src/commands/validate.ts",
-          "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
-          "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-          "packages/sj-cli/src/tests/project-detect.test.ts",
-          "packages/sj-cli/src/tests/sync.test.ts",
-          "packages/sj-core/src/core/bootstrap.ts",
-          "packages/sj-core/src/core/project-detect.ts",
-          "packages/sj-core/src/core/ui-state.ts",
-          "packages/sj-core/src/runtime/ui-bridge.ts",
-          "scripts/smoke-test.sh",
-          "scripts/test-desktop-features.sh",
-          "scripts/verify-rendered-desktop.mjs",
-          ".agent/context/generated-instructions.md",
-          ".agent/state/context-selection.json",
-          ".agent/state/context-trace.json",
-          ".agent/state/execution-events.ndjson",
-          ".agent/state/execution-state.json",
-          ".agent/state/indexing.json",
-          ".agent/state/latest-task-packets.json",
-          ".agent/state/measured-usage.json",
-          ".agent/state/runtime-lifecycle.json",
-          ".agent/state/skills-registry.json",
-          ".agent/state/token-breakdown.json",
-          ".agent/state/token-usage.json",
-          ".agent/state/workflow.json",
-          ".agent/state/worktree.json",
-          ".agent/tasks/",
-          "apps/sj-ui/src-tauri/src/state_watch.rs",
-          "packages/sj-cli/src/tests/execution-state.test.ts",
-          "packages/sj-core/src/core/execution-state.ts",
-          "packages/sj-core/src/core/repo-readiness.ts",
-          "scripts/verify-cli-ui-truth.mjs"
-        ],
-        "success": false,
-        "tokenSource": "estimated",
-        "tokenCount": 43,
-        "retried": false,
-        "notes": [
-          "Expected changes: Documentation changes land in selected docs files.; Expected files: apps/sj-ui/src/ui/guidance.ts, packages/sj-cli/src/commands/execution-step-runner.ts, packages/sj-core/src/core/ui-state.ts, packages/sj-core/src/core/repo-readiness.ts, packages/sj-core/src/core/context.ts, packages/sj-core/src/core/router.ts",
-          "Touched files do not satisfy the task-category goal heuristic."
-        ],
-        "timestamp": "2026-04-07T21:51:53.289Z",
-        "selectedFileCount": 43,
-        "modifiedFileCount": 54,
-        "matchedSelectedFiles": [
-          "apps/sj-ui/src-tauri/src/main.rs",
-          "apps/sj-ui/src/main.ts",
-          "apps/sj-ui/src/ui/contracts.ts",
-          "apps/sj-ui/src/ui/guidance.test.ts",
-          "apps/sj-ui/src/ui/guidance.ts",
-          "apps/sj-ui/src/ui/readiness.test.ts",
-          "apps/sj-ui/src/ui/readiness.ts",
-          "packages/sj-cli/src/commands/checkpoint.ts",
-          "packages/sj-cli/src/commands/doctor.ts",
-          "packages/sj-cli/src/commands/execution-step-runner.ts",
-          "packages/sj-cli/src/commands/handoff.ts",
-          "packages/sj-cli/src/commands/init.ts",
-          "packages/sj-cli/src/commands/prepare.ts",
-          "packages/sj-cli/src/commands/run-auto.ts",
-          "packages/sj-cli/src/commands/run.ts",
-          "packages/sj-cli/src/commands/status.ts",
-          "packages/sj-cli/src/commands/sync.ts",
-          "packages/sj-cli/src/commands/ui.ts",
-          "packages/sj-cli/src/commands/validate.ts",
-          "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
-          "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-          "packages/sj-cli/src/tests/project-detect.test.ts",
-          "packages/sj-cli/src/tests/sync.test.ts",
-          "packages/sj-core/src/core/bootstrap.ts",
-          "packages/sj-core/src/core/project-detect.ts",
-          "packages/sj-core/src/core/ui-state.ts",
-          "packages/sj-core/src/runtime/ui-bridge.ts",
-          "scripts/smoke-test.sh",
-          "scripts/test-desktop-features.sh",
-          "scripts/verify-rendered-desktop.mjs",
-          "apps/sj-ui/src-tauri/src/state_watch.rs",
-          "packages/sj-cli/src/tests/execution-state.test.ts",
-          "packages/sj-core/src/core/execution-state.ts",
-          "packages/sj-core/src/core/repo-readiness.ts",
-          "scripts/verify-cli-ui-truth.mjs"
-        ],
-        "matchedModuleGroups": [
-          "apps/sj-ui/src-tauri/src/main.rs",
-          "apps/sj-ui/src/main.ts",
-          "apps/sj-ui/src/ui/contracts.ts",
-          "apps/sj-ui/src/ui/guidance.test.ts",
-          "apps/sj-ui/src/ui/guidance.ts",
-          "apps/sj-ui/src/ui/readiness.test.ts",
-          "apps/sj-ui/src/ui/readiness.ts",
-          "packages/sj-cli/src/commands/checkpoint.ts",
-          "packages/sj-cli/src/commands/doctor.ts",
-          "packages/sj-cli/src/commands/execution-step-runner.ts",
-          "packages/sj-cli/src/commands/handoff.ts",
-          "packages/sj-cli/src/commands/init.ts",
-          "packages/sj-cli/src/commands/prepare.ts",
-          "packages/sj-cli/src/commands/run-auto.ts",
-          "packages/sj-cli/src/commands/run.ts",
-          "packages/sj-cli/src/commands/status.ts",
-          "packages/sj-cli/src/commands/sync.ts",
-          "packages/sj-cli/src/commands/ui.ts",
-          "packages/sj-cli/src/commands/validate.ts",
-          "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
-          "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-          "packages/sj-cli/src/tests/project-detect.test.ts",
-          "packages/sj-cli/src/tests/sync.test.ts",
-          "packages/sj-core/src/core/bootstrap.ts",
-          "packages/sj-core/src/core/project-detect.ts",
-          "packages/sj-core/src/core/ui-state.ts",
-          "packages/sj-core/src/runtime/ui-bridge.ts",
-          "scripts/smoke-test.sh",
-          "scripts/test-desktop-features.sh",
-          "scripts/verify-rendered-desktop.mjs",
-          "apps/sj-ui/src-tauri/src/state_watch.rs",
-          "packages/sj-cli/src/tests/execution-state.test.ts",
-          "packages/sj-core/src/core/execution-state.ts",
-          "packages/sj-core/src/core/repo-readiness.ts",
-          "scripts/verify-cli-ui-truth.mjs"
-        ],
-        "contextPrecision": 1.443
-      }
-    ]
-  },
-  "updatedAt": "2026-04-07T21:52:02.652Z"
+  "summary": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
+  "task": "update README docs",
+  "updatedAt": "2026-04-09T15:46:40Z",
+  "verificationLayers": [
+    {
+      "description": "Confirm syntax and formatting are intact.",
+      "id": "syntax"
+    },
+    {
+      "description": "Confirm the requested behavior works.",
+      "id": "behavioral"
+    },
+    {
+      "description": "Confirm adjacent flows still behave correctly.",
+      "id": "regression"
+    }
+  ],
+  "version": 2
 }

@@ -77,6 +77,7 @@ export function renderTopBarView(context: TopBarRenderContext): string {
       <div class="kc-topbar-action-group">
         <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="guide" ${actionsDisabled ? "disabled" : ""}>Guide</button>
         <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="next" ${actionsDisabled ? "disabled" : ""}>Next</button>
+        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="review" ${actionsDisabled ? "disabled" : ""}>Review</button>
         <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="validate" ${actionsDisabled ? "disabled" : ""}>Validate</button>
         <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="retry" ${!retryEnabled || actionsDisabled ? "disabled" : ""}>Retry</button>
         <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="run-auto" ${actionsDisabled || !currentTask ? "disabled" : ""}>Run Auto</button>

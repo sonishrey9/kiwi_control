@@ -145,7 +145,7 @@ export async function recordExecutionState(
 ): Promise<ExecutionStateRecord> {
   const snapshot = await transitionRuntimeExecutionState({
     targetRoot,
-    actor: "sj-core",
+    actor: resolveExecutionActor(),
     ...(options.sourceCommand ? { triggerCommand: options.sourceCommand } : {}),
     eventType: options.type,
     lifecycle: toRuntimeLifecycle(options.lifecycle),
@@ -180,7 +180,7 @@ export async function persistExecutionState(
 ): Promise<string> {
   await transitionRuntimeExecutionState({
     targetRoot,
-    actor: "sj-core",
+    actor: resolveExecutionActor(),
     ...(state.sourceCommand ? { triggerCommand: state.sourceCommand } : {}),
     eventType: state.lastEvent?.type ?? "compatibility-sync",
     lifecycle: toRuntimeLifecycle(state.lifecycle),
@@ -884,4 +884,13 @@ function fromRuntimeLifecycle(lifecycle: RuntimeSnapshot["lifecycle"]): Executio
     default:
       return lifecycle;
   }
+}
+
+function resolveExecutionActor(): string {
+  const explicit = process.env.KIWI_CONTROL_COMMAND_SOURCE?.trim()
+    || process.env.SHREY_JUNIOR_COMMAND_SOURCE?.trim();
+  if (explicit) {
+    return explicit;
+  }
+  return "sj-core";
 }

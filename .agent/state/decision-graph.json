@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/decision-graph",
   "version": 1,
-  "generatedAt": "2026-04-09T14:18:08.206Z",
+  "generatedAt": "2026-04-09T15:55:32.089Z",
   "currentTask": "update README docs",
   "nodes": [
     {
@@ -20,6 +20,15 @@
       "summary": "Prepared 43 selected files for \"update README docs\".",
       "timestamp": "2026-04-07T21:51:50.905Z",
       "status": "packet-created",
+      "task": "update README docs"
+    },
+    {
+      "id": "execution-event:10",
+      "kind": "execution-event",
+      "label": "validation-started",
+      "summary": "Validating \"update README docs\".",
+      "timestamp": "2026-04-09T15:33:05Z",
+      "status": "running",
       "task": "update README docs"
     },
     {
@@ -95,19 +104,64 @@
       "task": "update README docs"
     },
     {
-      "id": "execution-state:9",
+      "id": "execution-state:14",
       "kind": "execution-event",
-      "label": "packet-created",
-      "summary": "Prepared 43 selected files for \"update README docs\".",
-      "timestamp": "2026-04-07T21:52:02.653Z",
-      "status": "packet-created",
+      "label": "blocked",
+      "summary": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
+      "timestamp": "2026-04-09T15:46:40Z",
+      "status": "blocked",
       "task": "update README docs"
+    },
+    {
+      "id": "file:.agent/context-authority.json",
+      "kind": "file",
+      "label": ".agent/context-authority.json",
+      "summary": ".agent/context-authority.json",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/context/context-tree.json",
+      "kind": "file",
+      "label": ".agent/context/context-tree.json",
+      "summary": ".agent/context/context-tree.json",
+      "timestamp": null,
+      "status": null,
+      "task": null
     },
     {
       "id": "file:.agent/context/generated-instructions.md",
       "kind": "file",
       "label": ".agent/context/generated-instructions.md",
       "summary": ".agent/context/generated-instructions.md",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/context/repo-map.json",
+      "kind": "file",
+      "label": ".agent/context/repo-map.json",
+      "summary": ".agent/context/repo-map.json",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/context/review-pack.json",
+      "kind": "file",
+      "label": ".agent/context/review-pack.json",
+      "summary": ".agent/context/review-pack.json",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/eval/eval-log.json",
+      "kind": "file",
+      "label": ".agent/eval/eval-log.json",
+      "summary": ".agent/eval/eval-log.json",
       "timestamp": null,
       "status": null,
       "task": null
@@ -149,10 +203,64 @@
       "task": null
     },
     {
+      "id": "file:.agent/state/context-tree.json",
+      "kind": "file",
+      "label": ".agent/state/context-tree.json",
+      "summary": ".agent/state/context-tree.json",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/state/decision-graph.json",
+      "kind": "file",
+      "label": ".agent/state/decision-graph.json",
+      "summary": ".agent/state/decision-graph.json",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/state/decision-logic.json",
+      "kind": "file",
+      "label": ".agent/state/decision-logic.json",
+      "summary": ".agent/state/decision-logic.json",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/state/dependency-graph.json",
+      "kind": "file",
+      "label": ".agent/state/dependency-graph.json",
+      "summary": ".agent/state/dependency-graph.json",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/state/execution-events.ndjson",
+      "kind": "file",
+      "label": ".agent/state/execution-events.ndjson",
+      "summary": ".agent/state/execution-events.ndjson",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
       "id": "file:.agent/state/execution-plan.json",
       "kind": "file",
       "label": ".agent/state/execution-plan.json",
       "summary": ".agent/state/execution-plan.json",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "file:.agent/state/execution-state.json",
+      "kind": "file",
+      "label": ".agent/state/execution-state.json",
+      "summary": ".agent/state/execution-state.json",
       "timestamp": null,
       "status": null,
       "task": null
@@ -212,19 +320,19 @@
       "task": null
     },
     {
-      "id": "file:apps/sj-ui/src/bootcheck.ts",
+      "id": "file:apps/sj-ui/src/main.ts",
       "kind": "file",
-      "label": "apps/sj-ui/src/bootcheck.ts",
-      "summary": "apps/sj-ui/src/bootcheck.ts",
+      "label": "apps/sj-ui/src/main.ts",
+      "summary": "apps/sj-ui/src/main.ts",
       "timestamp": null,
       "status": null,
       "task": null
     },
     {
-      "id": "file:apps/sj-ui/src/main.ts",
+      "id": "file:apps/sj-ui/src/ui/command-help.ts",
       "kind": "file",
-      "label": "apps/sj-ui/src/main.ts",
-      "summary": "apps/sj-ui/src/main.ts",
+      "label": "apps/sj-ui/src/ui/command-help.ts",
+      "summary": "apps/sj-ui/src/ui/command-help.ts",
       "timestamp": null,
       "status": null,
       "task": null
@@ -284,78 +392,6 @@
       "task": null
     },
     {
-      "id": "file:packages/sj-cli/src/commands/execution-step-runner.ts",
-      "kind": "file",
-      "label": "packages/sj-cli/src/commands/execution-step-runner.ts",
-      "summary": "packages/sj-cli/src/commands/execution-step-runner.ts",
-      "timestamp": null,
-      "status": null,
-      "task": null
-    },
-    {
-      "id": "file:packages/sj-cli/src/commands/handoff.ts",
-      "kind": "file",
-      "label": "packages/sj-cli/src/commands/handoff.ts",
-      "summary": "packages/sj-cli/src/commands/handoff.ts",
-      "timestamp": null,
-      "status": null,
-      "task": null
-    },
-    {
-      "id": "file:packages/sj-cli/src/commands/prepare.ts",
-      "kind": "file",
-      "label": "packages/sj-cli/src/commands/prepare.ts",
-      "summary": "packages/sj-cli/src/commands/prepare.ts",
-      "timestamp": null,
-      "status": null,
-      "task": null
-    },
-    {
-      "id": "file:packages/sj-cli/src/commands/run-auto.ts",
-      "kind": "file",
-      "label": "packages/sj-cli/src/commands/run-auto.ts",
-      "summary": "packages/sj-cli/src/commands/run-auto.ts",
-      "timestamp": null,
-      "status": null,
-      "task": null
-    },
-    {
-      "id": "file:packages/sj-cli/src/commands/run.ts",
-      "kind": "file",
-      "label": "packages/sj-cli/src/commands/run.ts",
-      "summary": "packages/sj-cli/src/commands/run.ts",
-      "timestamp": null,
-      "status": null,
-      "task": null
-    },
-    {
-      "id": "file:packages/sj-cli/src/commands/sync.ts",
-      "kind": "file",
-      "label": "packages/sj-cli/src/commands/sync.ts",
-      "summary": "packages/sj-cli/src/commands/sync.ts",
-      "timestamp": null,
-      "status": null,
-      "task": null
-    },
-    {
-      "id": "file:packages/sj-cli/src/commands/ui.ts",
-      "kind": "file",
-      "label": "packages/sj-cli/src/commands/ui.ts",
-      "summary": "packages/sj-cli/src/commands/ui.ts",
-      "timestamp": null,
-      "status": null,
-      "task": null
-    },
-    {
-      "id": "file:packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
-      "kind": "file",
-      "label": "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
-      "summary": "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
-      "timestamp": null,
-      "status": null,
-      "task": null
-    },
-    {
       "id": "focus:current",
       "kind": "focus",
       "label": "frontend-specialist",
@@ -365,10 +401,28 @@
       "task": "update README docs"
     },
     {
+      "id": "module:.agent",
+      "kind": "module",
+      "label": ".agent",
+      "summary": ".agent",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
       "id": "module:.agent/context",
       "kind": "module",
       "label": ".agent/context",
       "summary": ".agent/context",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "module:.agent/eval",
+      "kind": "module",
+      "label": ".agent/eval",
+      "summary": ".agent/eval",
       "timestamp": null,
       "status": null,
       "task": null
@@ -428,12 +482,12 @@
       "task": "Establish the repo-local Shrey Junior contract and start from repo-aware state."
     },
     {
-      "id": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "id": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
       "kind": "runtime-lifecycle",
-      "label": "prepared",
-      "summary": "Open the generated instructions and work inside the prepared scope.",
-      "timestamp": "2026-04-07T21:52:02.601Z",
-      "status": "ok",
+      "label": "blocked",
+      "summary": "Run kiwi-control prepare \"update README docs\", then rerun kiwi-control validate \"update README docs\".",
+      "timestamp": "2026-04-09T15:46:40.279Z",
+      "status": "error",
       "task": "update README docs"
     },
     {
@@ -506,6 +560,36 @@
     },
     {
       "from": "execution-event:1",
+      "to": "task:update README docs",
+      "kind": "references-task"
+    },
+    {
+      "from": "execution-event:10",
+      "to": "file:.agent/context/generated-instructions.md",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:10",
+      "to": "file:.agent/state/context-selection.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:10",
+      "to": "file:.agent/state/token-usage.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-event:10",
+      "to": "module:.agent/context",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-event:10",
+      "to": "module:.agent/state",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-event:10",
       "to": "task:update README docs",
       "kind": "references-task"
     },
@@ -765,32 +849,107 @@
       "kind": "references-task"
     },
     {
-      "from": "execution-state:9",
+      "from": "execution-state:14",
+      "to": "file:.agent/context-authority.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-state:14",
+      "to": "file:.agent/context/context-tree.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-state:14",
       "to": "file:.agent/context/generated-instructions.md",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:9",
+      "from": "execution-state:14",
+      "to": "file:.agent/context/repo-map.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-state:14",
+      "to": "file:.agent/context/review-pack.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-state:14",
+      "to": "file:.agent/eval/eval-log.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-state:14",
+      "to": "file:.agent/state/context-index.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-state:14",
       "to": "file:.agent/state/context-selection.json",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:9",
+      "from": "execution-state:14",
+      "to": "file:.agent/state/context-tree.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-state:14",
+      "to": "file:.agent/state/decision-graph.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-state:14",
+      "to": "file:.agent/state/decision-logic.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-state:14",
+      "to": "file:.agent/state/dependency-graph.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-state:14",
+      "to": "file:.agent/state/execution-events.ndjson",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-state:14",
+      "to": "file:.agent/state/execution-plan.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-state:14",
+      "to": "file:.agent/state/execution-state.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "execution-state:14",
       "to": "file:.agent/state/token-usage.json",
       "kind": "touches-file"
     },
     {
-      "from": "execution-state:9",
+      "from": "execution-state:14",
+      "to": "module:.agent",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-state:14",
       "to": "module:.agent/context",
       "kind": "touches-module"
     },
     {
-      "from": "execution-state:9",
+      "from": "execution-state:14",
+      "to": "module:.agent/eval",
+      "kind": "touches-module"
+    },
+    {
+      "from": "execution-state:14",
       "to": "module:.agent/state",
       "kind": "touches-module"
     },
     {
-      "from": "execution-state:9",
+      "from": "execution-state:14",
       "to": "task:update README docs",
       "kind": "references-task"
     },
@@ -820,97 +979,112 @@
       "kind": "references-task"
     },
     {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
-      "to": "file:apps/sj-ui/src/bootcheck.ts",
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "file:.agent/context-authority.json",
       "kind": "touches-file"
     },
     {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "file:.agent/context/context-tree.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "file:.agent/context/repo-map.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "file:.agent/eval/eval-log.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "file:.agent/state/context-index.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "file:.agent/state/context-tree.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "file:.agent/state/decision-graph.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "file:.agent/state/decision-logic.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "file:.agent/state/dependency-graph.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "file:.agent/state/execution-events.ndjson",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "file:.agent/state/execution-plan.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "file:.agent/state/execution-state.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "file:apps/sj-ui/src-tauri/src/main.rs",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
       "to": "file:apps/sj-ui/src/main.ts",
       "kind": "touches-file"
     },
     {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "file:apps/sj-ui/src/ui/command-help.ts",
+      "kind": "touches-file"
+    },
+    {
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
       "to": "file:apps/sj-ui/src/ui/contracts.ts",
       "kind": "touches-file"
     },
     {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
-      "to": "file:apps/sj-ui/src/ui/guidance.test.ts",
-      "kind": "touches-file"
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "module:.agent",
+      "kind": "touches-module"
     },
     {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
-      "to": "file:apps/sj-ui/src/ui/guidance.ts",
-      "kind": "touches-file"
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "module:.agent/context",
+      "kind": "touches-module"
     },
     {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
-      "to": "file:apps/sj-ui/src/ui/readiness.test.ts",
-      "kind": "touches-file"
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "module:.agent/eval",
+      "kind": "touches-module"
     },
     {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
-      "to": "file:apps/sj-ui/src/ui/readiness.ts",
-      "kind": "touches-file"
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "to": "module:.agent/state",
+      "kind": "touches-module"
     },
     {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
-      "to": "file:packages/sj-cli/src/commands/checkpoint.ts",
-      "kind": "touches-file"
-    },
-    {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
-      "to": "file:packages/sj-cli/src/commands/execution-step-runner.ts",
-      "kind": "touches-file"
-    },
-    {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
-      "to": "file:packages/sj-cli/src/commands/handoff.ts",
-      "kind": "touches-file"
-    },
-    {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
-      "to": "file:packages/sj-cli/src/commands/prepare.ts",
-      "kind": "touches-file"
-    },
-    {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
-      "to": "file:packages/sj-cli/src/commands/run-auto.ts",
-      "kind": "touches-file"
-    },
-    {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
-      "to": "file:packages/sj-cli/src/commands/run.ts",
-      "kind": "touches-file"
-    },
-    {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
-      "to": "file:packages/sj-cli/src/commands/sync.ts",
-      "kind": "touches-file"
-    },
-    {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
-      "to": "file:packages/sj-cli/src/commands/ui.ts",
-      "kind": "touches-file"
-    },
-    {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
-      "to": "file:packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
-      "kind": "touches-file"
-    },
-    {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
       "to": "module:apps/sj-ui",
       "kind": "touches-module"
     },
     {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
-      "to": "module:packages/sj-cli",
-      "kind": "touches-module"
-    },
-    {
-      "from": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
+      "from": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
       "to": "task:update README docs",
       "kind": "references-task"
     },
@@ -937,11 +1111,62 @@
   ],
   "importantDecisions": [
     {
-      "id": "execution-state:9",
+      "id": "execution-state:14",
       "kind": "execution-event",
-      "label": "packet-created",
-      "summary": "Prepared 43 selected files for \"update README docs\".",
-      "status": "packet-created",
+      "label": "blocked",
+      "summary": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
+      "status": "blocked",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/context-authority.json",
+        ".agent/context/context-tree.json",
+        ".agent/context/generated-instructions.md",
+        ".agent/context/repo-map.json",
+        ".agent/context/review-pack.json",
+        ".agent/eval/eval-log.json",
+        ".agent/state/context-index.json",
+        ".agent/state/context-selection.json"
+      ],
+      "relatedModules": [
+        ".agent",
+        ".agent/context",
+        ".agent/eval",
+        ".agent/state"
+      ],
+      "nextCommand": "kiwi-control prepare \"update README docs\""
+    },
+    {
+      "id": "runtime-lifecycle:2026-04-09T15:46:40.279Z",
+      "kind": "runtime-lifecycle",
+      "label": "blocked",
+      "summary": "Run kiwi-control prepare \"update README docs\", then rerun kiwi-control validate \"update README docs\".",
+      "status": "error",
+      "task": "update README docs",
+      "relatedFiles": [
+        ".agent/context-authority.json",
+        ".agent/context/context-tree.json",
+        ".agent/context/repo-map.json",
+        ".agent/eval/eval-log.json",
+        ".agent/state/context-index.json",
+        ".agent/state/context-tree.json",
+        ".agent/state/decision-graph.json",
+        ".agent/state/decision-logic.json"
+      ],
+      "relatedModules": [
+        ".agent",
+        ".agent/context",
+        ".agent/eval",
+        ".agent/state",
+        "apps/sj-ui"
+      ],
+      "nextCommand": null
+    },
+    {
+      "id": "execution-event:10",
+      "kind": "execution-event",
+      "label": "validation-started",
+      "summary": "Validating \"update README docs\".",
+      "status": "running",
       "task": "update README docs",
       "relatedFiles": [
         ".agent/context/generated-instructions.md",
@@ -952,7 +1177,7 @@
         ".agent/context",
         ".agent/state"
       ],
-      "nextCommand": "kiwi-control run \"update README docs\""
+      "nextCommand": "kiwi-control prepare \"update README docs\""
     },
     {
       "id": "execution-event:9",
@@ -970,30 +1195,7 @@
         ".agent/context",
         ".agent/state"
       ],
-      "nextCommand": "kiwi-control run \"update README docs\""
-    },
-    {
-      "id": "runtime-lifecycle:2026-04-07T21:52:02.601Z",
-      "kind": "runtime-lifecycle",
-      "label": "prepared",
-      "summary": "Open the generated instructions and work inside the prepared scope.",
-      "status": "ok",
-      "task": "update README docs",
-      "relatedFiles": [
-        "apps/sj-ui/src/bootcheck.ts",
-        "apps/sj-ui/src/main.ts",
-        "apps/sj-ui/src/ui/contracts.ts",
-        "apps/sj-ui/src/ui/guidance.test.ts",
-        "apps/sj-ui/src/ui/guidance.ts",
-        "apps/sj-ui/src/ui/readiness.test.ts",
-        "apps/sj-ui/src/ui/readiness.ts",
-        "packages/sj-cli/src/commands/checkpoint.ts"
-      ],
-      "relatedModules": [
-        "apps/sj-ui",
-        "packages/sj-cli"
-      ],
-      "nextCommand": null
+      "nextCommand": "kiwi-control prepare \"update README docs\""
     },
     {
       "id": "execution-event:8",
@@ -1018,7 +1220,7 @@
         "apps/sj-ui",
         "packages/sj-cli"
       ],
-      "nextCommand": "kiwi-control run \"update README docs\""
+      "nextCommand": "kiwi-control prepare \"update README docs\""
     },
     {
       "id": "execution-event:7",
@@ -1043,7 +1245,7 @@
         "apps/sj-ui",
         "packages/sj-cli"
       ],
-      "nextCommand": "kiwi-control run \"update README docs\""
+      "nextCommand": "kiwi-control prepare \"update README docs\""
     },
     {
       "id": "execution-event:6",
@@ -1054,7 +1256,7 @@
       "task": "update README docs",
       "relatedFiles": [],
       "relatedModules": [],
-      "nextCommand": "kiwi-control run \"update README docs\""
+      "nextCommand": "kiwi-control prepare \"update README docs\""
     },
     {
       "id": "execution-event:5",
@@ -1065,7 +1267,7 @@
       "task": "update README docs",
       "relatedFiles": [],
       "relatedModules": [],
-      "nextCommand": "kiwi-control run \"update README docs\""
+      "nextCommand": "kiwi-control prepare \"update README docs\""
     },
     {
       "id": "execution-event:4",
@@ -1076,7 +1278,7 @@
       "task": "update README docs",
       "relatedFiles": [],
       "relatedModules": [],
-      "nextCommand": "kiwi-control run \"update README docs\""
+      "nextCommand": "kiwi-control prepare \"update README docs\""
     },
     {
       "id": "execution-event:3",
@@ -1087,7 +1289,7 @@
       "task": "update README docs",
       "relatedFiles": [],
       "relatedModules": [],
-      "nextCommand": "kiwi-control run \"update README docs\""
+      "nextCommand": "kiwi-control prepare \"update README docs\""
     },
     {
       "id": "execution-event:2",
@@ -1106,7 +1308,7 @@
         ".agent/state",
         ".agent/tasks"
       ],
-      "nextCommand": "kiwi-control run \"update README docs\""
+      "nextCommand": "kiwi-control prepare \"update README docs\""
     },
     {
       "id": "focus:current",
@@ -1122,23 +1324,6 @@
         ".agent/tasks"
       ],
       "nextCommand": "kiwi-control validate \"update README docs\""
-    },
-    {
-      "id": "task-packet-set:2026-04-07T21:51:51.428Z",
-      "kind": "task-packet-set",
-      "label": ".agent/tasks/run-20260407-215151-update-readme-docs",
-      "summary": "Latest packet set with 3 file(s).",
-      "status": "ready",
-      "task": null,
-      "relatedFiles": [
-        ".agent/tasks/run-20260407-215151-update-readme-docs/claude.md",
-        ".agent/tasks/run-20260407-215151-update-readme-docs/codex.md",
-        ".agent/tasks/run-20260407-215151-update-readme-docs/copilot.md"
-      ],
-      "relatedModules": [
-        ".agent/tasks"
-      ],
-      "nextCommand": null
     }
   ]
 }

@@ -22,6 +22,7 @@ import { runSpecialists } from "./commands/specialists.js";
 import { runUi } from "./commands/ui.js";
 import { runAgentPack } from "./commands/agent-pack.js";
 import { runGraphQuery } from "./commands/graph-query.js";
+import { runReview } from "./commands/review.js";
 import { runPrepare } from "./commands/prepare.js";
 import { runPlan } from "./commands/plan.js";
 import { runNext } from "./commands/next.js";
@@ -47,6 +48,8 @@ interface ParsedArgs {
 }
 
 async function main(): Promise<void> {
+  process.env.KIWI_CONTROL_COMMAND_SOURCE ??= "cli";
+  process.env.SHREY_JUNIOR_COMMAND_SOURCE ??= process.env.KIWI_CONTROL_COMMAND_SOURCE;
   const parsed = parseArgs(process.argv.slice(2));
   const invokedCommand = resolveInvokedCommand(process.argv[1]);
   const repoRoot = resolveShreyJuniorProductRoot();
@@ -239,6 +242,16 @@ async function main(): Promise<void> {
         ...(typeof parsed.flags.neighbors === "string" ? { neighbors: String(parsed.flags.neighbors) } : {}),
         ...(typeof parsed.flags.impact === "string" ? { impact: String(parsed.flags.impact) } : {}),
         ...(typeof parsed.flags.module === "string" ? { module: String(parsed.flags.module) } : {}),
+        json: parsed.flags.json === true,
+        logger
+      });
+      return;
+    case "review":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
+      process.exitCode = await runReview({
+        repoRoot,
+        targetRoot,
+        ...(typeof parsed.flags.base === "string" ? { baseRef: String(parsed.flags.base) } : {}),
         json: parsed.flags.json === true,
         logger
       });
@@ -564,6 +577,7 @@ Core commands:
   ${primaryCommand} specialists [--profile profile-name] [--json]
   ${primaryCommand} agent-pack [--task "goal"] [--review] [--json] [--target /path/to/repo]
   ${primaryCommand} graph-query --file <path> | --symbol <name> | --neighbors <file|module> | --impact <file|module> | --module <id> [--json] [--target /path/to/repo]
+  ${primaryCommand} review [--base <ref>] [--json] [--target /path/to/repo]
   ${primaryCommand} checkpoint "label" [--goal text] [--tool codex|claude|copilot] [--profile profile-name] [--mode assisted|guarded|inline] [--status in-progress|complete|blocked] [--validations a,b] [--warnings a,b] [--open-issues a,b] [--next text] [--target /path/to/repo]
   ${primaryCommand} handoff --to qa-specialist [--tool codex|claude|copilot] [--profile profile-name] [--target /path/to/repo]
   ${primaryCommand} ui [--profile profile-name] [--json] [--target /path/to/repo]
@@ -650,6 +664,7 @@ main().catch((error: unknown) => {
         "specialists",
         "agent-pack",
         "graph-query",
+        "review",
         "checkpoint",
         "handoff",
         "ui"

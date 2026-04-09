@@ -16,6 +16,7 @@ import {
 import { inspectBootstrapTarget } from "@shrey-junior/sj-core/core/project-detect.js";
 import { normalizeRepoPath, relativeFrom } from "@shrey-junior/sj-core/utils/fs.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { persistReadyRepoSubstrate } from "@shrey-junior/sj-core/core/ready-substrate.js";
 
 export interface RepoMapOptions {
   repoRoot: string;
@@ -79,6 +80,7 @@ export async function runRepoMap(options: RepoMapOptions): Promise<number> {
     reviewContextPack
   });
   await persistAgentPack(options.targetRoot, agentPack);
+  await persistReadyRepoSubstrate(options.targetRoot).catch(() => null);
 
   const payload = {
     artifactPaths: {
@@ -93,7 +95,8 @@ export async function runRepoMap(options: RepoMapOptions): Promise<number> {
       reviewGraph: ".agent/state/review-graph.json",
       compactContextPack: ".agent/context/compact-context-pack.json",
       reviewContextPack: ".agent/context/review-context-pack.json",
-      contextTree: ".agent/context/context-tree.json"
+      contextTree: ".agent/context/context-tree.json",
+      readySubstrate: ".agent/state/ready-substrate.json"
     },
     repoMap: artifacts.repoMap,
     symbolIndex: artifacts.symbolIndex,

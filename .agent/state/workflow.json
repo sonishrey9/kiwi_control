@@ -1,22 +1,13 @@
 {
   "artifactType": "kiwi-control/workflow",
-  "version": 3,
-  "timestamp": "2026-04-07T21:52:02.602Z",
-  "task": "update README docs",
-  "status": "running",
   "currentStepId": "validate-outcome",
+  "status": "failed",
   "steps": [
     {
-      "stepId": "prepare-context",
       "action": "Prepare context",
-      "status": "success",
-      "input": "update README docs",
-      "expectedOutput": "Prepared scope and generated instructions are ready.",
-      "output": "Prepared 43 selected files for \"update README docs\".",
-      "validation": "Prepared scope exists, instructions were written, and token state was recorded.",
-      "failureReason": null,
       "attemptCount": 2,
-      "retryCount": 0,
+      "expectedOutput": "Prepared scope and generated instructions are ready.",
+      "failureReason": null,
       "files": [
         "apps/sj-ui/src/ui/guidance.ts",
         "packages/sj-cli/src/commands/execution-step-runner.ts",
@@ -62,155 +53,164 @@
         "apps/sj-ui/src-tauri/src/state_watch.rs",
         "packages/sj-cli/src/tests/execution-state.test.ts"
       ],
-      "skillsApplied": [],
-      "tokenUsage": {
-        "source": "estimated",
-        "measuredTokens": null,
-        "estimatedTokens": 176613,
-        "note": "This step only has an estimated token total."
-      },
+      "input": "update README docs",
+      "output": "Prepared 43 selected files for \"update README docs\".",
       "result": {
-        "ok": true,
-        "summary": "Prepared 43 selected files for \"update README docs\".",
-        "validation": "Prepared scope exists, instructions were written, and token state was recorded.",
         "failureReason": null,
+        "ok": true,
+        "retryCommand": "kiwi-control prepare \"update README docs\"",
         "suggestedFix": null,
-        "retryCommand": "kiwi-control prepare \"update README docs\""
+        "summary": "Prepared 43 selected files for \"update README docs\".",
+        "validation": "Prepared scope exists, instructions were written, and token state was recorded."
       },
-      "updatedAt": "2026-04-07T21:52:02.602Z"
+      "retryCount": 0,
+      "skillsApplied": [],
+      "status": "success",
+      "stepId": "prepare-context",
+      "tokenUsage": {
+        "estimatedTokens": 176613,
+        "measuredTokens": null,
+        "note": "This step only has an estimated token total.",
+        "source": "estimated"
+      },
+      "updatedAt": "2026-04-07T21:52:02.602Z",
+      "validation": "Prepared scope exists, instructions were written, and token state was recorded."
     },
     {
-      "stepId": "generate-run-packets",
       "action": "Generate run packets",
-      "status": "success",
-      "input": "update README docs",
-      "expectedOutput": "One or more run packets are written for execution.",
-      "output": "Generated 3 task packets for \"update README docs\".",
-      "validation": "Run packet generation completed and packet artifacts were written.",
-      "failureReason": null,
       "attemptCount": 1,
-      "retryCount": 0,
+      "expectedOutput": "One or more run packets are written for execution.",
+      "failureReason": null,
       "files": [
         ".agent/tasks/run-20260407-215151-update-readme-docs/codex.md",
         ".agent/tasks/run-20260407-215151-update-readme-docs/claude.md",
         ".agent/tasks/run-20260407-215151-update-readme-docs/copilot.md"
       ],
-      "skillsApplied": [],
-      "tokenUsage": {
-        "source": "none",
-        "measuredTokens": null,
-        "estimatedTokens": null,
-        "note": "No token usage was recorded for this step."
-      },
-      "result": {
-        "ok": true,
-        "summary": "Generated 3 task packets for \"update README docs\".",
-        "validation": "Run packet generation completed and packet artifacts were written.",
-        "failureReason": null,
-        "suggestedFix": null,
-        "retryCommand": "kiwi-control run \"update README docs\""
-      },
-      "updatedAt": "2026-04-07T21:51:51.434Z"
-    },
-    {
-      "stepId": "validate-outcome",
-      "action": "Validate outcome",
-      "status": "failed",
       "input": "update README docs",
+      "output": "Generated 3 task packets for \"update README docs\".",
+      "result": {
+        "failureReason": null,
+        "ok": true,
+        "retryCommand": "kiwi-control run \"update README docs\"",
+        "suggestedFix": null,
+        "summary": "Generated 3 task packets for \"update README docs\".",
+        "validation": "Run packet generation completed and packet artifacts were written."
+      },
+      "retryCount": 0,
+      "skillsApplied": [],
+      "status": "success",
+      "stepId": "generate-run-packets",
+      "tokenUsage": {
+        "estimatedTokens": null,
+        "measuredTokens": null,
+        "note": "No token usage was recorded for this step.",
+        "source": "none"
+      },
+      "updatedAt": "2026-04-07T21:51:51.434Z",
+      "validation": "Run packet generation completed and packet artifacts were written."
+    },
+    {
+      "action": "Validate outcome",
+      "attemptCount": 3,
       "expectedOutput": "The prepared scope, touched files, and task outcome have been validated.",
-      "output": null,
-      "validation": "Expected changes: Documentation changes land in selected docs files.; Expected files: apps/sj-ui/src/ui/guidance.ts, packages/sj-cli/src/commands/execution-step-runner.ts, packages/sj-core/src/core/ui-state.ts, packages/sj-core/src/core/repo-readiness.ts, packages/sj-core/src/core/context.ts, packages/sj-core/src/core/router.ts",
-      "failureReason": "Touched files do not satisfy the task-category goal heuristic.",
-      "attemptCount": 1,
-      "retryCount": 0,
+      "failureReason": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
       "files": [
-        ".agent/memory/current-focus.json",
-        ".agent/state/active-role-hints.json",
+        ".agent/context-authority.json",
+        ".agent/context/context-tree.json",
+        ".agent/context/repo-map.json",
+        ".agent/eval/eval-log.json",
         ".agent/state/context-index.json",
+        ".agent/state/context-tree.json",
+        ".agent/state/decision-graph.json",
+        ".agent/state/decision-logic.json",
+        ".agent/state/dependency-graph.json",
+        ".agent/state/execution-events.ndjson",
         ".agent/state/execution-plan.json",
-        "apps/sj-ui/src-tauri/src/main.rs",
-        "apps/sj-ui/src/main.ts",
-        "apps/sj-ui/src/ui/contracts.ts",
-        "apps/sj-ui/src/ui/guidance.test.ts",
-        "apps/sj-ui/src/ui/guidance.ts",
-        "apps/sj-ui/src/ui/readiness.test.ts",
-        "apps/sj-ui/src/ui/readiness.ts",
-        "packages/sj-cli/src/commands/checkpoint.ts"
+        ".agent/state/execution-state.json"
       ],
-      "skillsApplied": [],
-      "tokenUsage": {
-        "source": "none",
-        "measuredTokens": null,
-        "estimatedTokens": null,
-        "note": "No token usage was recorded for this step."
-      },
+      "input": "update README docs",
+      "output": null,
       "result": {
+        "failureReason": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
         "ok": false,
+        "retryCommand": "kiwi-control validate \"update README docs\"",
+        "suggestedFix": "Run kiwi-control prepare \"update README docs\", then rerun kiwi-control validate \"update README docs\".",
         "summary": null,
-        "validation": "Expected changes: Documentation changes land in selected docs files.; Expected files: apps/sj-ui/src/ui/guidance.ts, packages/sj-cli/src/commands/execution-step-runner.ts, packages/sj-core/src/core/ui-state.ts, packages/sj-core/src/core/repo-readiness.ts, packages/sj-core/src/core/context.ts, packages/sj-core/src/core/router.ts",
-        "failureReason": "Touched files do not satisfy the task-category goal heuristic.",
-        "suggestedFix": "Run kiwi-control explain, then rerun kiwi-control validate \"update README docs\".",
-        "retryCommand": "kiwi-control validate \"update README docs\""
+        "validation": "Touched files must remain inside the prepared scope."
       },
-      "updatedAt": "2026-04-07T21:51:53.288Z"
+      "retryCount": 2,
+      "skillsApplied": [],
+      "status": "failed",
+      "stepId": "validate-outcome",
+      "tokenUsage": {
+        "estimatedTokens": null,
+        "measuredTokens": null,
+        "note": "No token usage was recorded for this step.",
+        "source": "none"
+      },
+      "updatedAt": "2026-04-09T15:46:40.291Z",
+      "validation": "Touched files must remain inside the prepared scope."
     },
     {
-      "stepId": "checkpoint-progress",
       "action": "Checkpoint progress",
-      "status": "pending",
-      "input": null,
-      "expectedOutput": "Checkpoint artifacts are written and continuity is updated.",
-      "output": null,
-      "validation": "Checkpoint JSON exists and prepared scope remains valid.",
-      "failureReason": null,
       "attemptCount": 0,
-      "retryCount": 0,
+      "expectedOutput": "Checkpoint artifacts are written and continuity is updated.",
+      "failureReason": null,
       "files": [],
-      "skillsApplied": [],
-      "tokenUsage": {
-        "source": "none",
-        "measuredTokens": null,
-        "estimatedTokens": null,
-        "note": "No token usage has been recorded for this step yet."
-      },
+      "input": null,
+      "output": null,
       "result": {
-        "ok": null,
-        "summary": null,
-        "validation": null,
         "failureReason": null,
+        "ok": null,
+        "retryCommand": null,
         "suggestedFix": null,
-        "retryCommand": null
+        "summary": null,
+        "validation": null
       },
-      "updatedAt": null
+      "retryCount": 0,
+      "skillsApplied": [],
+      "status": "pending",
+      "stepId": "checkpoint-progress",
+      "tokenUsage": {
+        "estimatedTokens": null,
+        "measuredTokens": null,
+        "note": "No token usage has been recorded for this step yet.",
+        "source": "none"
+      },
+      "updatedAt": null,
+      "validation": "Checkpoint JSON exists and prepared scope remains valid."
     },
     {
-      "stepId": "handoff-work",
       "action": "Handoff work",
-      "status": "pending",
-      "input": null,
-      "expectedOutput": "Handoff artifacts are written for the next specialist/tool.",
-      "output": null,
-      "validation": "Handoff JSON exists and target specialist/tool is recorded.",
-      "failureReason": null,
       "attemptCount": 0,
-      "retryCount": 0,
+      "expectedOutput": "Handoff artifacts are written for the next specialist/tool.",
+      "failureReason": null,
       "files": [],
-      "skillsApplied": [],
-      "tokenUsage": {
-        "source": "none",
-        "measuredTokens": null,
-        "estimatedTokens": null,
-        "note": "No token usage has been recorded for this step yet."
-      },
+      "input": null,
+      "output": null,
       "result": {
-        "ok": null,
-        "summary": null,
-        "validation": null,
         "failureReason": null,
+        "ok": null,
+        "retryCommand": null,
         "suggestedFix": null,
-        "retryCommand": null
+        "summary": null,
+        "validation": null
       },
-      "updatedAt": null
+      "retryCount": 0,
+      "skillsApplied": [],
+      "status": "pending",
+      "stepId": "handoff-work",
+      "tokenUsage": {
+        "estimatedTokens": null,
+        "measuredTokens": null,
+        "note": "No token usage has been recorded for this step yet.",
+        "source": "none"
+      },
+      "updatedAt": null,
+      "validation": "Handoff JSON exists and target specialist/tool is recorded."
     }
-  ]
+  ],
+  "task": "update README docs",
+  "timestamp": "2026-04-09T15:46:40.291Z",
+  "version": 3
 }

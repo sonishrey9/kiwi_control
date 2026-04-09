@@ -25,6 +25,7 @@ export async function runStatus(options: StatusOptions): Promise<number> {
 
   const topAction = controlState.kiwiControl.nextActions.actions[0] ?? null;
   const tokenSummary = renderTokenSummary(controlState);
+  const substrateSummary = renderSubstrateSummary(controlState);
   const nextActionSummary = renderNextActionSummary(topAction, controlState.kiwiControl.nextActions.summary);
   const contextTreeSummary = renderContextTreeSummary(controlState.kiwiControl.contextView.tree);
   const executionPlanSummary = renderExecutionPlan(controlState);
@@ -37,6 +38,7 @@ export async function runStatus(options: StatusOptions): Promise<number> {
       `readiness: ${controlState.readiness.label} — ${controlState.readiness.detail}`,
       `current step: ${currentStep ?? "none"}`,
       `next action: ${nextActionSummary}`,
+      `ready substrate: ${substrateSummary}`,
       `token summary: ${tokenSummary}`,
       executionPlanSummary,
       ...(contextTreeSummary ? [`context tree:\n${contextTreeSummary}`] : [])
@@ -44,6 +46,14 @@ export async function runStatus(options: StatusOptions): Promise<number> {
   );
 
   return 0;
+}
+
+function renderSubstrateSummary(state: Awaited<ReturnType<typeof buildRepoControlState>>): string {
+  const substrate = state.kiwiControl.readySubstrate;
+  if (substrate.ready) {
+    return `ready — ${substrate.toolEntry.path}`;
+  }
+  return `${substrate.status} — missing ${substrate.missingRequired.join(", ") || "none"}`;
 }
 
 function renderNextActionSummary(

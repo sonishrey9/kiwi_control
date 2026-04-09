@@ -53,6 +53,7 @@ import type { ExecutionSummary } from "./execution-log.js";
 import { loadPreparedScope, validateTouchedFilesAgainstAllowedFiles } from "./prepared-scope.js";
 import { loadRepoIntelligenceSummary, type RepoIntelligenceSummary } from "./repo-intelligence.js";
 import { runtimeDecisionFromSnapshot } from "./runtime-decision.js";
+import { buildReadyRepoSubstrate, type ReadyRepoSubstrateState } from "./ready-substrate.js";
 import { classifyFileArea, deriveTaskArea } from "./task-intent.js";
 import { loadWorkflowState } from "./workflow-engine.js";
 import type { WorkflowState } from "./workflow-engine.js";
@@ -386,6 +387,7 @@ export interface KiwiControlState {
   executionTrace: KiwiControlExecutionTrace;
   executionPlan: KiwiControlExecutionPlan;
   repoIntelligence: KiwiControlRepoIntelligence;
+  readySubstrate: ReadyRepoSubstrateState;
 }
 
 export interface RepoControlState {
@@ -859,7 +861,8 @@ export async function buildRepoControlStateFromConfig(options: {
   const repoOverview = summarizeRepoOverview();
   const ecosystem = buildEcosystemCatalog();
   const kiwiControl = await loadKiwiControlState(options.targetRoot, validationIssues, {
-    readOnly: true
+    readOnly: true,
+    runtimeSnapshot
   });
   const machineGuidanceContext = buildMachineGuidanceContext({
     taskType: deriveMachineTaskType(kiwiControl),
@@ -1251,7 +1254,7 @@ async function readJsonIfPresent<T>(filePath: string): Promise<T | null> {
 async function loadKiwiControlState(
   targetRoot: string,
   validationIssues: ValidationIssue[],
-  options: { readOnly?: boolean } = {}
+  options: { readOnly?: boolean; runtimeSnapshot?: RuntimeSnapshot } = {}
 ): Promise<KiwiControlState> {
   const contextSelectionPath = path.join(targetRoot, ".agent", "state", "context-selection.json");
   const contextTracePath = path.join(targetRoot, ".agent", "state", "context-trace.json");
@@ -1276,7 +1279,8 @@ async function loadKiwiControlState(
     workflowFilePresent,
     hasInstructions,
     preparedScope,
-    repoIntelligence
+    repoIntelligence,
+    readySubstrate
   ] = await Promise.all([
     readJsonIfPresent<ContextSelectionState>(contextSelectionPath),
     readJsonIfPresent<IndexingState>(indexingPath),
@@ -1325,8 +1329,12 @@ async function loadKiwiControlState(
       reviewContextPackAvailable: false,
       reviewContextPackPath: null,
       reviewContextPackTask: null,
-      reviewContextPackSummary: null
-    }))
+      reviewContextPackSummary: null,
+      reviewPackAvailable: false,
+      reviewPackPath: null,
+      reviewPackSummary: null
+    })),
+    buildReadyRepoSubstrate(targetRoot, options.runtimeSnapshot)
   ]);
 
   let contextView: KiwiControlContextView = {
@@ -1788,7 +1796,8 @@ async function loadKiwiControlState(
       verificationLayers: executionPlan.verificationLayers,
       partialResults: executionPlan.partialResults
     },
-    repoIntelligence
+    repoIntelligence,
+    readySubstrate
   };
 }
 

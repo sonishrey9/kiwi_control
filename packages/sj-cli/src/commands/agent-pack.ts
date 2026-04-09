@@ -14,6 +14,7 @@ import {
   persistTaskPack
 } from "@shrey-junior/sj-core/core/repo-intelligence.js";
 import type { Logger } from "@shrey-junior/sj-core/core/logger.js";
+import { persistReadyRepoSubstrate } from "@shrey-junior/sj-core/core/ready-substrate.js";
 
 export interface AgentPackOptions {
   repoRoot: string;
@@ -76,6 +77,7 @@ export async function runAgentPack(options: AgentPackOptions): Promise<number> {
     reviewContextPack
   });
   await persistAgentPack(options.targetRoot, agentPack);
+  await persistReadyRepoSubstrate(options.targetRoot).catch(() => null);
 
   const payload = {
     artifactPaths: {
@@ -83,7 +85,8 @@ export async function runAgentPack(options: AgentPackOptions): Promise<number> {
       taskPack: ".agent/context/task-pack.json",
       reviewContextPack: ".agent/context/review-context-pack.json",
       compactContextPack: ".agent/context/compact-context-pack.json",
-      repoMap: ".agent/context/repo-map.json"
+      repoMap: ".agent/context/repo-map.json",
+      readySubstrate: ".agent/state/ready-substrate.json"
     },
     ...(options.review
       ? { reviewContextPack }

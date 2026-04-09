@@ -116,7 +116,13 @@ test("agent-pack returns compact general, task, and review pack surfaces", async
   });
   assert.equal(general.exitCode, 0);
   assert.equal((general.payload.agentPack as { artifactType: string }).artifactType, "kiwi-control/agent-pack");
-  assert.equal((general.payload.agentPack as { readFirst: string[] }).readFirst[0], ".agent/context/agent-pack.json");
+  const generalAgentPack = general.payload.agentPack as {
+    readFirst: string[];
+    packPointers: { readySubstrate: string };
+  };
+  assert.equal(generalAgentPack.readFirst[0], ".agent/context/agent-pack.json");
+  assert.equal(generalAgentPack.readFirst[1], ".agent/state/ready-substrate.json");
+  assert.equal(generalAgentPack.packPointers.readySubstrate, ".agent/state/ready-substrate.json");
 
   const task = await capture({
     repoRoot: repoRootPath,
@@ -159,4 +165,6 @@ test("agent-pack returns compact general, task, and review pack surfaces", async
   assert.equal(controlState.kiwiControl.repoIntelligence.taskPackPath, ".agent/context/task-pack.json");
   assert.equal(controlState.kiwiControl.repoIntelligence.reviewContextPackAvailable, true);
   assert.equal(controlState.kiwiControl.repoIntelligence.reviewContextPackPath, ".agent/context/review-context-pack.json");
+  assert.equal(controlState.kiwiControl.readySubstrate.ready, true);
+  assert.equal(controlState.kiwiControl.readySubstrate.toolEntry.path, ".agent/context/agent-pack.json");
 });

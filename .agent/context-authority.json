@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/context-authority",
   "version": 1,
-  "updatedAt": "2026-04-09T14:18:08.206Z",
+  "updatedAt": "2026-04-09T15:55:32.089Z",
   "projectType": "node",
   "languages": [
     "docs",
@@ -118,6 +118,7 @@
         "packages/sj-cli/src/commands/repo-map.ts",
         "packages/sj-cli/src/commands/resume.ts",
         "packages/sj-cli/src/commands/retry.ts",
+        "packages/sj-cli/src/commands/review.ts",
         "packages/sj-cli/src/commands/run-auto.ts",
         "packages/sj-cli/src/commands/run.ts",
         "packages/sj-cli/src/commands/runtime.ts",
@@ -158,6 +159,7 @@
         "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
         "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
         "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+        "packages/sj-cli/src/tests/review.test.ts",
         "packages/sj-cli/src/tests/runtime-identity.test.ts",
         "packages/sj-cli/src/tests/standardize.test.ts",
         "packages/sj-cli/src/tests/sync.test.ts"
@@ -195,6 +197,7 @@
         "packages/sj-cli/src/tests/reconcile.test.ts",
         "packages/sj-cli/src/tests/redact.test.ts",
         "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+        "packages/sj-cli/src/tests/review.test.ts",
         "packages/sj-cli/src/tests/router.test.ts",
         "packages/sj-cli/src/tests/runtime-identity.test.ts",
         "packages/sj-cli/src/tests/runtime.test.ts",
@@ -308,6 +311,7 @@
         "packages/sj-core/src/core/release.ts",
         "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/repo-readiness.ts",
+        "packages/sj-core/src/core/review-pack.ts",
         "packages/sj-core/src/core/router.ts",
         "packages/sj-core/src/core/runtime-lifecycle.ts",
         "packages/sj-core/src/core/skills-registry.ts",
@@ -338,6 +342,7 @@
         "packages/sj-core/src/core/launch.ts",
         "packages/sj-core/src/core/logger.ts",
         "packages/sj-core/src/core/release.ts",
+        "packages/sj-core/src/core/review-pack.ts",
         "packages/sj-core/src/index.ts",
         "packages/sj-core/src/runtime/ui-bridge.ts"
       ]
