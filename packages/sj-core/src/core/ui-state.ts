@@ -38,6 +38,8 @@ import { buildEcosystemCatalog } from "../integrations/ecosystem-catalog.js";
 import type { EcosystemCatalog } from "../integrations/ecosystem-catalog.js";
 import { buildMachineGuidanceContext, filterMachineGuidance, loadMachineAdvisory } from "../integrations/machine-advisory.js";
 import type { MachineAdvisoryState } from "../integrations/machine-advisory.js";
+import { buildMachineParityState, summarizeMachineParity } from "../integrations/machine-parity.js";
+import type { MachineParitySummaryState } from "../integrations/machine-parity.js";
 import type { SkillMatch, SkillRegistryState } from "./skills-registry.js";
 import type { TokenBreakdownState, TokenUsageState } from "./token-estimator.js";
 import type { MeasuredUsageState } from "./token-intelligence.js";
@@ -420,6 +422,7 @@ export interface RepoControlState {
   validation: RepoValidationSummary;
   ecosystem: EcosystemCatalog;
   machineAdvisory: MachineAdvisoryState;
+  machineParity: MachineParitySummaryState;
   kiwiControl: KiwiControlState;
 }
 
@@ -843,6 +846,7 @@ export async function buildRepoControlStateFromConfig(options: {
     executionRetriesTriggered: kiwiControl.workflow.steps.some((step) => step.retryCount > 0)
   });
   machineAdvisory.guidance = filterMachineGuidance(machineAdvisory.guidance, machineGuidanceContext);
+  const machineParity = summarizeMachineParity(buildMachineParityState(machineAdvisory));
 
   return {
     targetRoot: options.targetRoot,
@@ -886,6 +890,7 @@ export async function buildRepoControlStateFromConfig(options: {
     validation,
     ecosystem,
     machineAdvisory,
+    machineParity,
     kiwiControl
   };
 

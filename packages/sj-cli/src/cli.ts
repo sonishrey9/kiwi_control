@@ -30,6 +30,7 @@ import { runValidate } from "./commands/validate.js";
 import { runExplain } from "./commands/explain.js";
 import { runTrace } from "./commands/trace.js";
 import { runDoctor } from "./commands/doctor.js";
+import { runParity } from "./commands/parity.js";
 import { runToolchain } from "./commands/toolchain.js";
 import { runUsage } from "./commands/usage.js";
 import { runEval } from "./commands/eval.js";
@@ -397,6 +398,16 @@ async function main(): Promise<void> {
         logger
       });
       return;
+    case "parity":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
+      process.exitCode = await runParity({
+        repoRoot,
+        targetRoot,
+        json: parsed.flags.json === true,
+        refresh: parsed.flags.refresh === true,
+        logger
+      });
+      return;
     case "toolchain":
       assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
       process.exitCode = await runToolchain({
@@ -514,6 +525,7 @@ Core commands:
   ${primaryCommand} explain [--json] [--target /path/to/repo]
   ${primaryCommand} trace [--json] [--target /path/to/repo]
   ${primaryCommand} doctor [--machine] [--json] [--target /path/to/repo]
+  ${primaryCommand} parity [--refresh] [--json]
   ${primaryCommand} runtime [--refresh-derived] [--json] [--target /path/to/repo]
   ${primaryCommand} repo-map [--task "goal"] [--focus path/to/file.ts|module|dir] [--changed] [--limit 12] [--json] [--target /path/to/repo]
   ${primaryCommand} toolchain [--refresh] [--json]
@@ -597,6 +609,7 @@ main().catch((error: unknown) => {
         "explain",
         "trace",
         "doctor",
+        "parity",
         "runtime",
         "repo-map",
         "toolchain",

@@ -9,6 +9,8 @@ import {
   loadMachineAdvisory,
   loadMachineAdvisorySection
 } from "@shrey-junior/sj-core/integrations/machine-advisory.js";
+import { buildMachineParityState, summarizeMachineParity } from "@shrey-junior/sj-core/integrations/machine-parity.js";
+import { runParity } from "../commands/parity.js";
 import { runToolchain } from "../commands/toolchain.js";
 import { runUsage } from "../commands/usage.js";
 import { runDoctor } from "../commands/doctor.js";
@@ -246,6 +248,44 @@ test("machine doctor groups missing config and toolchain findings into repair co
   assert.equal(findings.some((finding) => finding.fixCommand === "ai-setup"), true);
 });
 
+test("machine parity derives covered, partial, missing, and optional machine-global capabilities cleanly", async () => {
+  const homeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "sj-machine-parity-home-"));
+  await fs.mkdir(path.join(homeRoot, ".claude"), { recursive: true });
+  await fs.mkdir(path.join(homeRoot, ".codex", "hooks"), { recursive: true });
+  await fs.mkdir(path.join(homeRoot, ".copilot"), { recursive: true });
+  await fs.writeFile(path.join(homeRoot, ".claude.json"), JSON.stringify({ mcpServers: { "code-review-graph": {}, "ccusage": {} } }, null, 2));
+  await fs.writeFile(path.join(homeRoot, ".claude", "CLAUDE.md"), "Token-Efficient Output Rules\n", "utf8");
+  await fs.writeFile(path.join(homeRoot, ".codex", "config.toml"), '[mcp_servers."code-review-graph"]\ncommand = "code-review-graph"\n', "utf8");
+  await fs.writeFile(path.join(homeRoot, ".zshrc"), "alias lean-ctx='lean-ctx'\n", "utf8");
+
+  const advisory = await buildMachineAdvisory({
+    homeRoot,
+    now: new Date("2026-04-05T12:58:01.000Z"),
+    commandRunner: async (command, args) => {
+      if (command === "which" && ["code-review-graph", "lean-ctx", "repomix", "tmux"].includes(String(args[0] ?? ""))) {
+        return { code: 0, stdout: `/mock/bin/${args[0]}\n`, stderr: "" };
+      }
+      return { code: 1, stdout: "", stderr: "" };
+    },
+    ccusagePayload: { daily: [] }
+  });
+
+  const parity = buildMachineParityState(advisory);
+  const summary = summarizeMachineParity(parity);
+
+  assert.equal(parity.artifactType, "kiwi-control/machine-parity");
+  assert.equal(parity.repoLocalCapabilities.every((item) => item.status === "covered"), true);
+  assert.equal(parity.machineGlobalCapabilities.some((item) => item.status === "covered"), true);
+  assert.equal(parity.machineGlobalCapabilities.some((item) => item.status === "partial"), true);
+  assert.equal(parity.machineGlobalCapabilities.some((item) => item.status === "missing"), true);
+  assert.equal(parity.machineGlobalCapabilities.some((item) => item.status === "optional"), true);
+  assert.equal(Array.isArray(parity.helpers), true);
+  assert.equal(summary.available, true);
+  assert.equal(typeof summary.machineGlobal.covered, "number");
+  assert.equal(typeof summary.machineGlobal.missing, "number");
+  assert.equal(typeof summary.repoLocalCovered, "number");
+});
+
 test("machine advisory sections reuse cached advisory data before rebuilding expensive guidance and usage", async () => {
   const homeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "sj-machine-cache-home-"));
   await fs.mkdir(path.join(homeRoot, ".claude"), { recursive: true });
@@ -475,6 +515,49 @@ test("machine advisory command surfaces expose near-dashboard sections and riche
     });
     assert.equal([0, 1].includes(doctorExit), true);
     assert.match(doctorLines.join("\n"), /next command:/);
+
+    const parityLines: string[] = [];
+    const parityExit = await runParity({
+      repoRoot: process.cwd(),
+      targetRoot: process.cwd(),
+      logger: {
+        info(message: string) {
+          parityLines.push(message);
+        },
+        warn() {},
+        error() {}
+      } as never
+    });
+    assert.equal([0, 1].includes(parityExit), true);
+    assert.match(parityLines.join("\n"), /MACHINE PARITY/);
+    assert.match(parityLines.join("\n"), /REPO-LOCAL CAPABILITIES/);
+    assert.match(parityLines.join("\n"), /MACHINE-GLOBAL PARITY/);
+
+    const parityJsonLines: string[] = [];
+    await runParity({
+      repoRoot: process.cwd(),
+      targetRoot: process.cwd(),
+      json: true,
+      logger: {
+        info(message: string) {
+          parityJsonLines.push(message);
+        },
+        warn() {},
+        error() {}
+      } as never
+    });
+    const parityJson = JSON.parse(parityJsonLines.join("\n")) as {
+      artifactType: string;
+      overallStatus: string;
+      summary: { covered: number; partial: number; missing: number; optional: number };
+      repoLocalCapabilities: Array<{ scope: string; status: string }>;
+      machineGlobalCapabilities: Array<{ scope: string; status: string }>;
+    };
+    assert.equal(parityJson.artifactType, "kiwi-control/machine-parity");
+    assert.match(parityJson.overallStatus, /ready|needs-work/);
+    assert.equal(typeof parityJson.summary.covered, "number");
+    assert.equal(parityJson.repoLocalCapabilities.every((entry) => entry.scope === "repo-local"), true);
+    assert.equal(parityJson.machineGlobalCapabilities.every((entry) => entry.scope === "machine-global"), true);
   } finally {
     if (previousMachineHome === undefined) {
       delete process.env.KIWI_MACHINE_HOME;

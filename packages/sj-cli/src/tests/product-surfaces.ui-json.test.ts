@@ -134,6 +134,23 @@ test("ui command returns structured repo-control state in json mode", async () =
       usage: { claude: { available: boolean }; codex: { available: boolean }; copilot: { available: boolean } };
       guidance: Array<{ priority: string; group: string; impact: string }>;
     };
+    machineParity: {
+      available: boolean;
+      updatedAt: string;
+      overallStatus: string;
+      boundaryNote: string;
+      repoLocalCovered: number;
+      repoLocalTotal: number;
+      machineGlobal: {
+        covered: number;
+        partial: number;
+        missing: number;
+        optional: number;
+        total: number;
+      };
+      topMissing: Array<{ id: string; label: string; helperCommand: string | null }>;
+      topPartial: Array<{ id: string; label: string; helperCommand: string | null }>;
+    };
     kiwiControl: {
       indexing: { coverageNote: string; discoveredFiles: number };
       repoIntelligence: {
@@ -217,6 +234,14 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(Array.isArray(payload.machineAdvisory.configHealth), true);
   assert.equal(typeof payload.machineAdvisory.usage.claude.available, "boolean");
   assert.equal(Array.isArray(payload.machineAdvisory.guidance), true);
+  assert.equal(payload.machineParity.available, true);
+  assert.match(payload.machineParity.overallStatus, /ready|needs-work/);
+  assert.equal(typeof payload.machineParity.machineGlobal.covered, "number");
+  assert.equal(typeof payload.machineParity.machineGlobal.partial, "number");
+  assert.equal(typeof payload.machineParity.machineGlobal.missing, "number");
+  assert.equal(typeof payload.machineParity.machineGlobal.optional, "number");
+  assert.equal(Array.isArray(payload.machineParity.topMissing), true);
+  assert.equal(Array.isArray(payload.machineParity.topPartial), true);
   assert.equal(typeof payload.kiwiControl.indexing.discoveredFiles, "number");
   assert.equal(typeof payload.kiwiControl.indexing.coverageNote, "string");
   assert.equal(typeof payload.kiwiControl.repoIntelligence.available, "boolean");
