@@ -22,3 +22,7 @@ coverage/
 
 .git.backup-before-appledouble-clean/
 .git.backup-*/
+.DS_Store
+**/.DS_Store
+._*
+**/._*
