@@ -212,7 +212,7 @@ test("unknown commands exit with usage status and corrective guidance", () => {
   assert.equal(result.code, 2);
   assert.match(result.stderr, /kiwi-control usage error:/);
   assert.match(result.stderr, /unknown command: does-not-exist/);
-  assert.match(result.stderr, /Core commands: plan, next, retry, resume, guide, prepare, validate, explain, trace, doctor, runtime, toolchain, usage, eval, init, status, check, specialists, checkpoint, handoff, ui/);
+  assert.match(result.stderr, /Core commands: plan, next, retry, resume, guide, prepare, validate, explain, trace, doctor, runtime, repo-map, toolchain, usage, eval, init, status, check, specialists, checkpoint, handoff, ui/);
 });
 
 test("inside-folder workflow uses the current working directory by default", async () => {
@@ -229,7 +229,7 @@ test("inside-folder workflow uses the current working directory by default", asy
   assert.match(statusResult.stdout, /repo status:/);
   assert.match(statusResult.stdout, /next action:/);
   assert.match(statusResult.stdout, /token summary:/);
-  assert.match(statusResult.stdout, /NEXT ACTION PLAN:/);
+  assert.match(statusResult.stdout, /COMPATIBILITY\/DEBUG EXECUTION PLAN SNAPSHOT:/);
   assert.match(statusResult.stdout, /Run: kiwi-control prepare/);
   assert.match(statusResult.stdout, /Run: kiwi-control validate/);
 
@@ -467,7 +467,7 @@ test("status surfaces an out-of-scope recovery path without recording execution 
   assert.equal(exitCode, 0);
   assert.match(logs.join("\n"), /Prepare bounded context/);
   assert.match(logs.join("\n"), /kiwi-control prepare "update README docs"/);
-  assert.match(logs.join("\n"), /NEXT ACTION PLAN:/);
+  assert.match(logs.join("\n"), /COMPATIBILITY\/DEBUG EXECUTION PLAN SNAPSHOT:/);
   assert.doesNotMatch(logs.join("\n"), /Continue the active repo task/);
 
   const executionLog = await loadExecutionLog(repoDir);

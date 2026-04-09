@@ -100,7 +100,7 @@ function renderExecutionPlan(
   state: Awaited<ReturnType<typeof buildRepoControlState>>
 ): string {
   const plan = state.kiwiControl.executionPlan;
-  const lines = ["NEXT ACTION PLAN:"];
+  const lines = ["COMPATIBILITY/DEBUG EXECUTION PLAN SNAPSHOT:"];
   if (plan.hierarchy.goal) {
     lines.push(`Goal: ${plan.hierarchy.goal}`);
   }

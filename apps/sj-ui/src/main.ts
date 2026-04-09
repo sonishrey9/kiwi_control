@@ -4603,9 +4603,9 @@ function buildRepoGraph(nodes: KiwiControlContextTreeNode[]): {
 function runtimeDerivedSnapshotNote(state: RepoControlState, outputName: string): string {
   const metadata = state.derivedFreshness.find((entry) => entry.outputName === outputName);
   if (!metadata) {
-    return "Runtime-derived snapshot.";
+    return "Compatibility/debug snapshot.";
   }
-  return `Runtime-derived snapshot${metadata.sourceRevision != null ? ` · revision ${metadata.sourceRevision}` : ""}${metadata.generatedAt ? ` · generated ${metadata.generatedAt}` : ""}.`;
+  return `Compatibility/debug snapshot${metadata.sourceRevision != null ? ` · revision ${metadata.sourceRevision}` : ""}${metadata.generatedAt ? ` · generated ${metadata.generatedAt}` : ""}.`;
 }
 
 function renderHandoffsView(state: RepoControlState): string {

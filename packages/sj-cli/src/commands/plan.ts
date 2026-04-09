@@ -1,5 +1,6 @@
 import { contextSelector } from "@shrey-junior/sj-core/core/context-selector.js";
 import { buildRepoContextTree, persistRepoContextTreeArtifacts } from "@shrey-junior/sj-core/core/context-tree.js";
+import { buildRepoIntelligenceArtifacts, persistRepoIntelligenceArtifacts } from "@shrey-junior/sj-core/core/repo-intelligence.js";
 import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
 import { inspectBootstrapTarget } from "@shrey-junior/sj-core/core/project-detect.js";
@@ -20,8 +21,16 @@ export async function runPlan(options: PlanOptions): Promise<number> {
   });
   const config = await loadCanonicalConfig(options.repoRoot);
   const inspection = await inspectBootstrapTarget(options.targetRoot, config);
-  const { state, view } = await buildRepoContextTree(options.targetRoot, inspection.projectType);
+  const { state, view, index } = await buildRepoContextTree(options.targetRoot, inspection.projectType);
   await persistRepoContextTreeArtifacts(options.targetRoot, state, view);
+  await persistRepoIntelligenceArtifacts(
+    options.targetRoot,
+    await buildRepoIntelligenceArtifacts({
+      tree: state,
+      view,
+      index
+    })
+  );
   const plan = await syncExecutionPlan(options.targetRoot, {
     task: options.task,
     forceState: "planning"

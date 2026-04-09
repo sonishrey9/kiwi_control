@@ -1,0 +1,710 @@
+{
+  "artifactType": "kiwi-control/impact-map",
+  "version": 1,
+  "generatedAt": "2026-04-09T11:26:50.018Z",
+  "changedFiles": [
+    "apps/sj-ui/src/main.ts",
+    "apps/sj-ui/src/ui/ExecutionPlanPanel.ts",
+    "apps/sj-ui/src/ui/InspectorPanel.ts",
+    "packages/sj-cli/src/cli.ts",
+    "packages/sj-cli/src/commands/plan.ts",
+    "packages/sj-cli/src/commands/repo-map.ts",
+    "packages/sj-cli/src/commands/runtime.ts",
+    "packages/sj-cli/src/commands/status.ts",
+    "packages/sj-cli/src/tests/cli-ux.test.ts",
+    "packages/sj-cli/src/tests/context-selector.test.ts",
+    "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+    "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+    "packages/sj-cli/src/tests/runtime-identity.test.ts",
+    "packages/sj-core/src/core/bootstrap.ts",
+    "packages/sj-core/src/core/context-selector.ts",
+    "packages/sj-core/src/core/context.ts",
+    "packages/sj-core/src/core/repo-intelligence.ts",
+    "packages/sj-core/src/core/ui-state.ts",
+    "scripts/prepare-runtime-sidecar.mjs"
+  ],
+  "forwardDependencies": [
+    "apps/sj-ui/src/ui/command-help.ts",
+    "apps/sj-ui/src/ui/ContextTreePanel.ts",
+    "apps/sj-ui/src/ui/contracts.ts",
+    "apps/sj-ui/src/ui/ExecutionPlanPanel.ts",
+    "apps/sj-ui/src/ui/graph-model.ts",
+    "apps/sj-ui/src/ui/GraphPanel.ts",
+    "apps/sj-ui/src/ui/guidance.ts",
+    "apps/sj-ui/src/ui/InspectorPanel.ts",
+    "apps/sj-ui/src/ui/MachinePanel.ts",
+    "apps/sj-ui/src/ui/OnboardingPanel.ts",
+    "apps/sj-ui/src/ui/readiness.ts",
+    "apps/sj-ui/src/ui/TopBar.ts",
+    "apps/sj-ui/src/ui/view-models.ts",
+    "packages/sj-cli/src/commands/audit.ts",
+    "packages/sj-cli/src/commands/bootstrap.ts",
+    "packages/sj-cli/src/commands/check.ts",
+    "packages/sj-cli/src/commands/checkpoint.ts",
+    "packages/sj-cli/src/commands/collect.ts",
+    "packages/sj-cli/src/commands/dispatch.ts",
+    "packages/sj-cli/src/commands/doctor.ts",
+    "packages/sj-cli/src/commands/eval.ts",
+    "packages/sj-cli/src/commands/explain.ts",
+    "packages/sj-cli/src/commands/fanout.ts",
+    "packages/sj-cli/src/commands/guide.ts",
+    "packages/sj-cli/src/commands/handoff.ts",
+    "packages/sj-cli/src/commands/init.ts",
+    "packages/sj-cli/src/commands/next.ts",
+    "packages/sj-cli/src/commands/plan.ts",
+    "packages/sj-cli/src/commands/prepare.ts",
+    "packages/sj-cli/src/commands/push-check.ts",
+    "packages/sj-cli/src/commands/reconcile.ts",
+    "packages/sj-cli/src/commands/repo-map.ts",
+    "packages/sj-cli/src/commands/resume.ts",
+    "packages/sj-cli/src/commands/retry.ts",
+    "packages/sj-cli/src/commands/run-auto.ts",
+    "packages/sj-cli/src/commands/run.ts",
+    "packages/sj-cli/src/commands/runtime.ts",
+    "packages/sj-cli/src/commands/specialists.ts",
+    "packages/sj-cli/src/commands/standardize.ts",
+    "packages/sj-cli/src/commands/status.ts",
+    "packages/sj-cli/src/commands/sync.ts",
+    "packages/sj-cli/src/commands/toolchain.ts",
+    "packages/sj-cli/src/commands/trace.ts",
+    "packages/sj-cli/src/commands/ui.ts",
+    "packages/sj-cli/src/commands/usage.ts",
+    "packages/sj-cli/src/commands/validate.ts",
+    "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
+    "packages/sj-core/src/core/config.ts",
+    "packages/sj-core/src/core/conflicts.ts",
+    "packages/sj-core/src/core/context-feedback.ts",
+    "packages/sj-core/src/core/context-index.ts",
+    "packages/sj-core/src/core/context-selector.ts",
+    "packages/sj-core/src/core/context-trace.ts",
+    "packages/sj-core/src/core/context-tree.ts",
+    "packages/sj-core/src/core/context.ts",
+    "packages/sj-core/src/core/execution-log.ts",
+    "packages/sj-core/src/core/execution-plan.ts",
+    "packages/sj-core/src/core/execution-state.ts",
+    "packages/sj-core/src/core/executor.ts",
+    "packages/sj-core/src/core/git.ts",
+    "packages/sj-core/src/core/guidance.ts",
+    "packages/sj-core/src/core/memory.ts",
+    "packages/sj-core/src/core/next-action.ts",
+    "packages/sj-core/src/core/prepared-scope.ts",
+    "packages/sj-core/src/core/product.ts",
+    "packages/sj-core/src/core/profiles.ts",
+    "packages/sj-core/src/core/project-detect.ts",
+    "packages/sj-core/src/core/recommendations.ts",
+    "packages/sj-core/src/core/reconcile.ts",
+    "packages/sj-core/src/core/repo-intelligence.ts",
+    "packages/sj-core/src/core/repo-readiness.ts",
+    "packages/sj-core/src/core/risk.ts",
+    "packages/sj-core/src/core/router.ts",
+    "packages/sj-core/src/core/runtime-decision.ts",
+    "packages/sj-core/src/core/runtime-lifecycle.ts",
+    "packages/sj-core/src/core/skills-registry.ts",
+    "packages/sj-core/src/core/specialists.ts",
+    "packages/sj-core/src/core/state.ts",
+    "packages/sj-core/src/core/task-intent.ts",
+    "packages/sj-core/src/core/token-estimator.ts",
+    "packages/sj-core/src/core/token-intelligence.ts",
+    "packages/sj-core/src/core/validator.ts",
+    "packages/sj-core/src/core/workflow-engine.ts",
+    "packages/sj-core/src/integrations/ecosystem-catalog.ts",
+    "packages/sj-core/src/integrations/machine-advisory.ts",
+    "packages/sj-core/src/integrations/token-efficiency.ts",
+    "packages/sj-core/src/runtime/client.ts",
+    "packages/sj-core/src/utils/child-process.ts",
+    "packages/sj-core/src/utils/fs.ts",
+    "packages/sj-core/src/utils/redact.ts",
+    "packages/sj-core/src/utils/yaml.ts"
+  ],
+  "reverseDependencies": [
+    "apps/sj-ui/src/main.ts",
+    "packages/sj-cli/src/cli.ts",
+    "packages/sj-cli/src/tests/cli-ux.test.ts",
+    "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+    "packages/sj-cli/src/tests/runtime-identity.test.ts",
+    "packages/sj-core/src/core/bootstrap.ts",
+    "packages/sj-core/src/core/context-selector.ts",
+    "packages/sj-core/src/core/dispatch.ts",
+    "packages/sj-core/src/core/execution-engine.ts",
+    "packages/sj-core/src/core/execution-log.ts",
+    "packages/sj-core/src/core/executor.ts",
+    "packages/sj-core/src/core/handoff.ts",
+    "packages/sj-core/src/core/instruction-generator.ts",
+    "packages/sj-core/src/core/launch.ts",
+    "packages/sj-core/src/core/next-action.ts",
+    "packages/sj-core/src/core/packets.ts",
+    "packages/sj-core/src/core/planner.ts",
+    "packages/sj-core/src/core/policies.ts",
+    "packages/sj-core/src/core/prepared-scope.ts",
+    "packages/sj-core/src/core/reconcile.ts",
+    "packages/sj-core/src/core/release.ts",
+    "packages/sj-core/src/core/ui-state.ts",
+    "packages/sj-core/src/core/validator.ts",
+    "packages/sj-core/src/runtime/ui-bridge.ts"
+  ],
+  "impactedFiles": [
+    "apps/sj-ui/src/ui/command-help.ts",
+    "apps/sj-ui/src/ui/ContextTreePanel.ts",
+    "apps/sj-ui/src/ui/contracts.ts",
+    "apps/sj-ui/src/ui/graph-model.ts",
+    "apps/sj-ui/src/ui/GraphPanel.ts",
+    "apps/sj-ui/src/ui/guidance.ts",
+    "apps/sj-ui/src/ui/MachinePanel.ts",
+    "apps/sj-ui/src/ui/OnboardingPanel.ts",
+    "apps/sj-ui/src/ui/readiness.ts",
+    "apps/sj-ui/src/ui/TopBar.ts",
+    "apps/sj-ui/src/ui/view-models.ts",
+    "packages/sj-cli/src/commands/audit.ts",
+    "packages/sj-cli/src/commands/bootstrap.ts",
+    "packages/sj-cli/src/commands/check.ts",
+    "packages/sj-cli/src/commands/checkpoint.ts",
+    "packages/sj-cli/src/commands/collect.ts",
+    "packages/sj-cli/src/commands/dispatch.ts",
+    "packages/sj-cli/src/commands/doctor.ts",
+    "packages/sj-cli/src/commands/eval.ts",
+    "packages/sj-cli/src/commands/explain.ts",
+    "packages/sj-cli/src/commands/fanout.ts",
+    "packages/sj-cli/src/commands/guide.ts",
+    "packages/sj-cli/src/commands/handoff.ts",
+    "packages/sj-cli/src/commands/init.ts",
+    "packages/sj-cli/src/commands/next.ts",
+    "packages/sj-cli/src/commands/prepare.ts",
+    "packages/sj-cli/src/commands/push-check.ts",
+    "packages/sj-cli/src/commands/reconcile.ts",
+    "packages/sj-cli/src/commands/resume.ts",
+    "packages/sj-cli/src/commands/retry.ts",
+    "packages/sj-cli/src/commands/run-auto.ts",
+    "packages/sj-cli/src/commands/run.ts",
+    "packages/sj-cli/src/commands/specialists.ts",
+    "packages/sj-cli/src/commands/standardize.ts",
+    "packages/sj-cli/src/commands/sync.ts",
+    "packages/sj-cli/src/commands/toolchain.ts",
+    "packages/sj-cli/src/commands/trace.ts",
+    "packages/sj-cli/src/commands/ui.ts",
+    "packages/sj-cli/src/commands/usage.ts",
+    "packages/sj-cli/src/commands/validate.ts",
+    "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
+    "packages/sj-core/src/core/config.ts",
+    "packages/sj-core/src/core/conflicts.ts",
+    "packages/sj-core/src/core/context-feedback.ts",
+    "packages/sj-core/src/core/context-index.ts",
+    "packages/sj-core/src/core/context-trace.ts",
+    "packages/sj-core/src/core/context-tree.ts",
+    "packages/sj-core/src/core/dispatch.ts",
+    "packages/sj-core/src/core/execution-engine.ts",
+    "packages/sj-core/src/core/execution-log.ts",
+    "packages/sj-core/src/core/execution-plan.ts",
+    "packages/sj-core/src/core/execution-state.ts",
+    "packages/sj-core/src/core/executor.ts",
+    "packages/sj-core/src/core/git.ts",
+    "packages/sj-core/src/core/guidance.ts",
+    "packages/sj-core/src/core/handoff.ts",
+    "packages/sj-core/src/core/instruction-generator.ts",
+    "packages/sj-core/src/core/launch.ts",
+    "packages/sj-core/src/core/memory.ts",
+    "packages/sj-core/src/core/next-action.ts",
+    "packages/sj-core/src/core/packets.ts",
+    "packages/sj-core/src/core/planner.ts",
+    "packages/sj-core/src/core/policies.ts",
+    "packages/sj-core/src/core/prepared-scope.ts",
+    "packages/sj-core/src/core/product.ts",
+    "packages/sj-core/src/core/profiles.ts",
+    "packages/sj-core/src/core/project-detect.ts",
+    "packages/sj-core/src/core/recommendations.ts",
+    "packages/sj-core/src/core/reconcile.ts",
+    "packages/sj-core/src/core/release.ts",
+    "packages/sj-core/src/core/repo-readiness.ts",
+    "packages/sj-core/src/core/risk.ts",
+    "packages/sj-core/src/core/router.ts",
+    "packages/sj-core/src/core/runtime-decision.ts",
+    "packages/sj-core/src/core/runtime-lifecycle.ts",
+    "packages/sj-core/src/core/skills-registry.ts",
+    "packages/sj-core/src/core/specialists.ts",
+    "packages/sj-core/src/core/state.ts",
+    "packages/sj-core/src/core/task-intent.ts",
+    "packages/sj-core/src/core/token-estimator.ts",
+    "packages/sj-core/src/core/token-intelligence.ts",
+    "packages/sj-core/src/core/validator.ts",
+    "packages/sj-core/src/core/workflow-engine.ts",
+    "packages/sj-core/src/integrations/ecosystem-catalog.ts",
+    "packages/sj-core/src/integrations/machine-advisory.ts",
+    "packages/sj-core/src/integrations/token-efficiency.ts",
+    "packages/sj-core/src/runtime/client.ts",
+    "packages/sj-core/src/runtime/ui-bridge.ts",
+    "packages/sj-core/src/utils/child-process.ts",
+    "packages/sj-core/src/utils/fs.ts",
+    "packages/sj-core/src/utils/redact.ts",
+    "packages/sj-core/src/utils/yaml.ts"
+  ],
+  "dependencyDistances": {
+    "apps/sj-ui/src/ui/command-help.ts": 1,
+    "apps/sj-ui/src/ui/ContextTreePanel.ts": 1,
+    "apps/sj-ui/src/ui/contracts.ts": 1,
+    "apps/sj-ui/src/ui/graph-model.ts": 1,
+    "apps/sj-ui/src/ui/GraphPanel.ts": 1,
+    "apps/sj-ui/src/ui/guidance.ts": 1,
+    "apps/sj-ui/src/ui/MachinePanel.ts": 1,
+    "apps/sj-ui/src/ui/OnboardingPanel.ts": 1,
+    "apps/sj-ui/src/ui/readiness.ts": 1,
+    "apps/sj-ui/src/ui/TopBar.ts": 1,
+    "apps/sj-ui/src/ui/view-models.ts": 1,
+    "packages/sj-cli/src/commands/audit.ts": 1,
+    "packages/sj-cli/src/commands/bootstrap.ts": 1,
+    "packages/sj-cli/src/commands/check.ts": 1,
+    "packages/sj-cli/src/commands/checkpoint.ts": 1,
+    "packages/sj-cli/src/commands/collect.ts": 1,
+    "packages/sj-cli/src/commands/dispatch.ts": 1,
+    "packages/sj-cli/src/commands/doctor.ts": 1,
+    "packages/sj-cli/src/commands/eval.ts": 1,
+    "packages/sj-cli/src/commands/explain.ts": 1,
+    "packages/sj-cli/src/commands/fanout.ts": 1,
+    "packages/sj-cli/src/commands/guide.ts": 1,
+    "packages/sj-cli/src/commands/handoff.ts": 1,
+    "packages/sj-cli/src/commands/init.ts": 1,
+    "packages/sj-cli/src/commands/next.ts": 1,
+    "packages/sj-cli/src/commands/prepare.ts": 1,
+    "packages/sj-cli/src/commands/push-check.ts": 1,
+    "packages/sj-cli/src/commands/reconcile.ts": 1,
+    "packages/sj-cli/src/commands/resume.ts": 1,
+    "packages/sj-cli/src/commands/retry.ts": 1,
+    "packages/sj-cli/src/commands/run-auto.ts": 1,
+    "packages/sj-cli/src/commands/run.ts": 1,
+    "packages/sj-cli/src/commands/specialists.ts": 1,
+    "packages/sj-cli/src/commands/standardize.ts": 1,
+    "packages/sj-cli/src/commands/sync.ts": 1,
+    "packages/sj-cli/src/commands/toolchain.ts": 1,
+    "packages/sj-cli/src/commands/trace.ts": 1,
+    "packages/sj-cli/src/commands/ui.ts": 1,
+    "packages/sj-cli/src/commands/usage.ts": 1,
+    "packages/sj-cli/src/commands/validate.ts": 1,
+    "packages/sj-cli/src/tests/helpers/desktop-launch.ts": 1,
+    "packages/sj-core/src/core/config.ts": 1,
+    "packages/sj-core/src/core/conflicts.ts": 1,
+    "packages/sj-core/src/core/context-feedback.ts": 1,
+    "packages/sj-core/src/core/context-index.ts": 1,
+    "packages/sj-core/src/core/context-trace.ts": 1,
+    "packages/sj-core/src/core/context-tree.ts": 1,
+    "packages/sj-core/src/core/dispatch.ts": 1,
+    "packages/sj-core/src/core/execution-engine.ts": 1,
+    "packages/sj-core/src/core/execution-log.ts": 1,
+    "packages/sj-core/src/core/execution-plan.ts": 1,
+    "packages/sj-core/src/core/execution-state.ts": 1,
+    "packages/sj-core/src/core/executor.ts": 1,
+    "packages/sj-core/src/core/git.ts": 1,
+    "packages/sj-core/src/core/guidance.ts": 1,
+    "packages/sj-core/src/core/handoff.ts": 1,
+    "packages/sj-core/src/core/instruction-generator.ts": 1,
+    "packages/sj-core/src/core/launch.ts": 1,
+    "packages/sj-core/src/core/memory.ts": 1,
+    "packages/sj-core/src/core/next-action.ts": 1,
+    "packages/sj-core/src/core/packets.ts": 1,
+    "packages/sj-core/src/core/planner.ts": 1,
+    "packages/sj-core/src/core/policies.ts": 1,
+    "packages/sj-core/src/core/prepared-scope.ts": 1,
+    "packages/sj-core/src/core/product.ts": 1,
+    "packages/sj-core/src/core/profiles.ts": 1,
+    "packages/sj-core/src/core/project-detect.ts": 1,
+    "packages/sj-core/src/core/recommendations.ts": 1,
+    "packages/sj-core/src/core/reconcile.ts": 1,
+    "packages/sj-core/src/core/release.ts": 2,
+    "packages/sj-core/src/core/repo-readiness.ts": 1,
+    "packages/sj-core/src/core/risk.ts": 1,
+    "packages/sj-core/src/core/router.ts": 1,
+    "packages/sj-core/src/core/runtime-decision.ts": 1,
+    "packages/sj-core/src/core/runtime-lifecycle.ts": 1,
+    "packages/sj-core/src/core/skills-registry.ts": 1,
+    "packages/sj-core/src/core/specialists.ts": 1,
+    "packages/sj-core/src/core/state.ts": 1,
+    "packages/sj-core/src/core/task-intent.ts": 1,
+    "packages/sj-core/src/core/token-estimator.ts": 1,
+    "packages/sj-core/src/core/token-intelligence.ts": 1,
+    "packages/sj-core/src/core/validator.ts": 1,
+    "packages/sj-core/src/core/workflow-engine.ts": 1,
+    "packages/sj-core/src/integrations/ecosystem-catalog.ts": 1,
+    "packages/sj-core/src/integrations/machine-advisory.ts": 1,
+    "packages/sj-core/src/integrations/token-efficiency.ts": 1,
+    "packages/sj-core/src/runtime/client.ts": 1,
+    "packages/sj-core/src/runtime/ui-bridge.ts": 1,
+    "packages/sj-core/src/utils/child-process.ts": 1,
+    "packages/sj-core/src/utils/fs.ts": 1,
+    "packages/sj-core/src/utils/redact.ts": 1,
+    "packages/sj-core/src/utils/yaml.ts": 1
+  },
+  "dependencyChains": {
+    "apps/sj-ui/src/ui/command-help.ts": [
+      "apps/sj-ui/src/main.ts",
+      "apps/sj-ui/src/ui/command-help.ts"
+    ],
+    "apps/sj-ui/src/ui/ContextTreePanel.ts": [
+      "apps/sj-ui/src/main.ts",
+      "apps/sj-ui/src/ui/ContextTreePanel.ts"
+    ],
+    "apps/sj-ui/src/ui/contracts.ts": [
+      "apps/sj-ui/src/ui/ExecutionPlanPanel.ts",
+      "apps/sj-ui/src/ui/contracts.ts"
+    ],
+    "apps/sj-ui/src/ui/graph-model.ts": [
+      "apps/sj-ui/src/main.ts",
+      "apps/sj-ui/src/ui/graph-model.ts"
+    ],
+    "apps/sj-ui/src/ui/GraphPanel.ts": [
+      "apps/sj-ui/src/main.ts",
+      "apps/sj-ui/src/ui/GraphPanel.ts"
+    ],
+    "apps/sj-ui/src/ui/guidance.ts": [
+      "apps/sj-ui/src/main.ts",
+      "apps/sj-ui/src/ui/guidance.ts"
+    ],
+    "apps/sj-ui/src/ui/MachinePanel.ts": [
+      "apps/sj-ui/src/main.ts",
+      "apps/sj-ui/src/ui/MachinePanel.ts"
+    ],
+    "apps/sj-ui/src/ui/OnboardingPanel.ts": [
+      "apps/sj-ui/src/main.ts",
+      "apps/sj-ui/src/ui/OnboardingPanel.ts"
+    ],
+    "apps/sj-ui/src/ui/readiness.ts": [
+      "apps/sj-ui/src/main.ts",
+      "apps/sj-ui/src/ui/readiness.ts"
+    ],
+    "apps/sj-ui/src/ui/TopBar.ts": [
+      "apps/sj-ui/src/main.ts",
+      "apps/sj-ui/src/ui/TopBar.ts"
+    ],
+    "apps/sj-ui/src/ui/view-models.ts": [
+      "apps/sj-ui/src/main.ts",
+      "apps/sj-ui/src/ui/view-models.ts"
+    ],
+    "packages/sj-cli/src/commands/audit.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/audit.ts"
+    ],
+    "packages/sj-cli/src/commands/bootstrap.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/bootstrap.ts"
+    ],
+    "packages/sj-cli/src/commands/check.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/check.ts"
+    ],
+    "packages/sj-cli/src/commands/checkpoint.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/checkpoint.ts"
+    ],
+    "packages/sj-cli/src/commands/collect.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/collect.ts"
+    ],
+    "packages/sj-cli/src/commands/dispatch.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/dispatch.ts"
+    ],
+    "packages/sj-cli/src/commands/doctor.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/doctor.ts"
+    ],
+    "packages/sj-cli/src/commands/eval.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/eval.ts"
+    ],
+    "packages/sj-cli/src/commands/explain.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/explain.ts"
+    ],
+    "packages/sj-cli/src/commands/fanout.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/fanout.ts"
+    ],
+    "packages/sj-cli/src/commands/guide.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/guide.ts"
+    ],
+    "packages/sj-cli/src/commands/handoff.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/handoff.ts"
+    ],
+    "packages/sj-cli/src/commands/init.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/init.ts"
+    ],
+    "packages/sj-cli/src/commands/next.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/next.ts"
+    ],
+    "packages/sj-cli/src/commands/prepare.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/prepare.ts"
+    ],
+    "packages/sj-cli/src/commands/push-check.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/push-check.ts"
+    ],
+    "packages/sj-cli/src/commands/reconcile.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/reconcile.ts"
+    ],
+    "packages/sj-cli/src/commands/resume.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/resume.ts"
+    ],
+    "packages/sj-cli/src/commands/retry.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/retry.ts"
+    ],
+    "packages/sj-cli/src/commands/run-auto.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/run-auto.ts"
+    ],
+    "packages/sj-cli/src/commands/run.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/run.ts"
+    ],
+    "packages/sj-cli/src/commands/specialists.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/specialists.ts"
+    ],
+    "packages/sj-cli/src/commands/standardize.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/standardize.ts"
+    ],
+    "packages/sj-cli/src/commands/sync.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/sync.ts"
+    ],
+    "packages/sj-cli/src/commands/toolchain.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/toolchain.ts"
+    ],
+    "packages/sj-cli/src/commands/trace.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/trace.ts"
+    ],
+    "packages/sj-cli/src/commands/ui.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/ui.ts"
+    ],
+    "packages/sj-cli/src/commands/usage.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/usage.ts"
+    ],
+    "packages/sj-cli/src/commands/validate.ts": [
+      "packages/sj-cli/src/cli.ts",
+      "packages/sj-cli/src/commands/validate.ts"
+    ],
+    "packages/sj-cli/src/tests/helpers/desktop-launch.ts": [
+      "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+      "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
+    ],
+    "packages/sj-core/src/core/config.ts": [
+      "packages/sj-core/src/core/bootstrap.ts",
+      "packages/sj-core/src/core/config.ts"
+    ],
+    "packages/sj-core/src/core/conflicts.ts": [
+      "packages/sj-core/src/core/context.ts",
+      "packages/sj-core/src/core/conflicts.ts"
+    ],
+    "packages/sj-core/src/core/context-feedback.ts": [
+      "packages/sj-core/src/core/context-selector.ts",
+      "packages/sj-core/src/core/context-feedback.ts"
+    ],
+    "packages/sj-core/src/core/context-index.ts": [
+      "packages/sj-core/src/core/context-selector.ts",
+      "packages/sj-core/src/core/context-index.ts"
+    ],
+    "packages/sj-core/src/core/context-trace.ts": [
+      "packages/sj-core/src/core/context-selector.ts",
+      "packages/sj-core/src/core/context-trace.ts"
+    ],
+    "packages/sj-core/src/core/context-tree.ts": [
+      "packages/sj-core/src/core/bootstrap.ts",
+      "packages/sj-core/src/core/context-tree.ts"
+    ],
+    "packages/sj-core/src/core/dispatch.ts": [
+      "packages/sj-core/src/core/context.ts",
+      "packages/sj-core/src/core/dispatch.ts"
+    ],
+    "packages/sj-core/src/core/execution-engine.ts": [
+      "packages/sj-core/src/core/context-selector.ts",
+      "packages/sj-core/src/core/execution-engine.ts"
+    ],
+    "packages/sj-core/src/core/execution-log.ts": [
+      "packages/sj-core/src/core/ui-state.ts",
+      "packages/sj-core/src/core/execution-log.ts"
+    ],
+    "packages/sj-core/src/core/execution-plan.ts": [
+      "packages/sj-core/src/core/ui-state.ts",
+      "packages/sj-core/src/core/execution-plan.ts"
+    ],
+    "packages/sj-core/src/core/execution-state.ts": [
+      "packages/sj-core/src/core/ui-state.ts",
+      "packages/sj-core/src/core/execution-state.ts"
+    ],
+    "packages/sj-core/src/core/executor.ts": [
+      "packages/sj-core/src/core/bootstrap.ts",
+      "packages/sj-core/src/core/executor.ts"
+    ],
+    "packages/sj-core/src/core/git.ts": [
+      "packages/sj-core/src/core/context-selector.ts",
+      "packages/sj-core/src/core/git.ts"
+    ],
+    "packages/sj-core/src/core/guidance.ts": [
+      "packages/sj-core/src/core/bootstrap.ts",
+      "packages/sj-core/src/core/guidance.ts"
+    ],
+    "packages/sj-core/src/core/handoff.ts": [
+      "packages/sj-core/src/core/context.ts",
+      "packages/sj-core/src/core/handoff.ts"
+    ],
+    "packages/sj-core/src/core/instruction-generator.ts": [
+      "packages/sj-core/src/core/context-selector.ts",
+      "packages/sj-core/src/core/instruction-generator.ts"
+    ],
+    "packages/sj-core/src/core/launch.ts": [
+      "packages/sj-core/src/core/context.ts",
+      "packages/sj-core/src/core/launch.ts"
+    ],
+    "packages/sj-core/src/core/memory.ts": [
+      "packages/sj-core/src/core/context-selector.ts",
+      "packages/sj-core/src/core/memory.ts"
+    ],
+    "packages/sj-core/src/core/next-action.ts": [
+      "packages/sj-core/src/core/ui-state.ts",
+      "packages/sj-core/src/core/next-action.ts"
+    ],
+    "packages/sj-core/src/core/packets.ts": [
+      "packages/sj-core/src/core/context.ts",
+      "packages/sj-core/src/core/packets.ts"
+    ],
+    "packages/sj-core/src/core/planner.ts": [
+      "packages/sj-core/src/core/context.ts",
+      "packages/sj-core/src/core/planner.ts"
+    ],
+    "packages/sj-core/src/core/policies.ts": [
+      "packages/sj-core/src/core/context.ts",
+      "packages/sj-core/src/core/policies.ts"
+    ],
+    "packages/sj-core/src/core/prepared-scope.ts": [
+      "packages/sj-core/src/core/context-selector.ts",
+      "packages/sj-core/src/core/prepared-scope.ts"
+    ],
+    "packages/sj-core/src/core/product.ts": [
+      "packages/sj-core/src/core/bootstrap.ts",
+      "packages/sj-core/src/core/product.ts"
+    ],
+    "packages/sj-core/src/core/profiles.ts": [
+      "packages/sj-core/src/core/bootstrap.ts",
+      "packages/sj-core/src/core/profiles.ts"
+    ],
+    "packages/sj-core/src/core/project-detect.ts": [
+      "packages/sj-core/src/core/bootstrap.ts",
+      "packages/sj-core/src/core/project-detect.ts"
+    ],
+    "packages/sj-core/src/core/recommendations.ts": [
+      "packages/sj-core/src/core/ui-state.ts",
+      "packages/sj-core/src/core/recommendations.ts"
+    ],
+    "packages/sj-core/src/core/reconcile.ts": [
+      "packages/sj-core/src/core/context.ts",
+      "packages/sj-core/src/core/reconcile.ts"
+    ],
+    "packages/sj-core/src/core/release.ts": [
+      "packages/sj-core/src/core/context.ts",
+      "packages/sj-core/src/core/dispatch.ts",
+      "packages/sj-core/src/core/release.ts"
+    ],
+    "packages/sj-core/src/core/repo-readiness.ts": [
+      "packages/sj-core/src/core/ui-state.ts",
+      "packages/sj-core/src/core/repo-readiness.ts"
+    ],
+    "packages/sj-core/src/core/risk.ts": [
+      "packages/sj-core/src/core/context.ts",
+      "packages/sj-core/src/core/risk.ts"
+    ],
+    "packages/sj-core/src/core/router.ts": [
+      "packages/sj-core/src/core/bootstrap.ts",
+      "packages/sj-core/src/core/router.ts"
+    ],
+    "packages/sj-core/src/core/runtime-decision.ts": [
+      "packages/sj-core/src/core/ui-state.ts",
+      "packages/sj-core/src/core/runtime-decision.ts"
+    ],
+    "packages/sj-core/src/core/runtime-lifecycle.ts": [
+      "packages/sj-core/src/core/ui-state.ts",
+      "packages/sj-core/src/core/runtime-lifecycle.ts"
+    ],
+    "packages/sj-core/src/core/skills-registry.ts": [
+      "packages/sj-core/src/core/context-selector.ts",
+      "packages/sj-core/src/core/skills-registry.ts"
+    ],
+    "packages/sj-core/src/core/specialists.ts": [
+      "packages/sj-core/src/core/context.ts",
+      "packages/sj-core/src/core/specialists.ts"
+    ],
+    "packages/sj-core/src/core/state.ts": [
+      "packages/sj-core/src/core/bootstrap.ts",
+      "packages/sj-core/src/core/state.ts"
+    ],
+    "packages/sj-core/src/core/task-intent.ts": [
+      "packages/sj-core/src/core/context-selector.ts",
+      "packages/sj-core/src/core/task-intent.ts"
+    ],
+    "packages/sj-core/src/core/token-estimator.ts": [
+      "packages/sj-core/src/core/ui-state.ts",
+      "packages/sj-core/src/core/token-estimator.ts"
+    ],
+    "packages/sj-core/src/core/token-intelligence.ts": [
+      "packages/sj-core/src/core/ui-state.ts",
+      "packages/sj-core/src/core/token-intelligence.ts"
+    ],
+    "packages/sj-core/src/core/validator.ts": [
+      "packages/sj-core/src/core/context.ts",
+      "packages/sj-core/src/core/validator.ts"
+    ],
+    "packages/sj-core/src/core/workflow-engine.ts": [
+      "packages/sj-core/src/core/ui-state.ts",
+      "packages/sj-core/src/core/workflow-engine.ts"
+    ],
+    "packages/sj-core/src/integrations/ecosystem-catalog.ts": [
+      "packages/sj-core/src/core/ui-state.ts",
+      "packages/sj-core/src/integrations/ecosystem-catalog.ts"
+    ],
+    "packages/sj-core/src/integrations/machine-advisory.ts": [
+      "packages/sj-core/src/core/ui-state.ts",
+      "packages/sj-core/src/integrations/machine-advisory.ts"
+    ],
+    "packages/sj-core/src/integrations/token-efficiency.ts": [
+      "packages/sj-core/src/core/context-selector.ts",
+      "packages/sj-core/src/integrations/token-efficiency.ts"
+    ],
+    "packages/sj-core/src/runtime/client.ts": [
+      "packages/sj-core/src/core/ui-state.ts",
+      "packages/sj-core/src/runtime/client.ts"
+    ],
+    "packages/sj-core/src/runtime/ui-bridge.ts": [
+      "packages/sj-core/src/core/ui-state.ts",
+      "packages/sj-core/src/runtime/ui-bridge.ts"
+    ],
+    "packages/sj-core/src/utils/child-process.ts": [
+      "packages/sj-core/src/core/context-selector.ts",
+      "packages/sj-core/src/utils/child-process.ts"
+    ],
+    "packages/sj-core/src/utils/fs.ts": [
+      "packages/sj-core/src/core/bootstrap.ts",
+      "packages/sj-core/src/utils/fs.ts"
+    ],
+    "packages/sj-core/src/utils/redact.ts": [
+      "packages/sj-core/src/core/context.ts",
+      "packages/sj-core/src/utils/redact.ts"
+    ],
+    "packages/sj-core/src/utils/yaml.ts": [
+      "packages/sj-core/src/core/context.ts",
+      "packages/sj-core/src/utils/yaml.ts"
+    ]
+  },
+  "impactedModules": [
+    "apps/sj-ui",
+    "packages/sj-cli",
+    "packages/sj-core",
+    "scripts"
+  ]
+}

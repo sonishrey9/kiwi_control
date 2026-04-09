@@ -120,12 +120,18 @@ test("context selector persists worktree and selection state", async () => {
   const contextTracePath = path.join(tempDir, ".agent", "state", "context-trace.json");
   const indexingPath = path.join(tempDir, ".agent", "state", "indexing.json");
   const contextIndexPath = path.join(tempDir, ".agent", "state", "context-index.json");
+  const symbolIndexPath = path.join(tempDir, ".agent", "state", "symbol-index.json");
+  const dependencyGraphPath = path.join(tempDir, ".agent", "state", "dependency-graph.json");
+  const impactMapPath = path.join(tempDir, ".agent", "state", "impact-map.json");
 
   assert.ok(await pathExists(worktreePath), "worktree.json should be persisted");
   assert.ok(await pathExists(selectionPath), "context-selection.json should be persisted");
   assert.ok(await pathExists(contextTracePath), "context-trace.json should be persisted");
   assert.ok(await pathExists(indexingPath), "indexing.json should be persisted");
   assert.ok(await pathExists(contextIndexPath), "context-index.json should be persisted");
+  assert.ok(await pathExists(symbolIndexPath), "symbol-index.json should be persisted");
+  assert.ok(await pathExists(dependencyGraphPath), "dependency-graph.json should be persisted");
+  assert.ok(await pathExists(impactMapPath), "impact-map.json should be persisted");
 
   const worktree = await readJson<{ artifactType: string; dirty: boolean }>(worktreePath);
   assert.equal(worktree.artifactType, "kiwi-control/worktree");
@@ -190,6 +196,33 @@ test("context selector persists worktree and selection state", async () => {
   assert.equal(Array.isArray(contextIndex.files[0]?.relationships ?? []), true);
   assert.equal(typeof contextIndex.lastImpact.dependencyDistances, "object");
   assert.equal(typeof contextIndex.lastImpact.dependencyChains, "object");
+
+  const symbolIndex = await readJson<{
+    artifactType: string;
+    totalFiles: number;
+    totalSymbols: number;
+  }>(symbolIndexPath);
+  assert.equal(symbolIndex.artifactType, "kiwi-control/symbol-index");
+  assert.ok(symbolIndex.totalFiles >= 0);
+  assert.ok(symbolIndex.totalSymbols >= 0);
+
+  const dependencyGraph = await readJson<{
+    artifactType: string;
+    nodes: Array<{ file: string }>;
+    edges: Array<{ from: string; to: string; kind: string }>;
+  }>(dependencyGraphPath);
+  assert.equal(dependencyGraph.artifactType, "kiwi-control/dependency-graph");
+  assert.equal(Array.isArray(dependencyGraph.nodes), true);
+  assert.equal(Array.isArray(dependencyGraph.edges), true);
+
+  const impactMap = await readJson<{
+    artifactType: string;
+    changedFiles: string[];
+    impactedFiles: string[];
+  }>(impactMapPath);
+  assert.equal(impactMap.artifactType, "kiwi-control/impact-map");
+  assert.equal(Array.isArray(impactMap.changedFiles), true);
+  assert.equal(Array.isArray(impactMap.impactedFiles), true);
 });
 
 test("context trace records why files were selected and the dependency chain when structural signals apply", async () => {

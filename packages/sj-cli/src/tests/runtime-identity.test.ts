@@ -183,6 +183,10 @@ test("runtime --refresh-derived rewrites stale derived artifacts without changin
 
   assert.equal(payload.snapshot.revision, 1);
   assert.equal(payload.snapshot.lifecycle, "packet_created");
+  assert.deepEqual(
+    payload.derivedFreshness.map((entry) => entry.outputName).sort((left, right) => left.localeCompare(right)),
+    ["execution-events", "execution-state"]
+  );
   assert.equal(
     payload.derivedFreshness.every((entry) => entry.freshness === "fresh" && entry.sourceRevision === 1),
     true

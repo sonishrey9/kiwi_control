@@ -51,9 +51,11 @@ export async function prepareRuntimeSidecar(options = {}) {
     throw new Error(`expected runtime binary at ${builtBinaryPath} after cargo build`);
   }
 
-  await rm(path.dirname(tauriSidecarPath), { recursive: true, force: true });
   await mkdir(path.dirname(tauriSidecarPath), { recursive: true });
   await mkdir(path.dirname(runtimeBundleBinaryPath), { recursive: true });
+  await mkdir(path.dirname(metadataPath), { recursive: true });
+  await rm(tauriSidecarPath, { force: true });
+  await rm(runtimeBundleBinaryPath, { force: true });
   await cp(builtBinaryPath, tauriSidecarPath);
   await cp(builtBinaryPath, runtimeBundleBinaryPath);
   await chmod(tauriSidecarPath, 0o755).catch(() => undefined);

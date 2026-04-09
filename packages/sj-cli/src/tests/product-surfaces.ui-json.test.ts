@@ -136,6 +136,14 @@ test("ui command returns structured repo-control state in json mode", async () =
     };
     kiwiControl: {
       indexing: { coverageNote: string; discoveredFiles: number };
+      repoIntelligence: {
+        available: boolean;
+        repoMapPath: string | null;
+        symbolIndexPath: string | null;
+        dependencyGraphPath: string | null;
+        impactMapPath: string | null;
+        entryPoints: string[];
+      };
       fileAnalysis: { totalFiles: number; selected: Array<{ file: string; selectionWhy?: string; dependencyChain?: string[] }> };
       contextTrace: { expansionSteps: Array<{ step: string }> };
       tokenBreakdown: { categories: Array<{ category: string }> };
@@ -174,7 +182,9 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(typeof payload.runtimeIdentity?.binaryPath, "string");
   assert.equal(typeof payload.runtimeIdentity?.binarySha256, "string");
   assert.equal(Array.isArray(payload.derivedFreshness), true);
-  assert.equal(payload.derivedFreshness.some((entry) => entry.outputName === "execution-plan"), true);
+  assert.equal(payload.derivedFreshness.some((entry) => entry.outputName === "execution-state"), true);
+  assert.equal(payload.derivedFreshness.some((entry) => entry.outputName === "execution-events"), true);
+  assert.equal(payload.derivedFreshness.some((entry) => entry.outputName === "execution-plan"), false);
   assert.equal(payload.derivedFreshness.some((entry) => entry.outputName === "repo-control-snapshot"), false);
   assert.equal(payload.repoOverview.some((entry) => entry.label === "Project type"), true);
   assert.equal(payload.continuity.some((entry) => entry.label === "Latest checkpoint"), true);
@@ -197,6 +207,13 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(Array.isArray(payload.machineAdvisory.guidance), true);
   assert.equal(typeof payload.kiwiControl.indexing.discoveredFiles, "number");
   assert.equal(typeof payload.kiwiControl.indexing.coverageNote, "string");
+  assert.equal(typeof payload.kiwiControl.repoIntelligence.available, "boolean");
+  assert.equal(payload.kiwiControl.repoIntelligence.available, true);
+  assert.equal(payload.kiwiControl.repoIntelligence.repoMapPath, ".agent/context/repo-map.json");
+  assert.equal(payload.kiwiControl.repoIntelligence.symbolIndexPath, ".agent/state/symbol-index.json");
+  assert.equal(payload.kiwiControl.repoIntelligence.dependencyGraphPath, ".agent/state/dependency-graph.json");
+  assert.equal(payload.kiwiControl.repoIntelligence.impactMapPath, ".agent/state/impact-map.json");
+  assert.equal(Array.isArray(payload.kiwiControl.repoIntelligence.entryPoints), true);
   assert.equal(typeof payload.kiwiControl.fileAnalysis.totalFiles, "number");
   assert.equal(Array.isArray(payload.kiwiControl.fileAnalysis.selected), true);
   assert.equal(

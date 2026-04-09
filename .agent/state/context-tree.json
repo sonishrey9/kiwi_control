@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/context-tree",
   "version": 1,
-  "timestamp": "2026-04-06T15:07:33.131Z",
+  "timestamp": "2026-04-09T11:26:50.018Z",
   "targetRoot": "/Volumes/shrey ssd/shrey-junior",
   "projectType": "node",
   "languages": [
@@ -11,35 +11,36 @@
     "typescript"
   ],
   "entryPoints": [
-    "apps/sj-ui/dist-types/bootcheck.js",
-    "apps/sj-ui/dist-types/main.js",
-    "apps/sj-ui/dist-types/ui/ContextTreePanel.d.ts",
-    "apps/sj-ui/dist-types/ui/ExecutionPlanPanel.d.ts",
-    "apps/sj-ui/dist-types/ui/graph-model.d.ts",
-    "apps/sj-ui/dist-types/ui/GraphPanel.d.ts",
-    "apps/sj-ui/dist-types/ui/guidance.d.ts",
-    "apps/sj-ui/dist-types/ui/InspectorPanel.d.ts",
-    "apps/sj-ui/dist-types/ui/MachinePanel.d.ts",
-    "apps/sj-ui/dist-types/ui/readiness.d.ts",
-    "apps/sj-ui/dist-types/ui/TopBar.d.ts",
-    "apps/sj-ui/dist-types/ui/view-models.d.ts",
     "apps/sj-ui/package.json",
     "apps/sj-ui/src-tauri/Cargo.toml",
     "apps/sj-ui/src/bootcheck.ts",
-    "apps/sj-ui/src/main.ts"
+    "apps/sj-ui/src/main.ts",
+    "apps/sj-ui/src/ui/OnboardingPanel.test.ts",
+    "apps/sj-ui/src/ui/readiness.test.ts",
+    "apps/sj-ui/src/ui/view-models.test.ts",
+    "crates/kiwi-runtime/Cargo.toml",
+    "hooks/post-edit.ts",
+    "hooks/pre-command.ts",
+    "hooks/pre-commit.ts",
+    "hooks/risk-gate.ts",
+    "package.json",
+    "packages/sj-cli/package.json",
+    "packages/sj-cli/src/cli.ts",
+    "packages/sj-cli/src/commands/commit-plan.ts"
   ],
   "keyModules": [
     "packages/sj-cli",
     "packages/sj-core",
     "apps/sj-ui",
     "scripts",
-    "hooks"
+    "hooks",
+    "website"
   ],
   "topReverseDependencyHubs": [
     {
       "file": "packages/sj-core/src/utils/fs.ts",
       "moduleGroup": "packages/sj-core",
-      "importedByCount": 41
+      "importedByCount": 43
     },
     {
       "file": "packages/sj-core/src/core/config.ts",
@@ -52,9 +53,9 @@
       "importedByCount": 17
     },
     {
-      "file": "apps/sj-ui/dist-types/ui/contracts.js",
-      "moduleGroup": "apps/sj-ui",
-      "importedByCount": 10
+      "file": "packages/sj-core/src/core/product.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 11
     },
     {
       "file": "packages/sj-core/src/core/specialists.ts",
@@ -63,11 +64,6 @@
     },
     {
       "file": "packages/sj-core/src/core/context.ts",
-      "moduleGroup": "packages/sj-core",
-      "importedByCount": 9
-    },
-    {
-      "file": "packages/sj-core/src/core/product.ts",
       "moduleGroup": "packages/sj-core",
       "importedByCount": 9
     },
@@ -85,66 +81,41 @@
       "file": "packages/sj-core/src/core/git.ts",
       "moduleGroup": "packages/sj-core",
       "importedByCount": 7
+    },
+    {
+      "file": "packages/sj-core/src/core/profiles.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 7
     }
   ],
   "dependencyClusters": [
     {
       "id": "apps/sj-ui",
-      "fileCount": 40,
+      "fileCount": 21,
       "files": [
-        "apps/sj-ui/dist-types/bootcheck.d.ts",
-        "apps/sj-ui/dist-types/bootcheck.js",
-        "apps/sj-ui/dist-types/main.d.ts",
-        "apps/sj-ui/dist-types/main.js",
-        "apps/sj-ui/dist-types/ui/ContextTreePanel.d.ts",
-        "apps/sj-ui/dist-types/ui/ContextTreePanel.js",
-        "apps/sj-ui/dist-types/ui/contracts.d.ts",
-        "apps/sj-ui/dist-types/ui/contracts.js",
-        "apps/sj-ui/dist-types/ui/ExecutionPlanPanel.d.ts",
-        "apps/sj-ui/dist-types/ui/ExecutionPlanPanel.js",
-        "apps/sj-ui/dist-types/ui/graph-model.d.ts",
-        "apps/sj-ui/dist-types/ui/graph-model.js",
-        "apps/sj-ui/dist-types/ui/GraphPanel.d.ts",
-        "apps/sj-ui/dist-types/ui/GraphPanel.js",
-        "apps/sj-ui/dist-types/ui/guidance.d.ts",
-        "apps/sj-ui/dist-types/ui/guidance.js",
-        "apps/sj-ui/dist-types/ui/InspectorPanel.d.ts",
-        "apps/sj-ui/dist-types/ui/InspectorPanel.js",
-        "apps/sj-ui/dist-types/ui/MachinePanel.d.ts",
-        "apps/sj-ui/dist-types/ui/MachinePanel.js",
-        "apps/sj-ui/dist-types/ui/readiness.d.ts",
-        "apps/sj-ui/dist-types/ui/readiness.js",
-        "apps/sj-ui/dist-types/ui/TopBar.d.ts",
-        "apps/sj-ui/dist-types/ui/TopBar.js",
-        "apps/sj-ui/dist-types/ui/view-models.d.ts",
-        "apps/sj-ui/dist-types/ui/view-models.js",
         "apps/sj-ui/src/bootcheck.ts",
         "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/command-help.test.ts",
+        "apps/sj-ui/src/ui/command-help.ts",
         "apps/sj-ui/src/ui/ContextTreePanel.ts",
         "apps/sj-ui/src/ui/contracts.ts",
         "apps/sj-ui/src/ui/ExecutionPlanPanel.ts",
         "apps/sj-ui/src/ui/graph-model.ts",
         "apps/sj-ui/src/ui/GraphPanel.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts",
         "apps/sj-ui/src/ui/guidance.ts",
         "apps/sj-ui/src/ui/InspectorPanel.ts",
         "apps/sj-ui/src/ui/MachinePanel.ts",
+        "apps/sj-ui/src/ui/OnboardingPanel.test.ts",
+        "apps/sj-ui/src/ui/OnboardingPanel.ts",
+        "apps/sj-ui/src/ui/readiness.test.ts",
         "apps/sj-ui/src/ui/readiness.ts",
         "apps/sj-ui/src/ui/TopBar.ts",
+        "apps/sj-ui/src/ui/view-models.test.ts",
         "apps/sj-ui/src/ui/view-models.ts",
         "apps/sj-ui/vite.config.ts"
       ],
       "imports": [
-        "apps/sj-ui/dist-types/ui/ContextTreePanel.js",
-        "apps/sj-ui/dist-types/ui/contracts.js",
-        "apps/sj-ui/dist-types/ui/ExecutionPlanPanel.js",
-        "apps/sj-ui/dist-types/ui/graph-model.js",
-        "apps/sj-ui/dist-types/ui/GraphPanel.js",
-        "apps/sj-ui/dist-types/ui/guidance.js",
-        "apps/sj-ui/dist-types/ui/InspectorPanel.js",
-        "apps/sj-ui/dist-types/ui/MachinePanel.js",
-        "apps/sj-ui/dist-types/ui/readiness.js",
-        "apps/sj-ui/dist-types/ui/TopBar.js",
-        "apps/sj-ui/dist-types/ui/view-models.js",
         "apps/sj-ui/src/ui/ContextTreePanel.ts",
         "apps/sj-ui/src/ui/contracts.ts",
         "apps/sj-ui/src/ui/ExecutionPlanPanel.ts",
@@ -152,51 +123,35 @@
         "apps/sj-ui/src/ui/guidance.ts",
         "apps/sj-ui/src/ui/InspectorPanel.ts",
         "apps/sj-ui/src/ui/MachinePanel.ts",
+        "apps/sj-ui/src/ui/OnboardingPanel.ts",
+        "apps/sj-ui/src/ui/readiness.ts",
         "apps/sj-ui/src/ui/TopBar.ts",
         "apps/sj-ui/src/ui/view-models.ts"
       ],
       "importedBy": [
-        "apps/sj-ui/dist-types/bootcheck.js",
-        "apps/sj-ui/dist-types/main.js",
-        "apps/sj-ui/dist-types/ui/ContextTreePanel.d.ts",
-        "apps/sj-ui/dist-types/ui/ExecutionPlanPanel.d.ts",
-        "apps/sj-ui/dist-types/ui/graph-model.d.ts",
-        "apps/sj-ui/dist-types/ui/GraphPanel.d.ts",
-        "apps/sj-ui/dist-types/ui/guidance.d.ts",
-        "apps/sj-ui/dist-types/ui/InspectorPanel.d.ts",
-        "apps/sj-ui/dist-types/ui/MachinePanel.d.ts",
-        "apps/sj-ui/dist-types/ui/MachinePanel.js",
-        "apps/sj-ui/dist-types/ui/readiness.d.ts",
-        "apps/sj-ui/dist-types/ui/TopBar.d.ts",
-        "apps/sj-ui/dist-types/ui/view-models.d.ts",
         "apps/sj-ui/src/bootcheck.ts",
         "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/command-help.test.ts",
         "apps/sj-ui/src/ui/ContextTreePanel.ts",
         "apps/sj-ui/src/ui/ExecutionPlanPanel.ts",
         "apps/sj-ui/src/ui/GraphPanel.ts",
-        "apps/sj-ui/src/ui/guidance.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts",
         "apps/sj-ui/src/ui/InspectorPanel.ts",
         "apps/sj-ui/src/ui/MachinePanel.ts",
-        "apps/sj-ui/src/ui/TopBar.ts"
+        "apps/sj-ui/src/ui/OnboardingPanel.test.ts",
+        "apps/sj-ui/src/ui/OnboardingPanel.ts",
+        "apps/sj-ui/src/ui/readiness.test.ts",
+        "apps/sj-ui/src/ui/TopBar.ts",
+        "apps/sj-ui/src/ui/view-models.test.ts"
       ],
       "entryPoints": [
-        "apps/sj-ui/dist-types/bootcheck.d.ts",
-        "apps/sj-ui/dist-types/bootcheck.js",
-        "apps/sj-ui/dist-types/main.d.ts",
-        "apps/sj-ui/dist-types/main.js",
-        "apps/sj-ui/dist-types/ui/ContextTreePanel.d.ts",
-        "apps/sj-ui/dist-types/ui/contracts.d.ts",
-        "apps/sj-ui/dist-types/ui/ExecutionPlanPanel.d.ts",
-        "apps/sj-ui/dist-types/ui/graph-model.d.ts",
-        "apps/sj-ui/dist-types/ui/GraphPanel.d.ts",
-        "apps/sj-ui/dist-types/ui/guidance.d.ts",
-        "apps/sj-ui/dist-types/ui/InspectorPanel.d.ts",
-        "apps/sj-ui/dist-types/ui/MachinePanel.d.ts",
-        "apps/sj-ui/dist-types/ui/readiness.d.ts",
-        "apps/sj-ui/dist-types/ui/TopBar.d.ts",
-        "apps/sj-ui/dist-types/ui/view-models.d.ts",
         "apps/sj-ui/src/bootcheck.ts",
         "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/command-help.test.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts",
+        "apps/sj-ui/src/ui/OnboardingPanel.test.ts",
+        "apps/sj-ui/src/ui/readiness.test.ts",
+        "apps/sj-ui/src/ui/view-models.test.ts",
         "apps/sj-ui/vite.config.ts"
       ]
     },
@@ -220,7 +175,7 @@
     },
     {
       "id": "packages/sj-cli",
-      "fileCount": 69,
+      "fileCount": 76,
       "files": [
         "packages/sj-cli/src/cli.ts",
         "packages/sj-cli/src/commands/audit.ts",
@@ -232,6 +187,7 @@
         "packages/sj-cli/src/commands/dispatch.ts",
         "packages/sj-cli/src/commands/doctor.ts",
         "packages/sj-cli/src/commands/eval.ts",
+        "packages/sj-cli/src/commands/execution-plan-recovery.ts",
         "packages/sj-cli/src/commands/execution-step-runner.ts",
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/fanout.ts",
@@ -246,10 +202,12 @@
         "packages/sj-cli/src/commands/push-check.ts",
         "packages/sj-cli/src/commands/reconcile.ts",
         "packages/sj-cli/src/commands/release-check.ts",
+        "packages/sj-cli/src/commands/repo-map.ts",
         "packages/sj-cli/src/commands/resume.ts",
         "packages/sj-cli/src/commands/retry.ts",
         "packages/sj-cli/src/commands/run-auto.ts",
         "packages/sj-cli/src/commands/run.ts",
+        "packages/sj-cli/src/commands/runtime.ts",
         "packages/sj-cli/src/commands/specialists.ts",
         "packages/sj-cli/src/commands/standardize.ts",
         "packages/sj-cli/src/commands/status.ts",
@@ -266,8 +224,10 @@
         "packages/sj-cli/src/tests/collect.test.ts",
         "packages/sj-cli/src/tests/context-feedback.test.ts",
         "packages/sj-cli/src/tests/context-selector.test.ts",
+        "packages/sj-cli/src/tests/context-tree.test.ts",
         "packages/sj-cli/src/tests/context.test.ts",
         "packages/sj-cli/src/tests/dispatch.test.ts",
+        "packages/sj-cli/src/tests/execution-state.test.ts",
         "packages/sj-cli/src/tests/fs.test.ts",
         "packages/sj-cli/src/tests/git.test.ts",
         "packages/sj-cli/src/tests/handoff.test.ts",
@@ -282,7 +242,9 @@
         "packages/sj-cli/src/tests/project-detect.test.ts",
         "packages/sj-cli/src/tests/reconcile.test.ts",
         "packages/sj-cli/src/tests/redact.test.ts",
+        "packages/sj-cli/src/tests/repo-intelligence.test.ts",
         "packages/sj-cli/src/tests/router.test.ts",
+        "packages/sj-cli/src/tests/runtime-identity.test.ts",
         "packages/sj-cli/src/tests/runtime.test.ts",
         "packages/sj-cli/src/tests/sj-init.test.ts",
         "packages/sj-cli/src/tests/specialists.test.ts",
@@ -301,6 +263,7 @@
         "packages/sj-cli/src/commands/dispatch.ts",
         "packages/sj-cli/src/commands/doctor.ts",
         "packages/sj-cli/src/commands/eval.ts",
+        "packages/sj-cli/src/commands/execution-plan-recovery.ts",
         "packages/sj-cli/src/commands/execution-step-runner.ts",
         "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/fanout.ts",
@@ -312,10 +275,12 @@
         "packages/sj-cli/src/commands/prepare.ts",
         "packages/sj-cli/src/commands/push-check.ts",
         "packages/sj-cli/src/commands/reconcile.ts",
+        "packages/sj-cli/src/commands/repo-map.ts",
         "packages/sj-cli/src/commands/resume.ts",
         "packages/sj-cli/src/commands/retry.ts",
         "packages/sj-cli/src/commands/run-auto.ts",
         "packages/sj-cli/src/commands/run.ts",
+        "packages/sj-cli/src/commands/runtime.ts",
         "packages/sj-cli/src/commands/specialists.ts",
         "packages/sj-cli/src/commands/standardize.ts",
         "packages/sj-cli/src/commands/status.ts",
@@ -331,11 +296,14 @@
       "importedBy": [
         "packages/sj-cli/src/cli.ts",
         "packages/sj-cli/src/commands/execution-step-runner.ts",
+        "packages/sj-cli/src/commands/explain.ts",
         "packages/sj-cli/src/commands/guide.ts",
+        "packages/sj-cli/src/commands/next.ts",
         "packages/sj-cli/src/commands/resume.ts",
         "packages/sj-cli/src/commands/retry.ts",
         "packages/sj-cli/src/commands/run-auto.ts",
         "packages/sj-cli/src/commands/toolchain.ts",
+        "packages/sj-cli/src/commands/trace.ts",
         "packages/sj-cli/src/commands/usage.ts",
         "packages/sj-cli/src/tests/check.test.ts",
         "packages/sj-cli/src/tests/checkpoint.test.ts",
@@ -346,6 +314,8 @@
         "packages/sj-cli/src/tests/product-surfaces.desktop-bundles.test.ts",
         "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
         "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+        "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+        "packages/sj-cli/src/tests/runtime-identity.test.ts",
         "packages/sj-cli/src/tests/standardize.test.ts",
         "packages/sj-cli/src/tests/sync.test.ts"
       ],
@@ -362,8 +332,10 @@
         "packages/sj-cli/src/tests/collect.test.ts",
         "packages/sj-cli/src/tests/context-feedback.test.ts",
         "packages/sj-cli/src/tests/context-selector.test.ts",
+        "packages/sj-cli/src/tests/context-tree.test.ts",
         "packages/sj-cli/src/tests/context.test.ts",
         "packages/sj-cli/src/tests/dispatch.test.ts",
+        "packages/sj-cli/src/tests/execution-state.test.ts",
         "packages/sj-cli/src/tests/fs.test.ts",
         "packages/sj-cli/src/tests/git.test.ts",
         "packages/sj-cli/src/tests/handoff.test.ts",
@@ -377,7 +349,9 @@
         "packages/sj-cli/src/tests/project-detect.test.ts",
         "packages/sj-cli/src/tests/reconcile.test.ts",
         "packages/sj-cli/src/tests/redact.test.ts",
+        "packages/sj-cli/src/tests/repo-intelligence.test.ts",
         "packages/sj-cli/src/tests/router.test.ts",
+        "packages/sj-cli/src/tests/runtime-identity.test.ts",
         "packages/sj-cli/src/tests/runtime.test.ts",
         "packages/sj-cli/src/tests/sj-init.test.ts",
         "packages/sj-cli/src/tests/specialists.test.ts",
@@ -389,7 +363,7 @@
     },
     {
       "id": "packages/sj-core",
-      "fileCount": 65,
+      "fileCount": 70,
       "files": [
         "packages/sj-core/src/adapters/claude.ts",
         "packages/sj-core/src/adapters/codex.ts",
@@ -409,6 +383,7 @@
         "packages/sj-core/src/core/execution-engine.ts",
         "packages/sj-core/src/core/execution-log.ts",
         "packages/sj-core/src/core/execution-plan.ts",
+        "packages/sj-core/src/core/execution-state.ts",
         "packages/sj-core/src/core/executor.ts",
         "packages/sj-core/src/core/git.ts",
         "packages/sj-core/src/core/guidance.ts",
@@ -428,8 +403,11 @@
         "packages/sj-core/src/core/recommendations.ts",
         "packages/sj-core/src/core/reconcile.ts",
         "packages/sj-core/src/core/release.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/core/repo-readiness.ts",
         "packages/sj-core/src/core/risk.ts",
         "packages/sj-core/src/core/router.ts",
+        "packages/sj-core/src/core/runtime-decision.ts",
         "packages/sj-core/src/core/runtime-lifecycle.ts",
         "packages/sj-core/src/core/skills-registry.ts",
         "packages/sj-core/src/core/specialists.ts",
@@ -451,6 +429,7 @@
         "packages/sj-core/src/integrations/machine-advisory.ts",
         "packages/sj-core/src/integrations/token-efficiency.ts",
         "packages/sj-core/src/runtime.ts",
+        "packages/sj-core/src/runtime/client.ts",
         "packages/sj-core/src/runtime/ui-bridge.ts",
         "packages/sj-core/src/utils/child-process.ts",
         "packages/sj-core/src/utils/fs.ts",
@@ -473,6 +452,7 @@
         "packages/sj-core/src/core/eval.ts",
         "packages/sj-core/src/core/execution-log.ts",
         "packages/sj-core/src/core/execution-plan.ts",
+        "packages/sj-core/src/core/execution-state.ts",
         "packages/sj-core/src/core/executor.ts",
         "packages/sj-core/src/core/git.ts",
         "packages/sj-core/src/core/guidance.ts",
@@ -487,8 +467,11 @@
         "packages/sj-core/src/core/project-detect.ts",
         "packages/sj-core/src/core/recommendations.ts",
         "packages/sj-core/src/core/reconcile.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/core/repo-readiness.ts",
         "packages/sj-core/src/core/risk.ts",
         "packages/sj-core/src/core/router.ts",
+        "packages/sj-core/src/core/runtime-decision.ts",
         "packages/sj-core/src/core/runtime-lifecycle.ts",
         "packages/sj-core/src/core/skills-registry.ts",
         "packages/sj-core/src/core/specialists.ts",
@@ -508,6 +491,7 @@
         "packages/sj-core/src/integrations/machine-advisory.ts",
         "packages/sj-core/src/integrations/token-efficiency.ts",
         "packages/sj-core/src/runtime.ts",
+        "packages/sj-core/src/runtime/client.ts",
         "packages/sj-core/src/utils/child-process.ts",
         "packages/sj-core/src/utils/fs.ts",
         "packages/sj-core/src/utils/redact.ts",
@@ -530,6 +514,7 @@
         "packages/sj-core/src/core/eval.ts",
         "packages/sj-core/src/core/execution-engine.ts",
         "packages/sj-core/src/core/execution-log.ts",
+        "packages/sj-core/src/core/execution-state.ts",
         "packages/sj-core/src/core/executor.ts",
         "packages/sj-core/src/core/git.ts",
         "packages/sj-core/src/core/guidance.ts",
@@ -547,6 +532,8 @@
         "packages/sj-core/src/core/recommendations.ts",
         "packages/sj-core/src/core/reconcile.ts",
         "packages/sj-core/src/core/release.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
+        "packages/sj-core/src/core/repo-readiness.ts",
         "packages/sj-core/src/core/router.ts",
         "packages/sj-core/src/core/runtime-lifecycle.ts",
         "packages/sj-core/src/core/skills-registry.ts",
@@ -563,6 +550,8 @@
         "packages/sj-core/src/integrations/ccusage.ts",
         "packages/sj-core/src/integrations/machine-advisory-cache.ts",
         "packages/sj-core/src/integrations/machine-advisory.ts",
+        "packages/sj-core/src/runtime.ts",
+        "packages/sj-core/src/runtime/client.ts",
         "packages/sj-core/src/runtime/ui-bridge.ts"
       ],
       "entryPoints": [
@@ -580,30 +569,81 @@
     },
     {
       "id": "scripts",
-      "fileCount": 7,
+      "fileCount": 18,
       "files": [
         "scripts/copy-runtime-assets.mjs",
+        "scripts/ensure-cloudflare-pages-project.mjs",
+        "scripts/generate-product-media.mjs",
         "scripts/generate-release-checksums.mjs",
+        "scripts/package-release-assets.mjs",
         "scripts/prepare-release-manifest.mjs",
+        "scripts/prepare-runtime-sidecar.mjs",
         "scripts/remove-macos-metadata.mjs",
         "scripts/run-cli.mjs",
         "scripts/run-ui-desktop-build.mjs",
-        "scripts/run-ui-dev.mjs"
+        "scripts/run-ui-desktop-test.mjs",
+        "scripts/run-ui-dev.mjs",
+        "scripts/stage-cli-bundle.mjs",
+        "scripts/upsert-route53-pages-record.mjs",
+        "scripts/verify-bundled-cli-install.mjs",
+        "scripts/verify-cli-ui-truth.mjs",
+        "scripts/verify-installed-launch-flow.mjs",
+        "scripts/verify-rendered-desktop.mjs"
+      ],
+      "imports": [
+        "packages/sj-core/dist/core/bootstrap.js",
+        "packages/sj-core/dist/core/config.js",
+        "packages/sj-core/dist/core/workflow-engine.js"
+      ],
+      "importedBy": [],
+      "entryPoints": [
+        "scripts/copy-runtime-assets.mjs",
+        "scripts/ensure-cloudflare-pages-project.mjs",
+        "scripts/generate-product-media.mjs",
+        "scripts/generate-release-checksums.mjs",
+        "scripts/package-release-assets.mjs",
+        "scripts/prepare-release-manifest.mjs",
+        "scripts/prepare-runtime-sidecar.mjs",
+        "scripts/remove-macos-metadata.mjs",
+        "scripts/run-cli.mjs",
+        "scripts/run-ui-desktop-build.mjs",
+        "scripts/run-ui-desktop-test.mjs",
+        "scripts/run-ui-dev.mjs",
+        "scripts/stage-cli-bundle.mjs",
+        "scripts/upsert-route53-pages-record.mjs",
+        "scripts/verify-bundled-cli-install.mjs",
+        "scripts/verify-cli-ui-truth.mjs",
+        "scripts/verify-installed-launch-flow.mjs",
+        "scripts/verify-rendered-desktop.mjs"
+      ]
+    },
+    {
+      "id": "website",
+      "fileCount": 1,
+      "files": [
+        "website/app.js"
       ],
       "imports": [],
       "importedBy": [],
       "entryPoints": [
-        "scripts/copy-runtime-assets.mjs",
-        "scripts/generate-release-checksums.mjs",
-        "scripts/prepare-release-manifest.mjs",
-        "scripts/remove-macos-metadata.mjs",
-        "scripts/run-cli.mjs",
-        "scripts/run-ui-desktop-build.mjs",
-        "scripts/run-ui-dev.mjs"
+        "website/app.js"
       ]
     }
   ],
   "tree": [
+    {
+      "name": ".cargo",
+      "path": ".cargo",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "config.toml",
+          "path": ".cargo/config.toml",
+          "kind": "file",
+          "children": []
+        }
+      ]
+    },
     {
       "name": ".claude",
       "path": ".claude",
@@ -649,6 +689,12 @@
         {
           "name": "settings.json",
           "path": ".claude/settings.json",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "settings.local.json",
+          "path": ".claude/settings.local.json",
           "kind": "file",
           "children": []
         }
@@ -790,6 +836,12 @@
               "children": []
             },
             {
+              "name": "deploy-site.yml",
+              "path": ".github/workflows/deploy-site.yml",
+              "kind": "file",
+              "children": []
+            },
+            {
               "name": "release.yml",
               "path": ".github/workflows/release.yml",
               "kind": "file",
@@ -884,176 +936,6 @@
           "kind": "directory",
           "children": [
             {
-              "name": "dist-types",
-              "path": "apps/sj-ui/dist-types",
-              "kind": "directory",
-              "children": [
-                {
-                  "name": "ui",
-                  "path": "apps/sj-ui/dist-types/ui",
-                  "kind": "directory",
-                  "children": [
-                    {
-                      "name": "ContextTreePanel.d.ts",
-                      "path": "apps/sj-ui/dist-types/ui/ContextTreePanel.d.ts",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "ContextTreePanel.js",
-                      "path": "apps/sj-ui/dist-types/ui/ContextTreePanel.js",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "contracts.d.ts",
-                      "path": "apps/sj-ui/dist-types/ui/contracts.d.ts",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "contracts.js",
-                      "path": "apps/sj-ui/dist-types/ui/contracts.js",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "ExecutionPlanPanel.d.ts",
-                      "path": "apps/sj-ui/dist-types/ui/ExecutionPlanPanel.d.ts",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "ExecutionPlanPanel.js",
-                      "path": "apps/sj-ui/dist-types/ui/ExecutionPlanPanel.js",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "graph-model.d.ts",
-                      "path": "apps/sj-ui/dist-types/ui/graph-model.d.ts",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "graph-model.js",
-                      "path": "apps/sj-ui/dist-types/ui/graph-model.js",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "GraphPanel.d.ts",
-                      "path": "apps/sj-ui/dist-types/ui/GraphPanel.d.ts",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "GraphPanel.js",
-                      "path": "apps/sj-ui/dist-types/ui/GraphPanel.js",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "guidance.d.ts",
-                      "path": "apps/sj-ui/dist-types/ui/guidance.d.ts",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "guidance.js",
-                      "path": "apps/sj-ui/dist-types/ui/guidance.js",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "InspectorPanel.d.ts",
-                      "path": "apps/sj-ui/dist-types/ui/InspectorPanel.d.ts",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "InspectorPanel.js",
-                      "path": "apps/sj-ui/dist-types/ui/InspectorPanel.js",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "MachinePanel.d.ts",
-                      "path": "apps/sj-ui/dist-types/ui/MachinePanel.d.ts",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "MachinePanel.js",
-                      "path": "apps/sj-ui/dist-types/ui/MachinePanel.js",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "readiness.d.ts",
-                      "path": "apps/sj-ui/dist-types/ui/readiness.d.ts",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "readiness.js",
-                      "path": "apps/sj-ui/dist-types/ui/readiness.js",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "TopBar.d.ts",
-                      "path": "apps/sj-ui/dist-types/ui/TopBar.d.ts",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "TopBar.js",
-                      "path": "apps/sj-ui/dist-types/ui/TopBar.js",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "view-models.d.ts",
-                      "path": "apps/sj-ui/dist-types/ui/view-models.d.ts",
-                      "kind": "file",
-                      "children": []
-                    },
-                    {
-                      "name": "view-models.js",
-                      "path": "apps/sj-ui/dist-types/ui/view-models.js",
-                      "kind": "file",
-                      "children": []
-                    }
-                  ]
-                },
-                {
-                  "name": "bootcheck.d.ts",
-                  "path": "apps/sj-ui/dist-types/bootcheck.d.ts",
-                  "kind": "file",
-                  "children": []
-                },
-                {
-                  "name": "bootcheck.js",
-                  "path": "apps/sj-ui/dist-types/bootcheck.js",
-                  "kind": "file",
-                  "children": []
-                },
-                {
-                  "name": "main.d.ts",
-                  "path": "apps/sj-ui/dist-types/main.d.ts",
-                  "kind": "file",
-                  "children": []
-                },
-                {
-                  "name": "main.js",
-                  "path": "apps/sj-ui/dist-types/main.js",
-                  "kind": "file",
-                  "children": []
-                }
-              ]
-            },
-            {
               "name": "src",
               "path": "apps/sj-ui/src",
               "kind": "directory",
@@ -1063,6 +945,18 @@
                   "path": "apps/sj-ui/src/ui",
                   "kind": "directory",
                   "children": [
+                    {
+                      "name": "command-help.test.ts",
+                      "path": "apps/sj-ui/src/ui/command-help.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "command-help.ts",
+                      "path": "apps/sj-ui/src/ui/command-help.ts",
+                      "kind": "file",
+                      "children": []
+                    },
                     {
                       "name": "ContextTreePanel.ts",
                       "path": "apps/sj-ui/src/ui/ContextTreePanel.ts",
@@ -1094,6 +988,12 @@
                       "children": []
                     },
                     {
+                      "name": "guidance.test.ts",
+                      "path": "apps/sj-ui/src/ui/guidance.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
                       "name": "guidance.ts",
                       "path": "apps/sj-ui/src/ui/guidance.ts",
                       "kind": "file",
@@ -1112,6 +1012,24 @@
                       "children": []
                     },
                     {
+                      "name": "OnboardingPanel.test.ts",
+                      "path": "apps/sj-ui/src/ui/OnboardingPanel.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "OnboardingPanel.ts",
+                      "path": "apps/sj-ui/src/ui/OnboardingPanel.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "readiness.test.ts",
+                      "path": "apps/sj-ui/src/ui/readiness.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
                       "name": "readiness.ts",
                       "path": "apps/sj-ui/src/ui/readiness.ts",
                       "kind": "file",
@@ -1120,6 +1038,12 @@
                     {
                       "name": "TopBar.ts",
                       "path": "apps/sj-ui/src/ui/TopBar.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "view-models.test.ts",
+                      "path": "apps/sj-ui/src/ui/view-models.test.ts",
                       "kind": "file",
                       "children": []
                     },
@@ -1204,6 +1128,12 @@
                       "path": "apps/sj-ui/src-tauri/src/main.rs",
                       "kind": "file",
                       "children": []
+                    },
+                    {
+                      "name": "state_watch.rs",
+                      "path": "apps/sj-ui/src-tauri/src/state_watch.rs",
+                      "kind": "file",
+                      "children": []
                     }
                   ]
                 },
@@ -1264,6 +1194,12 @@
               "children": []
             },
             {
+              "name": "tsconfig.test.json",
+              "path": "apps/sj-ui/tsconfig.test.json",
+              "kind": "file",
+              "children": []
+            },
+            {
               "name": "vite.config.ts",
               "path": "apps/sj-ui/vite.config.ts",
               "kind": "file",
@@ -1319,6 +1255,63 @@
           "path": "configs/specialists.yaml",
           "kind": "file",
           "children": []
+        }
+      ]
+    },
+    {
+      "name": "crates",
+      "path": "crates",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "kiwi-runtime",
+          "path": "crates/kiwi-runtime",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "src",
+              "path": "crates/kiwi-runtime/src",
+              "kind": "directory",
+              "children": [
+                {
+                  "name": "daemon.rs",
+                  "path": "crates/kiwi-runtime/src/daemon.rs",
+                  "kind": "file",
+                  "children": []
+                },
+                {
+                  "name": "db.rs",
+                  "path": "crates/kiwi-runtime/src/db.rs",
+                  "kind": "file",
+                  "children": []
+                },
+                {
+                  "name": "lib.rs",
+                  "path": "crates/kiwi-runtime/src/lib.rs",
+                  "kind": "file",
+                  "children": []
+                },
+                {
+                  "name": "main.rs",
+                  "path": "crates/kiwi-runtime/src/main.rs",
+                  "kind": "file",
+                  "children": []
+                },
+                {
+                  "name": "models.rs",
+                  "path": "crates/kiwi-runtime/src/models.rs",
+                  "kind": "file",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "name": "Cargo.toml",
+              "path": "crates/kiwi-runtime/Cargo.toml",
+              "kind": "file",
+              "children": []
+            }
+          ]
         }
       ]
     },
@@ -1486,6 +1479,12 @@
         {
           "name": "privacy-policy.md",
           "path": "docs/privacy-policy.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "README.md",
+          "path": "docs/README.md",
           "kind": "file",
           "children": []
         },
@@ -1841,6 +1840,12 @@
                       "children": []
                     },
                     {
+                      "name": "execution-plan-recovery.ts",
+                      "path": "packages/sj-cli/src/commands/execution-plan-recovery.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
                       "name": "execution-step-runner.ts",
                       "path": "packages/sj-cli/src/commands/execution-step-runner.ts",
                       "kind": "file",
@@ -1925,6 +1930,12 @@
                       "children": []
                     },
                     {
+                      "name": "repo-map.ts",
+                      "path": "packages/sj-cli/src/commands/repo-map.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
                       "name": "resume.ts",
                       "path": "packages/sj-cli/src/commands/resume.ts",
                       "kind": "file",
@@ -1945,6 +1956,12 @@
                     {
                       "name": "run.ts",
                       "path": "packages/sj-cli/src/commands/run.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "runtime.ts",
+                      "path": "packages/sj-cli/src/commands/runtime.ts",
                       "kind": "file",
                       "children": []
                     },
@@ -2065,6 +2082,12 @@
                       "children": []
                     },
                     {
+                      "name": "context-tree.test.ts",
+                      "path": "packages/sj-cli/src/tests/context-tree.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
                       "name": "context.test.ts",
                       "path": "packages/sj-cli/src/tests/context.test.ts",
                       "kind": "file",
@@ -2073,6 +2096,12 @@
                     {
                       "name": "dispatch.test.ts",
                       "path": "packages/sj-cli/src/tests/dispatch.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "execution-state.test.ts",
+                      "path": "packages/sj-cli/src/tests/execution-state.test.ts",
                       "kind": "file",
                       "children": []
                     },
@@ -2155,8 +2184,20 @@
                       "children": []
                     },
                     {
+                      "name": "repo-intelligence.test.ts",
+                      "path": "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
                       "name": "router.test.ts",
                       "path": "packages/sj-cli/src/tests/router.test.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "runtime-identity.test.ts",
+                      "path": "packages/sj-cli/src/tests/runtime-identity.test.ts",
                       "kind": "file",
                       "children": []
                     },
@@ -2376,6 +2417,12 @@
                       "children": []
                     },
                     {
+                      "name": "execution-state.ts",
+                      "path": "packages/sj-core/src/core/execution-state.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
                       "name": "executor.ts",
                       "path": "packages/sj-core/src/core/executor.ts",
                       "kind": "file",
@@ -2490,6 +2537,18 @@
                       "children": []
                     },
                     {
+                      "name": "repo-intelligence.ts",
+                      "path": "packages/sj-core/src/core/repo-intelligence.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "repo-readiness.ts",
+                      "path": "packages/sj-core/src/core/repo-readiness.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
                       "name": "risk.ts",
                       "path": "packages/sj-core/src/core/risk.ts",
                       "kind": "file",
@@ -2498,6 +2557,12 @@
                     {
                       "name": "router.ts",
                       "path": "packages/sj-core/src/core/router.ts",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "runtime-decision.ts",
+                      "path": "packages/sj-core/src/core/runtime-decision.ts",
                       "kind": "file",
                       "children": []
                     },
@@ -2629,6 +2694,12 @@
                   "path": "packages/sj-core/src/runtime",
                   "kind": "directory",
                   "children": [
+                    {
+                      "name": "client.ts",
+                      "path": "packages/sj-core/src/runtime/client.ts",
+                      "kind": "file",
+                      "children": []
+                    },
                     {
                       "name": "ui-bridge.ts",
                       "path": "packages/sj-core/src/runtime/ui-bridge.ts",
@@ -2815,8 +2886,26 @@
           "children": []
         },
         {
+          "name": "clean-macos-sidecars.sh",
+          "path": "scripts/clean-macos-sidecars.sh",
+          "kind": "file",
+          "children": []
+        },
+        {
           "name": "copy-runtime-assets.mjs",
           "path": "scripts/copy-runtime-assets.mjs",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "ensure-cloudflare-pages-project.mjs",
+          "path": "scripts/ensure-cloudflare-pages-project.mjs",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "generate-product-media.mjs",
+          "path": "scripts/generate-product-media.mjs",
           "kind": "file",
           "children": []
         },
@@ -2839,8 +2928,20 @@
           "children": []
         },
         {
+          "name": "package-release-assets.mjs",
+          "path": "scripts/package-release-assets.mjs",
+          "kind": "file",
+          "children": []
+        },
+        {
           "name": "prepare-release-manifest.mjs",
           "path": "scripts/prepare-release-manifest.mjs",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "prepare-runtime-sidecar.mjs",
+          "path": "scripts/prepare-runtime-sidecar.mjs",
           "kind": "file",
           "children": []
         },
@@ -2869,6 +2970,12 @@
           "children": []
         },
         {
+          "name": "run-ui-desktop-test.mjs",
+          "path": "scripts/run-ui-desktop-test.mjs",
+          "kind": "file",
+          "children": []
+        },
+        {
           "name": "run-ui-dev.mjs",
           "path": "scripts/run-ui-dev.mjs",
           "kind": "file",
@@ -2887,6 +2994,54 @@
           "children": []
         },
         {
+          "name": "stage-cli-bundle.mjs",
+          "path": "scripts/stage-cli-bundle.mjs",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "test-cli-features.sh",
+          "path": "scripts/test-cli-features.sh",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "test-core-features.sh",
+          "path": "scripts/test-core-features.sh",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "test-desktop-features.sh",
+          "path": "scripts/test-desktop-features.sh",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "test-product-features.sh",
+          "path": "scripts/test-product-features.sh",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "upsert-route53-pages-record.mjs",
+          "path": "scripts/upsert-route53-pages-record.mjs",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "verify-bundled-cli-install.mjs",
+          "path": "scripts/verify-bundled-cli-install.mjs",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "verify-cli-ui-truth.mjs",
+          "path": "scripts/verify-cli-ui-truth.mjs",
+          "kind": "file",
+          "children": []
+        },
+        {
           "name": "verify-global-hard.sh",
           "path": "scripts/verify-global-hard.sh",
           "kind": "file",
@@ -2895,6 +3050,18 @@
         {
           "name": "verify-global.sh",
           "path": "scripts/verify-global.sh",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "verify-installed-launch-flow.mjs",
+          "path": "scripts/verify-installed-launch-flow.mjs",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "verify-rendered-desktop.mjs",
+          "path": "scripts/verify-rendered-desktop.mjs",
           "kind": "file",
           "children": []
         }
@@ -3034,6 +3201,25 @@
           ]
         },
         {
+          "name": "support",
+          "path": "website/support",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "index.html",
+              "path": "website/support/index.html",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "app.js",
+          "path": "website/app.js",
+          "kind": "file",
+          "children": []
+        },
+        {
           "name": "index.html",
           "path": "website/index.html",
           "kind": "file",
@@ -3167,6 +3353,6 @@
     "selectionDepth": 3,
     "explainDepth": 5
   },
-  "filesDiscovered": 362,
-  "importableFiles": 185
+  "filesDiscovered": 385,
+  "importableFiles": 190
 }

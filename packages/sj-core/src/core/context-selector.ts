@@ -5,6 +5,7 @@ import { inspectGitState } from "./git.js";
 import { computeAdaptiveWeights } from "./context-feedback.js";
 import type { AdaptiveWeights } from "./context-feedback.js";
 import { buildContextIndex } from "./context-index.js";
+import { persistRepoIntelligenceIndexArtifacts } from "./repo-intelligence.js";
 import { getMemoryPaths } from "./memory.js";
 import { matchSkillsForTask } from "./skills-registry.js";
 import { getStatePaths } from "./state.js";
@@ -419,11 +420,12 @@ async function collectSignals(
     importNeighbors = contextIndex.lastImpact.impactedFiles;
     forwardDependencies = contextIndex.lastImpact.forwardDependencies;
     reverseDependencies = contextIndex.lastImpact.reverseDependencies;
-    dependencyDistances = contextIndex.lastImpact.dependencyDistances;
-    dependencyChains = contextIndex.lastImpact.dependencyChains;
-    discoveryMetrics = {
-      ...discovery.metrics,
-      indexedFiles: contextIndex.indexedFiles,
+      dependencyDistances = contextIndex.lastImpact.dependencyDistances;
+      dependencyChains = contextIndex.lastImpact.dependencyChains;
+      await persistRepoIntelligenceIndexArtifacts(targetRoot, contextIndex).catch(() => null);
+      discoveryMetrics = {
+        ...discovery.metrics,
+        indexedFiles: contextIndex.indexedFiles,
       indexUpdatedFiles: contextIndex.updatedFiles.length,
       indexReusedFiles: contextIndex.reusedFiles,
       impactFiles: contextIndex.lastImpact.impactedFiles.length

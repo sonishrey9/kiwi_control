@@ -2,6 +2,7 @@ import type { GlobalBootstrapDefaults, LoadedConfig, ProjectType } from "./confi
 import { getGlobalHomeRoot, loadGlobalBootstrapDefaults } from "./config.js";
 import { initOrSyncTarget, summarizeWrites } from "./executor.js";
 import { buildRepoContextSeedArtifacts, buildRepoContextTree, persistRepoContextSeedArtifacts, persistRepoContextTreeArtifacts } from "./context-tree.js";
+import { buildRepoIntelligenceArtifacts, persistRepoIntelligenceArtifacts } from "./repo-intelligence.js";
 import { buildBootstrapNextAction, buildBootstrapNextFileToRead, buildBootstrapNextSuggestedCommand, buildChecksToRun, buildFirstReadContract } from "./guidance.js";
 import { inspectBootstrapTarget, type BootstrapInspection } from "./project-detect.js";
 import { PRODUCT_METADATA } from "./product.js";
@@ -307,8 +308,16 @@ export async function syncRepoAwareBootstrapArtifacts(
     nextSuggestedCommand: string;
   }
 ): Promise<WriteResult[]> {
-  const { state, view } = await buildRepoContextTree(targetRoot, options.projectType);
+  const { state, view, index } = await buildRepoContextTree(targetRoot, options.projectType);
   const treeResults = await persistRepoContextTreeArtifacts(targetRoot, state, view);
+  const intelligenceResults = await persistRepoIntelligenceArtifacts(
+    targetRoot,
+    await buildRepoIntelligenceArtifacts({
+      tree: state,
+      view,
+      index
+    })
+  );
   const memoryResults = await persistRepoContextSeedArtifacts(
     targetRoot,
     buildRepoContextSeedArtifacts(state, {
@@ -344,7 +353,7 @@ export async function syncRepoAwareBootstrapArtifacts(
     nextSuggestedMcpPack: preserveContinuity ? existingHints?.nextSuggestedMcpPack ?? options.recommendedMcpPack : options.recommendedMcpPack,
     latestMemoryFocus: ".agent/memory/current-focus.json"
   }).catch(() => null);
-  return [...treeResults, ...memoryResults];
+  return [...treeResults, ...intelligenceResults, ...memoryResults];
 }
 
 function resolveStarterSpecialists(

@@ -88,7 +88,7 @@ export function renderInspectorPanel(context: InspectorRenderContext): string {
           ${renderGateRow("Validation", kc.runtimeLifecycle.validationStatus ?? "unknown", kc.runtimeLifecycle.validationStatus === "error" ? "warn" : "default")}
         </div>
         <p>${escapeHtml(kc.runtimeLifecycle.nextRecommendedAction ?? "No runtime lifecycle recommendation is recorded yet.")}</p>
-        <p>${escapeHtml(`Runtime-derived snapshot${runtimeLifecycleSnapshot?.sourceRevision != null ? ` · revision ${runtimeLifecycleSnapshot.sourceRevision}` : ""}${runtimeLifecycleSnapshot?.generatedAt ? ` · generated ${runtimeLifecycleSnapshot.generatedAt}` : ""}.`)}</p>
+        <p>${escapeHtml(`Compatibility/debug snapshot${runtimeLifecycleSnapshot?.sourceRevision != null ? ` · revision ${runtimeLifecycleSnapshot.sourceRevision}` : ""}${runtimeLifecycleSnapshot?.generatedAt ? ` · generated ${runtimeLifecycleSnapshot.generatedAt}` : ""}.`)}</p>
       </section>
 
       <section class="kc-inspector-section">

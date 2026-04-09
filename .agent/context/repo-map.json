@@ -1,0 +1,204 @@
+{
+  "artifactType": "kiwi-control/repo-map",
+  "version": 1,
+  "generatedAt": "2026-04-09T11:26:50.018Z",
+  "projectType": "node",
+  "summary": "Discovered 385 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
+  "languages": [
+    "docs",
+    "javascript",
+    "rust",
+    "typescript"
+  ],
+  "entryPoints": [
+    "apps/sj-ui/package.json",
+    "apps/sj-ui/src-tauri/Cargo.toml",
+    "apps/sj-ui/src/bootcheck.ts",
+    "apps/sj-ui/src/main.ts",
+    "apps/sj-ui/src/ui/OnboardingPanel.test.ts",
+    "apps/sj-ui/src/ui/readiness.test.ts",
+    "apps/sj-ui/src/ui/view-models.test.ts",
+    "crates/kiwi-runtime/Cargo.toml",
+    "hooks/post-edit.ts",
+    "hooks/pre-command.ts",
+    "hooks/pre-commit.ts",
+    "hooks/risk-gate.ts",
+    "package.json",
+    "packages/sj-cli/package.json",
+    "packages/sj-cli/src/cli.ts",
+    "packages/sj-cli/src/commands/commit-plan.ts"
+  ],
+  "keyModules": [
+    {
+      "id": "packages/sj-cli",
+      "fileCount": 76,
+      "entryPoints": [
+        "packages/sj-cli/src/cli.ts",
+        "packages/sj-cli/src/commands/commit-plan.ts",
+        "packages/sj-cli/src/commands/launch.ts",
+        "packages/sj-cli/src/commands/phase-close.ts",
+        "packages/sj-cli/src/commands/release-check.ts",
+        "packages/sj-cli/src/tests/bootstrap.test.ts",
+        "packages/sj-cli/src/tests/check.test.ts",
+        "packages/sj-cli/src/tests/checkpoint.test.ts",
+        "packages/sj-cli/src/tests/cli-ux.test.ts",
+        "packages/sj-cli/src/tests/collect.test.ts",
+        "packages/sj-cli/src/tests/context-feedback.test.ts",
+        "packages/sj-cli/src/tests/context-selector.test.ts",
+        "packages/sj-cli/src/tests/context-tree.test.ts",
+        "packages/sj-cli/src/tests/context.test.ts",
+        "packages/sj-cli/src/tests/dispatch.test.ts",
+        "packages/sj-cli/src/tests/execution-state.test.ts",
+        "packages/sj-cli/src/tests/fs.test.ts",
+        "packages/sj-cli/src/tests/git.test.ts",
+        "packages/sj-cli/src/tests/handoff.test.ts",
+        "packages/sj-cli/src/tests/machine-advisory.test.ts",
+        "packages/sj-cli/src/tests/packets.test.ts",
+        "packages/sj-cli/src/tests/prepare.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.desktop-bundles.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+        "packages/sj-cli/src/tests/profiles.test.ts",
+        "packages/sj-cli/src/tests/project-detect.test.ts",
+        "packages/sj-cli/src/tests/reconcile.test.ts",
+        "packages/sj-cli/src/tests/redact.test.ts",
+        "packages/sj-cli/src/tests/repo-intelligence.test.ts",
+        "packages/sj-cli/src/tests/router.test.ts",
+        "packages/sj-cli/src/tests/runtime-identity.test.ts",
+        "packages/sj-cli/src/tests/runtime.test.ts",
+        "packages/sj-cli/src/tests/sj-init.test.ts",
+        "packages/sj-cli/src/tests/specialists.test.ts",
+        "packages/sj-cli/src/tests/standardize.test.ts",
+        "packages/sj-cli/src/tests/state.test.ts",
+        "packages/sj-cli/src/tests/sync.test.ts",
+        "packages/sj-cli/src/tests/workflow-engine.test.ts"
+      ]
+    },
+    {
+      "id": "packages/sj-core",
+      "fileCount": 70,
+      "entryPoints": [
+        "packages/sj-core/src/core/bootstrap.ts",
+        "packages/sj-core/src/core/discovery.ts",
+        "packages/sj-core/src/core/execution-engine.ts",
+        "packages/sj-core/src/core/handoff.ts",
+        "packages/sj-core/src/core/instruction-generator.ts",
+        "packages/sj-core/src/core/launch.ts",
+        "packages/sj-core/src/core/logger.ts",
+        "packages/sj-core/src/core/release.ts",
+        "packages/sj-core/src/index.ts",
+        "packages/sj-core/src/runtime/ui-bridge.ts"
+      ]
+    },
+    {
+      "id": "apps/sj-ui",
+      "fileCount": 21,
+      "entryPoints": [
+        "apps/sj-ui/src/bootcheck.ts",
+        "apps/sj-ui/src/main.ts",
+        "apps/sj-ui/src/ui/command-help.test.ts",
+        "apps/sj-ui/src/ui/guidance.test.ts",
+        "apps/sj-ui/src/ui/OnboardingPanel.test.ts",
+        "apps/sj-ui/src/ui/readiness.test.ts",
+        "apps/sj-ui/src/ui/view-models.test.ts",
+        "apps/sj-ui/vite.config.ts"
+      ]
+    },
+    {
+      "id": "scripts",
+      "fileCount": 18,
+      "entryPoints": [
+        "scripts/copy-runtime-assets.mjs",
+        "scripts/ensure-cloudflare-pages-project.mjs",
+        "scripts/generate-product-media.mjs",
+        "scripts/generate-release-checksums.mjs",
+        "scripts/package-release-assets.mjs",
+        "scripts/prepare-release-manifest.mjs",
+        "scripts/prepare-runtime-sidecar.mjs",
+        "scripts/remove-macos-metadata.mjs",
+        "scripts/run-cli.mjs",
+        "scripts/run-ui-desktop-build.mjs",
+        "scripts/run-ui-desktop-test.mjs",
+        "scripts/run-ui-dev.mjs",
+        "scripts/stage-cli-bundle.mjs",
+        "scripts/upsert-route53-pages-record.mjs",
+        "scripts/verify-bundled-cli-install.mjs",
+        "scripts/verify-cli-ui-truth.mjs",
+        "scripts/verify-installed-launch-flow.mjs",
+        "scripts/verify-rendered-desktop.mjs"
+      ]
+    },
+    {
+      "id": "hooks",
+      "fileCount": 4,
+      "entryPoints": [
+        "hooks/post-edit.ts",
+        "hooks/pre-command.ts",
+        "hooks/pre-commit.ts",
+        "hooks/risk-gate.ts"
+      ]
+    },
+    {
+      "id": "website",
+      "fileCount": 1,
+      "entryPoints": [
+        "website/app.js"
+      ]
+    }
+  ],
+  "topReverseDependencyHubs": [
+    {
+      "file": "packages/sj-core/src/utils/fs.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 43
+    },
+    {
+      "file": "packages/sj-core/src/core/config.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 26
+    },
+    {
+      "file": "packages/sj-core/src/core/state.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 17
+    },
+    {
+      "file": "packages/sj-core/src/core/product.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 11
+    },
+    {
+      "file": "packages/sj-core/src/core/specialists.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 10
+    },
+    {
+      "file": "packages/sj-core/src/core/context.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 9
+    },
+    {
+      "file": "packages/sj-core/src/core/router.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 9
+    },
+    {
+      "file": "apps/sj-ui/src/ui/contracts.ts",
+      "moduleGroup": "apps/sj-ui",
+      "importedByCount": 7
+    },
+    {
+      "file": "packages/sj-core/src/core/git.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 7
+    },
+    {
+      "file": "packages/sj-core/src/core/profiles.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 7
+    }
+  ],
+  "filesDiscovered": 385,
+  "importableFiles": 190,
+  "indexedFiles": 190
+}

@@ -18,7 +18,7 @@ export function renderExecutionPlanPanelView(context: ExecutionPlanPanelRenderCo
     <section class="kc-panel">
       ${renderPanelHeader(
         "Execution Plan",
-        `${plan.summary || "No execution plan is recorded yet."} Runtime-derived snapshot${derivedSnapshot?.sourceRevision != null ? ` · revision ${derivedSnapshot.sourceRevision}` : ""}${derivedSnapshot?.generatedAt ? ` · generated ${derivedSnapshot.generatedAt}` : ""}.`
+        `${plan.summary || "No execution plan is recorded yet."} Compatibility/debug snapshot${derivedSnapshot?.sourceRevision != null ? ` · revision ${derivedSnapshot.sourceRevision}` : ""}${derivedSnapshot?.generatedAt ? ` · generated ${derivedSnapshot.generatedAt}` : ""}.`
       )}
       <div class="kc-inline-badges">
         ${renderInlineBadge(`state: ${plan.state}`)}

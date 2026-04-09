@@ -25,11 +25,7 @@ export interface RuntimeCommandResult {
 
 const AUTHORITATIVE_DERIVED_OUTPUTS = new Set([
   "execution-state",
-  "execution-events",
-  "execution-plan",
-  "workflow",
-  "runtime-lifecycle",
-  "decision-logic"
+  "execution-events"
 ]);
 
 export async function runRuntime(options: RuntimeCommandOptions): Promise<number> {

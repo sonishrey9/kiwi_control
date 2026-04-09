@@ -49,6 +49,7 @@ import type { FeedbackSummary } from "./context-feedback.js";
 import { buildExecutionSummary } from "./execution-log.js";
 import type { ExecutionSummary } from "./execution-log.js";
 import { loadPreparedScope, validateTouchedFilesAgainstAllowedFiles } from "./prepared-scope.js";
+import { loadRepoIntelligenceSummary, type RepoIntelligenceSummary } from "./repo-intelligence.js";
 import { runtimeDecisionFromSnapshot } from "./runtime-decision.js";
 import { classifyFileArea, deriveTaskArea } from "./task-intent.js";
 import { loadWorkflowState } from "./workflow-engine.js";
@@ -360,6 +361,8 @@ export interface KiwiControlExecutionPlan {
   partialResults: ExecutionPlanState["partialResults"];
 }
 
+export interface KiwiControlRepoIntelligence extends RepoIntelligenceSummary {}
+
 export interface KiwiControlState {
   contextView: KiwiControlContextView;
   tokenAnalytics: KiwiControlTokenAnalytics;
@@ -380,6 +383,7 @@ export interface KiwiControlState {
   workflow: KiwiControlWorkflow;
   executionTrace: KiwiControlExecutionTrace;
   executionPlan: KiwiControlExecutionPlan;
+  repoIntelligence: KiwiControlRepoIntelligence;
 }
 
 export interface RepoControlState {
@@ -431,11 +435,7 @@ const DEFAULT_WARM_SNAPSHOT_MAX_AGE_MS = 120_000;
 const DEFAULT_STALE_SNAPSHOT_MAX_AGE_MS = 10 * 60_000;
 const AUTHORITATIVE_DERIVED_OUTPUTS = new Set([
   "execution-state",
-  "execution-events",
-  "execution-plan",
-  "workflow",
-  "runtime-lifecycle",
-  "decision-logic"
+  "execution-events"
 ]);
 
 function repoControlSnapshotPath(targetRoot: string): string {
@@ -1247,7 +1247,8 @@ async function loadKiwiControlState(
     persistedSkills,
     workflowFilePresent,
     hasInstructions,
-    preparedScope
+    preparedScope,
+    repoIntelligence
   ] = await Promise.all([
     readJsonIfPresent<ContextSelectionState>(contextSelectionPath),
     readJsonIfPresent<IndexingState>(indexingPath),
@@ -1259,7 +1260,21 @@ async function loadKiwiControlState(
     readJsonIfPresent<SkillRegistryState>(skillsRegistryPath),
     pathExists(workflowPath),
     pathExists(instructionsPath),
-    loadPreparedScope(targetRoot).catch(() => null)
+    loadPreparedScope(targetRoot).catch(() => null),
+    loadRepoIntelligenceSummary(targetRoot).catch(() => ({
+      available: false,
+      generatedAt: null,
+      summary: null,
+      repoMapPath: null,
+      symbolIndexPath: null,
+      dependencyGraphPath: null,
+      impactMapPath: null,
+      entryPoints: [],
+      keyModules: [],
+      topReverseDependencyHubs: [],
+      changedFiles: [],
+      impactedFiles: []
+    }))
   ]);
 
   let contextView: KiwiControlContextView = {
@@ -1720,7 +1735,8 @@ async function loadKiwiControlState(
       impactPreview: executionPlan.impactPreview,
       verificationLayers: executionPlan.verificationLayers,
       partialResults: executionPlan.partialResults
-    }
+    },
+    repoIntelligence
   };
 }
 

@@ -35,6 +35,7 @@ import { runUsage } from "./commands/usage.js";
 import { runEval } from "./commands/eval.js";
 import { runAuto } from "./commands/run-auto.js";
 import { runRuntime } from "./commands/runtime.js";
+import { runRepoMap } from "./commands/repo-map.js";
 
 interface ParsedArgs {
   command: string | undefined;
@@ -221,6 +222,20 @@ async function main(): Promise<void> {
         targetRoot,
         ...(typeof parsed.flags.profile === "string" ? { profileName: String(parsed.flags.profile) } : {}),
         refreshDerived: parsed.flags["refresh-derived"] === true,
+        json: parsed.flags.json === true,
+        logger
+      });
+      return;
+    case "repo-map":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
+      process.exitCode = await runRepoMap({
+        repoRoot,
+        targetRoot,
+        ...(typeof parsed.flags.focus === "string" ? { focus: String(parsed.flags.focus) } : {}),
+        changed: parsed.flags.changed === true,
+        ...(typeof parsed.flags.limit === "string" && Number.isFinite(Number(parsed.flags.limit))
+          ? { limit: Number(parsed.flags.limit) }
+          : {}),
         json: parsed.flags.json === true,
         logger
       });
@@ -499,6 +514,7 @@ Core commands:
   ${primaryCommand} trace [--json] [--target /path/to/repo]
   ${primaryCommand} doctor [--machine] [--json] [--target /path/to/repo]
   ${primaryCommand} runtime [--refresh-derived] [--json] [--target /path/to/repo]
+  ${primaryCommand} repo-map [--focus path/to/file.ts] [--changed] [--limit 12] [--json] [--target /path/to/repo]
   ${primaryCommand} toolchain [--refresh] [--json]
   ${primaryCommand} usage [--refresh] [--json]
   ${primaryCommand} eval [--json] [--target /path/to/repo]
@@ -581,6 +597,7 @@ main().catch((error: unknown) => {
         "trace",
         "doctor",
         "runtime",
+        "repo-map",
         "toolchain",
         "usage",
         "eval",
