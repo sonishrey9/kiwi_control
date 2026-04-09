@@ -1273,7 +1273,13 @@ async function loadKiwiControlState(
       keyModules: [],
       topReverseDependencyHubs: [],
       changedFiles: [],
-      impactedFiles: []
+      impactedFiles: [],
+      compactContextPackAvailable: false,
+      compactContextPackPath: null,
+      compactContextPackMode: null,
+      compactContextPackTask: null,
+      compactContextPackSummary: null,
+      compactContextPackFiles: 0
     }))
   ]);
 

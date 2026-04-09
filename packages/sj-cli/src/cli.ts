@@ -233,6 +233,7 @@ async function main(): Promise<void> {
         targetRoot,
         ...(typeof parsed.flags.focus === "string" ? { focus: String(parsed.flags.focus) } : {}),
         changed: parsed.flags.changed === true,
+        ...(typeof parsed.flags.task === "string" ? { task: String(parsed.flags.task) } : {}),
         ...(typeof parsed.flags.limit === "string" && Number.isFinite(Number(parsed.flags.limit))
           ? { limit: Number(parsed.flags.limit) }
           : {}),
@@ -514,7 +515,7 @@ Core commands:
   ${primaryCommand} trace [--json] [--target /path/to/repo]
   ${primaryCommand} doctor [--machine] [--json] [--target /path/to/repo]
   ${primaryCommand} runtime [--refresh-derived] [--json] [--target /path/to/repo]
-  ${primaryCommand} repo-map [--focus path/to/file.ts] [--changed] [--limit 12] [--json] [--target /path/to/repo]
+  ${primaryCommand} repo-map [--task "goal"] [--focus path/to/file.ts|module|dir] [--changed] [--limit 12] [--json] [--target /path/to/repo]
   ${primaryCommand} toolchain [--refresh] [--json]
   ${primaryCommand} usage [--refresh] [--json]
   ${primaryCommand} eval [--json] [--target /path/to/repo]

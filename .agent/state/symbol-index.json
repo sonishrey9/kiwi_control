@@ -1,9 +1,9 @@
 {
   "artifactType": "kiwi-control/symbol-index",
   "version": 1,
-  "generatedAt": "2026-04-09T11:26:50.018Z",
+  "generatedAt": "2026-04-09T12:35:43.797Z",
   "totalFiles": 190,
-  "totalSymbols": 1727,
+  "totalSymbols": 1732,
   "files": [
     {
       "file": "apps/sj-ui/src/bootcheck.ts",
@@ -2131,6 +2131,7 @@
         "buildCompactContextPack",
         "buildRepoIntelligenceArtifacts",
         "loadRepoIntelligenceSummary",
+        "persistCompactContextPack",
         "persistRepoIntelligenceArtifacts",
         "persistRepoIntelligenceIndexArtifacts"
       ],
@@ -2142,13 +2143,17 @@
         "buildRepoIntelligenceArtifacts",
         "buildRepoMap",
         "buildSymbolIndex",
+        "compactContextPackPath",
         "dependencyGraphPath",
+        "deriveImpactClusterId",
         "impactMapPath",
         "loadRepoIntelligenceSummary",
+        "persistCompactContextPack",
         "persistRepoIntelligenceArtifacts",
         "persistRepoIntelligenceIndexArtifacts",
         "readJsonIfPresent",
         "repoMapPath",
+        "resolveFocusTargets",
         "symbolIndexPath",
         "uniqueEdges",
         "uniqueStrings",
@@ -5198,6 +5203,12 @@
       "moduleGroup": "apps/sj-ui"
     },
     {
+      "symbol": "compactContextPackPath",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "compactTimestamp",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/planner.ts",
@@ -5628,6 +5639,12 @@
       "kind": "local-function",
       "file": "apps/sj-ui/src/ui/graph-model.ts",
       "moduleGroup": "apps/sj-ui"
+    },
+    {
+      "symbol": "deriveImpactClusterId",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
     },
     {
       "symbol": "deriveInteractiveSelectedFiles",
@@ -9296,6 +9313,18 @@
       "moduleGroup": "packages/sj-core"
     },
     {
+      "symbol": "persistCompactContextPack",
+      "kind": "export",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "persistCompactContextPack",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
       "symbol": "persistContextFeedback",
       "kind": "export",
       "file": "packages/sj-core/src/core/context-feedback.ts",
@@ -11159,6 +11188,12 @@
       "symbol": "resolveExecutionMode",
       "kind": "local-function",
       "file": "packages/sj-core/src/core/profiles.ts",
+      "moduleGroup": "packages/sj-core"
+    },
+    {
+      "symbol": "resolveFocusTargets",
+      "kind": "local-function",
+      "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core"
     },
     {

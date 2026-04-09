@@ -142,6 +142,12 @@ test("ui command returns structured repo-control state in json mode", async () =
         symbolIndexPath: string | null;
         dependencyGraphPath: string | null;
         impactMapPath: string | null;
+        compactContextPackAvailable: boolean;
+        compactContextPackPath: string | null;
+        compactContextPackMode: string | null;
+        compactContextPackTask: string | null;
+        compactContextPackSummary: string | null;
+        compactContextPackFiles: number;
         entryPoints: string[];
       };
       fileAnalysis: { totalFiles: number; selected: Array<{ file: string; selectionWhy?: string; dependencyChain?: string[] }> };
@@ -213,6 +219,11 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(payload.kiwiControl.repoIntelligence.symbolIndexPath, ".agent/state/symbol-index.json");
   assert.equal(payload.kiwiControl.repoIntelligence.dependencyGraphPath, ".agent/state/dependency-graph.json");
   assert.equal(payload.kiwiControl.repoIntelligence.impactMapPath, ".agent/state/impact-map.json");
+  assert.equal(payload.kiwiControl.repoIntelligence.compactContextPackAvailable, true);
+  assert.equal(payload.kiwiControl.repoIntelligence.compactContextPackPath, ".agent/context/compact-context-pack.json");
+  assert.match(payload.kiwiControl.repoIntelligence.compactContextPackMode ?? "", /overview|focus|changed/);
+  assert.equal(typeof payload.kiwiControl.repoIntelligence.compactContextPackSummary, "string");
+  assert.equal(typeof payload.kiwiControl.repoIntelligence.compactContextPackFiles, "number");
   assert.equal(Array.isArray(payload.kiwiControl.repoIntelligence.entryPoints), true);
   assert.equal(typeof payload.kiwiControl.fileAnalysis.totalFiles, "number");
   assert.equal(Array.isArray(payload.kiwiControl.fileAnalysis.selected), true);

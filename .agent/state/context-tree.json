@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/context-tree",
   "version": 1,
-  "timestamp": "2026-04-09T11:26:50.018Z",
+  "timestamp": "2026-04-09T12:35:43.797Z",
   "targetRoot": "/Volumes/shrey ssd/shrey-junior",
   "projectType": "node",
   "languages": [
@@ -73,17 +73,17 @@
       "importedByCount": 9
     },
     {
+      "file": "packages/sj-core/src/core/task-intent.ts",
+      "moduleGroup": "packages/sj-core",
+      "importedByCount": 8
+    },
+    {
       "file": "apps/sj-ui/src/ui/contracts.ts",
       "moduleGroup": "apps/sj-ui",
       "importedByCount": 7
     },
     {
       "file": "packages/sj-core/src/core/git.ts",
-      "moduleGroup": "packages/sj-core",
-      "importedByCount": 7
-    },
-    {
-      "file": "packages/sj-core/src/core/profiles.ts",
       "moduleGroup": "packages/sj-core",
       "importedByCount": 7
     }

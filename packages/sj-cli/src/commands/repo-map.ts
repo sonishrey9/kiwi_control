@@ -4,6 +4,7 @@ import { buildRepoContextTree, persistRepoContextTreeArtifacts } from "@shrey-ju
 import {
   buildCompactContextPack,
   buildRepoIntelligenceArtifacts,
+  persistCompactContextPack,
   persistRepoIntelligenceArtifacts
 } from "@shrey-junior/sj-core/core/repo-intelligence.js";
 import { inspectBootstrapTarget } from "@shrey-junior/sj-core/core/project-detect.js";
@@ -16,6 +17,7 @@ export interface RepoMapOptions {
   json?: boolean;
   focus?: string;
   changed?: boolean;
+  task?: string;
   limit?: number;
   logger: Logger;
 }
@@ -40,9 +42,12 @@ export async function runRepoMap(options: RepoMapOptions): Promise<number> {
   const compactContextPack = buildCompactContextPack({
     index,
     repoMap: artifacts.repoMap,
-    ...(options.changed ? { focusFiles: index.lastImpact.changedFiles, mode: "changed" as const } : focusFiles.length > 0 ? { focusFiles, mode: "focus" as const } : { mode: "overview" as const }),
+    impactMap: artifacts.impactMap,
+    ...(options.changed ? { focusTargets: index.lastImpact.changedFiles, mode: "changed" as const } : focusFiles.length > 0 ? { focusTargets: focusFiles, mode: "focus" as const } : { mode: "overview" as const }),
+    ...(options.task ? { task: options.task } : {}),
     ...(typeof options.limit === "number" ? { limit: options.limit } : {})
   });
+  await persistCompactContextPack(options.targetRoot, compactContextPack);
 
   const payload = {
     artifactPaths: {
@@ -50,6 +55,7 @@ export async function runRepoMap(options: RepoMapOptions): Promise<number> {
       symbolIndex: ".agent/state/symbol-index.json",
       dependencyGraph: ".agent/state/dependency-graph.json",
       impactMap: ".agent/state/impact-map.json",
+      compactContextPack: ".agent/context/compact-context-pack.json",
       contextTree: ".agent/context/context-tree.json"
     },
     repoMap: artifacts.repoMap,
@@ -69,6 +75,9 @@ export async function runRepoMap(options: RepoMapOptions): Promise<number> {
   options.logger.info(`entry points: ${artifacts.repoMap.entryPoints.slice(0, 8).join(", ") || "none"}`);
   options.logger.info(`changed files: ${artifacts.impactMap.changedFiles.slice(0, 8).join(", ") || "none"}`);
   options.logger.info(`impacted files: ${artifacts.impactMap.impactedFiles.slice(0, 8).join(", ") || "none"}`);
+  if (options.task) {
+    options.logger.info(`task: ${options.task}`);
+  }
   options.logger.info(`compact pack: ${compactContextPack.summary}`);
   if (compactContextPack.files.length > 0) {
     options.logger.info(`focus files: ${compactContextPack.files.map((entry) => entry.file).join(", ")}`);

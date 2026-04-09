@@ -49,6 +49,7 @@ test("repo-map builds compact repo intelligence artifacts and a changed-area con
     repoRoot: repoRootPath,
     targetRoot: target,
     changed: true,
+    task: "fix helper behavior",
     json: true,
     logger: {
       info(message: string) {
@@ -66,6 +67,7 @@ test("repo-map builds compact repo intelligence artifacts and a changed-area con
       symbolIndex: string;
       dependencyGraph: string;
       impactMap: string;
+      compactContextPack: string;
     };
     repoMap: {
       artifactType: string;
@@ -86,12 +88,17 @@ test("repo-map builds compact repo intelligence artifacts and a changed-area con
       changedFiles: string[];
       impactedFiles: string[];
       dependencyChains: Record<string, string[]>;
+      rankedFiles: Array<{ file: string; score: number; reasons: string[] }>;
+      rankedModules: Array<{ id: string; score: number; topFiles: string[] }>;
+      clusters: Array<{ id: string; score: number; topFiles: string[] }>;
     };
     compactContextPack: {
       artifactType: string;
       mode: string;
-      files: Array<{ file: string; reasons: string[] }>;
-      modules: Array<{ id: string }>;
+      task: string | null;
+      files: Array<{ file: string; score: number; reasons: string[]; matchedTerms: string[]; matchedSymbols: string[] }>;
+      modules: Array<{ id: string; score: number }>;
+      clusters: Array<{ id: string; score: number }>;
     };
   };
 
@@ -101,7 +108,9 @@ test("repo-map builds compact repo intelligence artifacts and a changed-area con
   assert.equal(payload.impactMap.artifactType, "kiwi-control/impact-map");
   assert.equal(payload.compactContextPack.artifactType, "kiwi-control/compact-context-pack");
   assert.equal(payload.compactContextPack.mode, "changed");
+  assert.equal(payload.compactContextPack.task, "fix helper behavior");
   assert.equal(payload.artifactPaths.repoMap, ".agent/context/repo-map.json");
+  assert.equal(payload.artifactPaths.compactContextPack, ".agent/context/compact-context-pack.json");
   assert.ok(payload.repoMap.entryPoints.some((entry) => entry.endsWith("src/main.ts")));
   assert.ok(payload.symbolIndex.symbols.some((entry) => entry.symbol === "helper" && entry.file === "src/helper.ts"));
   assert.ok(
@@ -113,9 +122,17 @@ test("repo-map builds compact repo intelligence artifacts and a changed-area con
   assert.ok(payload.impactMap.impactedFiles.includes("src/main.ts"));
   assert.ok(payload.impactMap.impactedFiles.includes("src/worker.ts"));
   assert.deepEqual(payload.impactMap.dependencyChains["src/main.ts"], ["src/helper.ts", "src/main.ts"]);
+  assert.equal(payload.impactMap.rankedFiles[0]?.file, "src/helper.ts");
+  assert.ok(payload.impactMap.rankedFiles.some((entry) => entry.file === "src/main.ts" && entry.score > 0));
+  assert.ok(payload.impactMap.rankedModules.some((entry) => entry.score > 0));
+  assert.ok(payload.impactMap.clusters.some((entry) => entry.id === "src" && entry.score > 0));
   assert.ok(payload.compactContextPack.files.some((entry) => entry.file === "src/helper.ts"));
   assert.ok(payload.compactContextPack.files.some((entry) => entry.file === "src/main.ts"));
+  assert.ok(payload.compactContextPack.files.some((entry) => entry.file === "src/helper.ts" && entry.matchedSymbols.includes("helper")));
+  assert.ok(payload.compactContextPack.files.every((entry) => typeof entry.score === "number"));
   assert.ok(payload.compactContextPack.modules.length > 0);
+  assert.ok(payload.compactContextPack.modules.some((entry) => entry.score > 0));
+  assert.ok(payload.compactContextPack.clusters.some((entry) => entry.id === "src" && entry.score > 0));
 
   const controlState = await buildRepoControlState({
     repoRoot: repoRootPath,
@@ -124,5 +141,8 @@ test("repo-map builds compact repo intelligence artifacts and a changed-area con
   });
   assert.equal(controlState.kiwiControl.repoIntelligence.available, true);
   assert.equal(controlState.kiwiControl.repoIntelligence.repoMapPath, ".agent/context/repo-map.json");
+  assert.equal(controlState.kiwiControl.repoIntelligence.compactContextPackAvailable, true);
+  assert.equal(controlState.kiwiControl.repoIntelligence.compactContextPackPath, ".agent/context/compact-context-pack.json");
+  assert.equal(controlState.kiwiControl.repoIntelligence.compactContextPackTask, "fix helper behavior");
   assert.ok(controlState.kiwiControl.repoIntelligence.impactedFiles.includes("src/main.ts"));
 });

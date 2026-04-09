@@ -3,6 +3,7 @@ import type { WriteResult } from "../utils/fs.js";
 import { ensureDir, pathExists, readJson, readText, relativeFrom, writeText } from "../utils/fs.js";
 import type { ContextIndexFileRecord, ContextIndexState } from "./context-index.js";
 import type { RepoContextOperatorView, RepoContextTreeState } from "./context-tree.js";
+import { classifyFileArea, deriveTaskArea, deriveTaskCategory, tokenizeTaskText } from "./task-intent.js";
 
 export interface RepoMapState {
   artifactType: "kiwi-control/repo-map";
@@ -83,6 +84,31 @@ export interface ImpactMapState {
   dependencyDistances: Record<string, number>;
   dependencyChains: Record<string, string[]>;
   impactedModules: string[];
+  rankedFiles: Array<{
+    file: string;
+    moduleGroup: string;
+    score: number;
+    reasons: string[];
+    changed: boolean;
+    entryPoint: boolean;
+    importedByCount: number;
+    dependencyDistance: number | null;
+  }>;
+  rankedModules: Array<{
+    id: string;
+    score: number;
+    changedFiles: string[];
+    impactedFiles: string[];
+    entryPoints: string[];
+    topFiles: string[];
+  }>;
+  clusters: Array<{
+    id: string;
+    changedFiles: string[];
+    impactedFiles: string[];
+    score: number;
+    topFiles: string[];
+  }>;
 }
 
 export interface CompactContextPack {
@@ -90,13 +116,17 @@ export interface CompactContextPack {
   version: 1;
   generatedAt: string;
   mode: "overview" | "focus" | "changed";
+  task: string | null;
   focusFiles: string[];
   missingFocusFiles: string[];
   summary: string;
   files: Array<{
     file: string;
     moduleGroup: string;
+    score: number;
     reasons: string[];
+    matchedTerms: string[];
+    matchedSymbols: string[];
     exports: string[];
     localFunctions: string[];
     imports: string[];
@@ -111,6 +141,15 @@ export interface CompactContextPack {
     id: string;
     fileCount: number;
     entryPoints: string[];
+    score: number;
+    topFiles: string[];
+  }>;
+  clusters: Array<{
+    id: string;
+    score: number;
+    changedFiles: string[];
+    impactedFiles: string[];
+    topFiles: string[];
   }>;
 }
 
@@ -138,6 +177,12 @@ export interface RepoIntelligenceSummary {
   topReverseDependencyHubs: RepoMapState["topReverseDependencyHubs"];
   changedFiles: string[];
   impactedFiles: string[];
+  compactContextPackAvailable: boolean;
+  compactContextPackPath: string | null;
+  compactContextPackMode: CompactContextPack["mode"] | null;
+  compactContextPackTask: string | null;
+  compactContextPackSummary: string | null;
+  compactContextPackFiles: number;
 }
 
 export async function buildRepoIntelligenceArtifacts(options: {
@@ -146,11 +191,12 @@ export async function buildRepoIntelligenceArtifacts(options: {
   index: ContextIndexState;
 }): Promise<RepoIntelligenceArtifacts> {
   const generatedAt = options.tree.timestamp;
+  const repoMap = buildRepoMap(options.tree, options.view, options.index, generatedAt);
   return {
-    repoMap: buildRepoMap(options.tree, options.view, options.index, generatedAt),
+    repoMap,
     symbolIndex: buildSymbolIndex(options.index, generatedAt),
     dependencyGraph: buildDependencyGraph(options.index, generatedAt),
-    impactMap: buildImpactMap(options.index, generatedAt)
+    impactMap: buildImpactMap(options.index, generatedAt, repoMap)
   };
 }
 
@@ -171,17 +217,19 @@ export async function persistRepoIntelligenceIndexArtifacts(
   index: ContextIndexState
 ): Promise<WriteResult[]> {
   const generatedAt = index.timestamp;
+  const repoMap = await readJsonIfPresent<RepoMapState>(repoMapPath(targetRoot));
   return Promise.all([
     writeJsonArtifact(symbolIndexPath(targetRoot), buildSymbolIndex(index, generatedAt)),
     writeJsonArtifact(dependencyGraphPath(targetRoot), buildDependencyGraph(index, generatedAt)),
-    writeJsonArtifact(impactMapPath(targetRoot), buildImpactMap(index, generatedAt))
+    writeJsonArtifact(impactMapPath(targetRoot), buildImpactMap(index, generatedAt, repoMap))
   ]);
 }
 
 export async function loadRepoIntelligenceSummary(targetRoot: string): Promise<RepoIntelligenceSummary> {
-  const [repoMap, impactMap, hasSymbolIndex, hasDependencyGraph] = await Promise.all([
+  const [repoMap, impactMap, compactContextPack, hasSymbolIndex, hasDependencyGraph] = await Promise.all([
     readJsonIfPresent<RepoMapState>(repoMapPath(targetRoot)),
     readJsonIfPresent<ImpactMapState>(impactMapPath(targetRoot)),
+    readJsonIfPresent<CompactContextPack>(compactContextPackPath(targetRoot)),
     pathExists(symbolIndexPath(targetRoot)),
     pathExists(dependencyGraphPath(targetRoot))
   ]);
@@ -199,7 +247,13 @@ export async function loadRepoIntelligenceSummary(targetRoot: string): Promise<R
       keyModules: [],
       topReverseDependencyHubs: [],
       changedFiles: [],
-      impactedFiles: []
+      impactedFiles: [],
+      compactContextPackAvailable: false,
+      compactContextPackPath: null,
+      compactContextPackMode: null,
+      compactContextPackTask: null,
+      compactContextPackSummary: null,
+      compactContextPackFiles: 0
     };
   }
 
@@ -215,15 +269,23 @@ export async function loadRepoIntelligenceSummary(targetRoot: string): Promise<R
     keyModules: repoMap.keyModules,
     topReverseDependencyHubs: repoMap.topReverseDependencyHubs,
     changedFiles: impactMap.changedFiles,
-    impactedFiles: impactMap.impactedFiles
+    impactedFiles: impactMap.impactedFiles,
+    compactContextPackAvailable: Boolean(compactContextPack),
+    compactContextPackPath: compactContextPack ? relativeFrom(targetRoot, compactContextPackPath(targetRoot)) : null,
+    compactContextPackMode: compactContextPack?.mode ?? null,
+    compactContextPackTask: compactContextPack?.task ?? null,
+    compactContextPackSummary: compactContextPack?.summary ?? null,
+    compactContextPackFiles: compactContextPack?.files.length ?? 0
   };
 }
 
 export function buildCompactContextPack(options: {
   index: ContextIndexState;
   repoMap: RepoMapState;
-  focusFiles?: string[];
+  impactMap?: ImpactMapState;
+  focusTargets?: string[];
   mode?: "overview" | "focus" | "changed";
+  task?: string;
   limit?: number;
 }): CompactContextPack {
   const fileMap = new Map(options.index.files.map((entry) => [entry.file, entry] as const));
@@ -234,11 +296,16 @@ export function buildCompactContextPack(options: {
     moduleMap.set(entry.moduleGroup, moduleFiles);
   }
 
-  const requestedFocus = uniqueStrings(options.focusFiles ?? []);
-  const focusFiles = requestedFocus.filter((file) => fileMap.has(file));
-  const missingFocusFiles = requestedFocus.filter((file) => !fileMap.has(file));
+  const impactMap = options.impactMap ?? buildImpactMap(options.index, options.index.timestamp, options.repoMap);
+  const requestedFocus = uniqueStrings(options.focusTargets ?? []);
+  const resolvedFocus = resolveFocusTargets(requestedFocus, fileMap, moduleMap);
+  const focusFiles = resolvedFocus.focusFiles;
+  const missingFocusFiles = resolvedFocus.missingFocusTargets;
   const mode = options.mode ?? (focusFiles.length > 0 ? "focus" : "overview");
   const limit = Math.max(4, Math.min(options.limit ?? 12, 24));
+  const taskTokens = uniqueStrings(tokenizeTaskText(options.task ?? ""));
+  const taskArea = options.task ? deriveTaskArea(options.task) : "unknown";
+  const taskCategory = options.task ? deriveTaskCategory(options.task) : "general";
 
   const seedFiles =
     mode === "changed" && options.index.lastImpact.changedFiles.length > 0
@@ -250,16 +317,40 @@ export function buildCompactContextPack(options: {
             ...options.repoMap.topReverseDependencyHubs.slice(0, 4).map((entry) => entry.file)
           ]).filter((file) => fileMap.has(file));
 
-  const ranking = new Map<string, { score: number; reasons: Set<string> }>();
-  const addRank = (file: string, score: number, reason: string): void => {
+  const impactRanks = new Map(impactMap.rankedFiles.map((entry) => [entry.file, entry] as const));
+  const ranking = new Map<string, { score: number; reasons: Set<string>; matchedTerms: Set<string>; matchedSymbols: Set<string> }>();
+  const addRank = (
+    file: string,
+    score: number,
+    reason: string,
+    options: { matchedTerm?: string; matchedSymbol?: string } = {}
+  ): void => {
     if (!fileMap.has(file)) {
       return;
     }
-    const current = ranking.get(file) ?? { score: Number.NEGATIVE_INFINITY, reasons: new Set<string>() };
-    current.score = Math.max(current.score, score);
+    const current = ranking.get(file) ?? {
+      score: 0,
+      reasons: new Set<string>(),
+      matchedTerms: new Set<string>(),
+      matchedSymbols: new Set<string>()
+    };
+    current.score += score;
     current.reasons.add(reason);
+    if (options.matchedTerm) {
+      current.matchedTerms.add(options.matchedTerm);
+    }
+    if (options.matchedSymbol) {
+      current.matchedSymbols.add(options.matchedSymbol);
+    }
     ranking.set(file, current);
   };
+
+  for (const [file, impactRank] of impactRanks) {
+    addRank(file, impactRank.score, impactRank.changed ? "impact rank (changed)" : "impact rank");
+    for (const reason of impactRank.reasons) {
+      addRank(file, impactRank.score, reason);
+    }
+  }
 
   for (const file of seedFiles) {
     addRank(file, 100, mode === "changed" ? "changed file" : "focus file");
@@ -290,6 +381,33 @@ export function buildCompactContextPack(options: {
     }
   }
 
+  if (taskTokens.length > 0) {
+    for (const [file, record] of fileMap) {
+      const area = classifyFileArea(file);
+      if (taskArea !== "unknown" && area === taskArea) {
+        addRank(file, 52, "task area match");
+      } else if (taskCategory === "docs" && area === "context") {
+        addRank(file, 30, "docs context support");
+      } else if (taskArea !== "unknown" && area !== "unknown") {
+        addRank(file, 18, "cross-area support");
+      }
+
+      const pathWords = tokenizeTaskText(file.replace(/[/.]/g, " "));
+      const pathMatches = taskTokens.filter((token) => pathWords.includes(token) || record.moduleGroup.toLowerCase().includes(token));
+      for (const token of pathMatches.slice(0, 4)) {
+        addRank(file, 62, "task term match", { matchedTerm: token });
+      }
+
+      const symbolPool = [...record.exports, ...record.localFunctions];
+      for (const token of taskTokens) {
+        const matchedSymbols = symbolPool.filter((symbol) => symbol.toLowerCase().includes(token));
+        for (const symbol of matchedSymbols.slice(0, 3)) {
+          addRank(file, 72, "task symbol match", { matchedTerm: token, matchedSymbol: symbol });
+        }
+      }
+    }
+  }
+
   const selectedFiles = [...ranking.entries()]
     .sort((left, right) => {
       if (right[1].score !== left[1].score) {
@@ -305,7 +423,10 @@ export function buildCompactContextPack(options: {
     return {
       file,
       moduleGroup: record.moduleGroup,
+      score: ranking.get(file)?.score ?? 0,
       reasons: [...(ranking.get(file)?.reasons ?? new Set<string>())].sort((left, right) => left.localeCompare(right)),
+      matchedTerms: [...(ranking.get(file)?.matchedTerms ?? new Set<string>())].sort((left, right) => left.localeCompare(right)),
+      matchedSymbols: [...(ranking.get(file)?.matchedSymbols ?? new Set<string>())].sort((left, right) => left.localeCompare(right)),
       exports: record.exports,
       localFunctions: record.localFunctions,
       imports: record.imports,
@@ -323,28 +444,47 @@ export function buildCompactContextPack(options: {
     .sort((left, right) => left.file.localeCompare(right.file));
 
   const moduleIds = uniqueStrings(files.map((entry) => entry.moduleGroup));
+  const moduleRanks = new Map(impactMap.rankedModules.map((entry) => [entry.id, entry] as const));
   const modules = options.repoMap.keyModules
     .filter((entry) => moduleIds.includes(entry.id))
-    .sort((left, right) => right.fileCount - left.fileCount || left.id.localeCompare(right.id));
+    .map((entry) => ({
+      id: entry.id,
+      fileCount: entry.fileCount,
+      entryPoints: entry.entryPoints,
+      score: moduleRanks.get(entry.id)?.score ?? 0,
+      topFiles: moduleRanks.get(entry.id)?.topFiles ?? []
+    }))
+    .sort((left, right) => right.score - left.score || right.fileCount - left.fileCount || left.id.localeCompare(right.id));
+
+  const selectedFileSet = new Set(selectedFiles);
+  const clusters = impactMap.clusters
+    .filter((entry) =>
+      entry.changedFiles.some((file) => selectedFileSet.has(file))
+      || entry.impactedFiles.some((file) => selectedFileSet.has(file))
+      || entry.topFiles.some((file) => selectedFileSet.has(file))
+    )
+    .sort((left, right) => right.score - left.score || left.id.localeCompare(right.id));
 
   const summary =
     mode === "changed"
-      ? `Focused changed-area pack with ${files.length} related files across ${modules.length} module groups.`
+      ? `${options.task ? `Task-focused changed-area pack for "${options.task}"` : "Focused changed-area pack"} with ${files.length} related files across ${modules.length} module groups.`
       : mode === "focus"
-        ? `Focused repo pack for ${focusFiles.join(", ") || "requested files"} with ${files.length} structurally related files.`
-        : `Overview repo pack with ${files.length} high-signal files across ${modules.length} module groups.`;
+        ? `${options.task ? `Task-focused pack for "${options.task}" around` : "Focused repo pack for"} ${focusFiles.join(", ") || requestedFocus.join(", ") || "requested files"} with ${files.length} structurally related files.`
+        : `${options.task ? `Task-focused repo pack for "${options.task}"` : "Overview repo pack"} with ${files.length} high-signal files across ${modules.length} module groups.`;
 
   return {
     artifactType: "kiwi-control/compact-context-pack",
     version: 1,
     generatedAt: options.index.timestamp,
     mode,
+    task: options.task ?? null,
     focusFiles: seedFiles,
     missingFocusFiles,
     summary,
     files,
     dependencyChains,
-    modules
+    modules,
+    clusters
   };
 }
 
@@ -450,14 +590,146 @@ function buildDependencyGraph(index: ContextIndexState, generatedAt: string): De
   };
 }
 
-function buildImpactMap(index: ContextIndexState, generatedAt: string): ImpactMapState {
+function buildImpactMap(
+  index: ContextIndexState,
+  generatedAt: string,
+  repoMap?: RepoMapState | null
+): ImpactMapState {
   const moduleByFile = new Map(index.files.map((record) => [record.file, record.moduleGroup] as const));
+  const recordByFile = new Map(index.files.map((record) => [record.file, record] as const));
+  const entryPoints = new Set(repoMap?.entryPoints ?? []);
+  const changedFiles = new Set(index.lastImpact.changedFiles);
   const impactedModules = uniqueStrings(
     [
       ...index.lastImpact.changedFiles,
       ...index.lastImpact.impactedFiles
     ].map((file) => moduleByFile.get(file) ?? "root")
   );
+  const callTargetsByFile = new Map(index.files.map((record) => [record.file, new Set(record.importCallTargets)] as const));
+  const rankedFiles = uniqueStrings([
+    ...index.lastImpact.changedFiles,
+    ...index.lastImpact.impactedFiles
+  ]).map((file) => {
+    const record = recordByFile.get(file);
+    const distance = index.lastImpact.dependencyDistances[file] ?? null;
+    const reasons = new Set<string>();
+    let score = 0;
+
+    if (changedFiles.has(file)) {
+      score += 100;
+      reasons.add("changed file");
+    }
+
+    if (index.lastImpact.forwardDependencies.includes(file)) {
+      score += Math.max(18, 34 - ((distance ?? 3) * 4));
+      reasons.add("forward dependency");
+    }
+
+    if (index.lastImpact.reverseDependencies.includes(file)) {
+      score += Math.max(22, 42 - ((distance ?? 3) * 5));
+      reasons.add("reverse dependent");
+    }
+
+    if (index.lastImpact.dependencyChains[file]?.length) {
+      score += 8;
+      reasons.add("dependency chain");
+    }
+
+    if (entryPoints.has(file)) {
+      score += 18;
+      reasons.add("entry point");
+    }
+
+    if (record) {
+      const importedByCount = record.importedBy.length;
+      if (importedByCount > 0) {
+        score += Math.min(importedByCount, 8);
+        reasons.add("reverse dependency hub");
+      }
+
+      const moduleChangedCount = index.lastImpact.changedFiles.filter((changedFile) => moduleByFile.get(changedFile) === record.moduleGroup).length;
+      if (moduleChangedCount > 0) {
+        score += Math.min(moduleChangedCount * 10, 20);
+        reasons.add("changed-area cluster");
+      }
+
+      for (const changedFile of changedFiles) {
+        if (callTargetsByFile.get(changedFile)?.has(file) || callTargetsByFile.get(file)?.has(changedFile)) {
+          score += 12;
+          reasons.add("call relationship");
+          break;
+        }
+      }
+    }
+
+    return {
+      file,
+      moduleGroup: moduleByFile.get(file) ?? "root",
+      score,
+      reasons: [...reasons].sort((left, right) => left.localeCompare(right)),
+      changed: changedFiles.has(file),
+      entryPoint: entryPoints.has(file),
+      importedByCount: record?.importedBy.length ?? 0,
+      dependencyDistance: distance
+    };
+  }).sort((left, right) => right.score - left.score || left.file.localeCompare(right.file));
+
+  const rankedModules = impactedModules.map((moduleId) => {
+    const moduleFiles = rankedFiles.filter((entry) => entry.moduleGroup === moduleId);
+    const changed = moduleFiles.filter((entry) => entry.changed).map((entry) => entry.file);
+    const impacted = moduleFiles.filter((entry) => !entry.changed).map((entry) => entry.file);
+    const moduleEntryPoints = [...entryPoints].filter((entry) => moduleByFile.get(entry) === moduleId);
+    const score =
+      moduleFiles.reduce((total, entry) => total + entry.score, 0)
+      + (moduleEntryPoints.length * 12)
+      + (changed.length * 10);
+
+    return {
+      id: moduleId,
+      score,
+      changedFiles: changed,
+      impactedFiles: impacted,
+      entryPoints: moduleEntryPoints,
+      topFiles: moduleFiles.slice(0, 5).map((entry) => entry.file)
+    };
+  }).sort((left, right) => right.score - left.score || left.id.localeCompare(right.id));
+
+  const clusterAccumulator = new Map<string, {
+    changedFiles: Set<string>;
+    impactedFiles: Set<string>;
+    score: number;
+    topFiles: Array<{ file: string; score: number }>;
+  }>();
+  for (const fileEntry of rankedFiles) {
+    const clusterId = deriveImpactClusterId(fileEntry.file);
+    const cluster = clusterAccumulator.get(clusterId) ?? {
+      changedFiles: new Set<string>(),
+      impactedFiles: new Set<string>(),
+      score: 0,
+      topFiles: []
+    };
+    if (fileEntry.changed) {
+      cluster.changedFiles.add(fileEntry.file);
+    } else {
+      cluster.impactedFiles.add(fileEntry.file);
+    }
+    cluster.score += fileEntry.score;
+    cluster.topFiles.push({ file: fileEntry.file, score: fileEntry.score });
+    clusterAccumulator.set(clusterId, cluster);
+  }
+
+  const clusters = [...clusterAccumulator.entries()]
+    .map(([id, cluster]) => ({
+      id,
+      changedFiles: [...cluster.changedFiles].sort((left, right) => left.localeCompare(right)),
+      impactedFiles: [...cluster.impactedFiles].sort((left, right) => left.localeCompare(right)),
+      score: cluster.score,
+      topFiles: cluster.topFiles
+        .sort((left, right) => right.score - left.score || left.file.localeCompare(right.file))
+        .slice(0, 5)
+        .map((entry) => entry.file)
+    }))
+    .sort((left, right) => right.score - left.score || left.id.localeCompare(right.id));
 
   return {
     artifactType: "kiwi-control/impact-map",
@@ -469,7 +741,10 @@ function buildImpactMap(index: ContextIndexState, generatedAt: string): ImpactMa
     impactedFiles: index.lastImpact.impactedFiles,
     dependencyDistances: index.lastImpact.dependencyDistances,
     dependencyChains: index.lastImpact.dependencyChains,
-    impactedModules
+    impactedModules,
+    rankedFiles,
+    rankedModules,
+    clusters
   };
 }
 
@@ -487,6 +762,10 @@ function dependencyGraphPath(targetRoot: string): string {
 
 function impactMapPath(targetRoot: string): string {
   return path.join(targetRoot, ".agent", "state", "impact-map.json");
+}
+
+function compactContextPackPath(targetRoot: string): string {
+  return path.join(targetRoot, ".agent", "context", "compact-context-pack.json");
 }
 
 async function readJsonIfPresent<T>(filePath: string): Promise<T | null> {
@@ -522,8 +801,57 @@ async function writeJsonArtifact(filePath: string, value: unknown): Promise<Writ
   };
 }
 
+export async function persistCompactContextPack(
+  targetRoot: string,
+  compactContextPack: CompactContextPack
+): Promise<WriteResult> {
+  return writeJsonArtifact(compactContextPackPath(targetRoot), compactContextPack);
+}
+
 function uniqueStrings(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))].sort((left, right) => left.localeCompare(right));
+}
+
+function resolveFocusTargets(
+  requestedFocus: string[],
+  fileMap: Map<string, ContextIndexFileRecord>,
+  moduleMap: Map<string, Set<string>>
+): {
+  focusFiles: string[];
+  missingFocusTargets: string[];
+} {
+  const focusFiles = new Set<string>();
+  const missingFocusTargets: string[] = [];
+
+  for (const target of requestedFocus) {
+    if (fileMap.has(target)) {
+      focusFiles.add(target);
+      continue;
+    }
+
+    const moduleFiles = moduleMap.get(target);
+    if (moduleFiles) {
+      for (const file of moduleFiles) {
+        focusFiles.add(file);
+      }
+      continue;
+    }
+
+    const directoryMatches = [...fileMap.keys()].filter((file) => file.startsWith(`${target.replace(/\/+$/, "")}/`));
+    if (directoryMatches.length > 0) {
+      for (const file of directoryMatches) {
+        focusFiles.add(file);
+      }
+      continue;
+    }
+
+    missingFocusTargets.push(target);
+  }
+
+  return {
+    focusFiles: [...focusFiles].sort((left, right) => left.localeCompare(right)),
+    missingFocusTargets: missingFocusTargets.sort((left, right) => left.localeCompare(right))
+  };
 }
 
 function uniqueEdges(
@@ -542,4 +870,29 @@ function uniqueEdges(
     }
     return left.kind.localeCompare(right.kind);
   });
+}
+
+function deriveImpactClusterId(filePath: string): string {
+  const normalized = filePath.replace(/\\/g, "/");
+  const segments = normalized.split("/").filter(Boolean);
+  if (segments.length <= 1) {
+    return segments[0] ?? ".";
+  }
+  if (segments[0] === "apps" && segments[1]) {
+    return segments[2] === "src" && segments[3]
+      ? `apps/${segments[1]}/src/${segments[3]}`
+      : `apps/${segments[1]}`;
+  }
+  if (segments[0] === "packages" && segments[1]) {
+    return segments[2] === "src" && segments[3]
+      ? `packages/${segments[1]}/src/${segments[3]}`
+      : `packages/${segments[1]}`;
+  }
+  if (segments[0] === "src") {
+    return segments[1] && !segments[1].includes(".") ? `src/${segments[1]}` : "src";
+  }
+  if (segments[0] === "tests") {
+    return "tests";
+  }
+  return segments.length > 2 ? `${segments[0]}/${segments[1]}` : (segments[0] ?? ".");
 }

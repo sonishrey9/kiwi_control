@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/dependency-graph",
   "version": 1,
-  "generatedAt": "2026-04-09T11:26:50.018Z",
+  "generatedAt": "2026-04-09T12:35:43.797Z",
   "nodes": [
     {
       "file": "apps/sj-ui/src/bootcheck.ts",
@@ -1118,9 +1118,9 @@
     {
       "file": "packages/sj-core/src/core/repo-intelligence.ts",
       "moduleGroup": "packages/sj-core",
-      "exports": 5,
-      "localFunctions": 18,
-      "imports": 3,
+      "exports": 6,
+      "localFunctions": 22,
+      "imports": 4,
       "importedBy": 3
     },
     {
@@ -1193,7 +1193,7 @@
       "exports": 9,
       "localFunctions": 9,
       "imports": 1,
-      "importedBy": 7
+      "importedBy": 8
     },
     {
       "file": "packages/sj-core/src/core/task-pattern-memory.ts",
@@ -3773,6 +3773,16 @@
     {
       "from": "packages/sj-core/src/core/repo-intelligence.ts",
       "to": "packages/sj-core/src/core/context-tree.ts",
+      "kind": "import"
+    },
+    {
+      "from": "packages/sj-core/src/core/repo-intelligence.ts",
+      "to": "packages/sj-core/src/core/task-intent.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-core/src/core/repo-intelligence.ts",
+      "to": "packages/sj-core/src/core/task-intent.ts",
       "kind": "import"
     },
     {
@@ -6976,6 +6986,7 @@
       "imports": [
         "packages/sj-core/src/core/context-index.ts",
         "packages/sj-core/src/core/context-tree.ts",
+        "packages/sj-core/src/core/task-intent.ts",
         "packages/sj-core/src/utils/fs.ts"
       ],
       "importedBy": [
@@ -6984,11 +6995,13 @@
         "packages/sj-core/src/core/ui-state.ts"
       ],
       "callTargets": [
+        "packages/sj-core/src/core/task-intent.ts",
         "packages/sj-core/src/utils/fs.ts"
       ],
       "relationships": [
         "packages/sj-core/src/core/context-index.ts",
         "packages/sj-core/src/core/context-tree.ts",
+        "packages/sj-core/src/core/task-intent.ts",
         "packages/sj-core/src/utils/fs.ts"
       ]
     },
@@ -7186,6 +7199,7 @@
         "packages/sj-core/src/core/context-selector.ts",
         "packages/sj-core/src/core/execution-engine.ts",
         "packages/sj-core/src/core/instruction-generator.ts",
+        "packages/sj-core/src/core/repo-intelligence.ts",
         "packages/sj-core/src/core/skills-registry.ts",
         "packages/sj-core/src/core/token-estimator.ts",
         "packages/sj-core/src/core/ui-state.ts"

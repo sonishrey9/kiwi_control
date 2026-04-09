@@ -1,6 +1,6 @@
 import { contextSelector } from "@shrey-junior/sj-core/core/context-selector.js";
 import { buildRepoContextTree, persistRepoContextTreeArtifacts } from "@shrey-junior/sj-core/core/context-tree.js";
-import { buildRepoIntelligenceArtifacts, persistRepoIntelligenceArtifacts } from "@shrey-junior/sj-core/core/repo-intelligence.js";
+import { buildCompactContextPack, buildRepoIntelligenceArtifacts, persistCompactContextPack, persistRepoIntelligenceArtifacts } from "@shrey-junior/sj-core/core/repo-intelligence.js";
 import { syncExecutionPlan } from "@shrey-junior/sj-core/core/execution-plan.js";
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
 import { inspectBootstrapTarget } from "@shrey-junior/sj-core/core/project-detect.js";
@@ -23,12 +23,23 @@ export async function runPlan(options: PlanOptions): Promise<number> {
   const inspection = await inspectBootstrapTarget(options.targetRoot, config);
   const { state, view, index } = await buildRepoContextTree(options.targetRoot, inspection.projectType);
   await persistRepoContextTreeArtifacts(options.targetRoot, state, view);
+  const intelligenceArtifacts = await buildRepoIntelligenceArtifacts({
+    tree: state,
+    view,
+    index
+  });
   await persistRepoIntelligenceArtifacts(
     options.targetRoot,
-    await buildRepoIntelligenceArtifacts({
-      tree: state,
-      view,
-      index
+    intelligenceArtifacts
+  );
+  await persistCompactContextPack(
+    options.targetRoot,
+    buildCompactContextPack({
+      index,
+      repoMap: intelligenceArtifacts.repoMap,
+      impactMap: intelligenceArtifacts.impactMap,
+      mode: index.lastImpact.changedFiles.length > 0 ? "changed" : "overview",
+      task: options.task
     })
   );
   const plan = await syncExecutionPlan(options.targetRoot, {

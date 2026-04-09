@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/context-authority",
   "version": 1,
-  "updatedAt": "2026-04-09T11:26:50.018Z",
+  "updatedAt": "2026-04-09T12:35:43.797Z",
   "projectType": "node",
   "languages": [
     "docs",
@@ -33,7 +33,7 @@
     "packages/sj-core/src/core/specialists.ts",
     "packages/sj-core/src/core/context.ts",
     "packages/sj-core/src/core/router.ts",
-    "apps/sj-ui/src/ui/contracts.ts"
+    "packages/sj-core/src/core/task-intent.ts"
   ],
   "moduleRelationships": [
     {
