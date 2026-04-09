@@ -198,6 +198,11 @@ export interface RepoGraphStatus {
   edgeCount: number;
   moduleCount: number;
   symbolCount: number;
+  aliasAuthorityKind: string;
+  aliasCount: number;
+  aliasAmbiguityCount: number;
+  explicitAliasSourcePath: string;
+  explicitAliasSourceAvailable: boolean;
   artifactPath: string | null;
   compatibilityHash: string | null;
   compatibilityExportReady: boolean;
@@ -254,7 +259,9 @@ export interface RepoGraphQueryResolution {
   resolvedNodeId: string | null;
   resolvedModuleId: string | null;
   resolution: string;
+  score: number;
   candidates: string[];
+  reasons: string[];
 }
 
 export interface PersistRuntimeRepoGraphRequest {

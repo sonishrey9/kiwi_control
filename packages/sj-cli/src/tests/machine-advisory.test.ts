@@ -94,10 +94,12 @@ test("machine advisory builds fixture-driven machine state from local configs an
 
   assert.equal(advisory.inventory.some((tool) => tool.name === "code-review-graph" && tool.installed), true);
   assert.equal(advisory.inventory.some((tool) => tool.name === "ai-dashboard"), false);
+  assert.equal(advisory.inventory.some((tool) => tool.name.endsWith("-specialist")), false);
   assert.equal(advisory.mcpInventory.claudeTotal, 3);
   assert.equal(advisory.mcpInventory.codexTotal, 3);
   assert.equal(advisory.mcpInventory.copilotTotal, 2);
   assert.equal(advisory.mcpInventory.tokenServers.find((server) => server.name === "context-mode")?.codex, true);
+  assert.equal(advisory.mcpInventory.tokenServers.some((server) => server.name.endsWith("-specialist")), false);
   assert.equal(advisory.optimizationLayers.find((layer) => layer.name === "lean-ctx")?.codex, true);
   assert.equal(advisory.optimizationLayers.find((layer) => layer.name === "context-mode")?.codex, false);
   assert.equal(advisory.optimizationLayers.find((layer) => layer.name === "token-efficient rules")?.claude, true);
@@ -279,6 +281,7 @@ test("machine parity derives covered, partial, missing, and optional machine-glo
   assert.equal(parity.machineGlobalCapabilities.some((item) => item.status === "partial"), true);
   assert.equal(parity.machineGlobalCapabilities.some((item) => item.status === "missing"), true);
   assert.equal(parity.machineGlobalCapabilities.some((item) => item.status === "optional"), true);
+  assert.equal(parity.machineGlobalCapabilities.some((item) => item.id.endsWith("-specialist")), false);
   assert.equal(Array.isArray(parity.helpers), true);
   assert.equal(summary.available, true);
   assert.equal(typeof summary.machineGlobal.covered, "number");

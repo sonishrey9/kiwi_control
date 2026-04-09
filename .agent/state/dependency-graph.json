@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/dependency-graph",
   "version": 1,
-  "generatedAt": "2026-04-09T18:12:14.356Z",
+  "generatedAt": "2026-04-09T19:30:51.510Z",
   "nodes": [
     {
       "file": "apps/sj-ui/src/bootcheck.ts",
@@ -337,7 +337,7 @@
       "exports": 1,
       "localFunctions": 5,
       "imports": 0,
-      "importedBy": 2
+      "importedBy": 3
     },
     {
       "file": "packages/sj-cli/src/commands/guide.ts",
@@ -744,7 +744,7 @@
       "moduleGroup": "packages/sj-cli",
       "exports": 0,
       "localFunctions": 0,
-      "imports": 4,
+      "imports": 5,
       "importedBy": 0
     },
     {
@@ -2550,6 +2550,16 @@
       "from": "packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts",
       "to": "packages/sj-cli/src/tests/helpers/desktop-launch.ts",
       "kind": "call"
+    },
+    {
+      "from": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+      "to": "packages/sj-cli/src/commands/graph.ts",
+      "kind": "call"
+    },
+    {
+      "from": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
+      "to": "packages/sj-cli/src/commands/graph.ts",
+      "kind": "import"
     },
     {
       "from": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
@@ -5700,7 +5710,8 @@
       "imports": [],
       "importedBy": [
         "packages/sj-cli/src/cli.ts",
-        "packages/sj-cli/src/tests/agent-pack.test.ts"
+        "packages/sj-cli/src/tests/agent-pack.test.ts",
+        "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts"
       ],
       "callTargets": [],
       "relationships": []
@@ -6334,6 +6345,7 @@
       "file": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
       "moduleGroup": "packages/sj-cli",
       "imports": [
+        "packages/sj-cli/src/commands/graph.ts",
         "packages/sj-cli/src/commands/review.ts",
         "packages/sj-cli/src/commands/specialists.ts",
         "packages/sj-cli/src/commands/ui.ts",
@@ -6341,12 +6353,14 @@
       ],
       "importedBy": [],
       "callTargets": [
+        "packages/sj-cli/src/commands/graph.ts",
         "packages/sj-cli/src/commands/review.ts",
         "packages/sj-cli/src/commands/specialists.ts",
         "packages/sj-cli/src/commands/ui.ts",
         "packages/sj-cli/src/tests/helpers/desktop-launch.ts"
       ],
       "relationships": [
+        "packages/sj-cli/src/commands/graph.ts",
         "packages/sj-cli/src/commands/review.ts",
         "packages/sj-cli/src/commands/specialists.ts",
         "packages/sj-cli/src/commands/ui.ts",

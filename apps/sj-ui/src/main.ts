@@ -4158,7 +4158,7 @@ function renderMcpView(state: RepoControlState): string {
     <div class="kc-view-shell">
       <section class="kc-view-header">
         <div>
-          <p class="kc-view-kicker">MCP Surface</p>
+          <p class="kc-view-kicker">MCP / Tool Integrations</p>
           <h1>${escapeHtml(state.mcpPacks.suggestedPack.name ?? state.mcpPacks.suggestedPack.id)}</h1>
           <p>${escapeHtml(state.mcpPacks.suggestedPack.description)}</p>
         </div>
@@ -4166,7 +4166,7 @@ function renderMcpView(state: RepoControlState): string {
       </section>
 
       <div class="kc-stat-grid">
-        ${renderStatCard("Compatible MCPs", String(capabilities.length), "active specialist + profile", capabilities.length > 0 ? "success" : "warn")}
+        ${renderStatCard("Compatible MCPs", String(capabilities.length), "active workflow role + profile", capabilities.length > 0 ? "success" : "warn")}
         ${renderStatCard("High Trust", String(highTrustCount), "preferred first", highTrustCount > 0 ? "success" : "neutral")}
         ${renderStatCard("Write Capable", String(writeCapableCount), "requires judgment", writeCapableCount > 0 ? "warn" : "neutral")}
         ${renderStatCard("Approval Gates", String(approvalCount), "extra caution", approvalCount > 0 ? "warn" : "neutral")}
@@ -4184,10 +4184,10 @@ function renderMcpView(state: RepoControlState): string {
           </div>
         </section>
         <section class="kc-panel">
-          ${renderPanelHeader("Compatible MCP Capabilities", "These are the currently compatible MCP capabilities for the active specialist and repo profile.")}
+          ${renderPanelHeader("Compatible MCP Capabilities", "These are the currently compatible MCP integrations for the active repo workflow role and repo profile.")}
           ${capabilities.length > 0
             ? `<div class="kc-stack-list">${capabilities.map((capability) => renderCapabilityCard(capability)).join("")}</div>`
-            : renderEmptyState("No compatible MCP capabilities are currently exposed for this specialist and profile.")}
+            : renderEmptyState("No compatible MCP integrations are currently exposed for this workflow role and profile.")}
         </section>
       </div>
 
@@ -5627,7 +5627,7 @@ function buildBridgeUnavailableState(targetRoot: string): RepoControlState {
       available: [],
       compatibleCapabilities: [],
       capabilityStatus: "limited",
-      note: "No compatible MCP capabilities are available until repo-local state can be loaded."
+      note: "No compatible MCP integrations are available until repo-local state can be loaded."
     },
     validation: { ok: false, errors: hasTargetRoot ? 1 : 0, warnings: hasTargetRoot ? 0 : 1, issues: [] },
     ecosystem: {

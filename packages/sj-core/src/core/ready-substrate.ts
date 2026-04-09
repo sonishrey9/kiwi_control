@@ -46,6 +46,11 @@ export interface ReadyRepoSubstrateState {
     edgeCount: number;
     moduleCount: number;
     symbolCount: number;
+    aliasKind: string;
+    aliasCount: number;
+    aliasAmbiguityCount: number;
+    explicitAliasSourcePath: string;
+    explicitAliasSourceAvailable: boolean;
     artifactPath: string | null;
     compatibilityExportReady: boolean;
     compatibilityInSync: boolean;
@@ -153,6 +158,11 @@ export async function buildReadyRepoSubstrate(
       edgeCount: graphStatus?.edgeCount ?? 0,
       moduleCount: graphStatus?.moduleCount ?? 0,
       symbolCount: graphStatus?.symbolCount ?? 0,
+      aliasKind: graphStatus?.aliasAuthorityKind ?? "runtime-sqlite-normalized-aliases",
+      aliasCount: graphStatus?.aliasCount ?? 0,
+      aliasAmbiguityCount: graphStatus?.aliasAmbiguityCount ?? 0,
+      explicitAliasSourcePath: graphStatus?.explicitAliasSourcePath ?? ".agent/context/graph-aliases.json",
+      explicitAliasSourceAvailable: graphStatus?.explicitAliasSourceAvailable ?? false,
       artifactPath: graphStatus?.artifactPath ?? null,
       compatibilityExportReady: graphStatus?.compatibilityExportReady ?? false,
       compatibilityInSync: graphStatus?.compatibilityInSync ?? false,

@@ -13,6 +13,7 @@ import {
   buildRuntimeDecisionRecovery
 } from "@shrey-junior/sj-core/core/runtime-decision.js";
 import { buildRepoControlState, loadWarmRepoControlSnapshot } from "@shrey-junior/sj-core/core/ui-state.js";
+import { runGraph } from "../commands/graph.js";
 import { runReview } from "../commands/review.js";
 import { runSpecialists } from "../commands/specialists.js";
 import { runUi } from "../commands/ui.js";
@@ -92,6 +93,16 @@ test("ui command returns structured repo-control state in json mode", async () =
   await runReview({
     repoRoot: repoRootPath,
     targetRoot: target,
+    logger: {
+      info() {},
+      warn() {},
+      error() {}
+    } as never
+  });
+  await runGraph({
+    repoRoot: repoRootPath,
+    targetRoot: target,
+    action: "build",
     logger: {
       info() {},
       warn() {},
@@ -255,9 +266,11 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.match(payload.specialists.activeSpecialist, /-specialist$/);
   assert.equal(typeof payload.mcpPacks.suggestedPack.id, "string");
   assert.equal(Array.isArray(payload.mcpPacks.compatibleCapabilities), true);
+  assert.equal(payload.mcpPacks.compatibleCapabilities.some((entry) => entry.id.endsWith("-specialist")), false);
   assert.match(payload.mcpPacks.note, /MCP/i);
   assert.equal(payload.validation.ok, true);
   assert.equal(Array.isArray(payload.machineAdvisory.inventory), true);
+  assert.equal(payload.machineAdvisory.inventory.some((entry) => entry.name.endsWith("-specialist")), false);
   assert.equal(typeof payload.machineAdvisory.generatedBy, "string");
   assert.equal(typeof payload.machineAdvisory.windowDays, "number");
   assert.equal(typeof payload.machineAdvisory.systemHealth.criticalCount, "number");
@@ -275,6 +288,8 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(typeof payload.machineParity.machineGlobal.optional, "number");
   assert.equal(Array.isArray(payload.machineParity.topMissing), true);
   assert.equal(Array.isArray(payload.machineParity.topPartial), true);
+  assert.equal(payload.machineParity.topMissing.some((entry) => entry.id.endsWith("-specialist")), false);
+  assert.equal(payload.machineParity.topPartial.some((entry) => entry.id.endsWith("-specialist")), false);
   assert.equal(typeof payload.kiwiControl.indexing.discoveredFiles, "number");
   assert.equal(typeof payload.kiwiControl.indexing.coverageNote, "string");
   assert.equal(typeof payload.kiwiControl.repoIntelligence.available, "boolean");

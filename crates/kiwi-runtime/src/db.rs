@@ -328,7 +328,7 @@ pub fn persist_repo_graph(request: &PersistRepoGraphRequest) -> Result<RepoGraph
             source_digest
         ],
     )?;
-    persist_normalized_repo_graph_rows(&tx, graph_revision, &request.modules, &request.nodes, &request.edges)?;
+    persist_normalized_repo_graph_rows(&tx, &target_root, graph_revision, &request.modules, &request.nodes, &request.edges)?;
     tx.execute(
         "INSERT INTO repo_graph_events (target_id, graph_revision, source_revision, event_type, source_digest, recorded_at)
          VALUES (?1, ?2, ?3, 'graph-persisted', ?4, ?5)",
@@ -667,6 +667,17 @@ fn open_connection(target_root: &Path) -> Result<Connection> {
             query_value TEXT NOT NULL,
             created_at TEXT NOT NULL,
             FOREIGN KEY(graph_revision) REFERENCES repo_graph_revisions(graph_revision)
+         );
+         CREATE TABLE IF NOT EXISTS repo_graph_aliases (
+            graph_revision INTEGER NOT NULL,
+            alias_kind TEXT NOT NULL,
+            alias_value TEXT NOT NULL,
+            canonical_node_id TEXT NOT NULL,
+            canonical_module_id TEXT,
+            confidence INTEGER NOT NULL,
+            source TEXT NOT NULL,
+            PRIMARY KEY(graph_revision, alias_kind, alias_value, canonical_node_id),
+            FOREIGN KEY(graph_revision) REFERENCES repo_graph_revisions(graph_revision)
          );",
     )?;
     conn.execute_batch("DROP TABLE IF EXISTS repo_graph_state;")?;
@@ -678,7 +689,10 @@ fn open_connection(target_root: &Path) -> Result<Connection> {
          CREATE INDEX IF NOT EXISTS idx_repo_graph_nodes_symbol ON repo_graph_nodes(graph_revision, symbol);
          CREATE INDEX IF NOT EXISTS idx_repo_graph_edges_from ON repo_graph_edges(graph_revision, from_node_id);
          CREATE INDEX IF NOT EXISTS idx_repo_graph_edges_to ON repo_graph_edges(graph_revision, to_node_id);
-         CREATE INDEX IF NOT EXISTS idx_repo_graph_edges_kind ON repo_graph_edges(graph_revision, edge_kind);",
+         CREATE INDEX IF NOT EXISTS idx_repo_graph_edges_kind ON repo_graph_edges(graph_revision, edge_kind);
+         CREATE INDEX IF NOT EXISTS idx_repo_graph_aliases_value ON repo_graph_aliases(graph_revision, alias_value);
+         CREATE INDEX IF NOT EXISTS idx_repo_graph_aliases_kind ON repo_graph_aliases(graph_revision, alias_kind);
+         CREATE INDEX IF NOT EXISTS idx_repo_graph_aliases_module ON repo_graph_aliases(graph_revision, canonical_module_id);",
     )?;
     Ok(conn)
 }
@@ -1517,13 +1531,26 @@ struct StoredNormalizedRepoGraphStatus {
     source_digest: String,
 }
 
+#[derive(Clone)]
+struct AliasCandidate {
+    alias_kind: String,
+    alias_value: String,
+    canonical_module_id: Option<String>,
+    confidence: i64,
+    source: String,
+}
+
+const EXPLICIT_ALIAS_SOURCE_RELATIVE_PATH: &str = ".agent/context/graph-aliases.json";
+
 fn persist_normalized_repo_graph_rows(
     tx: &Transaction<'_>,
+    target_root: &Path,
     graph_revision: i64,
     modules: &[RepoGraphModule],
     nodes: &[RepoGraphNode],
     edges: &[RepoGraphEdge],
 ) -> Result<()> {
+    persist_repo_graph_aliases(tx, target_root, graph_revision, modules, nodes)?;
     for module in modules {
         tx.execute(
             "INSERT INTO repo_graph_modules (graph_revision, module_id, display_label, summary, attributes_json)
@@ -1566,6 +1593,63 @@ fn persist_normalized_repo_graph_rows(
                 edge.edge_kind,
                 edge.weight,
                 json_string(&edge.evidence)?,
+            ],
+        )?;
+    }
+    Ok(())
+}
+
+fn persist_repo_graph_aliases(
+    tx: &Transaction<'_>,
+    target_root: &Path,
+    graph_revision: i64,
+    modules: &[RepoGraphModule],
+    nodes: &[RepoGraphNode],
+) -> Result<()> {
+    for module in modules {
+        for alias in module_aliases(module) {
+            tx.execute(
+                "INSERT OR IGNORE INTO repo_graph_aliases (graph_revision, alias_kind, alias_value, canonical_node_id, canonical_module_id, confidence, source)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    graph_revision,
+                    alias.alias_kind,
+                    alias.alias_value,
+                    format!("module:{}", module.module_id),
+                    module.module_id,
+                    alias.confidence,
+                    alias.source
+                ],
+            )?;
+        }
+    }
+    for node in nodes {
+        for alias in node_aliases(node) {
+            tx.execute(
+                "INSERT OR IGNORE INTO repo_graph_aliases (graph_revision, alias_kind, alias_value, canonical_node_id, canonical_module_id, confidence, source)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    graph_revision,
+                alias.alias_kind,
+                alias.alias_value,
+                node.node_id,
+                alias.canonical_module_id.clone().or_else(|| node.module_id.clone()),
+                alias.confidence,
+                alias.source
+            ],
+        )?;
+    }
+    }
+    for alias in load_explicit_module_aliases(target_root)? {
+        tx.execute(
+            "INSERT OR IGNORE INTO repo_graph_aliases (graph_revision, alias_kind, alias_value, canonical_node_id, canonical_module_id, confidence, source)
+             VALUES (?1, 'explicit', ?2, ?3, ?4, ?5, 'repo-local-alias-file')",
+            params![
+                graph_revision,
+                alias.alias_value,
+                format!("module:{}", alias.canonical_module_id.clone().unwrap_or_default()),
+                alias.canonical_module_id.clone().unwrap_or_default(),
+                alias.confidence
             ],
         )?;
     }
@@ -1628,6 +1712,11 @@ fn repo_graph_status_from_revision(
             edge_count: row.edge_count,
             module_count: row.module_count,
             symbol_count: row.symbol_count,
+            alias_authority_kind: String::from("runtime-sqlite-normalized-aliases"),
+            alias_count: load_alias_count(conn, row.graph_revision).unwrap_or(0),
+            alias_ambiguity_count: load_alias_ambiguity_count(conn, row.graph_revision).unwrap_or(0),
+            explicit_alias_source_path: EXPLICIT_ALIAS_SOURCE_RELATIVE_PATH.to_string(),
+            explicit_alias_source_available: target_root.join(EXPLICIT_ALIAS_SOURCE_RELATIVE_PATH).exists(),
             artifact_path: row.artifact_path.clone(),
             compatibility_hash: row.compatibility_hash.clone(),
             compatibility_export_ready: row.artifact_path.as_ref().map(|relative| target_root.join(relative).exists()).unwrap_or(false),
@@ -1653,6 +1742,11 @@ fn repo_graph_status_from_revision(
             edge_count: 0,
             module_count: 0,
             symbol_count: 0,
+            alias_authority_kind: String::from("runtime-sqlite-normalized-aliases"),
+            alias_count: 0,
+            alias_ambiguity_count: 0,
+            explicit_alias_source_path: EXPLICIT_ALIAS_SOURCE_RELATIVE_PATH.to_string(),
+            explicit_alias_source_available: target_root.join(EXPLICIT_ALIAS_SOURCE_RELATIVE_PATH).exists(),
             artifact_path: None,
             compatibility_hash: None,
             compatibility_export_ready: false,
@@ -1705,6 +1799,30 @@ fn load_repo_graph_modules(conn: &Connection, graph_revision: i64) -> Result<Vec
     collect_rows(rows)
 }
 
+fn load_alias_count(conn: &Connection, graph_revision: i64) -> Result<i64> {
+    conn.query_row(
+        "SELECT COUNT(*) FROM repo_graph_aliases WHERE graph_revision = ?1",
+        params![graph_revision],
+        |row| row.get(0),
+    )
+    .context("failed to count repo graph aliases")
+}
+
+fn load_alias_ambiguity_count(conn: &Connection, graph_revision: i64) -> Result<i64> {
+    conn.query_row(
+        "SELECT COUNT(*) FROM (
+            SELECT alias_kind, alias_value
+              FROM repo_graph_aliases
+             WHERE graph_revision = ?1
+             GROUP BY alias_kind, alias_value
+            HAVING COUNT(DISTINCT canonical_node_id) > 1
+        )",
+        params![graph_revision],
+        |row| row.get(0),
+    )
+    .context("failed to count ambiguous repo graph aliases")
+}
+
 fn load_repo_graph_outgoing_edges(conn: &Connection, graph_revision: i64, node_id: &str) -> Result<Vec<RepoGraphEdge>> {
     let mut statement = conn.prepare(
         "SELECT edge_id, from_node_id, to_node_id, edge_kind, weight, evidence_json
@@ -1751,7 +1869,9 @@ fn resolve_repo_graph_query_nodes(
                 resolved_node_id: Some(node_id.to_string()),
                 resolved_module_id: None,
                 resolution: String::from("exact-node"),
+                score: 100,
                 candidates: Vec::new(),
+                reasons: vec![String::from("exact canonical node id")],
             }),
         ));
     }
@@ -1769,7 +1889,9 @@ fn resolve_repo_graph_query_nodes(
                     resolved_node_id: None,
                     resolved_module_id: None,
                     resolution: String::from("exact-symbol"),
+                    score: 100,
                     candidates: Vec::new(),
+                    reasons: vec![String::from("exact symbol alias")],
                 }),
             ));
         }
@@ -1782,7 +1904,9 @@ fn resolve_repo_graph_query_nodes(
                 resolved_node_id: None,
                 resolved_module_id: None,
                 resolution: String::from("exact-path"),
+                score: 100,
                 candidates: Vec::new(),
+                reasons: vec![String::from("exact file path alias")],
             }),
         ));
     }
@@ -1797,7 +1921,9 @@ fn resolve_repo_graph_query_nodes(
                 resolved_node_id: None,
                 resolved_module_id: None,
                 resolution: String::from("exact-symbol"),
+                score: 100,
                 candidates: Vec::new(),
+                reasons: vec![String::from("exact symbol alias")],
             }),
         ));
     }
@@ -1907,59 +2033,46 @@ fn resolve_module_query(
     graph_revision: i64,
     requested: &str,
 ) -> Result<(Vec<RepoGraphNode>, Option<RepoGraphQueryResolution>)> {
-    let canonical_node_id = format!("module:{requested}");
-    let exact = query_nodes_by_clause(conn, graph_revision, "node_id = ?2", &canonical_node_id, 20)?;
-    if !exact.is_empty() {
+    let matches = query_module_alias_matches(conn, graph_revision, requested)?;
+    if matches.is_empty() {
+        let modules = load_repo_graph_modules(conn, graph_revision)?;
         return Ok((
-            exact,
+            Vec::new(),
             Some(RepoGraphQueryResolution {
                 queried_value: requested.to_string(),
-                resolved_node_id: Some(canonical_node_id),
-                resolved_module_id: Some(requested.to_string()),
-                resolution: String::from("exact-module"),
-                candidates: Vec::new(),
-            })
+                resolved_node_id: None,
+                resolved_module_id: None,
+                resolution: String::from("unresolved"),
+                score: 0,
+                candidates: modules.into_iter().map(|module| module.module_id).collect(),
+                reasons: vec![String::from("no module alias matched")],
+            }),
         ));
     }
 
-    let modules = load_repo_graph_modules(conn, graph_revision)?;
-    let requested_normalized = normalize_module_alias(requested);
-    let candidates: Vec<String> = modules
-        .iter()
-        .map(|module| module.module_id.clone())
-        .filter(|module_id| normalize_module_alias(module_id) == requested_normalized)
-        .collect();
-
-    if candidates.len() == 1 {
-        let resolved = candidates[0].clone();
-        return Ok((
-            query_nodes_by_clause(conn, graph_revision, "node_id = ?2", &format!("module:{resolved}"), 20)?,
-            Some(RepoGraphQueryResolution {
-                queried_value: requested.to_string(),
-                resolved_node_id: Some(format!("module:{resolved}")),
-                resolved_module_id: Some(resolved),
-                resolution: String::from("module-alias"),
-                candidates: candidates.clone(),
-            })
-        ));
-    }
-
-    if candidates.len() > 1 {
+    let top_score = matches[0].confidence;
+    let top: Vec<_> = matches.iter().filter(|entry| entry.confidence == top_score).collect();
+    if top.len() > 1 {
+        let candidates = top.iter().map(|entry| entry.canonical_module_id.clone()).collect::<Vec<_>>();
         return Err(anyhow!(
             "ambiguous module alias \"{requested}\"; candidates: {}",
             candidates.join(", ")
         ));
     }
 
+    let best = top[0];
+    let candidate_ids = matches.iter().map(|entry| entry.canonical_module_id.clone()).collect::<Vec<_>>();
     Ok((
-        Vec::new(),
+        query_nodes_by_clause(conn, graph_revision, "node_id = ?2", &best.canonical_node_id, 20)?,
         Some(RepoGraphQueryResolution {
             queried_value: requested.to_string(),
-            resolved_node_id: None,
-            resolved_module_id: None,
-            resolution: String::from("unresolved"),
-            candidates: modules.into_iter().map(|module| module.module_id).collect(),
-        })
+            resolved_node_id: Some(best.canonical_node_id.clone()),
+            resolved_module_id: Some(best.canonical_module_id.clone()),
+            resolution: best.alias_kind.clone(),
+            score: best.confidence,
+            candidates: candidate_ids,
+            reasons: vec![format!("resolved via {}", best.alias_kind)],
+        }),
     ))
 }
 
@@ -1971,6 +2084,152 @@ fn normalize_module_alias(value: &str) -> String {
         .unwrap_or(value)
         .replace(['-', '_'], "")
         .to_lowercase()
+}
+
+fn module_aliases(module: &RepoGraphModule) -> Vec<AliasCandidate> {
+    let mut aliases = Vec::new();
+    let module_id = module.module_id.clone();
+    aliases.push(alias("canonical-id", module_id.clone(), 100, "module-id"));
+    aliases.push(alias("package-id", module_id.clone(), 95, "package-id"));
+    let basename = module_id.rsplit('/').next().unwrap_or(&module_id).to_string();
+    aliases.push(alias("basename", basename.clone(), 90, "basename"));
+    aliases.push(alias("normalized", normalize_module_alias(&module_id), 80, "normalized"));
+    for segment in module_id.split('/').filter(|segment| !segment.is_empty()) {
+      aliases.push(alias("path-segment", segment.to_string(), 70, "path-segment"));
+    }
+    dedupe_aliases(aliases)
+}
+
+fn node_aliases(node: &RepoGraphNode) -> Vec<AliasCandidate> {
+    let mut aliases = Vec::new();
+    if let Some(path) = node.path.as_ref() {
+        aliases.push(alias("path", path.clone(), 100, "path"));
+        let basename = path.rsplit('/').next().unwrap_or(path).to_string();
+        aliases.push(alias("basename", basename.clone(), 60, "path-basename"));
+        aliases.push(alias("normalized", normalize_module_alias(&basename), 50, "path-normalized"));
+    }
+    if let Some(symbol) = node.symbol.as_ref() {
+        aliases.push(alias("symbol", symbol.clone(), 100, "symbol"));
+        aliases.push(alias("normalized", normalize_module_alias(symbol), 70, "symbol-normalized"));
+    }
+    dedupe_aliases(aliases)
+}
+
+fn alias(alias_kind: &str, alias_value: String, confidence: i64, source: &str) -> AliasCandidate {
+    AliasCandidate {
+        alias_kind: alias_kind.to_string(),
+        alias_value,
+        canonical_module_id: None,
+        confidence,
+        source: source.to_string(),
+    }
+}
+
+fn dedupe_aliases(input: Vec<AliasCandidate>) -> Vec<AliasCandidate> {
+    let mut output: Vec<AliasCandidate> = Vec::new();
+    for entry in input {
+        if entry.alias_value.trim().is_empty() {
+            continue;
+        }
+        if !output.iter().any(|existing| existing.alias_kind == entry.alias_kind && existing.alias_value == entry.alias_value) {
+            output.push(entry);
+        }
+    }
+    output
+}
+
+#[derive(Clone)]
+struct ResolvedAliasRow {
+    alias_kind: String,
+    canonical_node_id: String,
+    canonical_module_id: String,
+    confidence: i64,
+}
+
+fn query_module_alias_matches(
+    conn: &Connection,
+    graph_revision: i64,
+    requested: &str,
+) -> Result<Vec<ResolvedAliasRow>> {
+    let normalized = normalize_module_alias(requested);
+    let clauses = [
+        ("canonical-id", requested.to_string()),
+        ("package-id", requested.to_string()),
+        ("explicit", requested.to_string()),
+        ("basename", requested.to_string()),
+        ("normalized", normalized.clone()),
+        ("path-segment", requested.to_string()),
+    ];
+    for (kind, value) in clauses {
+        let rows = query_alias_rows(conn, graph_revision, kind, &value, false, false)?;
+        if !rows.is_empty() {
+            return Ok(rows);
+        }
+    }
+    let prefix = query_alias_rows(conn, graph_revision, "normalized", &normalized, true, false)?;
+    if !prefix.is_empty() {
+        return Ok(prefix);
+    }
+    query_alias_rows(conn, graph_revision, "normalized", &normalized, false, true)
+}
+
+fn query_alias_rows(
+    conn: &Connection,
+    graph_revision: i64,
+    alias_kind: &str,
+    alias_value: &str,
+    prefix: bool,
+    contains: bool,
+) -> Result<Vec<ResolvedAliasRow>> {
+    let predicate = if prefix {
+        "alias_value LIKE (?3 || '%')"
+    } else if contains {
+        "alias_value LIKE ('%' || ?3 || '%')"
+    } else {
+        "alias_value = ?3"
+    };
+    let sql = format!(
+        "SELECT alias_kind, canonical_node_id, COALESCE(canonical_module_id, ''), confidence
+           FROM repo_graph_aliases
+          WHERE graph_revision = ?1 AND alias_kind = ?2 AND {predicate}
+          ORDER BY confidence DESC, canonical_module_id ASC"
+    );
+    let mut statement = conn.prepare(&sql)?;
+    let rows = statement.query_map(params![graph_revision, alias_kind, alias_value], |row| {
+        Ok(ResolvedAliasRow {
+            alias_kind: row.get(0)?,
+            canonical_node_id: row.get(1)?,
+            canonical_module_id: row.get(2)?,
+            confidence: row.get(3)?,
+        })
+    })?;
+    collect_rows(rows)
+}
+
+fn load_explicit_module_aliases(target_root: &Path) -> Result<Vec<AliasCandidate>> {
+    let alias_path = target_root.join(EXPLICIT_ALIAS_SOURCE_RELATIVE_PATH);
+    if !alias_path.exists() {
+        return Ok(Vec::new());
+    }
+    let payload: Value = read_json_file(&alias_path)
+        .with_context(|| format!("failed to read {}", alias_path.display()))?;
+    let module_map = payload.get("modules").and_then(|value| value.as_object());
+    let Some(module_map) = module_map else {
+        return Ok(Vec::new());
+    };
+    let mut aliases = Vec::new();
+    for (alias_value, canonical) in module_map {
+        if let Some(canonical_module_id) = canonical.as_str() {
+            aliases.push(AliasCandidate {
+                alias_kind: String::from("explicit"),
+                alias_value: alias_value.to_string(),
+                canonical_module_id: Some(canonical_module_id.to_string()),
+                confidence: 92,
+                source: canonical_module_id.to_string(),
+            });
+        }
+    }
+    Ok(dedupe_aliases(aliases))
 }
 
 fn readiness_from_state(state: &StoredExecutionState) -> RuntimeReadiness {

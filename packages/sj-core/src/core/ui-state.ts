@@ -910,8 +910,8 @@ export async function buildRepoControlStateFromConfig(options: {
       capabilityStatus: compatibleMcpCapabilities.length > 0 ? "compatible" : "limited",
       note:
         compatibleMcpCapabilities.length > 0
-          ? `${compatibleMcpCapabilities.length} specialist-compatible MCP capabilities are currently available for this repo profile.`
-          : "No specialist-compatible MCP capabilities are currently exposed for this repo profile."
+          ? `${compatibleMcpCapabilities.length} repo-workflow-compatible MCP integrations are currently available for this repo profile.`
+          : "No repo-workflow-compatible MCP integrations are currently exposed for this repo profile."
     },
     validation,
     ecosystem,

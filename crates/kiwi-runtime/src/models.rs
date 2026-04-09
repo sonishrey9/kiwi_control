@@ -326,6 +326,11 @@ pub struct RepoGraphStatus {
     pub edge_count: i64,
     pub module_count: i64,
     pub symbol_count: i64,
+    pub alias_authority_kind: String,
+    pub alias_count: i64,
+    pub alias_ambiguity_count: i64,
+    pub explicit_alias_source_path: String,
+    pub explicit_alias_source_available: bool,
     pub artifact_path: Option<String>,
     pub compatibility_hash: Option<String>,
     pub compatibility_export_ready: bool,
@@ -370,7 +375,9 @@ pub struct RepoGraphQueryResolution {
     pub resolved_node_id: Option<String>,
     pub resolved_module_id: Option<String>,
     pub resolution: String,
+    pub score: i64,
     pub candidates: Vec<String>,
+    pub reasons: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
