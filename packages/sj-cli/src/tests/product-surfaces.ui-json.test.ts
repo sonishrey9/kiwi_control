@@ -107,6 +107,14 @@ test("ui command returns structured repo-control state in json mode", async () =
   const payload = JSON.parse(logs.join("\n")) as {
     executionState: { revision: number; lifecycle: string; nextCommand: string | null };
     readiness: { label: string; detail: string; nextCommand: string | null };
+    runtimeIdentity: {
+      launchMode: string;
+      callerSurface: string;
+      packagingSourceCategory: string;
+      binaryPath: string;
+      binarySha256: string;
+    } | null;
+    derivedFreshness: Array<{ outputName: string; freshness: string }>;
     repoState: { mode: string };
     repoOverview: Array<{ label: string }>;
     continuity: Array<{ label: string }>;
@@ -162,6 +170,11 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(typeof payload.executionState.revision, "number");
   assert.equal(payload.executionState.lifecycle, "packet-created");
   assert.equal(typeof payload.readiness.label, "string");
+  assert.equal(typeof payload.runtimeIdentity?.callerSurface, "string");
+  assert.equal(typeof payload.runtimeIdentity?.binaryPath, "string");
+  assert.equal(typeof payload.runtimeIdentity?.binarySha256, "string");
+  assert.equal(Array.isArray(payload.derivedFreshness), true);
+  assert.equal(payload.derivedFreshness.some((entry) => entry.outputName === "execution-plan"), true);
   assert.equal(payload.repoOverview.some((entry) => entry.label === "Project type"), true);
   assert.equal(payload.continuity.some((entry) => entry.label === "Latest checkpoint"), true);
   assert.equal(payload.memoryBank.some((entry) => entry.label === "Repo Facts" && entry.present), true);

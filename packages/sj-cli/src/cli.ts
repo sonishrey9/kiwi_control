@@ -34,6 +34,7 @@ import { runToolchain } from "./commands/toolchain.js";
 import { runUsage } from "./commands/usage.js";
 import { runEval } from "./commands/eval.js";
 import { runAuto } from "./commands/run-auto.js";
+import { runRuntime } from "./commands/runtime.js";
 
 interface ParsedArgs {
   command: string | undefined;
@@ -209,6 +210,17 @@ async function main(): Promise<void> {
         repoRoot,
         targetRoot,
         ...(typeof parsed.flags.profile === "string" ? { profileName: String(parsed.flags.profile) } : {}),
+        json: parsed.flags.json === true,
+        logger
+      });
+      return;
+    case "runtime":
+      assertNoUnexpectedPositionals(parsed.command, parsed.positionals, parsed.flags.target);
+      process.exitCode = await runRuntime({
+        repoRoot,
+        targetRoot,
+        ...(typeof parsed.flags.profile === "string" ? { profileName: String(parsed.flags.profile) } : {}),
+        refreshDerived: parsed.flags["refresh-derived"] === true,
         json: parsed.flags.json === true,
         logger
       });
@@ -486,6 +498,7 @@ Core commands:
   ${primaryCommand} explain [--json] [--target /path/to/repo]
   ${primaryCommand} trace [--json] [--target /path/to/repo]
   ${primaryCommand} doctor [--machine] [--json] [--target /path/to/repo]
+  ${primaryCommand} runtime [--refresh-derived] [--json] [--target /path/to/repo]
   ${primaryCommand} toolchain [--refresh] [--json]
   ${primaryCommand} usage [--refresh] [--json]
   ${primaryCommand} eval [--json] [--target /path/to/repo]
@@ -567,6 +580,7 @@ main().catch((error: unknown) => {
         "explain",
         "trace",
         "doctor",
+        "runtime",
         "toolchain",
         "usage",
         "eval",

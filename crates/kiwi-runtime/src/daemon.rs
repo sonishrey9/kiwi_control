@@ -1,7 +1,8 @@
 use crate::db;
 use crate::models::{
     ListExecutionEventsQuery, MaterializeDerivedOutputsRequest, OpenTargetRequest,
-    PersistDerivedOutputRequest, RuntimeDaemonMetadata, TransitionExecutionStateRequest,
+    PersistDerivedOutputRequest, RefreshDerivedOutputsRequest, RuntimeDaemonMetadata,
+    RuntimeIdentity, TransitionExecutionStateRequest,
 };
 use anyhow::{Context, Result};
 use axum::extract::Query;
@@ -10,6 +11,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::PathBuf;
 use tokio::net::TcpListener;
@@ -17,7 +19,9 @@ use tokio::net::TcpListener;
 type HttpResult<T> = Result<Json<T>, (StatusCode, String)>;
 
 #[derive(Clone)]
-struct AppState;
+struct AppState {
+    identity: RuntimeIdentity,
+}
 
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -35,31 +39,50 @@ struct HealthResponse {
 pub async fn run_daemon(
     metadata_file: PathBuf,
     launch_mode: Option<String>,
+    caller_surface: Option<String>,
+    packaging_source_category: Option<String>,
     binary_path: Option<String>,
+    target_triple: Option<String>,
 ) -> Result<()> {
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .context("failed to bind kiwi-runtime daemon")?;
     let address = listener.local_addr()?;
+    let identity = build_runtime_identity(
+        &metadata_file,
+        launch_mode,
+        caller_surface,
+        packaging_source_category,
+        binary_path,
+        target_triple,
+    )?;
     let metadata = RuntimeDaemonMetadata {
         pid: std::process::id(),
         port: address.port(),
         base_url: format!("http://127.0.0.1:{}", address.port()),
-        started_at: metadata_started_at(),
-        launch_mode,
-        binary_path,
+        started_at: identity.started_at.clone(),
+        launch_mode: Some(identity.launch_mode.clone()),
+        caller_surface: Some(identity.caller_surface.clone()),
+        packaging_source_category: Some(identity.packaging_source_category.clone()),
+        binary_path: Some(identity.binary_path.clone()),
+        binary_sha256: Some(identity.binary_sha256.clone()),
+        runtime_version: Some(identity.runtime_version.clone()),
+        target_triple: Some(identity.target_triple.clone()),
+        metadata_path: Some(identity.metadata_path.clone()),
     };
     write_metadata(&metadata_file, &metadata)?;
 
     let app = Router::new()
         .route("/health", get(health))
+        .route("/runtime-identity", get(runtime_identity))
         .route("/open-target", post(open_target))
         .route("/runtime-snapshot", get(runtime_snapshot))
         .route("/execution-events", get(execution_events))
         .route("/transition-execution-state", post(transition_execution_state))
         .route("/materialize-derived-outputs", post(materialize_outputs))
         .route("/persist-derived-output", post(persist_derived_output))
-        .with_state(AppState);
+        .route("/refresh-derived-outputs", post(refresh_derived_outputs))
+        .with_state(AppState { identity });
 
     axum::serve(listener, app)
         .await
@@ -72,6 +95,12 @@ async fn health() -> Json<HealthResponse> {
         ok: true,
         pid: std::process::id(),
     })
+}
+
+async fn runtime_identity(
+    axum::extract::State(state): axum::extract::State<AppState>,
+) -> HttpResult<RuntimeIdentity> {
+    Ok(Json(state.identity))
 }
 
 async fn open_target(Json(request): Json<OpenTargetRequest>) -> HttpResult<serde_json::Value> {
@@ -116,6 +145,14 @@ async fn persist_derived_output(
         .map_err(internal_error)
 }
 
+async fn refresh_derived_outputs(
+    Json(request): Json<RefreshDerivedOutputsRequest>,
+) -> HttpResult<serde_json::Value> {
+    db::refresh_derived_outputs(&request)
+        .map(|snapshot| Json(json!(snapshot)))
+        .map_err(internal_error)
+}
+
 fn internal_error(error: anyhow::Error) -> (StatusCode, String) {
     (StatusCode::INTERNAL_SERVER_ERROR, error.to_string())
 }
@@ -139,4 +176,50 @@ fn metadata_started_at() -> String {
         .unwrap_or_default()
         .as_secs();
     format!("{seconds}")
+}
+
+fn build_runtime_identity(
+    metadata_file: &PathBuf,
+    launch_mode: Option<String>,
+    caller_surface: Option<String>,
+    packaging_source_category: Option<String>,
+    binary_path: Option<String>,
+    target_triple: Option<String>,
+) -> Result<RuntimeIdentity> {
+    let started_at = metadata_started_at();
+    let current_executable = std::env::current_exe()
+        .unwrap_or_else(|_| PathBuf::from(binary_path.clone().unwrap_or_else(|| String::from("unknown"))));
+    let resolved_binary_path = current_executable.to_string_lossy().to_string();
+    let binary_sha256 = fs::read(&current_executable)
+        .ok()
+        .map(|bytes| {
+            let mut hasher = Sha256::new();
+            hasher.update(bytes);
+            format!("{:x}", hasher.finalize())
+        })
+        .unwrap_or_else(|| String::from("unavailable"));
+
+    Ok(RuntimeIdentity {
+        launch_mode: launch_mode.unwrap_or_else(|| String::from("direct-binary")),
+        caller_surface: caller_surface.unwrap_or_else(|| String::from("cli")),
+        packaging_source_category: packaging_source_category.unwrap_or_else(|| String::from("env-override")),
+        binary_path: resolved_binary_path,
+        binary_sha256,
+        runtime_version: env!("CARGO_PKG_VERSION").to_string(),
+        target_triple: target_triple.unwrap_or_else(default_target_triple),
+        started_at,
+        metadata_path: metadata_file.to_string_lossy().to_string(),
+    })
+}
+
+fn default_target_triple() -> String {
+    match (std::env::consts::OS, std::env::consts::ARCH) {
+        ("macos", "aarch64") => String::from("aarch64-apple-darwin"),
+        ("macos", "x86_64") => String::from("x86_64-apple-darwin"),
+        ("linux", "aarch64") => String::from("aarch64-unknown-linux-gnu"),
+        ("linux", "x86_64") => String::from("x86_64-unknown-linux-gnu"),
+        ("windows", "aarch64") => String::from("aarch64-pc-windows-msvc"),
+        ("windows", "x86_64") => String::from("x86_64-pc-windows-msvc"),
+        _ => String::from("unknown"),
+    }
 }

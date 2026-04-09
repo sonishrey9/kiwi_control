@@ -1,12 +1,14 @@
 use crate::models::{
     DerivedOutputStatus, ExecutionArtifacts, ExecutionEventList, ListExecutionEventsQuery,
     MaterializeDerivedOutputsRequest, OpenTargetRequest, PersistDerivedOutputRequest,
+    RefreshDerivedOutputsRequest,
     RuntimeDecision, RuntimeDecisionAction, RuntimeDecisionRecovery, RuntimeEvent,
     RuntimeLifecycle, RuntimeReadiness, RuntimeSnapshot, TransitionExecutionStateRequest,
 };
 use anyhow::{anyhow, Context, Result};
 use rusqlite::{params, Connection, OptionalExtension, Transaction, TransactionBehavior};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;
@@ -248,6 +250,16 @@ pub fn materialize_derived_outputs(request: &MaterializeDerivedOutputsRequest) -
     get_runtime_snapshot(&request.target_root)
 }
 
+pub fn refresh_derived_outputs(request: &RefreshDerivedOutputsRequest) -> Result<RuntimeSnapshot> {
+    let target_root = normalize_target_root(&request.target_root)?;
+    materialize_outputs_for_target_with_snapshot(
+        target_root.to_string_lossy().as_ref(),
+        ALL_DERIVED_OUTPUTS,
+        request.repo_control_snapshot.as_ref(),
+    )?;
+    get_runtime_snapshot(target_root.to_string_lossy().as_ref())
+}
+
 pub fn persist_derived_output(request: &PersistDerivedOutputRequest) -> Result<RuntimeSnapshot> {
     let target_root = normalize_target_root(&request.target_root)?;
     let mut conn = open_connection(&target_root)?;
@@ -267,10 +279,20 @@ pub fn persist_derived_output(request: &PersistDerivedOutputRequest) -> Result<R
 }
 
 fn materialize_outputs_for_target(target_root: &str, outputs: &[&str]) -> Result<()> {
+    materialize_outputs_for_target_with_snapshot(target_root, outputs, None)
+}
+
+fn materialize_outputs_for_target_with_snapshot(
+    target_root: &str,
+    outputs: &[&str],
+    repo_control_snapshot: Option<&Value>,
+) -> Result<()> {
     let target_root = normalize_target_root(target_root)?;
     let mut conn = open_connection(&target_root)?;
     let target_id = ensure_initialized(&mut conn, &target_root, None, None, None)?;
     let state = load_state_row(&conn, target_id)?;
+    let decision = load_decision_row(&conn, target_id, state.revision)?
+        .unwrap_or_else(|| decision_from_state(&state, state.last_updated_at.as_deref().unwrap_or("1970-01-01T00:00:00Z")));
     let events = load_events(&conn, target_id)?;
     let now = timestamp_now();
 
@@ -298,6 +320,33 @@ fn materialize_outputs_for_target(target_root: &str, outputs: &[&str]) -> Result
                     state.revision,
                     &now,
                 )?;
+            }
+            OUTPUT_RUNTIME_LIFECYCLE => {
+                let payload = compatibility_runtime_lifecycle(&state, &decision, events.last(), &now);
+                write_json_file(&output_path(&target_root, output), &payload)?;
+                mark_output_fresh(&conn, target_id, output, &output_path(&target_root, output), state.revision, &now)?;
+            }
+            OUTPUT_WORKFLOW => {
+                let payload = compatibility_workflow(&state, &decision, &now);
+                write_json_file(&output_path(&target_root, output), &payload)?;
+                mark_output_fresh(&conn, target_id, output, &output_path(&target_root, output), state.revision, &now)?;
+            }
+            OUTPUT_EXECUTION_PLAN => {
+                let payload = compatibility_execution_plan(&state, &decision, &now);
+                write_json_file(&output_path(&target_root, output), &payload)?;
+                mark_output_fresh(&conn, target_id, output, &output_path(&target_root, output), state.revision, &now)?;
+            }
+            OUTPUT_DECISION_LOGIC => {
+                let payload = compatibility_decision_logic(&state, &decision, &now);
+                write_json_file(&output_path(&target_root, output), &payload)?;
+                mark_output_fresh(&conn, target_id, output, &output_path(&target_root, output), state.revision, &now)?;
+            }
+            OUTPUT_REPO_CONTROL_SNAPSHOT => {
+                let payload = repo_control_snapshot
+                    .cloned()
+                    .unwrap_or_else(|| compatibility_repo_control_snapshot(&state, &decision, &now));
+                write_json_file(&output_path(&target_root, output), &payload)?;
+                mark_output_fresh(&conn, target_id, output, &output_path(&target_root, output), state.revision, &now)?;
             }
             unsupported => {
                 mark_output_error(
@@ -1400,6 +1449,390 @@ fn compatibility_execution_state(
             artifacts: event.artifacts,
             recorded_at: event.recorded_at,
         }),
+    })
+}
+
+fn compatibility_runtime_lifecycle(
+    state: &StoredExecutionState,
+    decision: &RuntimeDecision,
+    last_event: Option<&RuntimeEvent>,
+    timestamp: &str,
+) -> Value {
+    json!({
+        "artifactType": "kiwi-control/runtime-lifecycle",
+        "version": 1,
+        "timestamp": timestamp,
+        "currentTask": state.task,
+        "currentStage": runtime_lifecycle_stage(state, decision),
+        "validationStatus": runtime_validation_status(state),
+        "nextSuggestedCommand": decision.next_command,
+        "nextRecommendedAction": decision.next_action.as_ref().map(|action| action.action.clone()).unwrap_or_else(|| decision.readiness_detail.clone()),
+        "recentEvents": last_event.map(|event| vec![json!({
+            "timestamp": event.recorded_at,
+            "type": event.event_type,
+            "stage": runtime_lifecycle_stage(state, decision),
+            "status": if matches!(state.lifecycle, RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed) { "error" } else { "ok" },
+            "summary": event.reason.clone().unwrap_or_else(|| decision.readiness_detail.clone()),
+            "task": event.task,
+            "command": event.next_command,
+            "validation": event.reason,
+            "failureReason": if matches!(state.lifecycle, RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed) { state.reason.clone() } else { None::<String> },
+            "files": [],
+            "skillsApplied": [],
+            "tokenUsage": {
+                "measuredTokens": Value::Null,
+                "estimatedTokens": Value::Null,
+                "source": "none"
+            }
+        })]).unwrap_or_default()
+    })
+}
+
+fn compatibility_workflow(
+    state: &StoredExecutionState,
+    decision: &RuntimeDecision,
+    timestamp: &str,
+) -> Value {
+    let steps = vec![
+        workflow_step("prepare-context", "Prepare context", workflow_step_status("prepare-context", state, decision), state, decision, timestamp),
+        workflow_step("generate-run-packets", "Generate run packets", workflow_step_status("generate-run-packets", state, decision), state, decision, timestamp),
+        workflow_step("validate-outcome", "Validate outcome", workflow_step_status("validate-outcome", state, decision), state, decision, timestamp),
+        workflow_step("checkpoint-progress", "Checkpoint progress", workflow_step_status("checkpoint-progress", state, decision), state, decision, timestamp),
+        workflow_step("handoff-work", "Handoff work", workflow_step_status("handoff-work", state, decision), state, decision, timestamp),
+    ];
+    let current_step = steps.iter().find(|step| {
+        step.get("status")
+            .and_then(|value| value.as_str())
+            .map(|value| value == "running" || value == "failed")
+            .unwrap_or(false)
+    }).and_then(|step| step.get("stepId").cloned()).unwrap_or(Value::Null);
+
+    json!({
+        "artifactType": "kiwi-control/workflow",
+        "version": 3,
+        "timestamp": timestamp,
+        "task": state.task,
+        "status": workflow_status(state),
+        "currentStepId": current_step,
+        "steps": steps
+    })
+}
+
+fn compatibility_execution_plan(
+    state: &StoredExecutionState,
+    decision: &RuntimeDecision,
+    timestamp: &str,
+) -> Value {
+    let steps = vec![
+        execution_plan_step("prepare", "Prepare bounded context", state, decision),
+        execution_plan_step("execute", "Modify the selected files", state, decision),
+        execution_plan_step("validate", "Validate the task outcome", state, decision),
+        execution_plan_step("checkpoint", "Checkpoint the validated work", state, decision),
+        execution_plan_step("handoff", "Handoff the work", state, decision),
+    ];
+    let current_step_index = steps.iter().position(|step| {
+        step.get("status")
+            .and_then(|value| value.as_str())
+            .map(|value| value == "running" || value == "failed")
+            .unwrap_or(false)
+    }).unwrap_or(0);
+
+    json!({
+        "artifactType": "kiwi-control/execution-plan",
+        "version": 2,
+        "task": state.task,
+        "intent": Value::Null,
+        "hierarchy": {
+            "goal": state.task,
+            "subtasks": state.task.as_ref().map(|task| vec![json!({
+                "id": "primary",
+                "title": task,
+                "stepIds": ["prepare", "execute", "validate", "checkpoint", "handoff"]
+            })]).unwrap_or_default()
+        },
+        "state": execution_plan_state(state),
+        "currentStepIndex": current_step_index,
+        "confidence": Value::Null,
+        "risk": "low",
+        "blocked": matches!(state.lifecycle, RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed),
+        "summary": decision.recovery.as_ref().map(|value| value.reason.clone()).unwrap_or_else(|| decision.readiness_detail.clone()),
+        "steps": steps,
+        "nextCommands": decision.next_command.as_ref().map(|command| vec![command.clone()]).unwrap_or_default(),
+        "lastError": execution_plan_last_error(state, decision),
+        "contextSnapshot": {
+            "selectedFiles": [],
+            "selectedModuleGroups": [],
+            "confidence": Value::Null,
+            "contextTreePath": Value::Null,
+            "dependencyChains": {},
+            "forwardDependencies": [],
+            "reverseDependencies": []
+        },
+        "impactPreview": {
+            "likelyFiles": [],
+            "moduleGroups": []
+        },
+        "verificationLayers": [
+            { "id": "syntax", "description": "Syntax and shape validation for the selected scope." }
+        ],
+        "partialResults": [],
+        "evalSummary": Value::Null,
+        "updatedAt": timestamp
+    })
+}
+
+fn compatibility_decision_logic(
+    state: &StoredExecutionState,
+    decision: &RuntimeDecision,
+    timestamp: &str,
+) -> Value {
+    json!({
+        "artifactType": "kiwi-control/decision-logic",
+        "version": 1,
+        "timestamp": timestamp,
+        "summary": decision.next_action.as_ref().map(|action| format!("{}: {}", action.action, action.reason)).unwrap_or_else(|| decision.readiness_detail.clone()),
+        "decisionPriority": decision.next_action.as_ref().map(|action| action.priority.clone()).unwrap_or_else(|| String::from("low")),
+        "inputSignals": [
+            format!("execution lifecycle: {}", state.lifecycle.as_str()),
+            format!("current step: {}", decision.current_step_id),
+            format!("decision source: {}", decision.decision_source),
+        ],
+        "reasoningChain": [
+            "Runtime decision state is the canonical source of truth for next-step decisions.",
+            format!("The active runtime step is {}.", decision.current_step_id),
+        ],
+        "ignoredSignals": [
+            "Compatibility artifacts are runtime-derived snapshots."
+        ]
+    })
+}
+
+fn compatibility_repo_control_snapshot(
+    state: &StoredExecutionState,
+    decision: &RuntimeDecision,
+    timestamp: &str,
+) -> Value {
+    json!({
+        "artifactType": "kiwi-control/repo-control-snapshot",
+        "version": 1,
+        "savedAt": timestamp,
+        "state": {
+            "targetRoot": Value::Null,
+            "loadState": {
+                "source": "fresh",
+                "freshness": "fresh",
+                "generatedAt": timestamp,
+                "snapshotSavedAt": Value::Null,
+                "snapshotAgeMs": Value::Null,
+                "detail": "Runtime-derived snapshot"
+            },
+            "executionState": {
+                "revision": state.revision,
+                "lifecycle": state.lifecycle.legacy_str(),
+                "task": state.task,
+                "reason": state.reason,
+                "nextCommand": state.next_command
+            },
+            "runtimeDecision": {
+                "currentStepId": decision.current_step_id,
+                "readinessLabel": decision.readiness_label,
+                "decisionSource": decision.decision_source
+            }
+        }
+    })
+}
+
+fn runtime_lifecycle_stage(state: &StoredExecutionState, decision: &RuntimeDecision) -> &'static str {
+    match state.lifecycle {
+        RuntimeLifecycle::Idle => "idle",
+        RuntimeLifecycle::PacketCreated => "prepared",
+        RuntimeLifecycle::Queued => "packetized",
+        RuntimeLifecycle::Running => {
+            if decision.current_step_id == "validate" { "validating" } else { "packetized" }
+        }
+        RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed => "blocked",
+        RuntimeLifecycle::Completed => {
+            if decision.current_step_id == "handoff" { "handed-off" } else { "checkpointed" }
+        }
+    }
+}
+
+fn runtime_validation_status(state: &StoredExecutionState) -> Option<&'static str> {
+    match state.lifecycle {
+        RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed => Some("error"),
+        RuntimeLifecycle::Completed => Some("ok"),
+        _ => None,
+    }
+}
+
+fn workflow_status(state: &StoredExecutionState) -> &'static str {
+    match state.lifecycle {
+        RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed => "failed",
+        RuntimeLifecycle::Completed => "success",
+        RuntimeLifecycle::Idle => "pending",
+        _ => "running",
+    }
+}
+
+fn workflow_step(
+    step_id: &str,
+    action: &str,
+    status: &str,
+    state: &StoredExecutionState,
+    _decision: &RuntimeDecision,
+    timestamp: &str,
+) -> Value {
+    let failed = matches!(state.lifecycle, RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed) && status == "failed";
+    json!({
+        "stepId": step_id,
+        "action": action,
+        "status": status,
+        "input": state.task,
+        "expectedOutput": Value::Null,
+        "output": Value::Null,
+        "validation": Value::Null,
+        "failureReason": if failed { state.reason.clone() } else { None::<String> },
+        "attemptCount": 0,
+        "retryCount": 0,
+        "files": [],
+        "skillsApplied": [],
+        "tokenUsage": {
+            "source": "none",
+            "measuredTokens": Value::Null,
+            "estimatedTokens": Value::Null,
+            "note": "No token usage has been recorded for this step yet."
+        },
+        "result": {
+            "ok": if status == "success" { Value::Bool(true) } else if status == "failed" { Value::Bool(false) } else { Value::Null },
+            "summary": Value::Null,
+            "validation": Value::Null,
+            "failureReason": if failed { state.reason.clone() } else { None::<String> },
+            "suggestedFix": if failed { state.next_command.clone() } else { None::<String> },
+            "retryCommand": if status == "failed" { state.next_command.clone() } else { None::<String> }
+        },
+        "updatedAt": timestamp
+    })
+}
+
+fn workflow_step_status(step_id: &str, state: &StoredExecutionState, decision: &RuntimeDecision) -> &'static str {
+    match step_id {
+        "prepare-context" => {
+            if matches!(state.lifecycle, RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed) && decision.current_step_id == "prepare" {
+                "failed"
+            } else if state.lifecycle == RuntimeLifecycle::Idle {
+                "pending"
+            } else {
+                "success"
+            }
+        }
+        "generate-run-packets" => {
+            if state.lifecycle == RuntimeLifecycle::PacketCreated { "running" }
+            else if matches!(state.lifecycle, RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed) && decision.current_step_id == "generate_packets" { "failed" }
+            else if matches!(state.lifecycle, RuntimeLifecycle::Queued | RuntimeLifecycle::Running | RuntimeLifecycle::Completed) { "success" }
+            else { "pending" }
+        }
+        "validate-outcome" => {
+            if state.lifecycle == RuntimeLifecycle::Running && decision.current_step_id == "validate" { "running" }
+            else if matches!(state.lifecycle, RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed) && decision.current_step_id == "validate" { "failed" }
+            else if state.lifecycle == RuntimeLifecycle::Completed { "success" }
+            else { "pending" }
+        }
+        "checkpoint-progress" => {
+            if matches!(state.lifecycle, RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed) && decision.current_step_id == "checkpoint" { "failed" }
+            else if state.lifecycle == RuntimeLifecycle::Completed && decision.current_step_id == "checkpoint" { "running" }
+            else { "pending" }
+        }
+        "handoff-work" => {
+            if matches!(state.lifecycle, RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed) && decision.current_step_id == "handoff" { "failed" }
+            else if state.lifecycle == RuntimeLifecycle::Completed && decision.current_step_id == "handoff" { "running" }
+            else { "pending" }
+        }
+        _ => "pending"
+    }
+}
+
+fn execution_plan_state(state: &StoredExecutionState) -> &'static str {
+    match state.lifecycle {
+        RuntimeLifecycle::Idle => "idle",
+        RuntimeLifecycle::PacketCreated => "ready",
+        RuntimeLifecycle::Queued | RuntimeLifecycle::Running => "executing",
+        RuntimeLifecycle::Blocked => "blocked",
+        RuntimeLifecycle::Failed => "failed",
+        RuntimeLifecycle::Completed => "completed",
+    }
+}
+
+fn execution_plan_step(step_id: &str, description: &str, state: &StoredExecutionState, decision: &RuntimeDecision) -> Value {
+    let status = match step_id {
+        "prepare" => {
+            if matches!(state.lifecycle, RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed) && decision.current_step_id == "prepare" { "failed" }
+            else if !matches!(state.lifecycle, RuntimeLifecycle::Idle) { "success" } else { "pending" }
+        }
+        "execute" => {
+            if matches!(state.lifecycle, RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed) && decision.current_step_id == "generate_packets" { "failed" }
+            else if state.lifecycle == RuntimeLifecycle::PacketCreated { "running" }
+            else if matches!(state.lifecycle, RuntimeLifecycle::Queued | RuntimeLifecycle::Running | RuntimeLifecycle::Completed) { "success" }
+            else { "pending" }
+        }
+        "validate" => {
+            if matches!(state.lifecycle, RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed) && decision.current_step_id == "validate" { "failed" }
+            else if state.lifecycle == RuntimeLifecycle::Running && decision.current_step_id == "validate" { "running" }
+            else if state.lifecycle == RuntimeLifecycle::Completed { "success" }
+            else { "pending" }
+        }
+        "checkpoint" => {
+            if matches!(state.lifecycle, RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed) && decision.current_step_id == "checkpoint" { "failed" }
+            else if state.lifecycle == RuntimeLifecycle::Completed && decision.current_step_id == "checkpoint" { "running" }
+            else { "pending" }
+        }
+        "handoff" => {
+            if matches!(state.lifecycle, RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed) && decision.current_step_id == "handoff" { "failed" }
+            else if state.lifecycle == RuntimeLifecycle::Completed && decision.current_step_id == "handoff" { "running" }
+            else { "pending" }
+        }
+        _ => "pending"
+    };
+
+    json!({
+        "id": step_id,
+        "description": description,
+        "command": decision.next_command,
+        "expectedOutput": description,
+        "expectedOutcome": {
+            "expectedFiles": [],
+            "expectedChanges": []
+        },
+        "validation": "Runtime-derived snapshot",
+        "status": status,
+        "workflowStepId": Value::Null,
+        "result": {
+            "ok": if status == "success" { Value::Bool(true) } else if status == "failed" { Value::Bool(false) } else { Value::Null },
+            "summary": Value::Null,
+            "validation": Value::Null,
+            "failureReason": if status == "failed" { state.reason.clone() } else { None::<String> },
+            "suggestedFix": if status == "failed" { state.next_command.clone() } else { None::<String> }
+        },
+        "fixCommand": if status == "failed" { state.next_command.clone() } else { None::<String> },
+        "retryCommand": state.next_command
+    })
+}
+
+fn execution_plan_last_error(state: &StoredExecutionState, decision: &RuntimeDecision) -> Value {
+    if !matches!(state.lifecycle, RuntimeLifecycle::Blocked | RuntimeLifecycle::Failed) {
+        return Value::Null;
+    }
+    let error_type = if decision.current_step_id == "generate_packets" || decision.current_step_id == "prepare" {
+        "context_error"
+    } else {
+        "logic_error"
+    };
+    let retry_strategy = if error_type == "context_error" { "expand" } else { "re-plan" };
+    json!({
+        "errorType": error_type,
+        "retryStrategy": retry_strategy,
+        "reason": state.reason,
+        "fixCommand": decision.recovery.as_ref().and_then(|value| value.fix_command.clone()).or_else(|| state.next_command.clone()),
+        "retryCommand": decision.recovery.as_ref().and_then(|value| value.retry_command.clone()).or_else(|| state.next_command.clone())
     })
 }
 

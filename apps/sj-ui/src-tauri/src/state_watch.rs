@@ -29,16 +29,40 @@ pub struct RepoStateChangedPayload {
     pub revision: u64,
 }
 
-#[derive(Deserialize)]
+#[allow(dead_code)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct RuntimeDaemonMetadata {
-    base_url: String,
+pub struct RuntimeDaemonMetadata {
+    pub base_url: String,
+    pub launch_mode: Option<String>,
+    pub caller_surface: Option<String>,
+    pub packaging_source_category: Option<String>,
+    pub binary_path: Option<String>,
+    pub binary_sha256: Option<String>,
+    pub runtime_version: Option<String>,
+    pub target_triple: Option<String>,
+    pub started_at: Option<String>,
+    pub metadata_path: Option<String>,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RuntimeEventList {
     latest_revision: u64,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeIdentityPayload {
+    pub launch_mode: String,
+    pub caller_surface: String,
+    pub packaging_source_category: String,
+    pub binary_path: String,
+    pub binary_sha256: String,
+    pub runtime_version: String,
+    pub target_triple: String,
+    pub started_at: String,
+    pub metadata_path: String,
 }
 
 pub fn set_active_repo_target(
@@ -121,6 +145,27 @@ pub fn start_repo_state_watcher(app: AppHandle) {
     });
 }
 
+pub fn ensure_runtime_daemon_ready(app: &AppHandle) -> Result<(), String> {
+    ensure_runtime_daemon(app).map(|_| ())
+}
+
+pub fn get_runtime_identity(app: &AppHandle) -> Result<RuntimeIdentityPayload, String> {
+    let metadata = ensure_runtime_daemon(app)?;
+    match request_runtime_identity(&metadata) {
+        Ok(identity) => Ok(identity),
+        Err(error) if error.contains("404") => {
+            restart_runtime_daemon()?;
+            let restarted = ensure_runtime_daemon(app)?;
+            request_runtime_identity(&restarted)
+        }
+        Err(error) => Err(error),
+    }
+}
+
+pub fn runtime_metadata_file_path() -> PathBuf {
+    runtime_metadata_path()
+}
+
 fn list_runtime_events(app: &AppHandle, target_root: &str, after_revision: u64) -> Result<u64, String> {
     let metadata = ensure_runtime_daemon(app)?;
     let response = ureq::get(&format!("{}/execution-events", metadata.base_url))
@@ -183,6 +228,15 @@ fn ensure_runtime_daemon(app: &AppHandle) -> Result<RuntimeDaemonMetadata, Strin
     ))
 }
 
+fn request_runtime_identity(metadata: &RuntimeDaemonMetadata) -> Result<RuntimeIdentityPayload, String> {
+    ureq::get(&format!("{}/runtime-identity", metadata.base_url))
+        .timeout(RUNTIME_HEALTH_TIMEOUT)
+        .call()
+        .map_err(|error| format!("failed to query runtime identity: {error}"))?
+        .into_json()
+        .map_err(|error| format!("failed to decode runtime identity payload: {error}"))
+}
+
 fn runtime_healthy(metadata: &RuntimeDaemonMetadata) -> bool {
     ureq::get(&format!("{}/health", metadata.base_url))
         .timeout(RUNTIME_HEALTH_TIMEOUT)
@@ -205,6 +259,8 @@ fn read_runtime_metadata() -> Result<Option<RuntimeDaemonMetadata>, String> {
 }
 
 fn resolve_runtime_launch_command(app: &AppHandle) -> Result<(String, Vec<String>), String> {
+    let caller_surface = resolve_runtime_caller_surface();
+    let packaging_source_category = resolve_runtime_packaging_source_category();
     if let Some(runtime_binary) = resolve_explicit_runtime_binary() {
         return Ok((
             runtime_binary.to_string_lossy().to_string(),
@@ -213,9 +269,15 @@ fn resolve_runtime_launch_command(app: &AppHandle) -> Result<(String, Vec<String
                 String::from("--metadata-file"),
                 runtime_metadata_path().to_string_lossy().to_string(),
                 String::from("--launch-mode"),
+                String::from("direct-binary"),
+                String::from("--caller-surface"),
+                caller_surface.clone(),
+                String::from("--packaging-source-category"),
                 String::from("env-override"),
                 String::from("--binary-path"),
                 runtime_binary.to_string_lossy().to_string(),
+                String::from("--target-triple"),
+                current_rust_target_triple().unwrap_or("unknown").to_string(),
             ],
         ));
     }
@@ -228,9 +290,15 @@ fn resolve_runtime_launch_command(app: &AppHandle) -> Result<(String, Vec<String
                 String::from("--metadata-file"),
                 runtime_metadata_path().to_string_lossy().to_string(),
                 String::from("--launch-mode"),
-                String::from("bundled-sidecar"),
+                String::from("sidecar"),
+                String::from("--caller-surface"),
+                caller_surface.clone(),
+                String::from("--packaging-source-category"),
+                packaging_source_category.clone(),
                 String::from("--binary-path"),
                 sidecar_binary.to_string_lossy().to_string(),
+                String::from("--target-triple"),
+                current_rust_target_triple().unwrap_or("unknown").to_string(),
             ],
         ));
     }
@@ -243,9 +311,15 @@ fn resolve_runtime_launch_command(app: &AppHandle) -> Result<(String, Vec<String
                 String::from("--metadata-file"),
                 runtime_metadata_path().to_string_lossy().to_string(),
                 String::from("--launch-mode"),
+                String::from("direct-binary"),
+                String::from("--caller-surface"),
+                caller_surface.clone(),
+                String::from("--packaging-source-category"),
                 String::from("local-staged"),
                 String::from("--binary-path"),
                 source_binary.to_string_lossy().to_string(),
+                String::from("--target-triple"),
+                current_rust_target_triple().unwrap_or("unknown").to_string(),
             ],
         ));
     }
@@ -276,6 +350,10 @@ fn resolve_runtime_launch_command(app: &AppHandle) -> Result<(String, Vec<String
                 runtime_metadata_path().to_string_lossy().to_string(),
                 String::from("--launch-mode"),
                 String::from("dev-cargo-fallback"),
+                String::from("--caller-surface"),
+                caller_surface,
+                String::from("--packaging-source-category"),
+                String::from("dev-cargo-fallback"),
                 String::from("--binary-path"),
                 resolve_source_product_root()
                     .join("crates")
@@ -283,6 +361,8 @@ fn resolve_runtime_launch_command(app: &AppHandle) -> Result<(String, Vec<String
                     .join("Cargo.toml")
                     .to_string_lossy()
                     .to_string(),
+                String::from("--target-triple"),
+                current_rust_target_triple().unwrap_or("unknown").to_string(),
             ],
         ));
     }
@@ -298,6 +378,38 @@ fn resolve_explicit_runtime_binary() -> Option<PathBuf> {
         .or_else(|| env::var("SHREY_JUNIOR_RUNTIME_BIN").ok())
         .map(PathBuf::from)
         .filter(|path| path.exists())
+}
+
+fn resolve_runtime_caller_surface() -> String {
+    if let Ok(value) = env::var("KIWI_CONTROL_RUNTIME_CALLER_SURFACE")
+        .or_else(|_| env::var("SHREY_JUNIOR_RUNTIME_CALLER_SURFACE"))
+    {
+        let trimmed = value.trim();
+        if !trimmed.is_empty() {
+            return trimmed.to_string();
+        }
+    }
+
+    if infer_desktop_build_source() == "source-bundle" {
+        return String::from("desktop-source-checkout-app");
+    }
+    String::from("desktop-bundled-app")
+}
+
+fn resolve_runtime_packaging_source_category() -> String {
+    if let Ok(value) = env::var("KIWI_CONTROL_RUNTIME_PACKAGING_SOURCE_CATEGORY")
+        .or_else(|_| env::var("SHREY_JUNIOR_RUNTIME_PACKAGING_SOURCE_CATEGORY"))
+    {
+        let trimmed = value.trim();
+        if !trimmed.is_empty() {
+            return trimmed.to_string();
+        }
+    }
+
+    if infer_desktop_build_source() == "source-bundle" {
+        return String::from("source-bundle-sibling");
+    }
+    String::from("bundled-sidecar")
 }
 
 fn resolve_bundled_runtime_sidecar(app: &AppHandle) -> Option<PathBuf> {
@@ -346,6 +458,17 @@ fn current_runtime_executable_name() -> &'static str {
     } else {
         "kiwi-control-runtime"
     }
+}
+
+fn infer_desktop_build_source() -> &'static str {
+    let executable_path = env::current_exe()
+        .ok()
+        .map(|path| path.to_string_lossy().to_string())
+        .unwrap_or_default();
+    if executable_path.contains("/src-tauri/target/release/bundle/macos/") {
+        return "source-bundle";
+    }
+    "installed-bundle"
 }
 
 fn resolve_source_product_root() -> PathBuf {
@@ -407,6 +530,14 @@ fn current_rust_target_triple() -> Option<&'static str> {
 }
 
 fn runtime_metadata_path() -> PathBuf {
+    if let Ok(value) = env::var("KIWI_CONTROL_RUNTIME_METADATA_FILE")
+        .or_else(|_| env::var("SHREY_JUNIOR_RUNTIME_METADATA_FILE"))
+    {
+        let trimmed = value.trim();
+        if !trimmed.is_empty() {
+            return PathBuf::from(trimmed);
+        }
+    }
     if let Ok(value) = env::var("KIWI_CONTROL_RUNTIME_DIR") {
         let trimmed = value.trim();
         if !trimmed.is_empty() {
@@ -421,4 +552,9 @@ fn runtime_metadata_path() -> PathBuf {
     }
 
     resolve_global_home_root().join("runtime").join("daemon.json")
+}
+
+fn restart_runtime_daemon() -> Result<(), String> {
+    let _ = fs::remove_file(runtime_metadata_path());
+    Ok(())
 }

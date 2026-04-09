@@ -529,6 +529,26 @@ type RepoControlState = {
     detail: string;
     nextCommand: string | null;
   };
+  runtimeIdentity: {
+    launchMode: string;
+    callerSurface: string;
+    packagingSourceCategory: string;
+    binaryPath: string;
+    binarySha256: string;
+    runtimeVersion: string;
+    targetTriple: string;
+    startedAt: string;
+    metadataPath: string;
+  } | null;
+  derivedFreshness: Array<{
+    outputName: string;
+    path: string;
+    freshness: string;
+    sourceRevision: number | null;
+    generatedAt: string | null;
+    invalidatedAt: string | null;
+    lastError: string | null;
+  }>;
   runtimeDecision: {
     currentStepId: "prepare" | "generate_packets" | "execute_packet" | "validate" | "checkpoint" | "handoff" | "idle";
     currentStepLabel: string;
@@ -726,6 +746,7 @@ type DesktopRuntimeInfo = {
     installed: boolean;
     installedCommandPath: string | null;
   };
+  runtimeIdentity?: RepoControlState["runtimeIdentity"];
   renderProbeView?: string | null;
 };
 
@@ -3247,7 +3268,7 @@ function renderTopBar(state: RepoControlState): string {
   const runtimeInfo = desktopRuntimeInfo
     ? {
         label: "App",
-        detail: `${describeBuildSource(desktopRuntimeInfo.buildSource)} · v${desktopRuntimeInfo.appVersion}`
+        detail: `${describeBuildSource(desktopRuntimeInfo.buildSource)} · v${desktopRuntimeInfo.appVersion}${desktopRuntimeInfo.runtimeIdentity ? ` · runtime ${desktopRuntimeInfo.runtimeIdentity.packagingSourceCategory} (${desktopRuntimeInfo.runtimeIdentity.callerSurface})` : ""}`
       }
     : null;
 
@@ -4339,6 +4360,10 @@ function renderSystemView(state: RepoControlState): string {
   const activityItems = buildActivityItems(state);
   const successfulWorkflowSteps = kc.workflow.steps.filter((step) => step.status === "success").length;
   const failedWorkflowStep = kc.workflow.steps.find((step) => step.status === "failed") ?? null;
+  const executionPlanSnapshotNote = runtimeDerivedSnapshotNote(state, "execution-plan");
+  const workflowSnapshotNote = runtimeDerivedSnapshotNote(state, "workflow");
+  const runtimeLifecycleSnapshotNote = runtimeDerivedSnapshotNote(state, "runtime-lifecycle");
+  const decisionLogicSnapshotNote = runtimeDerivedSnapshotNote(state, "decision-logic");
 
   return `
     <div class="kc-view-shell">
@@ -4403,7 +4428,7 @@ function renderSystemView(state: RepoControlState): string {
 
       <div class="kc-two-column">
         <section class="kc-panel">
-          ${renderPanelHeader("Task Lifecycle", "A lightweight runtime trail from prepare to packet generation, checkpoint, and handoff.")}
+          ${renderPanelHeader("Task Lifecycle", `A runtime-derived lifecycle snapshot from prepare to packet generation, checkpoint, and handoff. ${runtimeLifecycleSnapshotNote}`)}
           <div class="kc-stack-list">
             ${renderNoteRow("Current stage", state.executionState.lifecycle, state.executionState.reason ?? state.readiness.detail)}
             ${renderNoteRow("Validation", kc.runtimeLifecycle.validationStatus ?? "unknown", kc.runtimeLifecycle.nextSuggestedCommand ?? "No suggested command is recorded yet.")}
@@ -4425,7 +4450,7 @@ function renderSystemView(state: RepoControlState): string {
       </div>
 
       <section class="kc-panel">
-        ${renderPanelHeader("Next Commands", "Exact CLI commands from the current execution plan.")}
+        ${renderPanelHeader("Next Commands", `Exact CLI commands from the runtime-derived execution plan. ${executionPlanSnapshotNote}`)}
         ${kc.executionPlan.nextCommands.length > 0
           ? renderListBadges(kc.executionPlan.nextCommands)
           : renderEmptyState("No next commands are currently recorded.")}
@@ -4433,7 +4458,7 @@ function renderSystemView(state: RepoControlState): string {
 
       <div class="kc-two-column">
         <section class="kc-panel">
-          ${renderPanelHeader("Workflow Steps", "Linear workflow state for the active task.")}
+          ${renderPanelHeader("Workflow Steps", `Runtime-derived workflow snapshot for the active task. ${workflowSnapshotNote}`)}
           <div class="kc-inline-badges">
             ${renderInlineBadge(`${successfulWorkflowSteps}/${kc.workflow.steps.length} successful`)}
             ${failedWorkflowStep ? renderInlineBadge(`failed: ${failedWorkflowStep.action}`) : renderInlineBadge("no failed step")}
@@ -4469,7 +4494,7 @@ function renderSystemView(state: RepoControlState): string {
       </div>
 
       <section class="kc-panel">
-        ${renderPanelHeader("DECISION LOGIC", "Which signals won, and which signals were intentionally ignored.")}
+        ${renderPanelHeader("DECISION LOGIC", `Runtime-derived decision snapshot showing which signals won and which signals were intentionally ignored. ${decisionLogicSnapshotNote}`)}
         <div class="kc-two-column">
           <section class="kc-subpanel">
             ${renderPanelHeader("Reasoning chain", kc.decisionLogic.summary || "No decision summary recorded.")}
@@ -4487,7 +4512,7 @@ function renderSystemView(state: RepoControlState): string {
       </section>
 
       <section class="kc-panel">
-        ${renderPanelHeader("Runtime Events", "Hook-style events emitted by Kiwi’s lightweight runtime integration.")}
+        ${renderPanelHeader("Runtime Events", `Hook-style events emitted by Kiwi’s lightweight runtime integration. ${runtimeLifecycleSnapshotNote}`)}
         ${kc.runtimeLifecycle.recentEvents.length > 0
           ? `<div class="kc-stack-list">${kc.runtimeLifecycle.recentEvents.slice(0, 6).map((event) => renderNoteRow(
               `${event.type} · ${event.stage}`,
@@ -4573,6 +4598,14 @@ function buildRepoGraph(nodes: KiwiControlContextTreeNode[]): {
     edges,
     summary
   };
+}
+
+function runtimeDerivedSnapshotNote(state: RepoControlState, outputName: string): string {
+  const metadata = state.derivedFreshness.find((entry) => entry.outputName === outputName);
+  if (!metadata) {
+    return "Runtime-derived snapshot.";
+  }
+  return `Runtime-derived snapshot${metadata.sourceRevision != null ? ` · revision ${metadata.sourceRevision}` : ""}${metadata.generatedAt ? ` · generated ${metadata.generatedAt}` : ""}.`;
 }
 
 function renderHandoffsView(state: RepoControlState): string {
@@ -5423,6 +5456,8 @@ function buildBridgeUnavailableState(targetRoot: string): RepoControlState {
         : "Run kc ui inside a repo to load it automatically.",
       nextCommand: hasTargetRoot ? "kc ui" : "kc init"
     },
+    runtimeIdentity: null,
+    derivedFreshness: [],
     runtimeDecision: {
       currentStepId: "idle",
       currentStepLabel: "Idle",

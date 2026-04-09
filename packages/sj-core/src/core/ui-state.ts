@@ -7,9 +7,12 @@ import { syncExecutionPlan } from "./execution-plan.js";
 import type { ExecutionPlanState } from "./execution-plan.js";
 import { loadExecutionState, type ExecutionStateRecord } from "./execution-state.js";
 import {
+  getRuntimeIdentity,
   openRuntimeTarget,
   persistRuntimeDerivedOutput,
+  type RuntimeDerivedOutputStatus,
   type RuntimeDecision,
+  type RuntimeIdentity,
   type RuntimeSnapshot
 } from "../runtime/client.js";
 import { getMemoryPaths, loadOpenRisks } from "./memory.js";
@@ -388,6 +391,8 @@ export interface RepoControlState {
   repoState: RepoControlStatus;
   executionState: RepoControlExecutionState;
   readiness: RepoReadiness;
+  runtimeIdentity: RuntimeIdentity | null;
+  derivedFreshness: RuntimeDerivedOutputStatus[];
   runtimeDecision: RuntimeDecision;
   repoOverview: RepoControlPanelItem[];
   continuity: RepoControlPanelItem[];
@@ -473,6 +478,8 @@ export async function loadWarmRepoControlSnapshot(
     if (ageMs > warmMaxAgeMs) {
       return {
         ...artifact.state,
+        runtimeIdentity: artifact.state.runtimeIdentity ?? null,
+        derivedFreshness: artifact.state.derivedFreshness ?? [],
         loadState: {
           source: "stale-snapshot",
           freshness: "stale",
@@ -486,6 +493,8 @@ export async function loadWarmRepoControlSnapshot(
 
     return {
       ...artifact.state,
+      runtimeIdentity: artifact.state.runtimeIdentity ?? null,
+      derivedFreshness: artifact.state.derivedFreshness ?? [],
       loadState: {
         source: "warm-snapshot",
         freshness: "warm",
@@ -506,12 +515,7 @@ export async function persistRepoControlSnapshot(targetRoot: string, state: Repo
   }
   const snapshotFilePath = repoControlSnapshotPath(targetRoot);
   const savedAt = new Date().toISOString();
-  const artifact: RepoControlSnapshotArtifact = {
-    artifactType: "kiwi-control/repo-control-snapshot",
-    version: REPO_CONTROL_SNAPSHOT_VERSION,
-    savedAt,
-    state: withFreshLoadState(state, state.loadState?.generatedAt ?? savedAt)
-  };
+  const artifact = buildRepoControlSnapshotArtifact(state, savedAt);
   await persistRuntimeDerivedOutput({
     targetRoot,
     outputName: "repo-control-snapshot",
@@ -519,6 +523,18 @@ export async function persistRepoControlSnapshot(targetRoot: string, state: Repo
     sourceRevision: state.executionState.revision
   });
   return snapshotFilePath;
+}
+
+export function buildRepoControlSnapshotArtifact(
+  state: RepoControlState,
+  savedAt = new Date().toISOString()
+): RepoControlSnapshotArtifact {
+  return {
+    artifactType: "kiwi-control/repo-control-snapshot",
+    version: REPO_CONTROL_SNAPSHOT_VERSION,
+    savedAt,
+    state: withFreshLoadState(state, state.loadState?.generatedAt ?? savedAt)
+  };
 }
 
 export async function buildRepoControlState(options: {
@@ -615,7 +631,8 @@ export async function buildRepoControlStateFromConfig(options: {
     latestTaskPacketSet,
     latestReconcile,
     machineAdvisory,
-    runtimeSnapshot
+    runtimeSnapshot,
+    runtimeIdentity
   ] = await Promise.all([
     validateControlPlane(options.repoRoot, options.config),
     validateTargetRepo(options.targetRoot, options.config, selection),
@@ -715,7 +732,8 @@ export async function buildRepoControlStateFromConfig(options: {
     }).catch(async (): Promise<RuntimeSnapshot> => {
       const executionState = await loadExecutionState(options.targetRoot);
       return runtimeFallbackSnapshot(options.targetRoot, executionState);
-    })
+    }),
+    getRuntimeIdentity().catch((): RuntimeIdentity | null => null)
   ]);
   const validationIssues = [
     ...controlPlaneIssues,
@@ -832,6 +850,8 @@ export async function buildRepoControlStateFromConfig(options: {
       detail: runtimeDecision.readinessDetail,
       nextCommand: runtimeDecision.nextCommand
     },
+    runtimeIdentity,
+    derivedFreshness: runtimeSnapshot.derivedFreshness,
     runtimeDecision,
     repoOverview,
     continuity: continuityItems,

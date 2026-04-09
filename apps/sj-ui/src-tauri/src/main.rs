@@ -13,7 +13,15 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_dialog::DialogExt;
-use state_watch::{set_active_repo_target as update_active_repo_target, start_repo_state_watcher, RepoStateWatchState};
+use state_watch::{
+    ensure_runtime_daemon_ready,
+    get_runtime_identity,
+    runtime_metadata_file_path,
+    set_active_repo_target as update_active_repo_target,
+    start_repo_state_watcher,
+    RepoStateWatchState,
+    RuntimeIdentityPayload,
+};
 
 const DESKTOP_LAUNCH_EVENT: &str = "desktop-launch-request";
 const DESKTOP_WINDOW_LABEL: &str = "main";
@@ -91,6 +99,7 @@ struct DesktopRuntimeInfo {
     runtime_mode: String,
     receipt_path: String,
     cli: DesktopCliStatus,
+    runtime_identity: Option<RuntimeIdentityPayload>,
     render_probe_view: Option<String>,
 }
 
@@ -142,6 +151,7 @@ fn load_repo_control_state(app: AppHandle, target_root: String, prefer_snapshot:
     })
     .ok();
 
+    ensure_runtime_daemon_ready(&app).map_err(|error| format!("failed to ensure Kiwi runtime daemon: {error}"))?;
     let output = run_ui_bridge_repo_state(&app, &target_root, prefer_snapshot.unwrap_or(false)).map_err(|error| {
         let detail = format!("failed to invoke Kiwi Control runtime bridge: {error}");
         append_launch_log(&DesktopLaunchLogEntry {
@@ -225,6 +235,7 @@ fn get_desktop_runtime_info(app: AppHandle) -> Result<DesktopRuntimeInfo, String
         .find(|path| path.exists())
         .map(|path| path.to_string_lossy().to_string());
     let bundled_node_path = resolve_bundled_node_binary(&app).map(|path| path.to_string_lossy().to_string());
+    let runtime_identity = get_runtime_identity(&app).ok();
     Ok(DesktopRuntimeInfo {
         app_version: env!("CARGO_PKG_VERSION").to_string(),
         bundle_id: DESKTOP_APP_BUNDLE_ID.to_string(),
@@ -239,6 +250,7 @@ fn get_desktop_runtime_info(app: AppHandle) -> Result<DesktopRuntimeInfo, String
             installed: installed_command_path.is_some(),
             installed_command_path,
         },
+        runtime_identity,
         render_probe_view: resolve_render_probe_view(),
     })
 }
@@ -812,6 +824,7 @@ fn run_ui_bridge_command(app: &AppHandle, args: &[&str], fast_mode: bool) -> Res
             for arg in args {
                 command.arg(arg);
             }
+            apply_runtime_bridge_env(&mut command);
             if fast_mode {
                 command.env(MACHINE_ADVISORY_FAST_ENV, "1");
             }
@@ -826,6 +839,7 @@ fn run_ui_bridge_command(app: &AppHandle, args: &[&str], fast_mode: bool) -> Res
             for arg in args {
                 command.arg(arg);
             }
+            apply_runtime_bridge_env(&mut command);
             if fast_mode {
                 command.env(MACHINE_ADVISORY_FAST_ENV, "1");
             }
@@ -837,6 +851,21 @@ fn run_ui_bridge_command(app: &AppHandle, args: &[&str], fast_mode: bool) -> Res
         std::io::ErrorKind::NotFound,
         "Kiwi Control runtime bridge script was not found",
     ))
+}
+
+fn apply_runtime_bridge_env(command: &mut Command) {
+    command.env(
+        "KIWI_CONTROL_RUNTIME_METADATA_FILE",
+        runtime_metadata_file_path().to_string_lossy().to_string(),
+    );
+    command.env(
+        "KIWI_CONTROL_RUNTIME_CALLER_SURFACE",
+        desktop_runtime_caller_surface(),
+    );
+    command.env(
+        "KIWI_CONTROL_RUNTIME_PACKAGING_SOURCE_CATEGORY",
+        desktop_runtime_packaging_source_category(),
+    );
 }
 
 fn build_allowlisted_cli_args(
@@ -1378,6 +1407,20 @@ fn infer_runtime_mode(build_source: &str) -> String {
         return String::from(DESKTOP_RUNTIME_MODE_SOURCE);
     }
     String::from(DESKTOP_RUNTIME_MODE_INSTALLED)
+}
+
+fn desktop_runtime_caller_surface() -> String {
+    if infer_runtime_build_source() == "source-bundle" {
+        return String::from("desktop-source-checkout-app");
+    }
+    String::from("desktop-bundled-app")
+}
+
+fn desktop_runtime_packaging_source_category() -> String {
+    if infer_runtime_build_source() == "source-bundle" {
+        return String::from("source-bundle-sibling");
+    }
+    String::from("bundled-sidecar")
 }
 
 fn resolve_desktop_install_receipt_path() -> PathBuf {

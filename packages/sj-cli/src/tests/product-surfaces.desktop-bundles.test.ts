@@ -38,8 +38,10 @@ test("ui command prefers the local source bundle before installed app bundles wh
   const previousCwd = process.cwd();
   const previousDesktopLauncher = process.env.KIWI_CONTROL_DESKTOP;
   const previousLegacyDesktopLauncher = process.env.SHREY_JUNIOR_DESKTOP;
+  const previousReceiptPath = process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH;
   delete process.env.KIWI_CONTROL_DESKTOP;
   delete process.env.SHREY_JUNIOR_DESKTOP;
+  process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH = path.join(tempDir, "desktop-install.json");
   process.chdir(sourceRepo);
 
   try {
@@ -81,6 +83,11 @@ test("ui command prefers the local source bundle before installed app bundles wh
     } else {
       process.env.SHREY_JUNIOR_DESKTOP = previousLegacyDesktopLauncher;
     }
+    if (previousReceiptPath === undefined) {
+      delete process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH;
+    } else {
+      process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH = previousReceiptPath;
+    }
   }
 });
 
@@ -117,8 +124,10 @@ test("installed-user launch mode ignores a source checkout in the current worksp
   const previousCwd = process.cwd();
   const previousDesktopLauncher = process.env.KIWI_CONTROL_DESKTOP;
   const previousLegacyDesktopLauncher = process.env.SHREY_JUNIOR_DESKTOP;
+  const previousReceiptPath = process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH;
   delete process.env.KIWI_CONTROL_DESKTOP;
   delete process.env.SHREY_JUNIOR_DESKTOP;
+  process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH = path.join(tempDir, "desktop-install.json");
   process.chdir(sourceRepo);
 
   try {
@@ -152,6 +161,11 @@ test("installed-user launch mode ignores a source checkout in the current worksp
     } else {
       process.env.SHREY_JUNIOR_DESKTOP = previousLegacyDesktopLauncher;
     }
+    if (previousReceiptPath === undefined) {
+      delete process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH;
+    } else {
+      process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH = previousReceiptPath;
+    }
   }
 });
 
@@ -159,10 +173,12 @@ test("ui command prefers installed app bundles when no source checkout bundle is
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-ui-installed-bundles-"));
   const installedRoot = path.join(tempDir, "installed-cli-root");
   const previousCwd = process.cwd();
+  const previousReceiptPath = process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH;
 
   await fs.mkdir(path.join(installedRoot, "configs"), { recursive: true });
   await fs.writeFile(path.join(installedRoot, "configs", "global.yaml"), "version: 2\n", "utf8");
 
+  process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH = path.join(tempDir, "desktop-install.json");
   process.chdir(tempDir);
 
   try {
@@ -187,6 +203,11 @@ test("ui command prefers installed app bundles when no source checkout bundle is
     }
   } finally {
     process.chdir(previousCwd);
+    if (previousReceiptPath === undefined) {
+      delete process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH;
+    } else {
+      process.env.KIWI_CONTROL_DESKTOP_RECEIPT_PATH = previousReceiptPath;
+    }
   }
 });
 

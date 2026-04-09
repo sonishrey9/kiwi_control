@@ -214,5 +214,40 @@ pub struct RuntimeDaemonMetadata {
     pub base_url: String,
     pub started_at: String,
     pub launch_mode: Option<String>,
+    pub caller_surface: Option<String>,
+    pub packaging_source_category: Option<String>,
     pub binary_path: Option<String>,
+    pub binary_sha256: Option<String>,
+    pub runtime_version: Option<String>,
+    pub target_triple: Option<String>,
+    pub metadata_path: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeIdentity {
+    pub launch_mode: String,
+    pub caller_surface: String,
+    pub packaging_source_category: String,
+    pub binary_path: String,
+    pub binary_sha256: String,
+    pub runtime_version: String,
+    pub target_triple: String,
+    pub started_at: String,
+    pub metadata_path: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RefreshDerivedOutputsRequest {
+    pub target_root: String,
+    pub repo_control_snapshot: Option<Value>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeProofResponse {
+    pub identity: RuntimeIdentity,
+    pub snapshot: RuntimeSnapshot,
+    pub derived_freshness: Vec<DerivedOutputStatus>,
 }

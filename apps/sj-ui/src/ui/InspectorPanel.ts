@@ -17,6 +17,7 @@ export function renderInspectorPanel(context: InspectorRenderContext): string {
   } = context;
   const { escapeHtml, renderInlineBadge, renderExplainabilityBadge, renderGateRow, renderBulletRow, renderNoteRow, deriveSignalImpact } = helpers;
   const kc = state.kiwiControl;
+  const runtimeLifecycleSnapshot = state.derivedFreshness.find((entry) => entry.outputName === "runtime-lifecycle");
   if (!kc) {
     return `
       <div class="kc-inspector-shell">
@@ -87,6 +88,7 @@ export function renderInspectorPanel(context: InspectorRenderContext): string {
           ${renderGateRow("Validation", kc.runtimeLifecycle.validationStatus ?? "unknown", kc.runtimeLifecycle.validationStatus === "error" ? "warn" : "default")}
         </div>
         <p>${escapeHtml(kc.runtimeLifecycle.nextRecommendedAction ?? "No runtime lifecycle recommendation is recorded yet.")}</p>
+        <p>${escapeHtml(`Runtime-derived snapshot${runtimeLifecycleSnapshot?.sourceRevision != null ? ` · revision ${runtimeLifecycleSnapshot.sourceRevision}` : ""}${runtimeLifecycleSnapshot?.generatedAt ? ` · generated ${runtimeLifecycleSnapshot.generatedAt}` : ""}.`)}</p>
       </section>
 
       <section class="kc-inspector-section">

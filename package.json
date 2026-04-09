@@ -34,7 +34,8 @@
     "release:check": "npm run test:product:features && npm run release:manifest && npm run release:checksums",
     "ui:dev": "node scripts/run-ui-dev.mjs",
     "ui:build": "npm run build -w @shrey-junior/sj-ui",
-    "ui:desktop:build": "node scripts/run-ui-desktop-build.mjs"
+    "ui:desktop:build": "node scripts/run-ui-desktop-build.mjs",
+    "ui:desktop:test": "node scripts/run-ui-desktop-test.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

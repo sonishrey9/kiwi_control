@@ -68,6 +68,28 @@ export interface RuntimeDecisionState {
   updatedAt?: string;
 }
 
+export interface RuntimeIdentityState {
+  launchMode: string;
+  callerSurface: string;
+  packagingSourceCategory: string;
+  binaryPath: string;
+  binarySha256: string;
+  runtimeVersion: string;
+  targetTriple: string;
+  startedAt: string;
+  metadataPath: string;
+}
+
+export interface DerivedOutputFreshnessState {
+  outputName: string;
+  path: string;
+  freshness: string;
+  sourceRevision: number | null;
+  generatedAt: string | null;
+  invalidatedAt: string | null;
+  lastError: string | null;
+}
+
 export interface DecisionSummary {
   nextAction: string;
   blockingIssue: string;
@@ -268,6 +290,8 @@ export interface RepoControlState {
     detail: string;
     nextCommand: string | null;
   };
+  runtimeIdentity: RuntimeIdentityState | null;
+  derivedFreshness: DerivedOutputFreshnessState[];
   runtimeDecision: RuntimeDecisionState;
   validation: {
     errors: number;

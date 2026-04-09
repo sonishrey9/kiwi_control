@@ -212,7 +212,7 @@ test("unknown commands exit with usage status and corrective guidance", () => {
   assert.equal(result.code, 2);
   assert.match(result.stderr, /kiwi-control usage error:/);
   assert.match(result.stderr, /unknown command: does-not-exist/);
-  assert.match(result.stderr, /Core commands: plan, next, retry, resume, guide, prepare, validate, explain, trace, doctor, toolchain, usage, eval, init, status, check, specialists, checkpoint, handoff, ui/);
+  assert.match(result.stderr, /Core commands: plan, next, retry, resume, guide, prepare, validate, explain, trace, doctor, runtime, toolchain, usage, eval, init, status, check, specialists, checkpoint, handoff, ui/);
 });
 
 test("inside-folder workflow uses the current working directory by default", async () => {

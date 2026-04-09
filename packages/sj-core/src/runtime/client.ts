@@ -10,7 +10,25 @@ export interface RuntimeDaemonMetadata {
   baseUrl: string;
   startedAt: string;
   launchMode?: string;
+  callerSurface?: string;
+  packagingSourceCategory?: string;
   binaryPath?: string | null;
+  binarySha256?: string | null;
+  runtimeVersion?: string | null;
+  targetTriple?: string | null;
+  metadataPath?: string | null;
+}
+
+export interface RuntimeIdentity {
+  launchMode: string;
+  callerSurface: string;
+  packagingSourceCategory: string;
+  binaryPath: string;
+  binarySha256: string;
+  runtimeVersion: string;
+  targetTriple: string;
+  startedAt: string;
+  metadataPath: string;
 }
 
 export interface RuntimeReadiness {
@@ -141,6 +159,17 @@ export interface PersistDerivedOutputRequest {
   sourceRevision?: number | null;
 }
 
+export interface RefreshRuntimeDerivedOutputsRequest {
+  targetRoot: string;
+  repoControlSnapshot?: unknown;
+}
+
+export interface RuntimeProof {
+  identity: RuntimeIdentity;
+  snapshot: RuntimeSnapshot;
+  derivedFreshness: RuntimeDerivedOutputStatus[];
+}
+
 const RUNTIME_METADATA_FILE = "daemon.json";
 const RUNTIME_HEALTH_TIMEOUT_MS = 4_000;
 const RUNTIME_START_TIMEOUT_MS = 20_000;
@@ -186,10 +215,23 @@ export async function materializeRuntimeDerivedOutputs(
   });
 }
 
+export async function getRuntimeIdentity(): Promise<RuntimeIdentity> {
+  return runtimeRequest<RuntimeIdentity>("/runtime-identity");
+}
+
 export async function persistRuntimeDerivedOutput(
   request: PersistDerivedOutputRequest
 ): Promise<RuntimeSnapshot> {
   return runtimeRequest<RuntimeSnapshot>("/persist-derived-output", {
+    method: "POST",
+    body: JSON.stringify(request)
+  });
+}
+
+export async function refreshRuntimeDerivedOutputs(
+  request: RefreshRuntimeDerivedOutputsRequest
+): Promise<RuntimeSnapshot> {
+  return runtimeRequest<RuntimeSnapshot>("/refresh-derived-outputs", {
     method: "POST",
     body: JSON.stringify(request)
   });
@@ -291,17 +333,32 @@ async function readRuntimeMetadata(): Promise<RuntimeDaemonMetadata | null> {
 
 function resolveRuntimeLaunch(): { command: string; args: string[] } {
   const directBinary = resolveRuntimeBinaryPath();
+  const metadataPath = runtimeMetadataPath();
+  const callerSurface = resolveRuntimeCallerSurface();
+  const packagingSourceCategory = directBinary
+    ? resolveRuntimePackagingSourceCategory(directBinary)
+    : "dev-cargo-fallback";
+  const launchMode = directBinary
+    ? resolveRuntimeLaunchMode(directBinary, packagingSourceCategory)
+    : "dev-cargo-fallback";
+  const targetTriple = currentRustTargetTriple();
   if (directBinary) {
     return {
       command: directBinary,
       args: [
         "daemon",
         "--metadata-file",
-        runtimeMetadataPath(),
+        metadataPath,
         "--launch-mode",
-        resolveRuntimeLaunchMode(directBinary),
+        launchMode,
+        "--caller-surface",
+        callerSurface,
+        "--packaging-source-category",
+        packagingSourceCategory,
         "--binary-path",
-        directBinary
+        directBinary,
+        "--target-triple",
+        targetTriple
       ]
     };
   }
@@ -325,11 +382,17 @@ function resolveRuntimeLaunch(): { command: string; args: string[] } {
       "--",
       "daemon",
       "--metadata-file",
-      runtimeMetadataPath(),
+      metadataPath,
       "--launch-mode",
-      "dev-cargo-fallback",
+      launchMode,
+      "--caller-surface",
+      callerSurface,
+      "--packaging-source-category",
+      packagingSourceCategory,
       "--binary-path",
-      path.join(resolveShreyJuniorProductRoot(), "crates", "kiwi-runtime", "Cargo.toml")
+      path.join(resolveShreyJuniorProductRoot(), "crates", "kiwi-runtime", "Cargo.toml"),
+      "--target-triple",
+      targetTriple
     ]
   };
 }
@@ -369,6 +432,11 @@ function resolveRuntimeBinaryPath(): string | null {
 }
 
 function runtimeMetadataDir(): string {
+  const metadataFileOverride = process.env.KIWI_CONTROL_RUNTIME_METADATA_FILE?.trim()
+    || process.env.SHREY_JUNIOR_RUNTIME_METADATA_FILE?.trim();
+  if (metadataFileOverride) {
+    return path.dirname(path.resolve(metadataFileOverride));
+  }
   const override = process.env.KIWI_CONTROL_RUNTIME_DIR?.trim()
     || process.env.SHREY_JUNIOR_RUNTIME_DIR?.trim();
   if (override) {
@@ -384,6 +452,11 @@ function runtimeMetadataDir(): string {
 }
 
 function runtimeMetadataPath(): string {
+  const metadataFileOverride = process.env.KIWI_CONTROL_RUNTIME_METADATA_FILE?.trim()
+    || process.env.SHREY_JUNIOR_RUNTIME_METADATA_FILE?.trim();
+  if (metadataFileOverride) {
+    return path.resolve(metadataFileOverride);
+  }
   return path.join(runtimeMetadataDir(), RUNTIME_METADATA_FILE);
 }
 
@@ -395,23 +468,15 @@ function isRuntimeSnapshotPayload(value: unknown): value is RuntimeSnapshot {
     && "lifecycle" in value;
 }
 
-function resolveRuntimeLaunchMode(binaryPath: string): string {
-  const normalizedBinaryPath = path.resolve(binaryPath);
-  const productRoot = resolveShreyJuniorProductRoot();
-  if (isSourceProductCheckout(productRoot)) {
-    return (
-      normalizedBinaryPath.includes(`${path.sep}src-tauri${path.sep}binaries${path.sep}`)
-      || normalizedBinaryPath.includes(`${path.sep}dist${path.sep}runtime${path.sep}bin${path.sep}`)
-    )
-      ? "local-staged"
-      : "env-override";
+function resolveRuntimeLaunchMode(binaryPath: string, packagingSourceCategory: string): string {
+  if (packagingSourceCategory === "dev-cargo-fallback") {
+    return "dev-cargo-fallback";
   }
-
-  if (normalizedBinaryPath.includes(`${path.sep}runtime${path.sep}bin${path.sep}`)) {
-    return "bundled-runtime";
+  if (packagingSourceCategory === "bundled-sidecar" || packagingSourceCategory === "source-bundle-sibling") {
+    return "sidecar";
   }
-
-  return "env-override";
+  void binaryPath;
+  return "direct-binary";
 }
 
 function resolveStagedRuntimeBinaryPath(productRoot: string): string | null {
@@ -427,6 +492,33 @@ function resolveStagedRuntimeBinaryPath(productRoot: string): string | null {
       ];
 
   return candidates.find((candidate) => existsSync(candidate)) ?? null;
+}
+
+function resolveRuntimeCallerSurface(): string {
+  return process.env.KIWI_CONTROL_RUNTIME_CALLER_SURFACE?.trim()
+    || process.env.SHREY_JUNIOR_RUNTIME_CALLER_SURFACE?.trim()
+    || "cli";
+}
+
+function resolveRuntimePackagingSourceCategory(binaryPath: string): string {
+  const override = process.env.KIWI_CONTROL_RUNTIME_PACKAGING_SOURCE_CATEGORY?.trim()
+    || process.env.SHREY_JUNIOR_RUNTIME_PACKAGING_SOURCE_CATEGORY?.trim();
+  if (override) {
+    return override;
+  }
+
+  const normalizedBinaryPath = path.resolve(binaryPath);
+  const productRoot = resolveShreyJuniorProductRoot();
+  if (isSourceProductCheckout(productRoot)) {
+    if (normalizedBinaryPath.includes(`${path.sep}.app${path.sep}Contents${path.sep}MacOS${path.sep}`)) {
+      return "source-bundle-sibling";
+    }
+    return "local-staged";
+  }
+  if (normalizedBinaryPath.includes(`${path.sep}runtime${path.sep}bin${path.sep}`)) {
+    return "runtime-bundle";
+  }
+  return "env-override";
 }
 
 function currentRuntimeExecutableName(): string {

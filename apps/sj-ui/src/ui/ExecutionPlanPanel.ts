@@ -4,6 +4,7 @@ export function renderExecutionPlanPanelView(context: ExecutionPlanPanelRenderCo
   const { state, steps, editingPlanStepId, editingPlanDraft, focusedItem, commandState, failureGuidance, helpers } = context;
   const { escapeHtml, escapeAttribute, formatCliCommand, renderPanelHeader, renderInlineBadge, renderNoteRow, renderEmptyState, renderHeaderBadge } = helpers;
   const plan = state.kiwiControl?.executionPlan;
+  const derivedSnapshot = state.derivedFreshness.find((entry) => entry.outputName === "execution-plan");
   if (!plan) {
     return `
       <section class="kc-panel">
@@ -15,7 +16,10 @@ export function renderExecutionPlanPanelView(context: ExecutionPlanPanelRenderCo
 
   return `
     <section class="kc-panel">
-      ${renderPanelHeader("Execution Plan", plan.summary || "No execution plan is recorded yet.")}
+      ${renderPanelHeader(
+        "Execution Plan",
+        `${plan.summary || "No execution plan is recorded yet."} Runtime-derived snapshot${derivedSnapshot?.sourceRevision != null ? ` · revision ${derivedSnapshot.sourceRevision}` : ""}${derivedSnapshot?.generatedAt ? ` · generated ${derivedSnapshot.generatedAt}` : ""}.`
+      )}
       <div class="kc-inline-badges">
         ${renderInlineBadge(`state: ${plan.state}`)}
         ${renderInlineBadge(`current: ${steps[plan.currentStepIndex]?.id ?? "none"}`)}
