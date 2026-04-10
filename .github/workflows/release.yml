@@ -69,9 +69,85 @@ jobs:
       - name: Generate local checksums
         run: node scripts/generate-release-checksums.mjs
 
+      - name: Prepare macOS signing and notarization inputs
+        if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          if [ -z "${APPLE_CERTIFICATE:-}" ]; then
+            echo "macOS signing secrets not configured; build will remain unsigned."
+            exit 0
+          fi
+          CERT_PATH="$RUNNER_TEMP/kiwi-control-signing.p12"
+          printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$CERT_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security import "$CERT_PATH" -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          CERT_INFO="$(security find-identity -v -p codesigning build.keychain | grep -E 'Developer ID Application|Apple Distribution' | head -1 || true)"
+          if [ -n "$CERT_INFO" ]; then
+            CERT_ID="$(echo "$CERT_INFO" | awk -F'\"' '{print $2}')"
+            echo "APPLE_SIGNING_IDENTITY=$CERT_ID" >> "$GITHUB_ENV"
+          fi
+          if [ -n "${APPLE_API_PRIVATE_KEY:-}" ] && [ -n "${APPLE_API_KEY:-}" ] && [ -n "${APPLE_API_ISSUER:-}" ]; then
+            APPLE_API_KEY_PATH="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
+            printf '%s' "$APPLE_API_PRIVATE_KEY" > "$APPLE_API_KEY_PATH"
+            echo "APPLE_API_KEY_PATH=$APPLE_API_KEY_PATH" >> "$GITHUB_ENV"
+          fi
+
+      - name: Prepare Windows signing inputs
+        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_PFX_B64: ${{ secrets.WINDOWS_CERTIFICATE_PFX_B64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          WINDOWS_CERTIFICATE_THUMBPRINT: ${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}
+          WINDOWS_TIMESTAMP_URL: ${{ secrets.WINDOWS_TIMESTAMP_URL }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PFX_B64)) {
+            Write-Host "Windows signing secrets not configured; installers will remain unsigned."
+            exit 0
+          }
+          $certPath = Join-Path $env:RUNNER_TEMP "kiwi-control-signing.pfx"
+          [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_PFX_B64))
+          $securePassword = ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
+          $imported = Import-PfxCertificate -FilePath $certPath -CertStoreLocation Cert:\CurrentUser\My -Password $securePassword
+          $thumbprint = if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_THUMBPRINT)) { $imported.Thumbprint } else { $env:WINDOWS_CERTIFICATE_THUMBPRINT }
+          $timestampUrl = if ([string]::IsNullOrWhiteSpace($env:WINDOWS_TIMESTAMP_URL)) { "http://timestamp.acs.microsoft.com" } else { $env:WINDOWS_TIMESTAMP_URL }
+          $overlayPath = Join-Path $env:RUNNER_TEMP "tauri.windows.signing.conf.json"
+          $overlay = @{
+            bundle = @{
+              windows = @{
+                certificateThumbprint = $thumbprint
+                digestAlgorithm = "sha256"
+                timestampUrl = $timestampUrl
+              }
+            }
+          } | ConvertTo-Json -Depth 10
+          Set-Content -Path $overlayPath -Value $overlay
+          "KIWI_CONTROL_TAURI_EXTRA_CONFIG=$overlayPath" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "WINDOWS_CERTIFICATE_THUMBPRINT=$thumbprint" | Out-File -FilePath $env:GITHUB_ENV -Append
+
       - name: Build desktop bundle
         if: startsWith(github.ref, 'refs/tags/v')
         run: npm run ui:desktop:build
+
+      - name: Verify desktop release artifacts
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          case "${{ matrix.os }}" in
+            macos-latest) node scripts/verify-release-artifacts.mjs --platform macos --bundles app,dmg ;;
+            windows-latest) node scripts/verify-release-artifacts.mjs --platform windows --bundles nsis,msi ;;
+            ubuntu-latest) node scripts/verify-release-artifacts.mjs --platform linux --bundles appimage ;;
+          esac
 
       - name: Package release assets
         run: node scripts/package-release-assets.mjs
@@ -129,8 +205,8 @@ jobs:
           Public beta assets are attached here. GitHub Releases remains the source of truth for downloads, and the public site points to this release stream through /releases/latest.
 
           Trust notes:
-          - macOS signing and notarization remain manual unless explicitly completed for this tag
-          - Windows code signing remains manual unless explicitly completed for this tag
+          - macOS signing and notarization are only trusted if this workflow ran with Apple signing and notarization secrets and the build logs confirmed those steps
+          - Windows code signing is only trusted if the Windows job ran with signing secrets on a Windows runner and the build logs confirmed signing
           - auto-update metadata is still disabled until signed updater inputs are configured
           EOF
 

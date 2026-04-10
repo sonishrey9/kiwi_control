@@ -30,12 +30,10 @@ export async function stageCliBundle(options = {}) {
   await mkdir(sjCorePackageDir, { recursive: true });
   await mkdir(yamlPackageDir, { recursive: true });
 
-  await cp(cliDistDir, libDir, { recursive: true });
-  await cp(path.join(resolvedRepoRoot, "packages", "sj-core", "dist"), path.join(sjCorePackageDir, "dist"), {
-    recursive: true
-  });
-  await cp(path.join(resolvedRepoRoot, "packages", "sj-core", "package.json"), path.join(sjCorePackageDir, "package.json"));
-  await cp(path.join(resolvedRepoRoot, "node_modules", "yaml"), yamlPackageDir, { recursive: true });
+  await copyFiltered(cliDistDir, libDir);
+  await copyFiltered(path.join(resolvedRepoRoot, "packages", "sj-core", "dist"), path.join(sjCorePackageDir, "dist"));
+  await copyFiltered(path.join(resolvedRepoRoot, "packages", "sj-core", "package.json"), path.join(sjCorePackageDir, "package.json"));
+  await copyFiltered(path.join(resolvedRepoRoot, "node_modules", "yaml"), yamlPackageDir);
 
   const publicLaunchers = [
     PRODUCT_METADATA.cli.primaryCommand,
@@ -82,7 +80,7 @@ export async function stageDesktopInstallerResources(options = {}) {
     version,
     bundlePath: cliBundlePath
   });
-  await cp(nodeBinaryPath, stagedNodePath);
+  await copyFiltered(nodeBinaryPath, stagedNodePath);
   await chmod(stagedNodePath, 0o755).catch(() => undefined);
   await stageNodeSupportFiles(nodeBinaryPath, resourcesRoot);
   await removeAppleDoubleFiles(resourcesRoot);
@@ -453,7 +451,7 @@ async function stageNodeSupportFiles(nodeBinaryPath, resourcesRoot) {
         if (!entry.isFile() || !entry.name.startsWith("libnode") || !entry.name.endsWith(".dylib")) {
           continue;
         }
-        await cp(path.join(resolvedDir, entry.name), path.join(resourcesRoot, "lib", entry.name));
+        await copyFiltered(path.join(resolvedDir, entry.name), path.join(resourcesRoot, "lib", entry.name));
       }
     }
     return;
@@ -465,7 +463,7 @@ async function stageNodeSupportFiles(nodeBinaryPath, resourcesRoot) {
       if (!entry.isFile() || !entry.name.toLowerCase().endsWith(".dll")) {
         continue;
       }
-      await cp(path.join(resolvedDir, entry.name), path.join(resourcesRoot, "node", entry.name));
+      await copyFiltered(path.join(resolvedDir, entry.name), path.join(resourcesRoot, "node", entry.name));
     }
   }
 }
@@ -482,4 +480,14 @@ async function exists(candidatePath) {
       return false;
     }
   }
+}
+
+async function copyFiltered(sourcePath, targetPath) {
+  await cp(sourcePath, targetPath, {
+    recursive: true,
+    filter: (entryPath) => {
+      const name = path.basename(entryPath);
+      return name !== ".DS_Store" && !name.startsWith("._");
+    }
+  });
 }

@@ -14,6 +14,8 @@ For most users on macOS and Windows:
 
 1. Open the installer-first website at [kiwi-control.kiwi-ai.in](https://kiwi-control.kiwi-ai.in/) or go directly to [GitHub Releases](https://github.com/sonishrey9/kiwi-control/releases/latest).
 2. Download the desktop installer for your platform.
+   - macOS: `.dmg`
+   - Windows: `-setup.exe` or `.msi`
 3. Install Kiwi Control like a normal desktop app.
 4. Launch Kiwi Control once.
 5. Use onboarding to choose a repo, initialize it if needed, and run Kiwi setup if the app shows machine setup gaps.

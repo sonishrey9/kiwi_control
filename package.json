@@ -31,10 +31,12 @@
     "release:manifest": "npm run build -w @shrey-junior/sj-core && node scripts/prepare-release-manifest.mjs",
     "release:checksums": "node scripts/generate-release-checksums.mjs",
     "release:package-assets": "node scripts/package-release-assets.mjs",
+    "release:verify-artifacts": "node scripts/verify-release-artifacts.mjs",
     "release:check": "npm run test:product:features && npm run release:manifest && npm run release:checksums",
     "ui:dev": "node scripts/run-ui-dev.mjs",
     "ui:build": "npm run build -w @shrey-junior/sj-ui",
     "ui:desktop:build": "node scripts/run-ui-desktop-build.mjs",
+    "ui:desktop:build:release": "node scripts/run-ui-desktop-build.mjs",
     "ui:desktop:test": "node scripts/run-ui-desktop-test.mjs"
   },
   "devDependencies": {

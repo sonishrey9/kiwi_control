@@ -39,18 +39,35 @@ for (const artifactType of ["runtime", "ui-web"]) {
   createdAssets.push(outputFileName);
 }
 
-const desktopArtifact = findDesktopArtifact(manifest, { platform, arch });
-if (desktopArtifact) {
+const desktopArtifacts = findDesktopArtifacts(manifest, { platform, arch });
+for (const desktopArtifact of desktopArtifacts) {
+  const desktopTargetFile = path.join(assetsDir, desktopArtifact.fileName);
+  if (desktopArtifact.packagingStrategy === "archive-directory") {
+    const sourceDir = path.join(repoRoot, desktopArtifact.sourcePath);
+    const sourceStats = await stat(sourceDir).catch(() => null);
+    if (!sourceStats?.isDirectory()) {
+      if (requireDesktopAsset) {
+        throw new Error(`Expected desktop bundle directory for ${platform}/${arch} at ${desktopArtifact.sourcePath}, but none was found.`);
+      }
+      continue;
+    }
+    await packageDirectory({
+      sourceDir,
+      outputPath: desktopTargetFile
+    });
+    createdAssets.push(desktopArtifact.fileName);
+    continue;
+  }
+
   const desktopSourceFile = await findDesktopBundleFile(path.join(repoRoot, desktopArtifact.bundlePath), desktopArtifact.fileName);
   if (!desktopSourceFile) {
     if (requireDesktopAsset) {
       throw new Error(`Expected desktop bundle for ${platform}/${arch} under ${desktopArtifact.bundlePath}, but none was found.`);
     }
-  } else {
-    const desktopTargetFile = path.join(assetsDir, desktopArtifact.fileName);
-    await cp(desktopSourceFile, desktopTargetFile);
-    createdAssets.push(desktopArtifact.fileName);
+    continue;
   }
+  await cp(desktopSourceFile, desktopTargetFile);
+  createdAssets.push(desktopArtifact.fileName);
 }
 
 await removeMacMetadataArtifacts(assetsDir);
@@ -90,13 +107,13 @@ function requireArtifact(manifestPayload, criteria) {
   return artifact;
 }
 
-function findDesktopArtifact(manifestPayload, criteria) {
-  return manifestPayload.artifacts.find(
+function findDesktopArtifacts(manifestPayload, criteria) {
+  return manifestPayload.artifacts.filter(
     (candidate) =>
-      candidate.artifactType === "desktop" &&
+      candidate.artifactType.startsWith("desktop") &&
       candidate.platform === criteria.platform &&
       candidate.arch === criteria.arch
-  ) ?? null;
+  );
 }
 
 function renderTemplateArtifactName(template, platformValue, archValue) {

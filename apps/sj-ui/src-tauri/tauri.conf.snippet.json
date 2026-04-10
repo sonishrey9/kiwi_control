@@ -19,7 +19,13 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": [
+      "app",
+      "dmg",
+      "nsis",
+      "msi",
+      "appimage"
+    ],
     "createUpdaterArtifacts": false,
     "externalBin": [
       "binaries/kiwi-control-runtime"

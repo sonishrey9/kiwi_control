@@ -6,6 +6,7 @@ These are the main public-facing docs for Kiwi Control:
 - [Desktop-first validation checklist](./desktop-first-validation-checklist.md)
 - [Beta limitations](./beta-limitations.md)
 - [Release packaging](./release-packaging.md)
+- [Signing and release verification](../packaging/signing/README.md)
 - [Privacy policy](./privacy-policy.md)
 - [Terms and conditions](./terms-and-conditions.md)
 - [Security and trust](./security-and-trust.md)

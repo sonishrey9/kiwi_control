@@ -77,7 +77,7 @@ async function main() {
   }
 
   if (process.platform === "darwin") {
-    const buildDesktop = spawnSync(process.execPath, [path.join(repoRoot, "scripts", "run-ui-desktop-build.mjs")], {
+    const buildDesktop = spawnSync(process.execPath, [path.join(repoRoot, "scripts", "run-ui-desktop-build.mjs"), "--bundles", "app"], {
       cwd: repoRoot,
       stdio: "inherit",
       env: {

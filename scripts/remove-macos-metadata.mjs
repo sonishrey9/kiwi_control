@@ -17,17 +17,34 @@ async function removeMacMetadataArtifactsFromPath(targetPath) {
     return 0;
   }
 
-  const stats = await fs.lstat(targetPath);
+  const stats = await fs.lstat(targetPath).catch((error) => {
+    if (error?.code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  });
+  if (!stats) {
+    return 0;
+  }
   if (!stats.isDirectory()) {
     if (isMacMetadataArtifact(path.basename(targetPath))) {
-      await fs.rm(targetPath, { force: true });
+      await fs.rm(targetPath, { force: true }).catch((error) => {
+        if (error?.code !== "ENOENT") {
+          throw error;
+        }
+      });
       return 1;
     }
     return 0;
   }
 
   let removedCount = 0;
-  const entries = await fs.readdir(targetPath, { withFileTypes: true });
+  const entries = await fs.readdir(targetPath, { withFileTypes: true }).catch((error) => {
+    if (error?.code === "ENOENT") {
+      return [];
+    }
+    throw error;
+  });
   for (const entry of entries) {
     const entryPath = path.join(targetPath, entry.name);
     if (entry.isDirectory()) {
@@ -36,7 +53,11 @@ async function removeMacMetadataArtifactsFromPath(targetPath) {
     }
 
     if (isMacMetadataArtifact(entry.name)) {
-      await fs.rm(entryPath, { force: true });
+      await fs.rm(entryPath, { force: true }).catch((error) => {
+        if (error?.code !== "ENOENT") {
+          throw error;
+        }
+      });
       removedCount += 1;
     }
   }

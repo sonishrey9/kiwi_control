@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { buildOnboardingPanelModel } from "./OnboardingPanel.js";
 
-test("onboarding shows install-cli and choose-repo actions for installed-user first launch", () => {
+test("onboarding shows choose-repo first and keeps install-cli hidden until a repo is selected", () => {
   const model = buildOnboardingPanelModel({
     runtimeInfo: {
       appVersion: "0.2.0-beta.1",
@@ -24,9 +24,9 @@ test("onboarding shows install-cli and choose-repo actions for installed-user fi
 
   assert.ok(model);
   assert.equal(model?.actions.some((action) => action.id === "choose-repo"), true);
-  assert.equal(model?.actions.some((action) => action.id === "install-cli"), true);
+  assert.equal(model?.actions.some((action) => action.id === "install-cli"), false);
   assert.match(model?.intro ?? "", /kc is optional/i);
-  assert.match(model?.actions.find((action) => action.id === "install-cli")?.label ?? "", /optional/i);
+  assert.equal(model?.actions[0]?.id, "choose-repo");
 });
 
 test("onboarding shows init action for an uninitialized repo", () => {
