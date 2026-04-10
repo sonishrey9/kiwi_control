@@ -20,11 +20,33 @@ This checklist validates Kiwi Control as a real first-repo desktop product, not 
 Expected result:
 - onboarding is desktop-first
 - CLI install is optional
+- machine setup is presented as one guided action, not as a dashboard
 - choosing a repo is the first practical step
 
 Pass:
 - the app can be understood without opening Terminal first
 - onboarding does not describe `kc` as required
+- setup entry points stay compact and honest
+
+### 1a. Machine setup
+
+Commands:
+
+```bash
+kc setup status --json --target /path/to/external-repo
+kc setup verify --json --target /path/to/external-repo
+kc setup --profile desktop-plus-cli --target /path/to/external-repo --dry-run
+```
+
+Expected result:
+- Kiwi reports machine-global setup separately from repo runtime truth
+- detected tools include local helpers such as `ai-setup` when they exist
+- setup steps are marked as ready, actionable, blocked, or optional
+
+Pass:
+- no machine setup state is written into repo runtime authority
+- repeated dry-run setup actions do not mutate files
+- setup output is explicit about blocked or unsupported steps
 
 ### 2. Choose repo
 
@@ -173,6 +195,8 @@ Pass:
 
 - desktop overview screenshot
 - onboarding screenshot
+- setup status JSON
+- setup verify JSON
 - blocked-state screenshot
 - render-probe payload before and after pack change
 - `kc status --json`

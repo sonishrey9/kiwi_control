@@ -1,9 +1,14 @@
-import os from "node:os";
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import { execFile as execFileCallback } from "node:child_process";
-import { promisify } from "node:util";
 import { pathExists, readJson } from "../utils/fs.js";
+import {
+  MACHINE_SETUP_TOOL_REGISTRY,
+  discoverMachineTools,
+  resolveMachineHome,
+  runMachineCommand,
+  type MachineCommandOutput as CommandOutput,
+  type MachineCommandRunner
+} from "./machine-setup-detection.js";
 import {
   buildMachineGuidance,
   buildMachineGuidanceContext,
@@ -22,19 +27,7 @@ import { buildSetupSummary } from "./machine-advisory-summary.js";
 
 export { buildMachineGuidanceContext, filterMachineGuidance } from "./machine-advisory-guidance.js";
 
-const execFile = promisify(execFileCallback);
-const MACHINE_HOME_ENV = "KIWI_MACHINE_HOME";
 const MACHINE_FAST_ENV = "KIWI_MACHINE_ADVISORY_FAST";
-const DEFAULT_TOOLS: Array<{ name: string; description: string; phase: string; versionArgs?: string[] }> = [
-  { name: "code-review-graph", description: "Graph-based code search", phase: "Phase 1" },
-  { name: "omc", description: "Planning orchestration layer", phase: "Phase 1" },
-  { name: "omx", description: "Execution orchestration layer", phase: "Phase 1" },
-  { name: "lean-ctx", description: "Shell output compression", phase: "Phase 2" },
-  { name: "repomix", description: "Codebase summarizer", phase: "Phase 2" },
-  { name: "context-mode", description: "Tool output sandboxing", phase: "Phase 2" },
-  { name: "copilot", description: "GitHub Copilot CLI", phase: "Phase 2" },
-  { name: "tmux", description: "Terminal multiplexer", phase: "Existing", versionArgs: ["-V"] }
-];
 const TOKEN_SERVER_IDS = ["code-review-graph", "lean-ctx", "context-mode", "ccusage"] as const;
 
 export interface MachineAdvisoryTool {
@@ -254,8 +247,6 @@ export interface MachineAdvisoryBuildOptions {
   fastMode?: boolean;
   section?: MachineAdvisorySectionName;
 }
-
-type CommandOutput = { code: number; stdout: string; stderr: string };
 
 export async function loadMachineAdvisory(options: MachineAdvisoryBuildOptions = {}): Promise<MachineAdvisoryState> {
   const now = options.now ?? new Date();
@@ -477,7 +468,6 @@ export async function loadMachineAdvisorySection(
 }
 
 export function buildMachineDoctorFindings(state: MachineAdvisoryState, homeRoot?: string): MachineDoctorFinding[] {
-  const home = resolveMachineHome(homeRoot);
   const findings: MachineDoctorFinding[] = [];
 
   const missingTools = state.inventory.filter((tool) => !tool.installed).map((tool) => tool.name);
@@ -496,7 +486,7 @@ export function buildMachineDoctorFindings(state: MachineAdvisoryState, homeRoot
       level: "warn",
       category: "config",
       reason: `Unhealthy config surfaces: ${unhealthyConfigs.map((entry) => entry.path).join(", ")}`,
-      fixCommand: suggestMachineFixForConfig(unhealthyConfigs.map((entry) => entry.path), home)
+      fixCommand: suggestMachineFixForConfig(unhealthyConfigs.map((entry) => entry.path))
     });
   }
 
@@ -553,19 +543,11 @@ async function buildMachineSection<T>(
 }
 
 async function buildToolchainInventory(homeRoot: string, commandRunner?: (command: string, args: string[]) => Promise<CommandOutput>): Promise<MachineAdvisoryTool[]> {
-  const results: MachineAdvisoryTool[] = [];
-  for (const tool of DEFAULT_TOOLS) {
-    const installed = await isBinaryInstalled(tool.name, commandRunner);
-    const version = installed ? await getBinaryVersion(tool.name, tool.versionArgs, commandRunner) : "—";
-    results.push({
-      name: tool.name,
-      description: tool.description,
-      phase: tool.phase,
-      installed,
-      version
-    });
-  }
-  return results;
+  return discoverMachineTools({
+    homeRoot,
+    ...(commandRunner ? { commandRunner: commandRunner as MachineCommandRunner } : {}),
+    tools: MACHINE_SETUP_TOOL_REGISTRY
+  });
 }
 
 async function buildMcpInventory(homeRoot: string): Promise<MachineAdvisoryMcpInventory> {
@@ -642,11 +624,22 @@ async function buildConfigHealth(homeRoot: string): Promise<MachineAdvisoryConfi
   const claudeJson = await safeReadJson<Record<string, unknown>>(path.join(homeRoot, ".claude.json"));
   health.push({ path: "~/.claude.json", healthy: claudeJson != null, description: "Claude Code global config" });
   health.push({ path: "~/.claude/CLAUDE.md", healthy: await pathExists(path.join(homeRoot, ".claude", "CLAUDE.md")), description: "Claude Code instructions" });
+  health.push({ path: "~/.claude/settings.json", healthy: await pathExists(path.join(homeRoot, ".claude", "settings.json")), description: "Claude Code settings" });
   health.push({ path: "~/.codex/config.toml", healthy: (await loadCodexMcpServers(homeRoot)) != null, description: "Codex global config (valid TOML)" });
   health.push({ path: "~/.codex/AGENTS.md", healthy: await pathExists(path.join(homeRoot, ".codex", "AGENTS.md")), description: "Codex global instructions" });
   health.push({ path: "~/.codex/hooks/lean-ctx-*", healthy: await pathExists(path.join(homeRoot, ".codex", "hooks", "lean-ctx-rewrite-codex.sh")), description: "Codex lean-ctx compression hook" });
   health.push({ path: "~/.copilot/mcp-config.json", healthy: await pathExists(path.join(homeRoot, ".copilot", "mcp-config.json")), description: "Copilot global MCP config" });
   health.push({ path: "~/.copilot/config.json", healthy: await pathExists(path.join(homeRoot, ".copilot", "config.json")), description: "Copilot plugin registry" });
+  health.push({
+    path: "~/Library/Application Support/Code/User/prompts/shrey-junior.instructions.md",
+    healthy: await pathExists(path.join(homeRoot, "Library", "Application Support", "Code", "User", "prompts", "shrey-junior.instructions.md")),
+    description: "VS Code prompt overlay"
+  });
+  health.push({
+    path: "~/Library/Application Support/Code/User/mcp.json",
+    healthy: await pathExists(path.join(homeRoot, "Library", "Application Support", "Code", "User", "mcp.json")),
+    description: "VS Code MCP registry"
+  });
   const junkHomeFiles = ["AGENTS.md", "CLAUDE.md"].map((name) => path.join(homeRoot, name));
   health.push({
     path: "~/AGENTS.md, ~/CLAUDE.md",
@@ -853,7 +846,6 @@ async function buildSetupPhases(context: {
     const layer = optimizationLayer(layerName);
     return Boolean(layer?.claude || layer?.codex || layer?.copilot);
   };
-  const aiSetupInstalled = await pathExists(path.join(context.homeRoot, ".local", "bin", "ai-setup"));
 
   return [
     {
@@ -881,7 +873,7 @@ async function buildSetupPhases(context: {
           name: "ai-setup script",
           description: "One-command per-project setup",
           location: "~/.local/bin/ai-setup",
-          active: aiSetupInstalled
+          active: toolInstalled("ai-setup")
         }
       ]
     },
@@ -1107,83 +1099,6 @@ async function loadCopilotMcpServers(homeRoot: string): Promise<Record<string, u
   return config?.mcpServers ?? {};
 }
 
-async function isBinaryInstalled(name: string, commandRunner?: (command: string, args: string[]) => Promise<CommandOutput>): Promise<boolean> {
-  try {
-    const result = await runMachineCommand("which", [name], commandRunner, 2_000);
-    return result.stdout.trim().length > 0;
-  } catch {
-    return false;
-  }
-}
-
-async function getBinaryVersion(name: string, versionArgs?: string[], commandRunner?: (command: string, args: string[]) => Promise<CommandOutput>): Promise<string> {
-  const candidates = [versionArgs ?? ["--version"], ["-V"], []];
-  for (const args of candidates) {
-    try {
-      const result = await runMachineCommand(name, args, commandRunner, 3_000);
-      const output = `${result.stdout}\n${result.stderr}`.trim();
-      const version = extractVersion(output);
-      if (version) {
-        return version;
-      }
-    } catch {
-      continue;
-    }
-  }
-  return "?";
-}
-
-function extractVersion(output: string): string | null {
-  const match = output.match(/v?(\d+\.\d+\.\d+(?:[-\w.]*)?)/);
-  if (match?.[1]) {
-    return match[1];
-  }
-  const line = output.split("\n").find((value) => value.trim().length > 0)?.trim();
-  return line ? line.slice(0, 24) : null;
-}
-
-function buildMachineEnv(): NodeJS.ProcessEnv {
-  return {
-    ...process.env,
-    PATH: `${os.homedir()}/.cargo/bin:${os.homedir()}/.local/bin:/opt/homebrew/bin:/usr/local/bin:${process.env.PATH ?? ""}`
-  };
-}
-
-async function runMachineCommand(
-  command: string,
-  args: string[],
-  commandRunner?: (command: string, args: string[]) => Promise<CommandOutput>,
-  timeoutMs = 5_000
-): Promise<CommandOutput> {
-  if (commandRunner) {
-    return commandRunner(command, args);
-  }
-  try {
-    const result = await execFile(command, args, {
-      encoding: "utf8",
-      env: buildMachineEnv(),
-      timeout: timeoutMs,
-      maxBuffer: 8 * 1024 * 1024
-    });
-    return {
-      code: 0,
-      stdout: result.stdout,
-      stderr: result.stderr
-    };
-  } catch (error) {
-    const payload = error as { code?: number; stdout?: string; stderr?: string };
-    return {
-      code: typeof payload.code === "number" ? payload.code : 1,
-      stdout: payload.stdout ?? "",
-      stderr: payload.stderr ?? ""
-    };
-  }
-}
-
-function resolveMachineHome(homeRoot?: string): string {
-  return homeRoot ?? process.env[MACHINE_HOME_ENV]?.trim() ?? os.homedir();
-}
-
 async function safeReadJson<T>(filePath: string): Promise<T | null> {
   if (!(await pathExists(filePath))) {
     return null;
@@ -1309,7 +1224,10 @@ async function loadClaudeUsagePayload(
   command: string[],
   commandRunner?: (command: string, args: string[]) => Promise<CommandOutput>
 ): Promise<{ daily?: Array<Record<string, unknown>> }> {
-  const result = await runMachineCommand(command[0]!, command.slice(1), commandRunner, 8_000);
+  const result = await runMachineCommand(command[0]!, command.slice(1), {
+    ...(commandRunner ? { commandRunner: commandRunner as MachineCommandRunner } : {}),
+    timeoutMs: 8_000
+  });
   const stdout = result.stdout.trim();
   const stderr = result.stderr.trim();
 
@@ -1341,21 +1259,21 @@ function suggestMachineFixForTools(missingTools: string[]): string {
   if (missingTools.length === 1 && missingTools[0] === "tmux") {
     return "brew install tmux";
   }
+  if (missingTools.length === 1 && missingTools[0] === "lean-ctx") {
+    return "kiwi-control setup repair lean-ctx";
+  }
+  if (missingTools.length === 1 && missingTools[0] === "repomix") {
+    return "kiwi-control setup repair repomix";
+  }
   if (missingTools.length === 1 && missingTools[0] === "copilot") {
     return "npm install -g @github/copilot";
   }
-  return "ai-setup";
+  return "kiwi-control setup doctor --json";
 }
 
-function suggestMachineFixForConfig(paths: string[], homeRoot: string): string {
-  if (paths.some((entry) => entry.includes(".codex"))) {
-    return `test -f "${path.join(homeRoot, ".codex", "config.toml")}" || echo "missing codex config"`;
+function suggestMachineFixForConfig(paths: string[]): string {
+  if (paths.some((entry) => entry.includes(".codex") || entry.includes(".claude") || entry.includes(".copilot"))) {
+    return "kiwi-control setup repair global-preferences";
   }
-  if (paths.some((entry) => entry.includes(".claude"))) {
-    return `test -f "${path.join(homeRoot, ".claude.json")}" || echo "missing claude config"`;
-  }
-  if (paths.some((entry) => entry.includes(".copilot"))) {
-    return `test -f "${path.join(homeRoot, ".copilot", "config.json")}" || echo "missing copilot config"`;
-  }
-  return "ai-setup";
+  return "kiwi-control setup doctor --json";
 }

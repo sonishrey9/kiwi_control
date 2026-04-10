@@ -61,7 +61,7 @@ export function buildMachineGuidance(context: {
       message: "Structural code graph unavailable for Codex",
       impact: "Improves structural code search and impact analysis quality.",
       reason: "Graph-guided exploration and change analysis are limited until the MCP server is installed.",
-      fixCommand: "ai-setup"
+      fixCommand: "kiwi-control setup repair global-preferences"
     });
   }
 
@@ -91,7 +91,7 @@ export function buildMachineGuidance(context: {
       message: "Context sandboxing not installed",
       impact: "Improves tool-output containment and reduces noisy machine context.",
       reason: "Machine-level tool output compression and sandboxing remain limited.",
-      fixCommand: "ai-setup"
+      fixCommand: "kiwi-control setup verify --json"
     });
   }
 

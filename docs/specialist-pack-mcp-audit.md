@@ -112,6 +112,47 @@ This is a file-by-file audit of what Kiwi Control currently treats as runtime-ba
 - What it changes:
   - machine parity outputs used by CLI and desktop
 
+## Machine setup and compatibility surfaces
+
+### `packages/sj-core/src/integrations/machine-setup-detection.ts`
+- Classification: `runtime-backed`
+- What it is: shared machine tool detection across PATH, known local bins, Homebrew, cargo, and npm/pnpm global bins
+- What it changes:
+  - machine setup tool detection
+  - ai-setup compatibility detection
+  - machine advisory inventory accuracy
+
+### `packages/sj-core/src/integrations/machine-setup.ts`
+- Classification: `runtime-backed`
+- What it is: structured machine setup state builder
+- What it changes:
+  - `setup status`
+  - `setup verify`
+  - setup profile planning
+  - desktop setup recommendations
+
+### `packages/sj-core/src/integrations/machine-setup-actions.ts`
+- Classification: `executable`
+- What it is: idempotent machine-global and repo-local setup actions for supported surfaces
+- What it changes:
+  - global CLI install wrapper
+  - global preferences repair wrapper
+  - lean-ctx repair
+  - repomix generation
+  - repo assistant compatibility wiring
+  - repo hygiene writes
+
+### `packages/sj-cli/src/commands/setup.ts`
+- Classification: `executable`
+- What it is: public machine setup command surface
+- What it changes:
+  - `setup status`
+  - `setup verify`
+  - `setup doctor`
+  - `setup repair`
+  - `setup install`
+  - `setup init`
+
 ### `docs/mcp-inventory.md`
 - Classification: `documentation-only`
 - What it is: compatibility placeholder

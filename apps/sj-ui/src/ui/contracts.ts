@@ -491,6 +491,7 @@ export type ThemeMode = "dark" | "light";
 export type UiMode = "execution" | "inspection";
 export type UiCommandName =
   | "init"
+  | "setup"
   | "guide"
   | "next"
   | "review"
