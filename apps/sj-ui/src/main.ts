@@ -2882,6 +2882,17 @@ function parseKiwiCommand(commandText: string): { command: UiCommandName; args: 
     const allowedFlags = rest.filter((token) => token === "--dry-run" || token === "--diff-summary" || token === "--backup");
     return { command: "sync", args: allowedFlags };
   }
+  if (subcommand === "setup") {
+    const allowed = rest.filter((token) =>
+      token === "--dry-run"
+      || token === "--json"
+      || token === "--profile"
+      || ["desktop-only", "desktop-plus-cli", "repo-only", "repair", "full-dev-machine"].includes(token)
+      || ["status", "verify", "doctor", "repair", "install", "init"].includes(token)
+      || ["global-cli", "global-preferences", "lean-ctx", "repomix", "repo-contract", "repo-assistant-wiring", "repo-graph", "repo-hygiene"].includes(token)
+    );
+    return { command: "setup", args: allowed };
+  }
   if (["guide", "next", "retry", "resume", "status", "trace"].includes(subcommand)) {
     return { command: subcommand as UiCommandName, args: rest.includes("--json") ? ["--json"] : [] };
   }
@@ -3105,12 +3116,26 @@ function handleInteractiveClick(event: MouseEvent, target: HTMLElement): boolean
   const onboardingAction = target.closest<HTMLElement>("[data-onboarding-action]");
   if (onboardingAction?.dataset.onboardingAction) {
     const action = onboardingAction.dataset.onboardingAction;
+    const commandArgs = (() => {
+      const raw = onboardingAction.dataset.onboardingCommandArgs;
+      if (!raw) {
+        return [];
+      }
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.filter((entry): entry is string => typeof entry === "string") : [];
+      } catch {
+        return [];
+      }
+    })();
     if (action === "install-cli") {
       void installBundledCli();
     } else if (action === "choose-repo") {
       void chooseRepoDirectory();
     } else if (action === "init-repo" && currentTargetRoot) {
       void executeKiwiCommand("init", [], { expectJson: false });
+    } else if (action === "setup-machine") {
+      void executeKiwiCommand("setup", commandArgs, { expectJson: false });
     }
     return true;
   }
@@ -3396,6 +3421,15 @@ function reportRenderProbe(state: RepoControlState): void {
       && !isLoadingRepoState,
     selectedPack: state.mcpPacks.selectedPack.id,
     selectedPackSource: state.mcpPacks.selectedPackSource,
+    aiSetupDetected: state.machineAdvisory.inventory.some((entry) => entry.name === "ai-setup" && entry.installed),
+    machineSetupStatus:
+      state.machineAdvisory.stale
+        ? "stale"
+        : state.machineAdvisory.systemHealth.criticalCount > 0
+          || state.machineAdvisory.setupSummary.healthyConfigs.readyCount < state.machineAdvisory.setupSummary.healthyConfigs.totalCount
+          || state.machineAdvisory.setupSummary.installedTools.readyCount < state.machineAdvisory.setupSummary.installedTools.totalCount
+          ? "needs-work"
+          : "ready",
     selectablePackIds,
     packCatalog: state.mcpPacks.available.map((pack) => ({
       id: pack.id,
@@ -3408,6 +3442,9 @@ function reportRenderProbe(state: RepoControlState): void {
     inspectorOpen: isInspectorOpen,
     mainScrollTop: Math.round(centerMainElement?.scrollTop ?? 0),
     historyLineCount,
+    onboardingActions: [...document.querySelectorAll<HTMLElement>("[data-onboarding-action]")]
+      .map((element) => element.dataset.onboardingAction ?? "")
+      .filter((value): value is string => value.length > 0),
     currentStep,
     loadPhase: loadStatus.phase,
     loadLabel: loadStatus.label,
@@ -3796,7 +3833,18 @@ function renderOverviewView(state: RepoControlState): string {
   const onboarding = buildOnboardingPanelModel({
     runtimeInfo: desktopRuntimeInfo,
     targetRoot: state.targetRoot,
-    repoMode: state.repoState.mode
+    repoMode: state.repoState.mode,
+    machineSetup: {
+      needsAttention:
+        state.machineAdvisory.stale
+        || state.machineAdvisory.systemHealth.criticalCount > 0
+        || state.machineAdvisory.setupSummary.healthyConfigs.readyCount < state.machineAdvisory.setupSummary.healthyConfigs.totalCount
+        || state.machineAdvisory.setupSummary.installedTools.readyCount < state.machineAdvisory.setupSummary.installedTools.totalCount,
+      recommendedProfile: desktopRuntimeInfo?.cli.installed ? "desktop-only" : "desktop-plus-cli",
+      detail: state.machineAdvisory.stale
+        ? "Refresh and apply Kiwi-managed machine setup before trusting deeper machine guidance."
+        : "Apply Kiwi-managed machine setup and repo wiring with one guided flow."
+    }
   });
 
   return `

@@ -936,6 +936,15 @@ fn build_allowlisted_cli_args(
             }
             command.to_string()
         }
+        "setup" => {
+            cli_args.push(String::from("setup"));
+            for arg in args {
+                if !arg.trim().is_empty() {
+                    cli_args.push(arg.clone());
+                }
+            }
+            String::from("setup")
+        }
         "review" => {
             cli_args.push(String::from("review"));
             if let Some(base_index) = args.iter().position(|arg| arg == "--base") {

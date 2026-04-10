@@ -22,3 +22,5 @@ Kiwi Control also contains deeper architecture and implementation docs. Those ar
 Maintainer-oriented audits added during the current hardening pass:
 
 - [Specialist, pack, and MCP audit](./specialist-pack-mcp-audit.md)
+- [Machine setup parity checklist](./machine-setup-parity-checklist.md)
+- [ai-setup migration note](./ai-setup-migration.md)

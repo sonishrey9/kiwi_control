@@ -90,6 +90,8 @@ async function verifyOverviewBlockedState(repo) {
       && payload.activeMode === "execution"
       && payload.targetRoot === repo.targetRoot
       && payload.repoMode === "healthy"
+      && typeof payload.aiSetupDetected === "boolean"
+      && typeof payload.machineSetupStatus === "string"
       && includesAll(payload.visibleSections, [
         "overview-primary-hero",
         "blocked-workflow-fix",
@@ -103,6 +105,8 @@ async function verifyOverviewBlockedState(repo) {
   assert.equal(snapshot.activeView, "overview");
   assert.equal(snapshot.repoMode, "healthy");
   assert.equal(typeof snapshot.executionRevision, "number");
+  assert.equal(typeof snapshot.aiSetupDetected, "boolean");
+  assert.match(snapshot.machineSetupStatus, /ready|needs-work|stale/);
   assert.equal(snapshot.inspectorOpen, false);
   assert.equal(snapshot.visibleSections.includes("overview-primary-hero"), true);
   assert.equal(snapshot.visibleSections.includes("blocked-workflow-fix"), true);
@@ -115,6 +119,7 @@ async function verifyMachineView(repo) {
     payload.activeView === "machine"
       && payload.targetRoot === repo.targetRoot
       && payload.inspectorOpen === false
+      && typeof payload.aiSetupDetected === "boolean"
       && !payload.visibleSections.includes("overview-primary-hero")
       && !payload.visibleSections.includes("command-banner")
       && payload.visibleSections.includes("machine-setup-readiness")

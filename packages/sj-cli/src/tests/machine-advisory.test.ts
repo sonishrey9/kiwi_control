@@ -93,6 +93,7 @@ test("machine advisory builds fixture-driven machine state from local configs an
   });
 
   assert.equal(advisory.inventory.some((tool) => tool.name === "code-review-graph" && tool.installed), true);
+  assert.equal(advisory.inventory.some((tool) => tool.name === "ai-setup" && tool.installed), true);
   assert.equal(advisory.inventory.some((tool) => tool.name === "ai-dashboard"), false);
   assert.equal(advisory.inventory.some((tool) => tool.name.endsWith("-specialist")), false);
   assert.equal(advisory.mcpInventory.claudeTotal, 3);
@@ -110,6 +111,7 @@ test("machine advisory builds fixture-driven machine state from local configs an
   assert.equal(advisory.setupPhases[0]?.phase, "Phase 1 — Core");
   assert.equal(advisory.setupPhases.some((phase) => phase.items.some((item) => item.name === "execution orchestration layer" && item.active)), true);
   assert.equal(advisory.setupPhases.some((phase) => phase.items.some((item) => item.name === "context-mode" && item.active)), true);
+  assert.equal(advisory.setupPhases.some((phase) => phase.items.some((item) => item.name === "ai-setup script" && item.active)), true);
   assert.equal(advisory.skillsCount, 1);
   assert.deepEqual(advisory.copilotPlugins, ["project-planning", "frontend-web-dev"]);
   assert.equal(typeof advisory.systemHealth.criticalCount, "number");
@@ -130,6 +132,31 @@ test("machine advisory builds fixture-driven machine state from local configs an
   assert.equal(advisory.usage.codex.available, true);
   assert.equal(advisory.usage.codex.totals.sessions, 1);
   assert.equal(advisory.usage.codex.totals.totalTokens, 1200);
+});
+
+test("machine advisory detects ai-setup from ~/.local/bin even when which does not resolve it", async () => {
+  const homeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "sj-machine-ai-setup-home-"));
+  await fs.mkdir(path.join(homeRoot, ".local", "bin"), { recursive: true });
+  await fs.mkdir(path.join(homeRoot, ".claude"), { recursive: true });
+  await fs.writeFile(path.join(homeRoot, ".local", "bin", "ai-setup"), "#!/usr/bin/env bash\n", "utf8");
+  await fs.writeFile(path.join(homeRoot, ".claude.json"), JSON.stringify({ mcpServers: {} }, null, 2));
+  await fs.writeFile(path.join(homeRoot, ".claude", "CLAUDE.md"), "Token-Efficient Output Rules\n", "utf8");
+
+  const advisory = await buildMachineAdvisory({
+    homeRoot,
+    now: new Date("2026-04-05T12:58:01.000Z"),
+    commandRunner: async (command, args) => {
+      if (command === "which") {
+        return { code: 1, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: `${command} 1.0.0\n`, stderr: "" };
+    },
+    ccusagePayload: { daily: [] }
+  });
+
+  assert.equal(advisory.inventory.some((tool) => tool.name === "ai-setup" && tool.installed), true);
+  const parity = buildMachineParityState(advisory);
+  assert.equal(parity.machineGlobalCapabilities.find((item) => item.id === "ai-setup")?.status, "covered");
 });
 
 test("machine advisory usage does not suppress Claude ccusage telemetry just because CODEX_CI=1 is set", async () => {

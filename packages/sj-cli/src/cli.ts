@@ -42,6 +42,7 @@ import { runAuto } from "./commands/run-auto.js";
 import { runRuntime } from "./commands/runtime.js";
 import { runRepoMap } from "./commands/repo-map.js";
 import { runPack } from "./commands/pack.js";
+import { runSetup } from "./commands/setup.js";
 
 interface ParsedArgs {
   command: string | undefined;
@@ -216,6 +217,25 @@ async function main(): Promise<void> {
         ...(parsed.positionals.length > 1 ? { packId: parsed.positionals.slice(1).join(" ") } : {}),
         ...(typeof parsed.flags.profile === "string" ? { profileName: String(parsed.flags.profile) } : {}),
         json: parsed.flags.json === true,
+        logger
+      });
+      return;
+    }
+    case "setup": {
+      const [subcommand, ...rest] = parsed.positionals;
+      const normalizedSubcommand =
+        subcommand && ["status", "verify", "doctor", "repair", "install", "init"].includes(subcommand)
+          ? subcommand as "status" | "verify" | "doctor" | "repair" | "install" | "init"
+          : undefined;
+      const subject = normalizedSubcommand ? rest.join(" ").trim() || undefined : parsed.positionals.join(" ").trim() || undefined;
+      process.exitCode = await runSetup({
+        repoRoot,
+        targetRoot,
+        ...(normalizedSubcommand ? { subcommand: normalizedSubcommand } : {}),
+        ...(subject ? { subject } : {}),
+        ...(typeof parsed.flags.profile === "string" ? { profile: String(parsed.flags.profile) } : {}),
+        json: parsed.flags.json === true,
+        dryRun: parsed.flags["dry-run"] === true,
         logger
       });
       return;
@@ -607,6 +627,7 @@ Core commands:
   ${primaryCommand} init [--profile profile-name] [--target /path/to/repo]
   ${primaryCommand} status [--profile profile-name] [--json] [--target /path/to/repo]
   ${primaryCommand} pack status|set <pack-id>|clear [--json] [--target /path/to/repo]
+  ${primaryCommand} setup [status|verify|doctor|repair <surface>|install <surface>|init] [--profile desktop-only|desktop-plus-cli|repo-only|repair|full-dev-machine] [--dry-run] [--json] [--target /path/to/repo]
   ${primaryCommand} check [--profile profile-name] [--json] [--target /path/to/repo]
   ${primaryCommand} specialists [--profile profile-name] [--json]
   ${primaryCommand} agent-pack [--task "goal"] [--review] [--json] [--target /path/to/repo]
@@ -696,6 +717,7 @@ main().catch((error: unknown) => {
         "init",
         "status",
         "pack",
+        "setup",
         "check",
         "specialists",
         "agent-pack",

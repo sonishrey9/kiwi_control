@@ -210,7 +210,7 @@ function buildMachineGlobalCapabilities(advisory: MachineAdvisoryState): Machine
         ? "The repo initializer exists on this machine."
         : "Helpful optional bootstrap helper for matching the intended workstation setup.",
       evidence: [tool("ai-setup")?.installed ? "ai-setup installed" : "ai-setup not detected"],
-      helperCommand: tool("ai-setup")?.installed ? null : "bash scripts/install-global.sh --dry-run"
+      helperCommand: tool("ai-setup")?.installed ? null : "kiwi-control setup verify --json"
     },
     {
       id: "code-review-graph",
@@ -224,7 +224,7 @@ function buildMachineGlobalCapabilities(advisory: MachineAdvisoryState): Machine
       ]),
       detail: "Graph-backed structural search and impact queries across Claude Code, Codex, and Copilot runtimes.",
       evidence: describeHarnessEvidence("code-review-graph", advisory.mcpInventory.tokenServers.find((entry) => entry.name === "code-review-graph")),
-      helperCommand: guidanceFix("missing-code-review-graph") ?? "ai-setup"
+      helperCommand: guidanceFix("missing-code-review-graph") ?? "kiwi-control setup repair global-preferences"
     },
     {
       id: "lean-ctx",
@@ -238,7 +238,7 @@ function buildMachineGlobalCapabilities(advisory: MachineAdvisoryState): Machine
       ]),
       detail: "Machine-global shell compression and token reduction for supported harnesses.",
       evidence: describeLayerEvidence("lean-ctx", layer("lean-ctx")),
-      helperCommand: "ai-setup"
+      helperCommand: "kiwi-control setup repair lean-ctx"
     },
     {
       id: "repomix",
@@ -248,7 +248,7 @@ function buildMachineGlobalCapabilities(advisory: MachineAdvisoryState): Machine
       status: tool("repomix")?.installed ? "covered" : "missing",
       detail: "Compressed codebase summaries used as optional planning accelerators.",
       evidence: [tool("repomix")?.installed ? "repomix installed" : "repomix missing"],
-      helperCommand: "ai-setup"
+      helperCommand: "kiwi-control setup repair repomix"
     },
     {
       id: "context-mode",
@@ -258,7 +258,7 @@ function buildMachineGlobalCapabilities(advisory: MachineAdvisoryState): Machine
       status: (layer("context-mode")?.claude ?? false) ? "covered" : "optional",
       detail: "Useful but optional containment for verbose tool output.",
       evidence: describeLayerEvidence("context-mode", layer("context-mode")),
-      helperCommand: guidanceFix("missing-context-mode") ?? "ai-setup"
+      helperCommand: guidanceFix("missing-context-mode") ?? "kiwi-control setup verify --json"
     },
     {
       id: "omc",
@@ -268,7 +268,7 @@ function buildMachineGlobalCapabilities(advisory: MachineAdvisoryState): Machine
       status: tool("omc")?.installed ? "covered" : "optional",
       detail: "Optional machine-global planning orchestration beyond Kiwi’s repo-local control plane.",
       evidence: [tool("omc")?.installed ? "omc installed" : "omc not detected"],
-      helperCommand: tool("omc")?.installed ? null : "ai-setup"
+      helperCommand: tool("omc")?.installed ? null : "kiwi-control setup doctor --json"
     },
     {
       id: "omx",
@@ -278,7 +278,7 @@ function buildMachineGlobalCapabilities(advisory: MachineAdvisoryState): Machine
       status: tool("omx")?.installed ? "covered" : "optional",
       detail: "Optional execution orchestration layer for tmux/team workflows.",
       evidence: [tool("omx")?.installed ? "omx installed" : "omx not detected"],
-      helperCommand: tool("omx")?.installed ? null : "ai-setup"
+      helperCommand: tool("omx")?.installed ? null : "kiwi-control setup doctor --json"
     },
     {
       id: "claude-global-config",
@@ -288,7 +288,7 @@ function buildMachineGlobalCapabilities(advisory: MachineAdvisoryState): Machine
       status: statusForConfigPair(config("~/.claude.json"), config("~/.claude/CLAUDE.md")),
       detail: "Claude Code instructions and MCP wiring.",
       evidence: describeConfigPair("Claude", config("~/.claude.json"), config("~/.claude/CLAUDE.md")),
-      helperCommand: "bash scripts/apply-global-preferences.sh --dry-run"
+      helperCommand: "kiwi-control setup repair global-preferences"
     },
     {
       id: "codex-global-config",
@@ -298,7 +298,7 @@ function buildMachineGlobalCapabilities(advisory: MachineAdvisoryState): Machine
       status: statusForConfigPair(config("~/.codex/config.toml"), config("~/.codex/AGENTS.md")),
       detail: "Codex MCP wiring and global instructions.",
       evidence: describeConfigPair("Codex", config("~/.codex/config.toml"), config("~/.codex/AGENTS.md")),
-      helperCommand: "bash scripts/apply-global-preferences.sh --dry-run"
+      helperCommand: "kiwi-control setup repair global-preferences"
     },
     {
       id: "copilot-global-config",
@@ -308,7 +308,7 @@ function buildMachineGlobalCapabilities(advisory: MachineAdvisoryState): Machine
       status: statusForConfigPair(config("~/.copilot/mcp-config.json"), config("~/.copilot/config.json")),
       detail: "Copilot MCP config and plugin registry.",
       evidence: describeConfigPair("Copilot", config("~/.copilot/mcp-config.json"), config("~/.copilot/config.json")),
-      helperCommand: "bash scripts/apply-global-preferences.sh --dry-run"
+      helperCommand: "kiwi-control setup repair global-preferences"
     },
     {
       id: "claude-telemetry",
@@ -342,7 +342,7 @@ function buildMachineGlobalCapabilities(advisory: MachineAdvisoryState): Machine
       status: advisory.copilotPlugins.length > 0 ? "covered" : "optional",
       detail: "Optional Copilot assistant expansion through installed plugins.",
       evidence: [advisory.copilotPlugins.length > 0 ? `plugins: ${advisory.copilotPlugins.join(", ")}` : "no Copilot plugins detected"],
-      helperCommand: advisory.copilotPlugins.length > 0 ? null : "ai-setup"
+      helperCommand: advisory.copilotPlugins.length > 0 ? null : "kiwi-control setup doctor --json"
     },
     {
       id: "planning-runtime",
