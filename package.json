@@ -32,6 +32,7 @@
     "release:checksums": "node scripts/generate-release-checksums.mjs",
     "release:package-assets": "node scripts/package-release-assets.mjs",
     "release:verify-artifacts": "node scripts/verify-release-artifacts.mjs",
+    "release:trust": "node scripts/verify-release-trust.mjs",
     "release:check": "npm run test:product:features && npm run release:manifest && npm run release:checksums",
     "ui:dev": "node scripts/run-ui-dev.mjs",
     "ui:build": "npm run build -w @shrey-junior/sj-ui",

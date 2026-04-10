@@ -99,6 +99,8 @@ jobs:
           if [ -n "${APPLE_API_PRIVATE_KEY:-}" ] && [ -n "${APPLE_API_KEY:-}" ] && [ -n "${APPLE_API_ISSUER:-}" ]; then
             APPLE_API_KEY_PATH="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
             printf '%s' "$APPLE_API_PRIVATE_KEY" > "$APPLE_API_KEY_PATH"
+            echo "APPLE_API_KEY=$APPLE_API_KEY" >> "$GITHUB_ENV"
+            echo "APPLE_API_ISSUER=$APPLE_API_ISSUER" >> "$GITHUB_ENV"
             echo "APPLE_API_KEY_PATH=$APPLE_API_KEY_PATH" >> "$GITHUB_ENV"
           fi
 
@@ -149,14 +151,14 @@ jobs:
             ubuntu-latest) node scripts/verify-release-artifacts.mjs --platform linux --bundles appimage ;;
           esac
 
-      - name: Verify desktop release artifacts
+      - name: Verify desktop release trust
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: |
           case "${{ matrix.os }}" in
-            macos-latest) node scripts/verify-release-artifacts.mjs --platform macos --bundles app,dmg ;;
-            windows-latest) node scripts/verify-release-artifacts.mjs --platform windows --bundles nsis,msi ;;
-            ubuntu-latest) node scripts/verify-release-artifacts.mjs --platform linux --bundles appimage ;;
+            macos-latest) node scripts/verify-release-trust.mjs --platform macos --json --strict ;;
+            windows-latest) node scripts/verify-release-trust.mjs --platform windows --json --strict ;;
+            ubuntu-latest) echo "Linux trust check is not release-gated yet." ;;
           esac
 
       - name: Package release assets

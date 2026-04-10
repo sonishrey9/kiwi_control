@@ -23,6 +23,8 @@ Public commands remain:
 ```bash
 node scripts/verify-release-artifacts.mjs --platform macos --bundles app,dmg
 node scripts/verify-release-artifacts.mjs --platform windows --bundles nsis,msi
+npm run release:trust -- --platform macos --json
+npm run release:trust -- --platform windows --json
 ```
 
 ## What still depends on release environment inputs
@@ -46,7 +48,8 @@ node scripts/verify-release-artifacts.mjs --platform windows --bundles nsis,msi
      - `APPLE_PASSWORD`
      - `APPLE_TEAM_ID`
 4. Run `npm run ui:desktop:build:release` on macOS.
-5. Notarize the generated `.app` / `.dmg` artifacts before marking them trusted in release notes.
+5. Run `npm run release:trust -- --platform macos --json --strict`.
+6. Do not mark artifacts trusted unless the trust report classifies the release as `signed-and-notarized`.
 
 ### Windows signing
 
@@ -57,7 +60,9 @@ node scripts/verify-release-artifacts.mjs --platform windows --bundles nsis,msi
    - `WINDOWS_CERTIFICATE_THUMBPRINT`
    - `WINDOWS_TIMESTAMP_URL`
 3. Run `npm run ui:desktop:build:release` on Windows.
-4. Verify both the NSIS installer (`-setup.exe`) and MSI show the expected signer before publishing.
+4. Run `npm run release:trust -- --platform windows --json --strict` on the Windows runner.
+5. Verify both the NSIS installer (`-setup.exe`) and MSI show the expected signer before publishing.
+6. Do not claim SmartScreen trust from repo checks alone; certificate type and download reputation remain external distribution factors.
 
 ### Tauri updater signing
 
@@ -82,10 +87,11 @@ Before publishing a public beta release:
 4. Run `npm run ui:build`.
 5. Run `npm run ui:desktop:build:release` on every target platform with the correct toolchain installed.
 6. Run `npm run release:verify-artifacts` or the platform-specific verifier command.
-7. Generate `dist/release/release-manifest.json`.
-8. Publish SHA256 checksums for every release artifact.
-9. Confirm the Homebrew and winget templates point at the same artifact names used in the GitHub Release.
-10. State clearly which artifacts are signed and which are still unsigned.
+7. Run `npm run release:trust -- --platform macos --json --strict` on macOS and `npm run release:trust -- --platform windows --json --strict` on Windows.
+8. Generate `dist/release/release-manifest.json`.
+9. Publish SHA256 checksums for every release artifact.
+10. Confirm the Homebrew and winget templates point at the same artifact names used in the GitHub Release.
+11. State clearly which artifacts are signed and which are still unsigned.
 
 ## Honesty rule
 

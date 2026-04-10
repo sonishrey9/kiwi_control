@@ -57,6 +57,8 @@ Before calling a release fully trusted for public distribution, complete and ver
 4. published release checksums
 5. real Homebrew and winget metadata with live URLs and SHA256 values
 
+Use `npm run release:trust -- --platform macos --json` or `npm run release:trust -- --platform windows --json` to classify release trust before writing release notes. The strict form must run on release builders; macOS must report `signed-and-notarized`, and Windows must be verified on a Windows runner. SmartScreen reputation is external to Kiwi's repo checks and must not be implied by a successful signature check alone.
+
 ## Enterprise status
 
 Enterprise controls, managed distribution, and hosted support are coming later.

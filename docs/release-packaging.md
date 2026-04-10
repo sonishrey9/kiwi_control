@@ -20,6 +20,7 @@ npm test
 bash scripts/smoke-test.sh
 npm run release:manifest
 npm run release:checksums
+npm run release:trust -- --platform macos --json
 ```
 
 Desktop artifact build:
@@ -33,6 +34,7 @@ Release artifact build:
 ```bash
 npm run ui:desktop:build:release
 npm run release:verify-artifacts
+npm run release:trust -- --platform macos --json
 ```
 
 macOS release build on a Mac:
@@ -44,6 +46,7 @@ export APPLE_API_KEY="..."
 export APPLE_API_KEY_PATH="/absolute/path/AuthKey_XXXXXXX.p8"
 npm run ui:desktop:build:release
 node scripts/verify-release-artifacts.mjs --platform macos --bundles app,dmg
+npm run release:trust -- --platform macos --json --strict
 ```
 
 Windows release build on a Windows machine or Windows CI runner:
@@ -52,6 +55,7 @@ Windows release build on a Windows machine or Windows CI runner:
 $env:KIWI_CONTROL_TAURI_EXTRA_CONFIG="C:\\path\\to\\tauri.windows.signing.conf.json"
 npm run ui:desktop:build:release
 node scripts/verify-release-artifacts.mjs --platform windows --bundles nsis,msi
+npm run release:trust -- --platform windows --json --strict
 ```
 
 ## Release assets
@@ -133,6 +137,8 @@ Official Tauri signing and notarization inputs used by this repo:
 - do not claim signed desktop trust unless signing was actually applied for that release
 - do not claim notarized macOS trust unless notarization actually completed for that release
 - do not claim auto-update support unless signed updater metadata ships
+- use `npm run release:trust -- --platform macos --json` to classify a macOS build as `local-beta-build-only`, `signed-not-notarized`, or `signed-and-notarized`
+- use `npm run release:trust -- --platform windows --json` on a Windows runner to verify installer signatures; macOS hosts can only report that the Windows path is wired, not prove installer trust
 - do not claim Homebrew or winget availability unless those channels are actually published
 - do not hide the Node 22+ requirement for the standalone beta CLI bundle
 
@@ -142,6 +148,7 @@ Official Tauri signing and notarization inputs used by this repo:
 - A real signed and notarized macOS release still depends on Apple signing material being present in the environment.
 - Windows NSIS and MSI packaging is wired in repo and CI, but real signed Windows installers must be built on Windows with the signing certificate available there.
 - This macOS environment should not claim signed Windows installer output.
+- Windows SmartScreen reputation is not guaranteed by a successful signature check; OV/EV certificate reputation remains a distribution-channel reality, not something Kiwi can fake in repo scripts.
 
 ## Route 53 and website hosting
 

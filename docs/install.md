@@ -33,6 +33,8 @@ This is the default path Kiwi should optimize for:
 
 You do not need `kc` for basic desktop usage.
 
+For public downloads, trust status is release-specific. The release notes and `SHA256SUMS.txt` say whether the macOS DMG was signed/notarized and whether the Windows installer was signed on a Windows runner.
+
 ### Desktop + CLI path
 
 Install `kc` only if you want the same repo flow from Terminal too:
