@@ -1,8 +1,8 @@
 {
   "artifactType": "kiwi-control/agent-pack",
   "version": 1,
-  "generatedAt": "2026-04-09T21:35:04.235Z",
-  "summary": "Discovered 401 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts. Start with runtime truth, then use the task or review pack instead of the full graph when you do not need global repo exploration.",
+  "generatedAt": "2026-04-10T16:24:13.782Z",
+  "summary": "Discovered 433 files across 7 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts. Start with runtime truth, then use the task or review pack instead of the full graph when you do not need global repo exploration.",
   "readFirst": [
     ".agent/context/agent-pack.json",
     ".agent/state/ready-substrate.json",
@@ -14,7 +14,7 @@
   ],
   "sourceOfTruthNote": "Canonical workflow truth remains runtime-backed execution state and execution events. Agent packs are compact read aids, not authority.",
   "repo": {
-    "summary": "Discovered 401 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
+    "summary": "Discovered 433 files across 7 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
     "entryPoints": [
       "apps/sj-ui/package.json",
       "apps/sj-ui/src-tauri/Cargo.toml",
@@ -22,12 +22,12 @@
       "apps/sj-ui/src/main.ts",
       "apps/sj-ui/src/ui/OnboardingPanel.test.ts",
       "apps/sj-ui/src/ui/readiness.test.ts",
-      "apps/sj-ui/src/ui/view-models.test.ts",
       "crates/kiwi-runtime/Cargo.toml",
       "hooks/post-edit.ts",
       "hooks/pre-command.ts",
       "hooks/pre-commit.ts",
-      "hooks/risk-gate.ts"
+      "hooks/risk-gate.ts",
+      "package.json"
     ],
     "keyModules": [
       {
@@ -136,6 +136,17 @@
         ]
       },
       {
+        "id": "output",
+        "fileCount": 5,
+        "entryPoints": [
+          "output/playwright/final-ui-sweep-2026-04-10/site/assets/index-CNEV6VFQ.js",
+          "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-audit-lite.js",
+          "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-audit.js",
+          "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-inventory.js",
+          "output/playwright/kiwi-desktop-audit-2026-04-10/site/assets/index-BSWhRyE_.js"
+        ]
+      },
+      {
         "id": "hooks",
         "fileCount": 4,
         "entryPoints": [
@@ -143,13 +154,6 @@
           "hooks/pre-command.ts",
           "hooks/pre-commit.ts",
           "hooks/risk-gate.ts"
-        ]
-      },
-      {
-        "id": "website",
-        "fileCount": 1,
-        "entryPoints": [
-          "website/app.js"
         ]
       }
     ],
@@ -198,7 +202,7 @@
   },
   "decisions": [
     {
-      "id": "execution-state:25",
+      "id": "execution-state:61",
       "kind": "execution-event",
       "label": "blocked",
       "summary": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
@@ -338,6 +342,12 @@
   "hotspots": [
     {
       "kind": "file",
+      "target": "packages/sj-core/src/core/ui-state.ts",
+      "touches": 16,
+      "commits": 16
+    },
+    {
+      "kind": "file",
       "target": "apps/sj-ui/src/main.ts",
       "touches": 15,
       "commits": 15
@@ -345,14 +355,8 @@
     {
       "kind": "file",
       "target": "packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts",
-      "touches": 14,
-      "commits": 14
-    },
-    {
-      "kind": "file",
-      "target": "packages/sj-core/src/core/ui-state.ts",
-      "touches": 14,
-      "commits": 14
+      "touches": 15,
+      "commits": 15
     },
     {
       "kind": "file",
@@ -362,55 +366,52 @@
     },
     {
       "kind": "module",
+      "target": "output/playwright",
+      "touches": 189,
+      "commits": 2
+    },
+    {
+      "kind": "module",
       "target": "packages/sj-cli",
-      "touches": 142,
-      "commits": 26
+      "touches": 154,
+      "commits": 24
     },
     {
       "kind": "module",
       "target": "apps/sj-ui",
-      "touches": 91,
+      "touches": 88,
       "commits": 19
     },
     {
       "kind": "module",
       "target": "packages/sj-core",
-      "touches": 82,
+      "touches": 85,
       "commits": 24
-    },
-    {
-      "kind": "module",
-      "target": "scripts",
-      "touches": 40,
-      "commits": 15
     }
   ],
   "reviewAttention": [
     {
       "kind": "module",
-      "target": "packages/sj-cli",
-      "score": 7223,
+      "target": "output/playwright",
+      "score": 1898,
       "reasons": [
-        "active change cluster",
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "module",
+      "target": "packages/sj-cli",
+      "score": 1636,
+      "reasons": [
         "contains entry point",
         "repeated touches"
       ]
     },
     {
       "kind": "module",
-      "target": "packages/sj-core",
-      "score": 6316,
-      "reasons": [
-        "active change cluster",
-        "repeated touches"
-      ]
-    },
-    {
-      "kind": "module",
       "target": "apps/sj-ui",
-      "score": 2762,
+      "score": 1046,
       "reasons": [
-        "active change cluster",
         "contains entry point",
         "failure-linked",
         "repeated touches"
@@ -418,8 +419,16 @@
     },
     {
       "kind": "module",
+      "target": "packages/sj-core",
+      "score": 946,
+      "reasons": [
+        "repeated touches"
+      ]
+    },
+    {
+      "kind": "module",
       "target": "scripts",
-      "score": 460,
+      "score": 492,
       "reasons": [
         "repeated touches"
       ]
@@ -427,28 +436,16 @@
     {
       "kind": "module",
       "target": "docs",
-      "score": 364,
+      "score": 408,
       "reasons": [
-        "repeated touches"
-      ]
-    },
-    {
-      "kind": "module",
-      "target": "crates/kiwi-runtime",
-      "score": 292,
-      "reasons": [
-        "contains entry point",
         "repeated touches"
       ]
     },
     {
       "kind": "file",
       "target": "apps/sj-ui/src/main.ts",
-      "score": 263,
+      "score": 174,
       "reasons": [
-        "call relationship",
-        "changed file",
-        "changed-area cluster",
         "entry point",
         "failure-linked",
         "history hotspot",
@@ -458,17 +455,11 @@
     },
     {
       "kind": "file",
-      "target": "apps/sj-ui/src/ui/contracts.ts",
-      "score": 197,
+      "target": "packages/sj-core/src/core/ui-state.ts",
+      "score": 128,
       "reasons": [
-        "changed file",
-        "changed-area cluster",
-        "failure-linked",
-        "forward dependency",
         "history hotspot",
-        "repeated decision attention",
-        "repeated touches",
-        "reverse dependency hub"
+        "repeated touches"
       ]
     }
   ],

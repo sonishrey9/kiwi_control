@@ -1,8 +1,8 @@
 {
   "artifactType": "kiwi-control/context-tree-view",
   "version": 1,
-  "timestamp": "2026-04-09T21:35:03.043Z",
-  "summary": "Discovered 401 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
+  "timestamp": "2026-04-10T16:24:12.403Z",
+  "summary": "Discovered 433 files across 7 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
   "languages": [
     "docs",
     "javascript",
@@ -16,7 +16,6 @@
     "apps/sj-ui/src/main.ts",
     "apps/sj-ui/src/ui/OnboardingPanel.test.ts",
     "apps/sj-ui/src/ui/readiness.test.ts",
-    "apps/sj-ui/src/ui/view-models.test.ts",
     "crates/kiwi-runtime/Cargo.toml",
     "hooks/post-edit.ts",
     "hooks/pre-command.ts",
@@ -25,7 +24,8 @@
     "package.json",
     "packages/sj-cli/package.json",
     "packages/sj-cli/src/cli.ts",
-    "packages/sj-cli/src/commands/commit-plan.ts"
+    "packages/sj-cli/src/commands/commit-plan.ts",
+    "packages/sj-cli/src/commands/launch.ts"
   ],
   "keyModules": [
     {
@@ -131,6 +131,17 @@
         "scripts/verify-cli-ui-truth.mjs",
         "scripts/verify-installed-launch-flow.mjs",
         "scripts/verify-rendered-desktop.mjs"
+      ]
+    },
+    {
+      "id": "output",
+      "fileCount": 5,
+      "entryPoints": [
+        "output/playwright/final-ui-sweep-2026-04-10/site/assets/index-CNEV6VFQ.js",
+        "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-audit-lite.js",
+        "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-audit.js",
+        "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-inventory.js",
+        "output/playwright/kiwi-desktop-audit-2026-04-10/site/assets/index-BSWhRyE_.js"
       ]
     },
     {
@@ -972,6 +983,12 @@
           "children": []
         },
         {
+          "name": "desktop-first-validation-checklist.md",
+          "path": "docs/desktop-first-validation-checklist.md",
+          "kind": "file",
+          "children": []
+        },
+        {
           "name": "discovery-report.md",
           "path": "docs/discovery-report.md",
           "kind": "file",
@@ -1112,6 +1129,12 @@
         {
           "name": "skill-inventory.md",
           "path": "docs/skill-inventory.md",
+          "kind": "file",
+          "children": []
+        },
+        {
+          "name": "specialist-pack-mcp-audit.md",
+          "path": "docs/specialist-pack-mcp-audit.md",
           "kind": "file",
           "children": []
         },
@@ -1335,6 +1358,270 @@
           "path": "hooks/risk-gate.ts",
           "kind": "file",
           "children": []
+        }
+      ]
+    },
+    {
+      "name": "output",
+      "path": "output",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "playwright",
+          "path": "output/playwright",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "final-ui-sweep-2026-04-10",
+              "path": "output/playwright/final-ui-sweep-2026-04-10",
+              "kind": "directory",
+              "children": [
+                {
+                  "name": "evidence",
+                  "path": "output/playwright/final-ui-sweep-2026-04-10/evidence",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "chrome-collapsed.json",
+                      "path": "output/playwright/final-ui-sweep-2026-04-10/evidence/chrome-collapsed.json",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "context-scroll-after-reset.json",
+                      "path": "output/playwright/final-ui-sweep-2026-04-10/evidence/context-scroll-after-reset.json",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "graph-node-selection.json",
+                      "path": "output/playwright/final-ui-sweep-2026-04-10/evidence/graph-node-selection.json",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "machine-scroll-before-reset.json",
+                      "path": "output/playwright/final-ui-sweep-2026-04-10/evidence/machine-scroll-before-reset.json",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "mcps-pack-groups.json",
+                      "path": "output/playwright/final-ui-sweep-2026-04-10/evidence/mcps-pack-groups.json",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "overview-snapshot.md",
+                      "path": "output/playwright/final-ui-sweep-2026-04-10/evidence/overview-snapshot.md",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "overview-state.json",
+                      "path": "output/playwright/final-ui-sweep-2026-04-10/evidence/overview-state.json",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "pack-proof.json",
+                      "path": "output/playwright/final-ui-sweep-2026-04-10/evidence/pack-proof.json",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "render-probe-overview-proof.json",
+                      "path": "output/playwright/final-ui-sweep-2026-04-10/evidence/render-probe-overview-proof.json",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "render-probe-pack-proof.json",
+                      "path": "output/playwright/final-ui-sweep-2026-04-10/evidence/render-probe-pack-proof.json",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "tokens-formatting.json",
+                      "path": "output/playwright/final-ui-sweep-2026-04-10/evidence/tokens-formatting.json",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "site",
+                  "path": "output/playwright/final-ui-sweep-2026-04-10/site",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "assets",
+                      "path": "output/playwright/final-ui-sweep-2026-04-10/site/assets",
+                      "kind": "directory",
+                      "children": [
+                        {
+                          "name": "index-CNEV6VFQ.js",
+                          "path": "output/playwright/final-ui-sweep-2026-04-10/site/assets/index-CNEV6VFQ.js",
+                          "kind": "file",
+                          "children": []
+                        },
+                        {
+                          "name": "index-LudhcVG3.css",
+                          "path": "output/playwright/final-ui-sweep-2026-04-10/site/assets/index-LudhcVG3.css",
+                          "kind": "file",
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "name": "preview",
+                      "path": "output/playwright/final-ui-sweep-2026-04-10/site/preview",
+                      "kind": "directory",
+                      "children": [
+                        {
+                          "name": "state.json",
+                          "path": "output/playwright/final-ui-sweep-2026-04-10/site/preview/state.json",
+                          "kind": "file",
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "name": "index.html",
+                      "path": "output/playwright/final-ui-sweep-2026-04-10/site/index.html",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "focused-ui-audit.md",
+                  "path": "output/playwright/final-ui-sweep-2026-04-10/focused-ui-audit.md",
+                  "kind": "file",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "name": "kiwi-desktop-audit-2026-04-10",
+              "path": "output/playwright/kiwi-desktop-audit-2026-04-10",
+              "kind": "directory",
+              "children": [
+                {
+                  "name": "evidence",
+                  "path": "output/playwright/kiwi-desktop-audit-2026-04-10/evidence",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "audit-metadata.json",
+                      "path": "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/audit-metadata.json",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "desktop-pack-click-proof.json",
+                      "path": "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/desktop-pack-click-proof.json",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "no-op-churn-proof.json",
+                      "path": "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/no-op-churn-proof.json",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "pack-status-current.json",
+                      "path": "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/pack-status-current.json",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "playwright-audit-lite.js",
+                      "path": "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-audit-lite.js",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "playwright-audit.js",
+                      "path": "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-audit.js",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "playwright-inventory-results.json",
+                      "path": "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-inventory-results.json",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "playwright-inventory.js",
+                      "path": "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-inventory.js",
+                      "kind": "file",
+                      "children": []
+                    },
+                    {
+                      "name": "playwright-results.json",
+                      "path": "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-results.json",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "site",
+                  "path": "output/playwright/kiwi-desktop-audit-2026-04-10/site",
+                  "kind": "directory",
+                  "children": [
+                    {
+                      "name": "assets",
+                      "path": "output/playwright/kiwi-desktop-audit-2026-04-10/site/assets",
+                      "kind": "directory",
+                      "children": [
+                        {
+                          "name": "index-BhS0z1-w.css",
+                          "path": "output/playwright/kiwi-desktop-audit-2026-04-10/site/assets/index-BhS0z1-w.css",
+                          "kind": "file",
+                          "children": []
+                        },
+                        {
+                          "name": "index-BSWhRyE_.js",
+                          "path": "output/playwright/kiwi-desktop-audit-2026-04-10/site/assets/index-BSWhRyE_.js",
+                          "kind": "file",
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "name": "preview",
+                      "path": "output/playwright/kiwi-desktop-audit-2026-04-10/site/preview",
+                      "kind": "directory",
+                      "children": [
+                        {
+                          "name": "current.json",
+                          "path": "output/playwright/kiwi-desktop-audit-2026-04-10/site/preview/current.json",
+                          "kind": "file",
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "name": "index.html",
+                      "path": "output/playwright/kiwi-desktop-audit-2026-04-10/site/index.html",
+                      "kind": "file",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "name": "kiwi-desktop-ui-audit.md",
+                  "path": "output/playwright/kiwi-desktop-audit-2026-04-10/kiwi-desktop-ui-audit.md",
+                  "kind": "file",
+                  "children": []
+                }
+              ]
+            }
+          ]
         }
       ]
     },

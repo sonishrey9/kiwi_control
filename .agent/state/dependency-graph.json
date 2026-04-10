@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/dependency-graph",
   "version": 1,
-  "generatedAt": "2026-04-09T21:35:03.043Z",
+  "generatedAt": "2026-04-10T16:24:12.403Z",
   "nodes": [
     {
       "file": "apps/sj-ui/src/bootcheck.ts",
@@ -15,7 +15,7 @@
       "file": "apps/sj-ui/src/main.ts",
       "moduleGroup": "apps/sj-ui",
       "exports": 0,
-      "localFunctions": 181,
+      "localFunctions": 187,
       "imports": 6,
       "importedBy": 0
     },
@@ -152,14 +152,14 @@
       "moduleGroup": "apps/sj-ui",
       "exports": 0,
       "localFunctions": 0,
-      "imports": 1,
+      "imports": 0,
       "importedBy": 0
     },
     {
       "file": "apps/sj-ui/src/ui/view-models.ts",
       "moduleGroup": "apps/sj-ui",
-      "exports": 4,
-      "localFunctions": 5,
+      "exports": 10,
+      "localFunctions": 13,
       "imports": 0,
       "importedBy": 3
     },
@@ -200,6 +200,46 @@
       "moduleGroup": "hooks",
       "exports": 1,
       "localFunctions": 1,
+      "imports": 0,
+      "importedBy": 0
+    },
+    {
+      "file": "output/playwright/final-ui-sweep-2026-04-10/site/assets/index-CNEV6VFQ.js",
+      "moduleGroup": "output",
+      "exports": 0,
+      "localFunctions": 228,
+      "imports": 0,
+      "importedBy": 0
+    },
+    {
+      "file": "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-audit-lite.js",
+      "moduleGroup": "output",
+      "exports": 0,
+      "localFunctions": 4,
+      "imports": 0,
+      "importedBy": 0
+    },
+    {
+      "file": "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-audit.js",
+      "moduleGroup": "output",
+      "exports": 0,
+      "localFunctions": 4,
+      "imports": 0,
+      "importedBy": 0
+    },
+    {
+      "file": "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-inventory.js",
+      "moduleGroup": "output",
+      "exports": 0,
+      "localFunctions": 3,
+      "imports": 0,
+      "importedBy": 0
+    },
+    {
+      "file": "output/playwright/kiwi-desktop-audit-2026-04-10/site/assets/index-BSWhRyE_.js",
+      "moduleGroup": "output",
+      "exports": 0,
+      "localFunctions": 225,
       "imports": 0,
       "importedBy": 0
     },
@@ -727,7 +767,7 @@
       "file": "packages/sj-cli/src/tests/pack.test.ts",
       "moduleGroup": "packages/sj-cli",
       "exports": 0,
-      "localFunctions": 1,
+      "localFunctions": 2,
       "imports": 3,
       "importedBy": 0
     },
@@ -1199,7 +1239,7 @@
       "file": "packages/sj-core/src/core/ready-substrate.ts",
       "moduleGroup": "packages/sj-core",
       "exports": 4,
-      "localFunctions": 5,
+      "localFunctions": 6,
       "imports": 3,
       "importedBy": 1
     },
@@ -1343,7 +1383,7 @@
       "file": "packages/sj-core/src/core/ui-state.ts",
       "moduleGroup": "packages/sj-core",
       "exports": 5,
-      "localFunctions": 38,
+      "localFunctions": 40,
       "imports": 33,
       "importedBy": 1
     },
@@ -1623,7 +1663,7 @@
       "file": "scripts/verify-cli-ui-truth.mjs",
       "moduleGroup": "scripts",
       "exports": 1,
-      "localFunctions": 14,
+      "localFunctions": 16,
       "imports": 0,
       "importedBy": 0
     },
@@ -1639,7 +1679,7 @@
       "file": "scripts/verify-rendered-desktop.mjs",
       "moduleGroup": "scripts",
       "exports": 0,
-      "localFunctions": 12,
+      "localFunctions": 16,
       "imports": 3,
       "importedBy": 0
     },
@@ -1832,11 +1872,6 @@
       "from": "apps/sj-ui/src/ui/view-models.test.ts",
       "to": "apps/sj-ui/src/ui/view-models.ts",
       "kind": "call"
-    },
-    {
-      "from": "apps/sj-ui/src/ui/view-models.test.ts",
-      "to": "apps/sj-ui/src/ui/view-models.ts",
-      "kind": "import"
     },
     {
       "from": "packages/sj-cli/src/cli.ts",
@@ -5583,9 +5618,7 @@
     {
       "file": "apps/sj-ui/src/ui/view-models.test.ts",
       "moduleGroup": "apps/sj-ui",
-      "imports": [
-        "apps/sj-ui/src/ui/view-models.ts"
-      ],
+      "imports": [],
       "importedBy": [],
       "callTargets": [
         "apps/sj-ui/src/ui/view-models.ts"
@@ -5641,6 +5674,46 @@
     {
       "file": "hooks/risk-gate.ts",
       "moduleGroup": "hooks",
+      "imports": [],
+      "importedBy": [],
+      "callTargets": [],
+      "relationships": []
+    },
+    {
+      "file": "output/playwright/final-ui-sweep-2026-04-10/site/assets/index-CNEV6VFQ.js",
+      "moduleGroup": "output",
+      "imports": [],
+      "importedBy": [],
+      "callTargets": [],
+      "relationships": []
+    },
+    {
+      "file": "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-audit-lite.js",
+      "moduleGroup": "output",
+      "imports": [],
+      "importedBy": [],
+      "callTargets": [],
+      "relationships": []
+    },
+    {
+      "file": "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-audit.js",
+      "moduleGroup": "output",
+      "imports": [],
+      "importedBy": [],
+      "callTargets": [],
+      "relationships": []
+    },
+    {
+      "file": "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-inventory.js",
+      "moduleGroup": "output",
+      "imports": [],
+      "importedBy": [],
+      "callTargets": [],
+      "relationships": []
+    },
+    {
+      "file": "output/playwright/kiwi-desktop-audit-2026-04-10/site/assets/index-BSWhRyE_.js",
+      "moduleGroup": "output",
       "imports": [],
       "importedBy": [],
       "callTargets": [],
