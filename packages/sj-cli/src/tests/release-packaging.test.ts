@@ -12,18 +12,13 @@ function repoRoot(): string {
 
 test("release manifest declares macOS app+dmg and Windows nsis+msi artifacts plus signing inputs", async () => {
   const root = repoRoot();
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-release-manifest-"));
   const manifestPath = path.join(root, "dist", "release", "release-manifest.json");
   const previousManifest = await fs.readFile(manifestPath, "utf8").catch(() => null);
 
   try {
     const result = spawnSync(process.execPath, [path.join(root, "scripts", "prepare-release-manifest.mjs")], {
       cwd: root,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        KIWI_CONTROL_RELEASE_MANIFEST_TMP: tempDir
-      }
+      encoding: "utf8"
     });
     assert.equal(result.status, 0, result.stderr || result.stdout);
 

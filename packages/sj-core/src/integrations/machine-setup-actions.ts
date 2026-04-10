@@ -303,6 +303,7 @@ async function applyRepoAssistantWiring(options: {
   const copilotPath = path.join(options.targetRoot, ".github", "copilot", "mcp.json");
   const watchPaths = [omcDir, copilotPath];
   const before = await snapshotPaths(watchPaths);
+
   if (options.dryRun) {
     return {
       ok: true,
@@ -337,13 +338,14 @@ async function applyRepoAssistantWiring(options: {
   }
 
   const after = await snapshotPaths(watchPaths);
+  const changedFiles = collectChangedPaths(before, after);
   return {
     ok: true,
-    changed: collectChangedPaths(before, after).length > 0,
+    changed: changedFiles.length > 0,
     dryRun: false,
     actionId: "repo-assistant-wiring",
     targetRoot: options.targetRoot,
-    changedFiles: collectChangedPaths(before, after),
+    changedFiles,
     blockedReason: null,
     stdout: "",
     stderr: "",
@@ -393,13 +395,14 @@ async function applyRepoHygiene(options: {
   const next = `${existing}${separator}${missing.join("\n")}\n`;
   await writeText(gitignorePath, next);
   const after = await snapshotPaths([gitignorePath]);
+  const changedFiles = collectChangedPaths(before, after);
   return {
     ok: true,
-    changed: collectChangedPaths(before, after).length > 0,
+    changed: changedFiles.length > 0,
     dryRun: false,
     actionId: "repo-hygiene",
     targetRoot: options.targetRoot,
-    changedFiles: collectChangedPaths(before, after),
+    changedFiles,
     blockedReason: null,
     stdout: "",
     stderr: "",

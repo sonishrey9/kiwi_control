@@ -468,6 +468,7 @@ export async function loadMachineAdvisorySection(
 }
 
 export function buildMachineDoctorFindings(state: MachineAdvisoryState, homeRoot?: string): MachineDoctorFinding[] {
+  const home = resolveMachineHome(homeRoot);
   const findings: MachineDoctorFinding[] = [];
 
   const missingTools = state.inventory.filter((tool) => !tool.installed).map((tool) => tool.name);
@@ -486,7 +487,7 @@ export function buildMachineDoctorFindings(state: MachineAdvisoryState, homeRoot
       level: "warn",
       category: "config",
       reason: `Unhealthy config surfaces: ${unhealthyConfigs.map((entry) => entry.path).join(", ")}`,
-      fixCommand: suggestMachineFixForConfig(unhealthyConfigs.map((entry) => entry.path))
+      fixCommand: suggestMachineFixForConfig(unhealthyConfigs.map((entry) => entry.path), home)
     });
   }
 
@@ -1271,8 +1272,8 @@ function suggestMachineFixForTools(missingTools: string[]): string {
   return "kiwi-control setup doctor --json";
 }
 
-function suggestMachineFixForConfig(paths: string[]): string {
-  if (paths.some((entry) => entry.includes(".codex") || entry.includes(".claude") || entry.includes(".copilot"))) {
+function suggestMachineFixForConfig(paths: string[], homeRoot: string): string {
+  if (paths.some((entry) => entry.includes(".codex") || entry.includes(".claude") || entry.includes(".copilot") || entry.includes("Application Support/Code"))) {
     return "kiwi-control setup repair global-preferences";
   }
   return "kiwi-control setup doctor --json";

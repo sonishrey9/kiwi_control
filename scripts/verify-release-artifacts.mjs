@@ -12,7 +12,6 @@ async function main() {
   const platform = args.platform ?? normalizePlatform(process.platform);
   const arch = args.arch ?? normalizeArch(process.arch);
   const bundleRoot = path.resolve(args.bundleRoot ?? path.join(repoRoot, "apps", "sj-ui", "src-tauri", "target", "release", "bundle"));
-
   const expectations = filterExpectations(buildExpectations(bundleRoot, platform), args.bundles);
   const results = [];
   for (const expectation of expectations) {
@@ -24,7 +23,6 @@ async function main() {
       exists: Boolean(match)
     });
   }
-
   const missingRequired = results.filter((entry) => entry.required && !entry.exists);
   const payload = {
     ok: missingRequired.length === 0,
@@ -34,7 +32,6 @@ async function main() {
     results,
     missingRequired: missingRequired.map((entry) => entry.id)
   };
-
   console.log(JSON.stringify(payload, null, 2));
   process.exitCode = payload.ok ? 0 : 1;
 }
@@ -75,42 +72,17 @@ function buildExpectations(bundleRoot, platform) {
   switch (platform) {
     case "macos":
       return [
-        {
-          id: "macos-app-bundle",
-          required: true,
-          directory: path.join(bundleRoot, "macos"),
-          predicate: (name, fullPath, isDirectory) => isDirectory && name.endsWith(".app")
-        },
-        {
-          id: "macos-dmg",
-          required: true,
-          directory: path.join(bundleRoot, "dmg"),
-          predicate: (name, _fullPath, isDirectory) => !isDirectory && name.endsWith(".dmg")
-        }
+        { id: "macos-app-bundle", required: true, directory: path.join(bundleRoot, "macos"), predicate: (name, _fullPath, isDirectory) => isDirectory && name.endsWith(".app") },
+        { id: "macos-dmg", required: true, directory: path.join(bundleRoot, "dmg"), predicate: (name, _fullPath, isDirectory) => !isDirectory && name.endsWith(".dmg") }
       ];
     case "windows":
       return [
-        {
-          id: "windows-nsis-installer",
-          required: true,
-          directory: path.join(bundleRoot, "nsis"),
-          predicate: (name, _fullPath, isDirectory) => !isDirectory && name.toLowerCase().endsWith(".exe")
-        },
-        {
-          id: "windows-msi-installer",
-          required: true,
-          directory: path.join(bundleRoot, "msi"),
-          predicate: (name, _fullPath, isDirectory) => !isDirectory && name.toLowerCase().endsWith(".msi")
-        }
+        { id: "windows-nsis-installer", required: true, directory: path.join(bundleRoot, "nsis"), predicate: (name, _fullPath, isDirectory) => !isDirectory && name.toLowerCase().endsWith(".exe") },
+        { id: "windows-msi-installer", required: true, directory: path.join(bundleRoot, "msi"), predicate: (name, _fullPath, isDirectory) => !isDirectory && name.toLowerCase().endsWith(".msi") }
       ];
     case "linux":
       return [
-        {
-          id: "linux-appimage",
-          required: true,
-          directory: path.join(bundleRoot, "appimage"),
-          predicate: (name, _fullPath, isDirectory) => !isDirectory && name.endsWith(".AppImage")
-        }
+        { id: "linux-appimage", required: true, directory: path.join(bundleRoot, "appimage"), predicate: (name, _fullPath, isDirectory) => !isDirectory && name.endsWith(".AppImage") }
       ];
     default:
       throw new Error(`Unsupported platform for release artifact verification: ${platform}`);
@@ -121,25 +93,13 @@ function filterExpectations(expectations, bundleSpec) {
   if (!bundleSpec) {
     return expectations;
   }
-  const requested = new Set(
-    bundleSpec.split(",").map((value) => value.trim()).filter(Boolean)
-  );
+  const requested = new Set(bundleSpec.split(",").map((value) => value.trim()).filter(Boolean));
   return expectations.filter((entry) => {
-    if (requested.has("app") && entry.id === "macos-app-bundle") {
-      return true;
-    }
-    if (requested.has("dmg") && entry.id === "macos-dmg") {
-      return true;
-    }
-    if (requested.has("nsis") && entry.id === "windows-nsis-installer") {
-      return true;
-    }
-    if (requested.has("msi") && entry.id === "windows-msi-installer") {
-      return true;
-    }
-    if (requested.has("appimage") && entry.id === "linux-appimage") {
-      return true;
-    }
+    if (requested.has("app") && entry.id === "macos-app-bundle") return true;
+    if (requested.has("dmg") && entry.id === "macos-dmg") return true;
+    if (requested.has("nsis") && entry.id === "windows-nsis-installer") return true;
+    if (requested.has("msi") && entry.id === "windows-msi-installer") return true;
+    if (requested.has("appimage") && entry.id === "linux-appimage") return true;
     return false;
   });
 }

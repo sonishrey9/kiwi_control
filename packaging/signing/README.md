@@ -45,7 +45,7 @@ node scripts/verify-release-artifacts.mjs --platform windows --bundles nsis,msi
      - `APPLE_ID`
      - `APPLE_PASSWORD`
      - `APPLE_TEAM_ID`
-4. Run `npm run ui:desktop:build` on macOS.
+4. Run `npm run ui:desktop:build:release` on macOS.
 5. Notarize the generated `.app` / `.dmg` artifacts before marking them trusted in release notes.
 
 ### Windows signing

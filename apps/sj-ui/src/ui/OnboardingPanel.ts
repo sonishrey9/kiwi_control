@@ -1,6 +1,6 @@
 import type { RenderHelperSet, RepoControlMode } from "./contracts.js";
 
-export type OnboardingActionId = "install-cli" | "choose-repo" | "init-repo" | "setup-machine";
+export type OnboardingActionId = "install-cli" | "choose-repo" | "init-repo";
 
 export interface OnboardingPanelRuntimeInfo {
   appVersion: string;
@@ -19,7 +19,6 @@ export interface OnboardingAction {
   id: OnboardingActionId;
   label: string;
   detail: string;
-  commandArgs?: string[];
   disabled?: boolean;
 }
 
@@ -38,17 +37,11 @@ export function buildOnboardingPanelModel(params: {
   runtimeInfo: OnboardingPanelRuntimeInfo | null;
   targetRoot: string;
   repoMode: RepoControlMode;
-  machineSetup?: {
-    needsAttention: boolean;
-    recommendedProfile: "desktop-only" | "desktop-plus-cli";
-    detail: string;
-  } | null;
 }): OnboardingPanelModel | null {
-  const { runtimeInfo, targetRoot, repoMode, machineSetup } = params;
+  const { runtimeInfo, targetRoot, repoMode } = params;
   const shouldShow = !targetRoot
     || repoMode === "repo-not-initialized"
-    || (runtimeInfo?.runtimeMode === "installed-user" && !runtimeInfo.cli.installed)
-    || Boolean(machineSetup?.needsAttention && targetRoot);
+    || (runtimeInfo?.runtimeMode === "installed-user" && !runtimeInfo.cli.installed);
 
   if (!shouldShow) {
     return null;
@@ -68,15 +61,6 @@ export function buildOnboardingPanelModel(params: {
       id: "init-repo",
       label: "Initialize this repo",
       detail: "Create the repo-local Kiwi files for this folder, then start working from the app."
-    });
-  }
-
-  if (targetRoot && machineSetup?.needsAttention) {
-    actions.push({
-      id: "setup-machine",
-      label: "Set up this machine",
-      detail: machineSetup.detail,
-      commandArgs: ["--profile", machineSetup.recommendedProfile]
     });
   }
 
@@ -144,7 +128,7 @@ export function renderOnboardingPanelView(
                       <strong>${escapeHtml(action.label)}</strong>
                       <span>${escapeHtml(action.detail)}</span>
                     </div>
-                    <button class="kc-secondary-button" type="button" data-onboarding-action="${escapeHtml(action.id)}" ${action.commandArgs ? `data-onboarding-command-args="${escapeHtml(JSON.stringify(action.commandArgs))}"` : ""} ${action.disabled ? "disabled" : ""}>${escapeHtml(action.label)}</button>
+                    <button class="kc-secondary-button" type="button" data-onboarding-action="${escapeHtml(action.id)}" ${action.disabled ? "disabled" : ""}>${escapeHtml(action.label)}</button>
                   </div>
                 `).join("")
               : renderNoteRow("Ready", "No setup steps left", model.note)}

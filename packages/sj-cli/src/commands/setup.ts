@@ -8,18 +8,11 @@ import { buildBootstrapNextSuggestedCommand } from "@shrey-junior/sj-core/core/g
 import { buildRuntimeDecision, buildRuntimeDecisionAction } from "@shrey-junior/sj-core/core/runtime-decision.js";
 import { recordExecutionState } from "@shrey-junior/sj-core/core/execution-state.js";
 import { selectPortableContract } from "@shrey-junior/sj-core/core/router.js";
-import {
-  applyMachineSetupAction,
-  type MachineSetupActionResult
-} from "@shrey-junior/sj-core/integrations/machine-setup-actions.js";
-import {
-  buildMachineSetupState,
-  resolveProfileStepIds,
-  type MachineSetupActionId,
-  type MachineSetupProfile
-} from "@shrey-junior/sj-core/integrations/machine-setup.js";
+import { applyMachineSetupAction, type MachineSetupActionResult } from "@shrey-junior/sj-core/integrations/machine-setup-actions.js";
+import { buildMachineSetupState, resolveProfileStepIds, type MachineSetupActionId, type MachineSetupProfile } from "@shrey-junior/sj-core/integrations/machine-setup.js";
 import { Logger } from "@shrey-junior/sj-core/core/logger.js";
 import { pathExists } from "@shrey-junior/sj-core/utils/fs.js";
+import type { Logger as LoggerShape } from "@shrey-junior/sj-core/core/logger.js";
 import { syncPackSelectionSideEffects } from "./helpers/pack-selection.js";
 import { runGraph } from "./graph.js";
 
@@ -31,7 +24,7 @@ export interface SetupOptions {
   profile?: string;
   json?: boolean;
   dryRun?: boolean;
-  logger: Logger;
+  logger: LoggerShape;
 }
 
 const NOOP_LOGGER = new Logger(false);
@@ -42,7 +35,7 @@ export async function runSetup(options: SetupOptions): Promise<number> {
   const state = await buildMachineSetupState({
     repoRoot: options.repoRoot,
     targetRoot: options.targetRoot,
-    ...(profile ? { profile } : {}),
+    ...(profile ? { profile } : {})
   });
 
   if (mode === "status") {
@@ -60,11 +53,12 @@ export async function runSetup(options: SetupOptions): Promise<number> {
         ...resolveProfileStepIds(profile ?? "full-dev-machine"),
         ...((profile ?? "full-dev-machine") === "full-dev-machine"
           ? state.steps
-            .filter((entry) => ["lean-ctx", "repomix"].includes(entry.id) && entry.status === "actionable")
-            .map((entry) => entry.id)
+              .filter((entry) => ["lean-ctx", "repomix"].includes(entry.id) && entry.status === "actionable")
+              .map((entry) => entry.id)
           : [])
       ]
     : resolveSubjectActionIds(mode, options.subject);
+
   if (actionIds.length === 0) {
     throw new Error(`setup ${mode} requires a supported tool or surface.`);
   }
@@ -106,9 +100,7 @@ export async function runSetup(options: SetupOptions): Promise<number> {
     options.logger.info(JSON.stringify(payload, null, 2));
   } else {
     for (const result of stepResults) {
-      options.logger.info(
-        `${result.actionId}: ${result.ok ? (result.dryRun ? "preview" : result.changed ? "changed" : "no-op") : "blocked"}`
-      );
+      options.logger.info(`${result.actionId}: ${result.ok ? (result.dryRun ? "preview" : result.changed ? "changed" : "no-op") : "blocked"}`);
       if (result.note) {
         options.logger.info(`  note: ${result.note}`);
       }
@@ -342,6 +334,7 @@ async function applyRepoContractAction(options: {
       targetRoot: options.targetRoot
     }).catch(() => null);
   }
+
   const allResults = [...results, ...repoAwareResults];
   return {
     ok: !allResults.some((result) => result.status === "conflict"),
@@ -403,13 +396,14 @@ async function applyRepoGraphAction(options: {
     logger: NOOP_LOGGER
   });
   const after = await snapshotPaths(watchPaths);
+  const changedFiles = collectChangedPaths(before, after);
   return {
     ok: exitCode === 0,
-    changed: collectChangedPaths(before, after).length > 0,
+    changed: changedFiles.length > 0,
     dryRun: false,
     actionId: "repo-graph",
     targetRoot: options.targetRoot,
-    changedFiles: collectChangedPaths(before, after),
+    changedFiles,
     blockedReason: exitCode === 0 ? null : "Kiwi could not refresh the runtime-backed repo graph.",
     stdout: "",
     stderr: "",
@@ -435,6 +429,7 @@ function resolveSubjectActionIds(
   if (!normalized) {
     throw new Error(`setup ${mode} requires a supported tool or surface.`);
   }
+
   const repoContractAction: MachineSetupActionId = "repo-contract";
   const map: Record<string, MachineSetupActionId> = {
     "global-cli": "global-cli",

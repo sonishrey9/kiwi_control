@@ -5,12 +5,7 @@ import { inspectBootstrapTarget } from "../core/project-detect.js";
 import { getRuntimeRepoGraphStatus } from "../runtime/client.js";
 import { pathExists, readText } from "../utils/fs.js";
 import { loadMachineAdvisory, type MachineAdvisoryState } from "./machine-advisory.js";
-import {
-  discoverMachineTools,
-  resolveMachineHome,
-  type MachineCommandRunner,
-  type MachineToolDetection
-} from "./machine-setup-detection.js";
+import { discoverMachineTools, resolveMachineHome, type MachineCommandRunner, type MachineToolDetection } from "./machine-setup-detection.js";
 
 export type MachineSetupProfile =
   | "desktop-only"
@@ -114,11 +109,11 @@ export async function buildMachineSetupState(options: MachineSetupStatusOptions)
   const config = await loadCanonicalConfig(options.repoRoot ?? process.cwd());
   const inspection = await inspectBootstrapTarget(options.targetRoot, config);
   const graph = await getRuntimeRepoGraphStatus(options.targetRoot).catch(() => null);
-  const repomixOutputReady =
-    await pathExists(path.join(options.targetRoot, ".repomix-output.xml"))
+  const repomixOutputReady = await pathExists(path.join(options.targetRoot, ".repomix-output.xml"))
     || await pathExists(path.join(options.targetRoot, "repomix-output.xml"));
   const assistantWiringReady = await pathExists(path.join(options.targetRoot, ".omc"))
-    && (!(tools.find((entry) => entry.name === "copilot")?.installed ?? false) || await pathExists(path.join(options.targetRoot, ".github", "copilot", "mcp.json")));
+    && (!(tools.find((entry) => entry.name === "copilot")?.installed ?? false)
+      || await pathExists(path.join(options.targetRoot, ".github", "copilot", "mcp.json")));
   const gitignoreReady = await repoGitignoreReady(options.targetRoot);
   const instructionFilesReady = await repoInstructionFilesReady(options.targetRoot);
   const globalCliReady = await detectGlobalCliInstall(globalHomeRoot, pathBinRoot);
@@ -137,6 +132,7 @@ export async function buildMachineSetupState(options: MachineSetupStatusOptions)
       instructionFilesReady
     }
   });
+
   const actionableRequiredCount = steps.filter((entry) => entry.required && entry.status === "actionable").length;
   const blockedRequiredCount = steps.filter((entry) => entry.required && entry.status === "blocked").length;
   const summaryStatus = blockedRequiredCount > 0
@@ -287,7 +283,7 @@ function buildMachineSetupSteps(input: {
     input.advisory.configHealth.find((entry) => entry.path === pathLabel)?.healthy ?? false;
   const leanCtxActive = input.advisory.optimizationLayers.find((entry) => entry.name === "lean-ctx");
 
-  const steps: Array<MachineSetupStep> = [
+  return [
     {
       id: "global-cli",
       title: "Install Kiwi CLI globally",
@@ -331,9 +327,7 @@ function buildMachineSetupSteps(input: {
       title: input.repo.initialized ? "Sync repo contract" : "Initialize repo contract",
       scope: "repo",
       required: requiredIds.has("repo-contract"),
-      status: input.repo.initialized && input.repo.instructionFilesReady
-        ? "ready"
-        : "actionable",
+      status: input.repo.initialized && input.repo.instructionFilesReady ? "ready" : "actionable",
       detail: input.repo.initialized && input.repo.instructionFilesReady
         ? "Repo-local contract and primary instruction files are already present."
         : "Initialize or sync repo-local Kiwi contract surfaces and instruction files.",
@@ -407,8 +401,6 @@ function buildMachineSetupSteps(input: {
       recommendedCommand: "kiwi-control setup repair repomix"
     }
   ];
-
-  return steps;
 }
 
 async function detectGlobalCliInstall(globalHomeRoot: string, pathBinRoot: string): Promise<boolean> {

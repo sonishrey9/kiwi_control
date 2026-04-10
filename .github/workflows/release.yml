@@ -137,7 +137,17 @@ jobs:
 
       - name: Build desktop bundle
         if: startsWith(github.ref, 'refs/tags/v')
-        run: npm run ui:desktop:build
+        run: npm run ui:desktop:build:release
+
+      - name: Verify desktop release artifacts
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          case "${{ matrix.os }}" in
+            macos-latest) node scripts/verify-release-artifacts.mjs --platform macos --bundles app,dmg ;;
+            windows-latest) node scripts/verify-release-artifacts.mjs --platform windows --bundles nsis,msi ;;
+            ubuntu-latest) node scripts/verify-release-artifacts.mjs --platform linux --bundles appimage ;;
+          esac
 
       - name: Verify desktop release artifacts
         if: startsWith(github.ref, 'refs/tags/v')

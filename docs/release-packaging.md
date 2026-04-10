@@ -22,7 +22,13 @@ npm run release:manifest
 npm run release:checksums
 ```
 
-Desktop release artifact build:
+Desktop artifact build:
+
+```bash
+npm run ui:desktop:build
+```
+
+Release artifact build:
 
 ```bash
 npm run ui:desktop:build:release
@@ -74,11 +80,11 @@ Current public naming patterns include:
 
 Current source bundle output roots:
 
-- macOS app bundle: `apps/sj-ui/src-tauri/target/release/bundle/macos/Kiwi Control.app`
-- macOS DMG: `apps/sj-ui/src-tauri/target/release/bundle/dmg/`
-- Windows NSIS installer: `apps/sj-ui/src-tauri/target/release/bundle/nsis/`
-- Windows MSI installer: `apps/sj-ui/src-tauri/target/release/bundle/msi/`
-- Linux AppImage: `apps/sj-ui/src-tauri/target/release/bundle/appimage/`
+- `apps/sj-ui/src-tauri/target/release/bundle/macos/Kiwi Control.app`
+- `apps/sj-ui/src-tauri/target/release/bundle/dmg/`
+- `apps/sj-ui/src-tauri/target/release/bundle/nsis/`
+- `apps/sj-ui/src-tauri/target/release/bundle/msi/`
+- `apps/sj-ui/src-tauri/target/release/bundle/appimage/`
 
 ## Public release flow
 
@@ -98,22 +104,19 @@ Official Tauri signing and notarization inputs used by this repo:
   - `APPLE_CERTIFICATE`
   - `APPLE_CERTIFICATE_PASSWORD`
   - `KEYCHAIN_PASSWORD`
-- macOS notarization:
-  - preferred:
-    - `APPLE_API_ISSUER`
-    - `APPLE_API_KEY`
-    - `APPLE_API_KEY_PATH`
-  - fallback:
-    - `APPLE_ID`
-    - `APPLE_PASSWORD`
-    - `APPLE_TEAM_ID`
+- macOS notarization preferred path:
+  - `APPLE_API_ISSUER`
+  - `APPLE_API_KEY`
+  - `APPLE_API_KEY_PATH`
+- macOS notarization fallback path:
+  - `APPLE_ID`
+  - `APPLE_PASSWORD`
+  - `APPLE_TEAM_ID`
 - Windows signing:
   - `WINDOWS_CERTIFICATE_PFX_B64`
   - `WINDOWS_CERTIFICATE_PASSWORD`
   - `WINDOWS_CERTIFICATE_THUMBPRINT`
   - `WINDOWS_TIMESTAMP_URL`
-
-This repo does not store signing credentials. Release notes must stay explicit about whether those env values were actually provided for a given release build.
 
 ## Website and downloads
 

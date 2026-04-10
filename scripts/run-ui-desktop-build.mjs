@@ -163,28 +163,6 @@ function defaultBundleForPlatform() {
   }
 }
 
-function normalizePlatform(value) {
-  switch (value) {
-    case "darwin":
-      return "macos";
-    case "win32":
-      return "windows";
-    case "linux":
-      return "linux";
-    default:
-      return value;
-  }
-}
-
-function extractRequestedBundles(args) {
-  const bundleIndex = args.findIndex((arg) => arg === "--bundles");
-  if (bundleIndex >= 0) {
-    return args[bundleIndex + 1] ?? null;
-  }
-  const inline = args.find((arg) => arg.startsWith("--bundles="));
-  return inline ? inline.slice("--bundles=".length) : null;
-}
-
 async function resolveReleaseConfigPath() {
   const extraConfigPath = process.env.KIWI_CONTROL_TAURI_EXTRA_CONFIG?.trim();
   if (!extraConfigPath) {
@@ -217,6 +195,28 @@ function deepMerge(left, right) {
 
 function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizePlatform(value) {
+  switch (value) {
+    case "darwin":
+      return "macos";
+    case "win32":
+      return "windows";
+    case "linux":
+      return "linux";
+    default:
+      return value;
+  }
+}
+
+function extractRequestedBundles(args) {
+  const bundleIndex = args.findIndex((arg) => arg === "--bundles");
+  if (bundleIndex >= 0) {
+    return args[bundleIndex + 1] ?? null;
+  }
+  const inline = args.find((arg) => arg.startsWith("--bundles="));
+  return inline ? inline.slice("--bundles=".length) : null;
 }
 
 async function syncBundleArtifacts(cargoTargetDir) {
