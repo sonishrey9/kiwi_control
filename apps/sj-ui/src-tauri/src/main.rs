@@ -34,10 +34,16 @@ const RENDER_PROBE_FILE_ENV: &str = "KIWI_CONTROL_RENDER_PROBE_FILE";
 const RENDER_PROBE_VIEW_ENV: &str = "KIWI_CONTROL_RENDER_PROBE_VIEW";
 const RENDER_ACTION_FILE_ENV: &str = "KIWI_CONTROL_RENDER_ACTION_FILE";
 const DESKTOP_INSTALL_RECEIPT_FILE: &str = "desktop-install.json";
+const DESKTOP_CLI_INSTALL_RECEIPT_FILE: &str = "desktop-cli-install.json";
 const DESKTOP_CLI_RESOURCE_DIR: &str = "desktop/cli-bundle";
 const DESKTOP_NODE_RESOURCE_DIR: &str = "desktop/node";
 const DESKTOP_RUNTIME_MODE_INSTALLED: &str = "installed-user";
 const DESKTOP_RUNTIME_MODE_SOURCE: &str = "developer-source";
+const CLI_INSTALL_SCOPE_MACHINE: &str = "machine";
+const CLI_INSTALL_SCOPE_USER: &str = "user";
+const CLI_VERIFICATION_PASSED: &str = "passed";
+const CLI_VERIFICATION_FAILED: &str = "failed";
+const CLI_VERIFICATION_NOT_RUN: &str = "not-run";
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -111,8 +117,14 @@ struct DesktopCliStatus {
     bundled_installer_available: bool,
     bundled_node_path: Option<String>,
     install_bin_dir: String,
+    install_root: String,
+    install_scope: String,
     installed: bool,
     installed_command_path: Option<String>,
+    verification_status: String,
+    verification_detail: String,
+    verification_command_path: Option<String>,
+    requires_new_terminal: bool,
 }
 
 #[derive(Serialize)]
@@ -120,7 +132,14 @@ struct DesktopCliStatus {
 struct CliInstallResult {
     detail: String,
     install_bin_dir: String,
+    install_root: String,
+    install_scope: String,
     installed_command_path: Option<String>,
+    verification_status: String,
+    verification_detail: String,
+    verification_command_path: Option<String>,
+    requires_new_terminal: bool,
+    path_changed: bool,
     used_bundled_node: bool,
 }
 
@@ -133,6 +152,53 @@ struct DesktopInstallReceipt {
     build_source: String,
     runtime_mode: String,
     updated_at: String,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopCliInstallReceipt {
+    install_scope: String,
+    install_root: String,
+    install_bin_dir: String,
+    installed_command_path: Option<String>,
+    verification_status: String,
+    verification_detail: String,
+    verification_command_path: Option<String>,
+    requires_new_terminal: bool,
+    path_changed: bool,
+    updated_at: String,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CliInstallerExecutionResult {
+    install_scope: Option<String>,
+    install_root: Option<String>,
+    install_bin_dir: Option<String>,
+    primary_command_path: Option<String>,
+    short_command_path: Option<String>,
+    path_changed: bool,
+    detail: Option<String>,
+}
+
+#[derive(Clone)]
+struct InstalledCliCommand {
+    path: PathBuf,
+    install_scope: String,
+    install_root: PathBuf,
+    install_bin_dir: PathBuf,
+}
+
+struct CliVerificationResult {
+    status: String,
+    detail: String,
+    command_path: Option<String>,
+    requires_new_terminal: bool,
+}
+
+struct BundledCliInstallerRun {
+    output: std::process::Output,
+    result: Option<CliInstallerExecutionResult>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -239,12 +305,25 @@ fn load_machine_advisory_section(app: AppHandle, section: String, refresh: Optio
 #[tauri::command]
 fn get_desktop_runtime_info(app: AppHandle) -> Result<DesktopRuntimeInfo, String> {
     let build_source = infer_runtime_build_source();
-    let installed_command_path = resolve_installed_cli_paths()
-        .into_iter()
-        .find(|path| path.exists())
-        .map(|path| path.to_string_lossy().to_string());
+    let installed_cli = resolve_installed_cli_command();
+    let cli_receipt = read_cli_install_receipt().ok().flatten();
+    let preferred_install = resolve_preferred_cli_install_target(CLI_INSTALL_SCOPE_MACHINE);
     let bundled_node_path = resolve_bundled_node_binary(&app).map(|path| path.to_string_lossy().to_string());
     let runtime_identity = get_runtime_identity(&app).ok();
+    let verification_status = cli_receipt
+        .as_ref()
+        .map(|receipt| receipt.verification_status.clone())
+        .unwrap_or_else(|| String::from(CLI_VERIFICATION_NOT_RUN));
+    let verification_detail = cli_receipt
+        .as_ref()
+        .map(|receipt| receipt.verification_detail.clone())
+        .unwrap_or_else(|| {
+            if installed_cli.is_some() {
+                String::from("Terminal commands are installed, but Kiwi has not verified them from a fresh shell yet.")
+            } else {
+                String::from("Terminal commands are optional and are not enabled yet.")
+            }
+        });
     Ok(DesktopRuntimeInfo {
         app_version: env!("CARGO_PKG_VERSION").to_string(),
         bundle_id: DESKTOP_APP_BUNDLE_ID.to_string(),
@@ -255,9 +334,32 @@ fn get_desktop_runtime_info(app: AppHandle) -> Result<DesktopRuntimeInfo, String
         cli: DesktopCliStatus {
             bundled_installer_available: resolve_bundled_cli_installer_path(&app).is_some(),
             bundled_node_path: bundled_node_path.clone(),
-            install_bin_dir: resolve_path_bin_root().to_string_lossy().to_string(),
-            installed: installed_command_path.is_some(),
-            installed_command_path,
+            install_bin_dir: installed_cli
+                .as_ref()
+                .map(|command| command.install_bin_dir.to_string_lossy().to_string())
+                .unwrap_or_else(|| preferred_install.install_bin_dir.to_string_lossy().to_string()),
+            install_root: installed_cli
+                .as_ref()
+                .map(|command| command.install_root.to_string_lossy().to_string())
+                .unwrap_or_else(|| preferred_install.install_root.to_string_lossy().to_string()),
+            install_scope: installed_cli
+                .as_ref()
+                .map(|command| command.install_scope.clone())
+                .or_else(|| cli_receipt.as_ref().map(|receipt| receipt.install_scope.clone()))
+                .unwrap_or_else(|| String::from(CLI_INSTALL_SCOPE_MACHINE)),
+            installed: installed_cli.is_some(),
+            installed_command_path: installed_cli
+                .as_ref()
+                .map(|command| command.path.to_string_lossy().to_string()),
+            verification_status,
+            verification_detail,
+            verification_command_path: cli_receipt
+                .as_ref()
+                .and_then(|receipt| receipt.verification_command_path.clone()),
+            requires_new_terminal: cli_receipt
+                .as_ref()
+                .map(|receipt| receipt.requires_new_terminal)
+                .unwrap_or(false),
         },
         runtime_identity,
         render_probe_view: resolve_render_probe_view(),
@@ -359,17 +461,31 @@ fn open_terminal_command(
 
 #[tauri::command]
 fn install_bundled_cli(app: AppHandle) -> Result<CliInstallResult, String> {
+    if !(cfg!(target_os = "macos") || cfg!(target_os = "windows")) {
+        return Err(String::from(
+            "Machine-wide terminal commands are currently only implemented on macOS and Windows.",
+        ));
+    }
     let installer_path = resolve_bundled_cli_installer_path(&app)
         .ok_or_else(|| String::from("bundled Kiwi Control CLI installer is not available in this desktop build"))?;
     let bundled_node_path = resolve_bundled_node_binary(&app);
-    let output = run_bundled_cli_installer(&installer_path, bundled_node_path.as_ref())
+    let install_target = resolve_preferred_cli_install_target(CLI_INSTALL_SCOPE_MACHINE);
+    let install_run = run_bundled_cli_installer(
+        &installer_path,
+        bundled_node_path.as_ref(),
+        CLI_INSTALL_SCOPE_MACHINE,
+        &install_target.install_root,
+        &install_target.install_bin_dir,
+    )
         .map_err(|error| format!("failed to run bundled CLI installer: {error}"))?;
 
-    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-    if !output.status.success() {
+    let stdout = String::from_utf8_lossy(&install_run.output.stdout).trim().to_string();
+    let stderr = String::from_utf8_lossy(&install_run.output.stderr).trim().to_string();
+    if !install_run.output.status.success() {
         return Err(if !stderr.is_empty() {
             stderr
+        } else if let Some(detail) = install_run.result.as_ref().and_then(|result| result.detail.clone()) {
+            detail
         } else if !stdout.is_empty() {
             stdout
         } else {
@@ -377,15 +493,52 @@ fn install_bundled_cli(app: AppHandle) -> Result<CliInstallResult, String> {
         });
     }
 
-    let installed_command_path = resolve_installed_cli_paths()
-        .into_iter()
-        .find(|path| path.exists())
-        .map(|path| path.to_string_lossy().to_string());
+    let installed_cli = resolve_installed_cli_command();
+    let path_changed = install_run
+        .result
+        .as_ref()
+        .map(|result| result.path_changed)
+        .unwrap_or(false);
+    let verification = verify_cli_command(CLI_INSTALL_SCOPE_MACHINE, installed_cli.as_ref(), path_changed)?;
+    let receipt = DesktopCliInstallReceipt {
+        install_scope: String::from(CLI_INSTALL_SCOPE_MACHINE),
+        install_root: install_target.install_root.to_string_lossy().to_string(),
+        install_bin_dir: install_target.install_bin_dir.to_string_lossy().to_string(),
+        installed_command_path: installed_cli
+            .as_ref()
+            .map(|command| command.path.to_string_lossy().to_string()),
+        verification_status: verification.status.clone(),
+        verification_detail: verification.detail.clone(),
+        verification_command_path: verification.command_path.clone(),
+        requires_new_terminal: verification.requires_new_terminal,
+        path_changed,
+        updated_at: timestamp_now(),
+    };
+    write_cli_install_receipt(&receipt)?;
+    let install_detail = install_run
+        .result
+        .as_ref()
+        .and_then(|result| result.detail.clone())
+        .unwrap_or(stdout.clone());
+    let detail = if !install_detail.is_empty() {
+        format!("{install_detail}\n{}", verification.detail)
+    } else {
+        verification.detail.clone()
+    };
 
     Ok(CliInstallResult {
-        detail: if !stdout.is_empty() { stdout } else { String::from("Kiwi Control CLI installed.") },
-        install_bin_dir: resolve_path_bin_root().to_string_lossy().to_string(),
-        installed_command_path,
+        detail,
+        install_bin_dir: install_target.install_bin_dir.to_string_lossy().to_string(),
+        install_root: install_target.install_root.to_string_lossy().to_string(),
+        install_scope: String::from(CLI_INSTALL_SCOPE_MACHINE),
+        installed_command_path: installed_cli
+            .as_ref()
+            .map(|command| command.path.to_string_lossy().to_string()),
+        verification_status: verification.status,
+        verification_detail: verification.detail,
+        verification_command_path: verification.command_path,
+        requires_new_terminal: verification.requires_new_terminal,
+        path_changed,
         used_bundled_node: bundled_node_path.is_some(),
     })
 }
@@ -1140,8 +1293,32 @@ fn applescript_string_literal(value: &str) -> String {
     format!("\"{}\"", value.replace('\\', "\\\\").replace('"', "\\\""))
 }
 
+#[cfg(target_os = "windows")]
+fn powershell_string_literal(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "''"))
+}
+
+struct CliInstallTarget {
+    install_scope: String,
+    install_root: PathBuf,
+    install_bin_dir: PathBuf,
+}
+
 fn resolve_installed_cli_paths() -> Vec<PathBuf> {
-    let mut candidates: Vec<PathBuf> = Vec::new();
+    resolve_installed_cli_commands()
+        .into_iter()
+        .map(|command| command.path)
+        .collect()
+}
+
+fn resolve_installed_cli_command() -> Option<InstalledCliCommand> {
+    resolve_installed_cli_commands()
+        .into_iter()
+        .find(|candidate| candidate.path.exists())
+}
+
+fn resolve_installed_cli_commands() -> Vec<InstalledCliCommand> {
+    let mut candidates: Vec<InstalledCliCommand> = Vec::new();
 
     for cli_env in ["KIWI_CONTROL_BIN", "SHREY_JUNIOR_BIN"] {
         if let Ok(value) = std::env::var(cli_env) {
@@ -1149,26 +1326,66 @@ fn resolve_installed_cli_paths() -> Vec<PathBuf> {
             if trimmed.is_empty() {
                 continue;
             }
-            candidates.push(PathBuf::from(trimmed));
+            let path = PathBuf::from(trimmed);
+            candidates.push(InstalledCliCommand {
+                path,
+                install_scope: String::from("unknown"),
+                install_root: resolve_global_home_root(),
+                install_bin_dir: resolve_path_bin_root(),
+            });
         }
     }
 
-    let global_home = resolve_global_home_root();
-    let path_bin = resolve_path_bin_root();
-
-    candidates.extend(command_path_variants(&path_bin, "kiwi-control"));
-    candidates.extend(command_path_variants(&global_home.join("bin"), "kiwi-control"));
-    candidates.extend(command_path_variants(&path_bin, "kc"));
-    candidates.extend(command_path_variants(&global_home.join("bin"), "kc"));
+    for target in [
+        resolve_preferred_cli_install_target(CLI_INSTALL_SCOPE_MACHINE),
+        resolve_preferred_cli_install_target(CLI_INSTALL_SCOPE_USER),
+    ] {
+        for command_name in ["kiwi-control", "kc"] {
+            for path in command_path_variants(&target.install_bin_dir, command_name) {
+                candidates.push(InstalledCliCommand {
+                    path,
+                    install_scope: target.install_scope.clone(),
+                    install_root: target.install_root.clone(),
+                    install_bin_dir: target.install_bin_dir.clone(),
+                });
+            }
+        }
+    }
 
     let mut unique_candidates = Vec::new();
     for candidate in candidates {
-        if !unique_candidates.contains(&candidate) {
+        if !unique_candidates
+            .iter()
+            .any(|entry: &InstalledCliCommand| entry.path == candidate.path)
+        {
             unique_candidates.push(candidate);
         }
     }
 
     unique_candidates
+}
+
+fn resolve_preferred_cli_install_target(scope: &str) -> CliInstallTarget {
+    if scope == CLI_INSTALL_SCOPE_MACHINE {
+        if !(cfg!(target_os = "macos") || cfg!(target_os = "windows")) {
+            return CliInstallTarget {
+                install_scope: String::from("unknown"),
+                install_root: resolve_global_home_root(),
+                install_bin_dir: resolve_path_bin_root(),
+            };
+        }
+        return CliInstallTarget {
+            install_scope: String::from(CLI_INSTALL_SCOPE_MACHINE),
+            install_root: resolve_machine_cli_root(),
+            install_bin_dir: resolve_machine_path_bin_root(),
+        };
+    }
+
+    CliInstallTarget {
+        install_scope: String::from(CLI_INSTALL_SCOPE_USER),
+        install_root: resolve_global_home_root(),
+        install_bin_dir: resolve_path_bin_root(),
+    }
 }
 
 fn resolve_global_home_root() -> PathBuf {
@@ -1224,7 +1441,33 @@ fn resolve_path_bin_root() -> PathBuf {
     home_dir.join(".local").join("bin")
 }
 
+fn resolve_machine_cli_root() -> PathBuf {
+    if cfg!(target_os = "windows") {
+        if let Ok(value) = std::env::var("ProgramData") {
+            let trimmed = value.trim();
+            if !trimmed.is_empty() {
+                return PathBuf::from(trimmed).join("Kiwi Control");
+            }
+        }
+        return PathBuf::from(r"C:\ProgramData\Kiwi Control");
+    }
+
+    PathBuf::from("/Library/Application Support/Kiwi Control")
+}
+
+fn resolve_machine_path_bin_root() -> PathBuf {
+    if cfg!(target_os = "windows") {
+        return resolve_machine_cli_root().join("bin");
+    }
+
+    PathBuf::from("/usr/local/bin")
+}
+
 fn command_path_variants(root: &PathBuf, command: &str) -> Vec<PathBuf> {
+#[cfg(target_os = "windows")]
+    let mut candidates = vec![root.join(command)];
+
+    #[cfg(not(target_os = "windows"))]
     let candidates = vec![root.join(command)];
 
     #[cfg(target_os = "windows")]
@@ -1234,6 +1477,40 @@ fn command_path_variants(root: &PathBuf, command: &str) -> Vec<PathBuf> {
     }
 
     candidates
+}
+
+fn resolve_cli_install_receipt_path() -> PathBuf {
+    resolve_global_home_root().join(DESKTOP_CLI_INSTALL_RECEIPT_FILE)
+}
+
+fn write_cli_install_receipt(receipt: &DesktopCliInstallReceipt) -> Result<(), String> {
+    let receipt_path = resolve_cli_install_receipt_path();
+    if let Some(parent) = receipt_path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|error| format!("failed to create CLI install receipt directory: {error}"))?;
+    }
+
+    let serialized = serde_json::to_vec_pretty(receipt)
+        .map_err(|error| format!("failed to serialize CLI install receipt: {error}"))?;
+    let temp_path = receipt_path.with_extension("tmp");
+    fs::write(&temp_path, serialized)
+        .map_err(|error| format!("failed to write CLI install receipt: {error}"))?;
+    fs::rename(&temp_path, &receipt_path)
+        .map_err(|error| format!("failed to finalize CLI install receipt: {error}"))?;
+    Ok(())
+}
+
+fn read_cli_install_receipt() -> Result<Option<DesktopCliInstallReceipt>, String> {
+    let receipt_path = resolve_cli_install_receipt_path();
+    if !receipt_path.exists() {
+        return Ok(None);
+    }
+
+    let content = fs::read_to_string(&receipt_path)
+        .map_err(|error| format!("failed to read CLI install receipt: {error}"))?;
+    serde_json::from_str::<DesktopCliInstallReceipt>(&content)
+        .map(Some)
+        .map_err(|error| format!("failed to decode CLI install receipt: {error}"))
 }
 
 fn resolve_node_binary(preferred: Option<PathBuf>) -> Option<PathBuf> {
@@ -1315,32 +1592,293 @@ fn resolve_bundled_node_binary(app: &AppHandle) -> Option<PathBuf> {
 fn run_bundled_cli_installer(
     installer_path: &PathBuf,
     bundled_node_path: Option<&PathBuf>,
-) -> Result<std::process::Output, std::io::Error> {
-    let mut command = if cfg!(target_os = "windows") {
-        let mut command = Command::new("powershell.exe");
-        command
-            .arg("-NoProfile")
-            .arg("-ExecutionPolicy")
-            .arg("Bypass")
-            .arg("-File")
-            .arg(installer_path);
-        command
+    install_scope: &str,
+    install_root: &PathBuf,
+    install_bin_dir: &PathBuf,
+) -> Result<BundledCliInstallerRun, std::io::Error> {
+    let result_path = std::env::temp_dir().join(format!(
+        "kiwi-control-cli-install-{}.json",
+        timestamp_now()
+    ));
+    let output = if cfg!(target_os = "windows") {
+        run_windows_bundled_cli_installer(
+            installer_path,
+            bundled_node_path,
+            install_scope,
+            install_root,
+            install_bin_dir,
+            &result_path,
+        )?
     } else {
-        let mut command = Command::new("/bin/bash");
-        command.arg(installer_path);
-        command
+        run_unix_bundled_cli_installer(
+            installer_path,
+            bundled_node_path,
+            install_scope,
+            install_root,
+            install_bin_dir,
+            &result_path,
+        )?
     };
 
-    command.current_dir(
-        installer_path
-            .parent()
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from(".")),
-    );
+    let result = read_cli_installer_result(&result_path);
+    let _ = fs::remove_file(&result_path);
+    Ok(BundledCliInstallerRun { output, result })
+}
+
+fn run_unix_bundled_cli_installer(
+    installer_path: &PathBuf,
+    bundled_node_path: Option<&PathBuf>,
+    install_scope: &str,
+    install_root: &PathBuf,
+    install_bin_dir: &PathBuf,
+    result_path: &PathBuf,
+) -> Result<std::process::Output, std::io::Error> {
+    let installer_dir = installer_path
+        .parent()
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."));
+
+    if install_scope == CLI_INSTALL_SCOPE_MACHINE && cfg!(target_os = "macos") {
+        let mut command_line = format!(
+            "export KIWI_CONTROL_INSTALL_SCOPE={}; export KIWI_CONTROL_INSTALL_ROOT={}; export KIWI_CONTROL_PATH_BIN={}; export KIWI_CONTROL_RESULT_PATH={}; /bin/bash {}",
+            shell_quote(install_scope),
+            shell_quote(&install_root.to_string_lossy()),
+            shell_quote(&install_bin_dir.to_string_lossy()),
+            shell_quote(&result_path.to_string_lossy()),
+            shell_quote(&installer_path.to_string_lossy())
+        );
+        if let Some(node_path) = bundled_node_path {
+            command_line = format!(
+                "export KIWI_CONTROL_NODE_ABSOLUTE={}; {command_line}",
+                shell_quote(&node_path.to_string_lossy())
+            );
+        }
+
+        let mut command = Command::new("osascript");
+        command
+            .arg("-e")
+            .arg(format!(
+                "do shell script {} with administrator privileges",
+                applescript_string_literal(&command_line)
+            ));
+        return command.output();
+    }
+
+    let mut command = Command::new("/bin/bash");
+    command.arg(installer_path);
+    command.current_dir(installer_dir);
+    command.env("KIWI_CONTROL_INSTALL_SCOPE", install_scope);
+    command.env("KIWI_CONTROL_INSTALL_ROOT", install_root);
+    command.env("KIWI_CONTROL_PATH_BIN", install_bin_dir);
+    command.env("KIWI_CONTROL_RESULT_PATH", result_path);
     if let Some(node_path) = bundled_node_path {
         command.env("KIWI_CONTROL_NODE_ABSOLUTE", node_path);
     }
     command.output()
+}
+
+#[cfg(target_os = "windows")]
+fn run_windows_bundled_cli_installer(
+    installer_path: &PathBuf,
+    bundled_node_path: Option<&PathBuf>,
+    install_scope: &str,
+    install_root: &PathBuf,
+    install_bin_dir: &PathBuf,
+    result_path: &PathBuf,
+) -> Result<std::process::Output, std::io::Error> {
+    let mut args_list = vec![
+        String::from("-NoProfile"),
+        String::from("-ExecutionPolicy"),
+        String::from("Bypass"),
+        String::from("-File"),
+        installer_path.to_string_lossy().to_string(),
+        String::from("-InstallScope"),
+        install_scope.to_string(),
+        String::from("-InstallRoot"),
+        install_root.to_string_lossy().to_string(),
+        String::from("-PathBin"),
+        install_bin_dir.to_string_lossy().to_string(),
+        String::from("-ResultPath"),
+        result_path.to_string_lossy().to_string(),
+    ];
+    if let Some(node_path) = bundled_node_path {
+        args_list.push(String::from("-PreferredNodePath"));
+        args_list.push(node_path.to_string_lossy().to_string());
+    }
+
+    if install_scope == CLI_INSTALL_SCOPE_MACHINE {
+        let argument_list = args_list
+            .iter()
+            .map(|value| powershell_string_literal(value))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let script = format!(
+            "$process = Start-Process -FilePath 'powershell.exe' -Verb RunAs -Wait -PassThru -ArgumentList @({argument_list}); exit $process.ExitCode"
+        );
+        return Command::new("powershell.exe")
+            .arg("-NoProfile")
+            .arg("-Command")
+            .arg(script)
+            .output();
+    }
+
+    let mut command = Command::new("powershell.exe");
+    command.args(args_list);
+    command.output()
+}
+
+#[cfg(not(target_os = "windows"))]
+fn run_windows_bundled_cli_installer(
+    _installer_path: &PathBuf,
+    _bundled_node_path: Option<&PathBuf>,
+    _install_scope: &str,
+    _install_root: &PathBuf,
+    _install_bin_dir: &PathBuf,
+    _result_path: &PathBuf,
+) -> Result<std::process::Output, std::io::Error> {
+    unreachable!("Windows bundled CLI installer should not run on non-Windows hosts");
+}
+
+fn read_cli_installer_result(result_path: &PathBuf) -> Option<CliInstallerExecutionResult> {
+    let content = fs::read_to_string(result_path).ok()?;
+    serde_json::from_str::<CliInstallerExecutionResult>(&content).ok()
+}
+
+fn verify_cli_command(
+    install_scope: &str,
+    installed_command: Option<&InstalledCliCommand>,
+    path_changed: bool,
+) -> Result<CliVerificationResult, String> {
+    let Some(installed_command) = installed_command else {
+        return Ok(CliVerificationResult {
+            status: String::from(CLI_VERIFICATION_FAILED),
+            detail: String::from("Kiwi could not find an installed kc command after the installer completed."),
+            command_path: None,
+            requires_new_terminal: false,
+        });
+    };
+
+    if cfg!(target_os = "windows") {
+        return verify_windows_cli_command(installed_command, path_changed);
+    }
+
+    verify_macos_cli_command(installed_command, install_scope, path_changed)
+}
+
+#[cfg(target_os = "windows")]
+fn verify_windows_cli_command(
+    installed_command: &InstalledCliCommand,
+    path_changed: bool,
+) -> Result<CliVerificationResult, String> {
+    let script = format!(
+        "$machine = [Environment]::GetEnvironmentVariable('Path', 'Machine'); \
+         $user = [Environment]::GetEnvironmentVariable('Path', 'User'); \
+         $env:Path = @($machine, $user) -join ';'; \
+         $command = Get-Command kc -ErrorAction Stop; \
+         & $command.Source --help | Out-Null; \
+         Write-Output $command.Source"
+    );
+    let output = Command::new("powershell.exe")
+        .arg("-NoProfile")
+        .arg("-Command")
+        .arg(script)
+        .output()
+        .map_err(|error| format!("failed to verify kc from a fresh PowerShell process: {error}"))?;
+
+    if output.status.success() {
+        let resolved = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        return Ok(CliVerificationResult {
+            status: String::from(CLI_VERIFICATION_PASSED),
+            detail: if path_changed {
+                String::from("Terminal commands are enabled system-wide. Open a new terminal to use kc.")
+            } else {
+                String::from("Terminal commands are already enabled system-wide.")
+            },
+            command_path: if resolved.is_empty() { Some(installed_command.path.to_string_lossy().to_string()) } else { Some(resolved) },
+            requires_new_terminal: path_changed,
+        });
+    }
+
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    Ok(CliVerificationResult {
+        status: String::from(CLI_VERIFICATION_FAILED),
+        detail: if !stderr.is_empty() {
+            stderr
+        } else if !stdout.is_empty() {
+            stdout
+        } else {
+            String::from("Kiwi installed terminal commands, but a fresh PowerShell process could not resolve kc.")
+        },
+        command_path: Some(installed_command.path.to_string_lossy().to_string()),
+        requires_new_terminal: false,
+    })
+}
+
+#[cfg(not(target_os = "windows"))]
+fn verify_windows_cli_command(
+    _installed_command: &InstalledCliCommand,
+    _path_changed: bool,
+) -> Result<CliVerificationResult, String> {
+    unreachable!("Windows CLI verification should not run on non-Windows hosts");
+}
+
+#[cfg(target_os = "macos")]
+fn verify_macos_cli_command(
+    installed_command: &InstalledCliCommand,
+    install_scope: &str,
+    path_changed: bool,
+) -> Result<CliVerificationResult, String> {
+    let output = Command::new("/bin/zsh")
+        .arg("-lic")
+        .arg("command -v kc && kc --help >/dev/null")
+        .output()
+        .map_err(|error| format!("failed to verify kc from a fresh login shell: {error}"))?;
+
+    if output.status.success() {
+        let resolved = String::from_utf8_lossy(&output.stdout).lines().next().unwrap_or("").trim().to_string();
+        let detail = if install_scope == CLI_INSTALL_SCOPE_MACHINE {
+            if path_changed {
+                String::from("Terminal commands are enabled system-wide. Open a new terminal to use kc.")
+            } else {
+                String::from("Terminal commands are already enabled system-wide.")
+            }
+        } else if path_changed {
+            String::from("Terminal commands are enabled. Open a new terminal to use kc.")
+        } else {
+            String::from("Terminal commands are already enabled.")
+        };
+        return Ok(CliVerificationResult {
+            status: String::from(CLI_VERIFICATION_PASSED),
+            detail,
+            command_path: if resolved.is_empty() { Some(installed_command.path.to_string_lossy().to_string()) } else { Some(resolved) },
+            requires_new_terminal: path_changed,
+        });
+    }
+
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    Ok(CliVerificationResult {
+        status: String::from(CLI_VERIFICATION_FAILED),
+        detail: if !stderr.is_empty() {
+            stderr
+        } else if !stdout.is_empty() {
+            stdout
+        } else {
+            String::from("Kiwi installed terminal commands, but a fresh login shell could not resolve kc.")
+        },
+        command_path: Some(installed_command.path.to_string_lossy().to_string()),
+        requires_new_terminal: false,
+    })
+}
+
+#[cfg(not(target_os = "macos"))]
+fn verify_macos_cli_command(
+    _installed_command: &InstalledCliCommand,
+    _install_scope: &str,
+    _path_changed: bool,
+) -> Result<CliVerificationResult, String> {
+    unreachable!("macOS CLI verification should not run on non-macOS hosts");
 }
 
 fn resolve_source_cli_script() -> Option<PathBuf> {

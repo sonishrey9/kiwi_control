@@ -10,8 +10,14 @@ export interface OnboardingPanelRuntimeInfo {
     bundledInstallerAvailable: boolean;
     bundledNodePath: string | null;
     installBinDir: string;
+    installRoot: string;
+    installScope: "machine" | "user" | "unknown";
     installed: boolean;
     installedCommandPath: string | null;
+    verificationStatus: "passed" | "failed" | "not-run" | "blocked";
+    verificationDetail: string;
+    verificationCommandPath: string | null;
+    requiresNewTerminal: boolean;
   };
 }
 
@@ -83,8 +89,8 @@ export function buildOnboardingPanelModel(params: {
   if (targetRoot && runtimeInfo?.runtimeMode === "installed-user" && runtimeInfo.cli.bundledInstallerAvailable && !runtimeInfo.cli.installed) {
     actions.push({
       id: "install-cli",
-      label: "Install kc (optional)",
-      detail: `Add kc to ${runtimeInfo.cli.installBinDir} if you want the power-user terminal path too.`
+      label: "Enable terminal commands (kc)",
+      detail: `Optional power-user feature. Enables kc ${runtimeInfo.cli.installScope === "machine" ? "system-wide" : "for this user"} from Terminal via ${runtimeInfo.cli.installBinDir}.`
     });
   }
 
@@ -92,9 +98,11 @@ export function buildOnboardingPanelModel(params: {
     ? `${describeRuntimeMode(runtimeInfo.runtimeMode)} · ${describeBuildSource(runtimeInfo.buildSource)} · v${runtimeInfo.appVersion}`
     : "Desktop shell is running, but runtime details are still loading.";
   const cliStatus = runtimeInfo?.cli.installed
-    ? `Installed at ${runtimeInfo.cli.installedCommandPath ?? runtimeInfo.cli.installBinDir}`
+    ? runtimeInfo.cli.verificationStatus === "passed"
+      ? `${runtimeInfo.cli.installScope === "machine" ? "Enabled system-wide" : "Enabled for this user"} · ${runtimeInfo.cli.requiresNewTerminal ? "open a new terminal" : "verified"}`
+      : `Installed at ${runtimeInfo.cli.installedCommandPath ?? runtimeInfo.cli.installBinDir} · ${runtimeInfo.cli.verificationDetail}`
     : runtimeInfo?.runtimeMode === "installed-user"
-      ? "Optional. Kiwi can install kc from the app if you want terminal access."
+      ? "Optional. Kiwi can enable terminal commands from the app if you want power-user shell access."
       : "Source/developer mode detected. Desktop use still works without a separate installed kc.";
   const repoStatus = !targetRoot
     ? "No repo is open yet."
@@ -105,14 +113,14 @@ export function buildOnboardingPanelModel(params: {
 
   return {
     title: "Start in the app",
-    intro: "Open Kiwi Control, choose a repo, initialize it if needed, and work. kc is optional and only needed if you also want the terminal path.",
+    intro: "Open Kiwi Control, choose a repo, initialize it if needed, and work. Terminal commands are optional and can be enabled later.",
     desktopStatus,
     cliStatus,
     repoStatus,
     nextAction,
     actions,
     note: runtimeInfo?.runtimeMode === "installed-user"
-      ? "Desktop-first is the default path. Install kc only if you want the same repo flow from Terminal."
+      ? "Desktop-first is the default path. Enable terminal commands only if you also want system terminal access."
       : "Developer/source mode keeps the source checkout in control of desktop launching."
   };
 }

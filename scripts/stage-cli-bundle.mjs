@@ -194,7 +194,10 @@ function renderCliBundleInstaller(version) {
 set -euo pipefail
 
 BUNDLE_ROOT="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
-resolve_default_global_home() {
+INSTALL_SCOPE="\${KIWI_CONTROL_INSTALL_SCOPE:-user}"
+RESULT_PATH="\${KIWI_CONTROL_RESULT_PATH:-}"
+
+resolve_user_global_home() {
   if [[ -n "\${KIWI_CONTROL_HOME:-}" ]]; then
     printf '%s\\n' "$KIWI_CONTROL_HOME"
     return
@@ -203,17 +206,34 @@ resolve_default_global_home() {
   printf '%s\\n' "$HOME/.kiwi-control"
 }
 
-GLOBAL_HOME="$(resolve_default_global_home)"
-PATH_BIN="\${KIWI_CONTROL_PATH_BIN:-$HOME/.local/bin}"
-INSTALL_ROOT="$GLOBAL_HOME/releases/${PRODUCT_METADATA.release.artifactPrefix}-${version}"
+resolve_machine_global_home() {
+  if [[ -n "\${KIWI_CONTROL_INSTALL_ROOT:-}" ]]; then
+    printf '%s\\n' "$KIWI_CONTROL_INSTALL_ROOT"
+    return
+  fi
+
+  printf '%s\\n' "/Library/Application Support/Kiwi Control"
+}
+
+if [[ "$INSTALL_SCOPE" == "machine" ]]; then
+  GLOBAL_HOME="$(resolve_machine_global_home)"
+  PATH_BIN="\${KIWI_CONTROL_PATH_BIN:-/usr/local/bin}"
+  INSTALL_ROOT="$GLOBAL_HOME/cli/${PRODUCT_METADATA.release.artifactPrefix}-${version}"
+else
+  GLOBAL_HOME="$(resolve_user_global_home)"
+  PATH_BIN="\${KIWI_CONTROL_PATH_BIN:-$HOME/.local/bin}"
+  INSTALL_ROOT="$GLOBAL_HOME/releases/${PRODUCT_METADATA.release.artifactPrefix}-${version}"
+fi
 PREFERRED_NODE="\${KIWI_CONTROL_NODE_ABSOLUTE:-\${KIWI_CONTROL_NODE:-\${SHREY_JUNIOR_NODE:-}}}"
+PATH_CHANGED=false
+DETAIL=""
 
 if [[ -z "$PREFERRED_NODE" ]] && ! command -v node >/dev/null 2>&1; then
   echo "${PRODUCT_METADATA.displayName} CLI install error: Node.js 22+ is required for the beta CLI bundle." >&2
   exit 1
 fi
 
-mkdir -p "$GLOBAL_HOME/releases" "$PATH_BIN"
+mkdir -p "$(dirname "$INSTALL_ROOT")" "$PATH_BIN"
 rm -rf "$INSTALL_ROOT"
 cp -R "$BUNDLE_ROOT" "$INSTALL_ROOT"
 
@@ -346,35 +366,85 @@ PY
 write_wrapper "$PATH_BIN/${PRODUCT_METADATA.cli.primaryCommand}"
 write_wrapper "$PATH_BIN/${PRODUCT_METADATA.cli.shortCommand}"
 
-printf '%s\\n' "${PRODUCT_METADATA.displayName} CLI installed."
-printf '%s\\n' "Primary command: $PATH_BIN/${PRODUCT_METADATA.cli.primaryCommand}"
-printf '%s\\n' "Short alias: $PATH_BIN/${PRODUCT_METADATA.cli.shortCommand}"
-if is_path_dir_on_path; then
-  printf '%s\\n' "PATH already includes $PATH_BIN"
+if [[ "$INSTALL_SCOPE" == "machine" ]]; then
+  DETAIL="${PRODUCT_METADATA.displayName} terminal commands installed system-wide."
+  printf '%s\\n' "$DETAIL"
+  printf '%s\\n' "Primary command: $PATH_BIN/${PRODUCT_METADATA.cli.primaryCommand}"
+  printf '%s\\n' "Short alias: $PATH_BIN/${PRODUCT_METADATA.cli.shortCommand}"
+  printf '%s\\n' "Shared PATH location: $PATH_BIN"
 else
-  PROFILE_PATH="$(resolve_shell_profile)"
-  upsert_path_profile "$PROFILE_PATH"
-  printf '%s\\n' "PATH updated in $PROFILE_PATH"
-  printf '%s\\n' "Next step: open a new terminal window."
+  printf '%s\\n' "${PRODUCT_METADATA.displayName} CLI installed."
+  printf '%s\\n' "Primary command: $PATH_BIN/${PRODUCT_METADATA.cli.primaryCommand}"
+  printf '%s\\n' "Short alias: $PATH_BIN/${PRODUCT_METADATA.cli.shortCommand}"
+  if is_path_dir_on_path; then
+    DETAIL="PATH already includes $PATH_BIN"
+    printf '%s\\n' "$DETAIL"
+  else
+    PROFILE_PATH="$(resolve_shell_profile)"
+    upsert_path_profile "$PROFILE_PATH"
+    PATH_CHANGED=true
+    DETAIL="PATH updated in $PROFILE_PATH"
+    printf '%s\\n' "$DETAIL"
+    printf '%s\\n' "Next step: open a new terminal window."
+  fi
+fi
+
+if [[ -n "$RESULT_PATH" ]]; then
+  python3 - "$RESULT_PATH" "$INSTALL_SCOPE" "$INSTALL_ROOT" "$PATH_BIN" "$PATH_CHANGED" "$DETAIL" "$PATH_BIN/${PRODUCT_METADATA.cli.primaryCommand}" "$PATH_BIN/${PRODUCT_METADATA.cli.shortCommand}" <<'PY'
+from pathlib import Path
+import json
+import sys
+
+result_path = Path(sys.argv[1])
+payload = {
+    "installScope": sys.argv[2],
+    "installRoot": sys.argv[3],
+    "installBinDir": sys.argv[4],
+    "pathChanged": sys.argv[5].lower() == "true",
+    "detail": sys.argv[6],
+    "primaryCommandPath": sys.argv[7],
+    "shortCommandPath": sys.argv[8],
+}
+result_path.parent.mkdir(parents=True, exist_ok=True)
+result_path.write_text(json.dumps(payload, indent=2) + "\\n", encoding="utf-8")
+PY
 fi
 `;
 }
 
 function renderCliBundleInstallerPs1(version) {
-  return `param()
+  return `param(
+  [string]$InstallScope = $(if ($env:KIWI_CONTROL_INSTALL_SCOPE) { $env:KIWI_CONTROL_INSTALL_SCOPE } else { "user" }),
+  [string]$InstallRoot = $(if ($env:KIWI_CONTROL_INSTALL_ROOT) { $env:KIWI_CONTROL_INSTALL_ROOT } else { "" }),
+  [string]$PathBin = $(if ($env:KIWI_CONTROL_PATH_BIN) { $env:KIWI_CONTROL_PATH_BIN } else { "" }),
+  [string]$ResultPath = $(if ($env:KIWI_CONTROL_RESULT_PATH) { $env:KIWI_CONTROL_RESULT_PATH } else { "" }),
+  [string]$PreferredNodePath = $(if ($env:KIWI_CONTROL_NODE_ABSOLUTE) { $env:KIWI_CONTROL_NODE_ABSOLUTE } elseif ($env:KIWI_CONTROL_NODE) { $env:KIWI_CONTROL_NODE } elseif ($env:SHREY_JUNIOR_NODE) { $env:SHREY_JUNIOR_NODE } else { "" })
+)
 
 $BundleRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$GlobalHome = if ($env:KIWI_CONTROL_HOME) { $env:KIWI_CONTROL_HOME } else { Join-Path $HOME ".kiwi-control" }
-$PathBin = if ($env:KIWI_CONTROL_PATH_BIN) { $env:KIWI_CONTROL_PATH_BIN } else { Join-Path $GlobalHome "bin" }
-$InstallRoot = Join-Path $GlobalHome "releases\\${PRODUCT_METADATA.release.artifactPrefix}-${version}"
-$PreferredNode = if ($env:KIWI_CONTROL_NODE_ABSOLUTE) { $env:KIWI_CONTROL_NODE_ABSOLUTE } elseif ($env:KIWI_CONTROL_NODE) { $env:KIWI_CONTROL_NODE } elseif ($env:SHREY_JUNIOR_NODE) { $env:SHREY_JUNIOR_NODE } else { $null }
+$GlobalHome = if ($InstallScope -eq "machine") {
+  if ([string]::IsNullOrWhiteSpace($InstallRoot)) {
+    Join-Path $env:ProgramData "Kiwi Control"
+  } else {
+    $InstallRoot
+  }
+} else {
+  if ($env:KIWI_CONTROL_HOME) { $env:KIWI_CONTROL_HOME } else { Join-Path $HOME ".kiwi-control" }
+}
+$PathBin = if ([string]::IsNullOrWhiteSpace($PathBin)) { Join-Path $GlobalHome "bin" } else { $PathBin }
+$InstallRoot = if ($InstallScope -eq "machine") {
+  Join-Path $GlobalHome "cli\\${PRODUCT_METADATA.release.artifactPrefix}-${version}"
+} else {
+  Join-Path $GlobalHome "releases\\${PRODUCT_METADATA.release.artifactPrefix}-${version}"
+}
+$PreferredNode = if (-not [string]::IsNullOrWhiteSpace($PreferredNodePath)) { $PreferredNodePath } else { $null }
 
 if (-not $PreferredNode -and -not (Get-Command node -ErrorAction SilentlyContinue)) {
   Write-Error "${PRODUCT_METADATA.displayName} CLI install error: Node.js 22+ is required for the beta CLI bundle."
   exit 1
 }
 
-New-Item -ItemType Directory -Force -Path (Join-Path $GlobalHome "releases") | Out-Null
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $InstallRoot) | Out-Null
 New-Item -ItemType Directory -Force -Path $PathBin | Out-Null
 
 if (Test-Path $InstallRoot) {
@@ -402,21 +472,52 @@ node "$EscapedInstallRoot\\lib\\cli.js" %*
 Set-Content -Path (Join-Path $PathBin "${PRODUCT_METADATA.cli.primaryCommand}.cmd") -Value $Wrapper -NoNewline
 Set-Content -Path (Join-Path $PathBin "${PRODUCT_METADATA.cli.shortCommand}.cmd") -Value $Wrapper -NoNewline
 
-$CurrentUserPath = [Environment]::GetEnvironmentVariable("Path", "User")
-$PathEntries = if ($CurrentUserPath) { $CurrentUserPath -split ';' | Where-Object { $_ } } else { @() }
-if ($PathEntries -notcontains $PathBin) {
-  $NewUserPath = if ($CurrentUserPath) { "$PathBin;$CurrentUserPath" } else { $PathBin }
-  [Environment]::SetEnvironmentVariable("Path", $NewUserPath, "User")
-  $PathUpdateMessage = "PATH updated for future terminals."
+$PathChanged = $false
+if ($InstallScope -eq "machine") {
+  $MachinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+  $PathEntries = if ($MachinePath) { $MachinePath -split ';' | Where-Object { $_ } } else { @() }
+  if ($PathEntries -notcontains $PathBin) {
+    $NewMachinePath = if ($MachinePath) { "$PathBin;$MachinePath" } else { $PathBin }
+    [Environment]::SetEnvironmentVariable("Path", $NewMachinePath, "Machine")
+    $PathChanged = $true
+    $PathUpdateMessage = "Machine PATH updated for future terminals."
+  } else {
+    $PathUpdateMessage = "Machine PATH already includes $PathBin"
+  }
+  $Detail = "${PRODUCT_METADATA.displayName} terminal commands installed system-wide."
 } else {
-  $PathUpdateMessage = "PATH already includes $PathBin"
+  $CurrentUserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+  $PathEntries = if ($CurrentUserPath) { $CurrentUserPath -split ';' | Where-Object { $_ } } else { @() }
+  if ($PathEntries -notcontains $PathBin) {
+    $NewUserPath = if ($CurrentUserPath) { "$PathBin;$CurrentUserPath" } else { $PathBin }
+    [Environment]::SetEnvironmentVariable("Path", $NewUserPath, "User")
+    $PathChanged = $true
+    $PathUpdateMessage = "PATH updated for future terminals."
+  } else {
+    $PathUpdateMessage = "PATH already includes $PathBin"
+  }
+  $Detail = "${PRODUCT_METADATA.displayName} CLI installed."
 }
 
-Write-Host "${PRODUCT_METADATA.displayName} CLI installed."
+Write-Host $Detail
 Write-Host "Primary command: $PathBin\\${PRODUCT_METADATA.cli.primaryCommand}.cmd"
 Write-Host "Short alias: $PathBin\\${PRODUCT_METADATA.cli.shortCommand}.cmd"
 Write-Host $PathUpdateMessage
 Write-Host "Next step: open a new terminal window."
+
+if (-not [string]::IsNullOrWhiteSpace($ResultPath)) {
+  $payload = @{
+    installScope = $InstallScope
+    installRoot = $InstallRoot
+    installBinDir = $PathBin
+    pathChanged = $PathChanged
+    detail = $Detail
+    primaryCommandPath = Join-Path $PathBin "${PRODUCT_METADATA.cli.primaryCommand}.cmd"
+    shortCommandPath = Join-Path $PathBin "${PRODUCT_METADATA.cli.shortCommand}.cmd"
+  } | ConvertTo-Json -Depth 5
+  New-Item -ItemType Directory -Force -Path (Split-Path -Parent $ResultPath) | Out-Null
+  Set-Content -Path $ResultPath -Value $payload
+}
 `;
 }
 

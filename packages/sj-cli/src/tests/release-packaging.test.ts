@@ -117,3 +117,35 @@ test("release trust verifier reports Windows host limitation on non-Windows mach
   }
   assert.equal(payload.inputs.ready, false);
 });
+
+test("bundled CLI installer supports machine-scope macOS verification", () => {
+  const root = repoRoot();
+  const result = spawnSync(process.execPath, [
+    path.join(root, "scripts", "verify-bundled-cli-install.mjs"),
+    "--platform",
+    "macos",
+    "--scope",
+    "machine"
+  ], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /verification passed for macOS/i);
+});
+
+test("bundled CLI installer exposes machine-scope Windows scaffolding", () => {
+  const root = repoRoot();
+  const result = spawnSync(process.execPath, [
+    path.join(root, "scripts", "verify-bundled-cli-install.mjs"),
+    "--platform",
+    "windows",
+    "--scope",
+    "machine"
+  ], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /verification passed for Windows/i);
+});

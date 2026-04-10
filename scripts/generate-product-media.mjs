@@ -121,14 +121,28 @@ function buildInstalledRuntimeInfo({ cliInstalled }) {
       bundledInstallerAvailable: true,
       bundledNodePath: "/Applications/Kiwi Control.app/Contents/Resources/desktop/node/node",
       installBinDir: process.platform === "win32"
-        ? "%USERPROFILE%\\.kiwi-control\\bin"
-        : path.join(os.homedir(), ".local", "bin"),
+        ? "%ProgramData%\\Kiwi Control\\bin"
+        : "/usr/local/bin",
+      installRoot: process.platform === "win32"
+        ? "%ProgramData%\\Kiwi Control"
+        : "/Library/Application Support/Kiwi Control",
+      installScope: "machine",
       installed: cliInstalled,
       installedCommandPath: cliInstalled
         ? (process.platform === "win32"
-            ? "%USERPROFILE%\\.kiwi-control\\bin\\kc.cmd"
-            : path.join(os.homedir(), ".local", "bin", "kc"))
-        : null
+            ? "%ProgramData%\\Kiwi Control\\bin\\kc.cmd"
+            : "/usr/local/bin/kc")
+        : null,
+      verificationStatus: cliInstalled ? "passed" : "not-run",
+      verificationDetail: cliInstalled
+        ? "Terminal commands are enabled system-wide."
+        : "Terminal commands are optional and are not enabled yet.",
+      verificationCommandPath: cliInstalled
+        ? (process.platform === "win32"
+            ? "%ProgramData%\\Kiwi Control\\bin\\kc.cmd"
+            : "/usr/local/bin/kc")
+        : null,
+      requiresNewTerminal: false
     }
   };
 }

@@ -19,7 +19,7 @@ For most users on macOS and Windows:
 3. Install Kiwi Control like a normal desktop app.
 4. Launch Kiwi Control once.
 5. Use onboarding to choose a repo and initialize it if needed.
-6. Install `kc` later only if you want the power-user terminal path too.
+6. Enable terminal commands later only if you want the power-user terminal path too.
 
 ### Desktop-only path
 
@@ -41,8 +41,20 @@ Install `kc` only if you want the same repo flow from Terminal too:
 
 1. install the desktop app
 2. open the app once
-3. use onboarding to install `kc` only if you want the terminal path
+3. use onboarding to enable terminal commands only if you want the terminal path
 4. keep using the same repo from desktop or CLI interchangeably
+
+### Optional terminal commands
+
+Kiwi Control keeps the desktop app usable without any terminal setup.
+
+If you explicitly choose `Enable terminal commands (kc)` from the app:
+
+- macOS: Kiwi installs shared command wrappers for `/usr/local/bin` after explicit approval
+- Windows: Kiwi installs shared command wrappers and updates machine PATH after explicit approval
+- Kiwi then verifies whether `kc` is callable from a fresh shell/process and reports the exact result
+
+If verification succeeds but your current terminal is still stale, Kiwi will tell you to open a new terminal window.
 
 ## Standalone CLI users
 

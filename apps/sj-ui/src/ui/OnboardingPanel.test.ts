@@ -14,8 +14,14 @@ test("onboarding shows choose-repo first and keeps install-cli for after a repo 
         bundledInstallerAvailable: true,
         bundledNodePath: "/Applications/Kiwi Control.app/Contents/Resources/desktop/node/node",
         installBinDir: "/Users/test/.local/bin",
+        installRoot: "/Library/Application Support/Kiwi Control",
+        installScope: "machine",
         installed: false,
-        installedCommandPath: null
+        installedCommandPath: null,
+        verificationStatus: "not-run",
+        verificationDetail: "Terminal commands are optional and are not enabled yet.",
+        verificationCommandPath: null,
+        requiresNewTerminal: false
       }
     },
     targetRoot: "",
@@ -25,7 +31,7 @@ test("onboarding shows choose-repo first and keeps install-cli for after a repo 
   assert.ok(model);
   assert.equal(model?.actions.some((action) => action.id === "choose-repo"), true);
   assert.equal(model?.actions.some((action) => action.id === "install-cli"), false);
-  assert.match(model?.intro ?? "", /kc is optional/i);
+  assert.match(model?.intro ?? "", /Terminal commands are optional/i);
   assert.equal(model?.actions[0]?.id, "choose-repo");
 });
 
@@ -39,8 +45,14 @@ test("onboarding shows init action for an uninitialized repo", () => {
         bundledInstallerAvailable: true,
         bundledNodePath: "/Applications/Kiwi Control.app/Contents/Resources/desktop/node/node",
         installBinDir: "/Users/test/.local/bin",
+        installRoot: "/Library/Application Support/Kiwi Control",
+        installScope: "machine",
         installed: true,
-        installedCommandPath: "/Users/test/.local/bin/kc"
+        installedCommandPath: "/Users/test/.local/bin/kc",
+        verificationStatus: "passed",
+        verificationDetail: "Terminal commands are enabled system-wide.",
+        verificationCommandPath: "/Users/test/.local/bin/kc",
+        requiresNewTerminal: false
       }
     },
     targetRoot: "/tmp/repo",
@@ -62,8 +74,14 @@ test("onboarding shows one guided setup action when machine setup needs attentio
         bundledInstallerAvailable: true,
         bundledNodePath: "/Applications/Kiwi Control.app/Contents/Resources/desktop/node/node",
         installBinDir: "/Users/test/.local/bin",
+        installRoot: "/Library/Application Support/Kiwi Control",
+        installScope: "machine",
         installed: true,
-        installedCommandPath: "/Users/test/.local/bin/kc"
+        installedCommandPath: "/Users/test/.local/bin/kc",
+        verificationStatus: "passed",
+        verificationDetail: "Terminal commands are enabled system-wide.",
+        verificationCommandPath: "/Users/test/.local/bin/kc",
+        requiresNewTerminal: false
       }
     },
     targetRoot: "/tmp/repo",
@@ -90,8 +108,14 @@ test("onboarding stays hidden when CLI, repo, and machine setup are ready", () =
         bundledInstallerAvailable: true,
         bundledNodePath: "/Applications/Kiwi Control.app/Contents/Resources/desktop/node/node",
         installBinDir: "/Users/test/.local/bin",
+        installRoot: "/Library/Application Support/Kiwi Control",
+        installScope: "machine",
         installed: true,
-        installedCommandPath: "/Users/test/.local/bin/kc"
+        installedCommandPath: "/Users/test/.local/bin/kc",
+        verificationStatus: "passed",
+        verificationDetail: "Terminal commands are enabled system-wide.",
+        verificationCommandPath: "/Users/test/.local/bin/kc",
+        requiresNewTerminal: false
       }
     },
     targetRoot: "/tmp/repo",
@@ -116,8 +140,14 @@ test("onboarding stays hidden when CLI is installed and the repo is ready", () =
         bundledInstallerAvailable: true,
         bundledNodePath: "/Applications/Kiwi Control.app/Contents/Resources/desktop/node/node",
         installBinDir: "/Users/test/.local/bin",
+        installRoot: "/Library/Application Support/Kiwi Control",
+        installScope: "machine",
         installed: true,
-        installedCommandPath: "/Users/test/.local/bin/kc"
+        installedCommandPath: "/Users/test/.local/bin/kc",
+        verificationStatus: "passed",
+        verificationDetail: "Terminal commands are enabled system-wide.",
+        verificationCommandPath: "/Users/test/.local/bin/kc",
+        requiresNewTerminal: false
       }
     },
     targetRoot: "/tmp/repo",

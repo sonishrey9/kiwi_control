@@ -2,6 +2,12 @@
 
 Kiwi Control is local-first and works without a cloud backend, but trusted public beta distribution still depends on release-time signing and verification work.
 
+The optional terminal-command enablement flow is separate from desktop trust:
+
+- desktop install remains the primary path
+- terminal commands are enabled only after explicit user approval
+- machine-wide CLI enablement must not weaken macOS notarization rules or Windows installer signing rules
+
 Public commands remain:
 
 - `kiwi-control`

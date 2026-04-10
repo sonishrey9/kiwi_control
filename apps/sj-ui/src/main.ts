@@ -797,8 +797,14 @@ type DesktopRuntimeInfo = {
     bundledInstallerAvailable: boolean;
     bundledNodePath: string | null;
     installBinDir: string;
+    installRoot: string;
+    installScope: "machine" | "user" | "unknown";
     installed: boolean;
     installedCommandPath: string | null;
+    verificationStatus: "passed" | "failed" | "not-run" | "blocked";
+    verificationDetail: string;
+    verificationCommandPath: string | null;
+    requiresNewTerminal: boolean;
   };
   runtimeIdentity?: RepoControlState["runtimeIdentity"];
   renderProbeView?: string | null;
@@ -807,7 +813,14 @@ type DesktopRuntimeInfo = {
 type CliInstallResult = {
   detail: string;
   installBinDir: string;
+  installRoot: string;
+  installScope: "machine" | "user" | "unknown";
   installedCommandPath: string | null;
+  verificationStatus: "passed" | "failed" | "not-run" | "blocked";
+  verificationDetail: string;
+  verificationCommandPath: string | null;
+  requiresNewTerminal: boolean;
+  pathChanged: boolean;
   usedBundledNode: boolean;
 };
 
@@ -1651,6 +1664,13 @@ async function installBundledCli(): Promise<void> {
     return;
   }
 
+  const confirmed = window.confirm(
+    "Enable terminal commands (kc) for this machine?\n\nThis optional step keeps the desktop app ready to use either way. Kiwi may ask for administrator approval to enable kc system-wide."
+  );
+  if (!confirmed) {
+    return;
+  }
+
   commandState.loading = true;
   commandState.activeCommand = null;
   commandState.lastError = null;
@@ -1661,11 +1681,11 @@ async function installBundledCli(): Promise<void> {
     const result = await invoke<CliInstallResult>("install_bundled_cli");
     await loadDesktopRuntimeInfo();
     commandState.lastResult = {
-      ok: true,
-      exitCode: 0,
+      ok: result.verificationStatus === "passed",
+      exitCode: result.verificationStatus === "passed" ? 0 : 1,
       stdout: result.detail,
-      stderr: "",
-      commandLabel: "install kc"
+      stderr: result.verificationStatus === "passed" ? "" : result.verificationDetail,
+      commandLabel: "enable terminal commands"
     };
   } catch (error) {
     commandState.lastError = error instanceof Error ? error.message : String(error);

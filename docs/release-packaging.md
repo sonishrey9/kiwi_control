@@ -99,6 +99,8 @@ The intended public beta path is:
 3. keep the website aligned with the latest release
 4. keep release notes explicit about signing, notarization, and trust status
 
+Optional terminal commands are not part of the default desktop installer lane in this pass. They are enabled explicitly from first launch or later in-app, after the desktop app is already usable.
+
 ## Signing inputs
 
 Official Tauri signing and notarization inputs used by this repo:
@@ -148,6 +150,7 @@ Official Tauri signing and notarization inputs used by this repo:
 - A real signed and notarized macOS release still depends on Apple signing material being present in the environment.
 - Windows NSIS and MSI packaging is wired in repo and CI, but real signed Windows installers must be built on Windows with the signing certificate available there.
 - This macOS environment should not claim signed Windows installer output.
+- Machine-wide terminal-command enablement on Windows must also be proven on a Windows runner because it depends on elevated machine PATH handling there.
 - Windows SmartScreen reputation is not guaranteed by a successful signature check; OV/EV certificate reputation remains a distribution-channel reality, not something Kiwi can fake in repo scripts.
 
 ## Route 53 and website hosting
