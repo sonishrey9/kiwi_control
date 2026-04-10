@@ -1,0 +1,31 @@
+{
+  "bundle": {
+    "targets": [
+      "app",
+      "dmg",
+      "nsis",
+      "msi",
+      "appimage"
+    ],
+    "macOS": {
+      "hardenedRuntime": true,
+      "entitlements": "entitlements/release.plist"
+    },
+    "windows": {
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "http://timestamp.acs.microsoft.com",
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false,
+        "compression": "lzma"
+      },
+      "wix": {
+        "language": "en-US"
+      }
+    }
+  }
+}

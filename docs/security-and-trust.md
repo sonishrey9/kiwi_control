@@ -52,7 +52,7 @@ Repo-local files, prompts, instructions, and continuity artifacts remain in the 
 Before calling a release fully trusted for public distribution, complete and verify:
 
 1. macOS signing and notarization
-2. Windows signing
+2. Windows signing for both NSIS and MSI installers
 3. updater signing, if updater artifacts are enabled
 4. published release checksums
 5. real Homebrew and winget metadata with live URLs and SHA256 values

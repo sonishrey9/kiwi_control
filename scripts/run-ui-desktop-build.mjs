@@ -15,6 +15,7 @@ const tauriRoot = path.join(uiRoot, "src-tauri");
 const repoTargetDir = path.join(tauriRoot, "target");
 const repoBundleDir = path.join(repoTargetDir, "release", "bundle");
 const installerResourcesDir = path.join(tauriRoot, "resources", "desktop");
+const defaultReleaseConfigPath = path.join(tauriRoot, "tauri.release.conf.json");
 
 await main();
 
@@ -55,7 +56,8 @@ async function main() {
   await fs.rm(cargoTargetDir, { recursive: true, force: true });
 
   const npmExecutable = process.platform === "win32" ? "npm.cmd" : "npm";
-  const tauriArgs = withDefaultDesktopBundleArgs(process.argv.slice(2));
+  const tauriArgs = await withDefaultDesktopBundleArgs(process.argv.slice(2));
+  const requestedBundles = extractRequestedBundles(tauriArgs);
   let cleanupInterval = null;
   const child = spawn(npmExecutable, ["run", "tauri:build", "-w", "@shrey-junior/sj-ui", ...tauriArgs], {
     cwd: repoRoot,
@@ -86,6 +88,27 @@ async function main() {
 
     if (code === 0) {
       await syncBundleArtifacts(cargoTargetDir);
+      const verifyArtifacts = spawnSync(
+        process.execPath,
+        [
+          path.join(repoRoot, "scripts", "verify-release-artifacts.mjs"),
+          "--platform",
+          normalizePlatform(process.platform),
+          ...(requestedBundles ? ["--bundles", requestedBundles] : [])
+        ],
+        {
+          cwd: repoRoot,
+          stdio: "inherit",
+          env: process.env
+        }
+      );
+      if (verifyArtifacts.error) {
+        throw verifyArtifacts.error;
+      }
+      if ((verifyArtifacts.status ?? 1) !== 0) {
+        process.exit(verifyArtifacts.status ?? 1);
+        return;
+      }
       const bundleRoot = path.join(repoTargetDir, "release", "bundle", "macos", "Kiwi Control.app");
       if (existsSync(bundleRoot)) {
         console.log(`Built Kiwi Control desktop bundle at ${bundleRoot}`);
@@ -110,25 +133,90 @@ async function resolveCargoTargetDir() {
   return repoTargetDir;
 }
 
-function withDefaultDesktopBundleArgs(args) {
-  if (args.some((arg) => arg === "--bundles" || arg.startsWith("--bundles="))) {
-    return args;
+async function withDefaultDesktopBundleArgs(args) {
+  const nextArgs = [...args];
+  const hasForwardedArgs = nextArgs.includes("--");
+  const effectiveForwardedArgs = hasForwardedArgs ? nextArgs.slice(nextArgs.indexOf("--") + 1) : nextArgs;
+
+  if (!effectiveForwardedArgs.some((arg) => arg === "--config")) {
+    const configPath = await resolveReleaseConfigPath();
+    effectiveForwardedArgs.push("--config", configPath);
   }
 
-  return [...args, "--", "--bundles", defaultBundleForPlatform()];
+  if (!effectiveForwardedArgs.some((arg) => arg === "--bundles" || arg.startsWith("--bundles="))) {
+    effectiveForwardedArgs.push("--bundles", defaultBundleForPlatform());
+  }
+
+  return ["--", ...effectiveForwardedArgs];
 }
 
 function defaultBundleForPlatform() {
   switch (process.platform) {
     case "darwin":
-      return "app";
+      return "app,dmg";
     case "win32":
-      return "msi";
+      return "nsis,msi";
     case "linux":
       return "appimage";
     default:
       return "app";
   }
+}
+
+function normalizePlatform(value) {
+  switch (value) {
+    case "darwin":
+      return "macos";
+    case "win32":
+      return "windows";
+    case "linux":
+      return "linux";
+    default:
+      return value;
+  }
+}
+
+function extractRequestedBundles(args) {
+  const bundleIndex = args.findIndex((arg) => arg === "--bundles");
+  if (bundleIndex >= 0) {
+    return args[bundleIndex + 1] ?? null;
+  }
+  const inline = args.find((arg) => arg.startsWith("--bundles="));
+  return inline ? inline.slice("--bundles=".length) : null;
+}
+
+async function resolveReleaseConfigPath() {
+  const extraConfigPath = process.env.KIWI_CONTROL_TAURI_EXTRA_CONFIG?.trim();
+  if (!extraConfigPath) {
+    return defaultReleaseConfigPath;
+  }
+
+  const mergedPath = path.join(await resolveCargoTargetDir(), "release-config", "tauri.release.merged.json");
+  await fs.mkdir(path.dirname(mergedPath), { recursive: true });
+  const merged = deepMerge(
+    JSON.parse(await fs.readFile(defaultReleaseConfigPath, "utf8")),
+    JSON.parse(await fs.readFile(extraConfigPath, "utf8"))
+  );
+  await fs.writeFile(mergedPath, `${JSON.stringify(merged, null, 2)}\n`, "utf8");
+  return mergedPath;
+}
+
+function deepMerge(left, right) {
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return right;
+  }
+  if (isRecord(left) && isRecord(right)) {
+    const merged = { ...left };
+    for (const [key, value] of Object.entries(right)) {
+      merged[key] = key in merged ? deepMerge(merged[key], value) : value;
+    }
+    return merged;
+  }
+  return right;
+}
+
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 async function syncBundleArtifacts(cargoTargetDir) {

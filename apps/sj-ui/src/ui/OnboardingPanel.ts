@@ -63,11 +63,11 @@ export function buildOnboardingPanelModel(params: {
     });
   }
 
-  if (runtimeInfo?.runtimeMode === "installed-user" && runtimeInfo.cli.bundledInstallerAvailable && !runtimeInfo.cli.installed) {
+  if (targetRoot && repoMode === "repo-not-initialized") {
     actions.push({
-      id: "install-cli",
-      label: "Install kc (optional)",
-      detail: `Add kc to ${runtimeInfo.cli.installBinDir} if you want the power-user terminal path too.`
+      id: "init-repo",
+      label: "Initialize this repo",
+      detail: "Create the repo-local Kiwi files for this folder, then start working from the app."
     });
   }
 
@@ -80,11 +80,11 @@ export function buildOnboardingPanelModel(params: {
     });
   }
 
-  if (targetRoot && repoMode === "repo-not-initialized") {
+  if (targetRoot && runtimeInfo?.runtimeMode === "installed-user" && runtimeInfo.cli.bundledInstallerAvailable && !runtimeInfo.cli.installed) {
     actions.push({
-      id: "init-repo",
-      label: "Initialize this repo",
-      detail: "Create the repo-local Kiwi files for this folder, then start working from the app."
+      id: "install-cli",
+      label: "Install kc (optional)",
+      detail: `Add kc to ${runtimeInfo.cli.installBinDir} if you want the power-user terminal path too.`
     });
   }
 

@@ -1,18 +1,9 @@
 PackageIdentifier: KiwiControl.KiwiControl
 PackageVersion: __VERSION__
-InstallerType: zip
-NestedInstallerType: portable
-Commands:
-  - kiwi-control
-  - kc
+InstallerType: exe
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/OWNER/kiwi-control/releases/download/v__VERSION__/kiwi-control-cli-__VERSION__-windows-x64.zip
+    InstallerUrl: https://github.com/OWNER/kiwi-control/releases/download/v__VERSION__/kiwi-control-__VERSION__-windows-x64-setup.exe
     InstallerSha256: __SHA256__
-    NestedInstallerFiles:
-      - RelativeFilePath: bin/kiwi-control.cmd
-        PortableCommandAlias: kiwi-control
-      - RelativeFilePath: bin/kc.cmd
-        PortableCommandAlias: kc
 ManifestType: installer
 ManifestVersion: 1.6.0
