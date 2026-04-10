@@ -32,6 +32,7 @@ const BRIDGE_UNAVAILABLE_NEXT_STEP: &str = "Confirm kiwi-control works in Termin
 const MACHINE_ADVISORY_FAST_ENV: &str = "KIWI_MACHINE_ADVISORY_FAST";
 const RENDER_PROBE_FILE_ENV: &str = "KIWI_CONTROL_RENDER_PROBE_FILE";
 const RENDER_PROBE_VIEW_ENV: &str = "KIWI_CONTROL_RENDER_PROBE_VIEW";
+const RENDER_ACTION_FILE_ENV: &str = "KIWI_CONTROL_RENDER_ACTION_FILE";
 const DESKTOP_INSTALL_RECEIPT_FILE: &str = "desktop-install.json";
 const DESKTOP_CLI_RESOURCE_DIR: &str = "desktop/cli-bundle";
 const DESKTOP_NODE_RESOURCE_DIR: &str = "desktop/node";
@@ -132,6 +133,13 @@ struct DesktopInstallReceipt {
     build_source: String,
     runtime_mode: String,
     updated_at: String,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RenderActionPayload {
+    action_type: String,
+    pack_id: Option<String>,
 }
 
 #[derive(Default)]
@@ -275,6 +283,25 @@ fn write_render_probe(payload: serde_json::Value) -> Result<(), String> {
     fs::rename(&temp_path, &probe_path)
         .map_err(|error| format!("failed to finalize render probe file: {error}"))?;
     Ok(())
+}
+
+#[tauri::command]
+fn consume_render_action() -> Result<Option<RenderActionPayload>, String> {
+    let Some(action_path) = resolve_render_action_path() else {
+        return Ok(None);
+    };
+    if !action_path.exists() {
+        return Ok(None);
+    }
+
+    let payload = fs::read_to_string(&action_path)
+        .map_err(|error| format!("failed to read render action file: {error}"))?;
+    fs::remove_file(&action_path)
+        .map_err(|error| format!("failed to consume render action file: {error}"))?;
+
+    serde_json::from_str::<RenderActionPayload>(&payload)
+        .map(Some)
+        .map_err(|error| format!("failed to decode render action payload: {error}"))
 }
 
 #[tauri::command]
@@ -622,6 +649,7 @@ fn main() {
             load_machine_advisory_section,
             get_desktop_runtime_info,
             write_render_probe,
+            consume_render_action,
             run_cli_command,
             open_terminal_command,
             install_bundled_cli,
@@ -1469,6 +1497,13 @@ fn resolve_render_probe_path() -> Option<PathBuf> {
 fn resolve_render_probe_view() -> Option<String> {
     match std::env::var(RENDER_PROBE_VIEW_ENV) {
         Ok(view) if !view.trim().is_empty() => Some(view),
+        _ => None,
+    }
+}
+
+fn resolve_render_action_path() -> Option<PathBuf> {
+    match std::env::var(RENDER_ACTION_FILE_ENV) {
+        Ok(path) if !path.trim().is_empty() => Some(PathBuf::from(path)),
         _ => None,
     }
 }

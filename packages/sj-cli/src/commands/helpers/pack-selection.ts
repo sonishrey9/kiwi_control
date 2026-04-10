@@ -15,7 +15,12 @@ export function packArtifactDataFromControlState(
     unavailablePackReason: controlState.mcpPacks.unavailablePackReason,
     effectiveCapabilityIds: controlState.mcpPacks.effectiveCapabilityIds,
     preferredCapabilityIds: controlState.mcpPacks.preferredCapabilityIds,
-    unavailableCapabilityIds: selectedEntry?.unavailableCapabilityIds ?? []
+    unavailableCapabilityIds: selectedEntry?.unavailableCapabilityIds ?? [],
+    availablePacks: controlState.mcpPacks.available.map((entry) => ({
+      id: entry.id,
+      executable: entry.executable,
+      unavailablePackReason: entry.unavailablePackReason
+    }))
   };
 }
 

@@ -1,18 +1,18 @@
 {
   "artifactType": "kiwi-control/ready-substrate",
   "version": 1,
-  "generatedAt": "2026-04-09T21:40:53.135Z",
+  "generatedAt": "2026-04-09T22:31:20.389Z",
   "targetRoot": "/Volumes/shrey ssd/shrey-junior",
   "status": "partial",
   "ready": false,
   "summary": "Repo substrate is partial; missing graphAuthority.",
   "runtimeAuthority": {
     "valid": true,
-    "revision": 29,
+    "revision": 35,
     "lifecycle": "blocked",
     "sourceCommand": "kiwi-control validate \"update README docs\"",
     "nextCommand": "kiwi-control prepare \"update README docs\"",
-    "lastUpdatedAt": "2026-04-09T21:40:52Z",
+    "lastUpdatedAt": "2026-04-09T22:31:20Z",
     "sqlitePath": ".agent/state/runtime.sqlite3",
     "compatibilityStatePath": ".agent/state/execution-state.json",
     "compatibilityEventsPath": ".agent/state/execution-events.ndjson",
@@ -64,6 +64,38 @@
       "brave-search",
       "context7",
       "sequential-thinking"
+    ],
+    "availablePacks": [
+      {
+        "id": "core-pack",
+        "executable": true,
+        "unavailablePackReason": null
+      },
+      {
+        "id": "research-pack",
+        "executable": true,
+        "unavailablePackReason": null
+      },
+      {
+        "id": "web-qa-pack",
+        "executable": true,
+        "unavailablePackReason": null
+      },
+      {
+        "id": "aws-pack",
+        "executable": false,
+        "unavailablePackReason": "AWS Pack is blocked because this repo does not register any AWS-specific MCP or tool integrations in the current registry/inventory."
+      },
+      {
+        "id": "ios-pack",
+        "executable": false,
+        "unavailablePackReason": "iOS Pack is blocked because this repo does not register any Xcode or simulator integrations in the current registry/inventory."
+      },
+      {
+        "id": "android-pack",
+        "executable": false,
+        "unavailablePackReason": "Android Pack is blocked because this repo does not register any Android-specific MCP or emulator integrations in the current registry/inventory."
+      }
     ]
   },
   "artifacts": {

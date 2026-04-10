@@ -64,6 +64,11 @@ export interface SelectedPackArtifact {
   effectiveCapabilityIds: string[];
   preferredCapabilityIds: string[];
   unavailableCapabilityIds: string[];
+  availablePacks: Array<{
+    id: string;
+    executable: boolean;
+    unavailablePackReason: string | null;
+  }>;
 }
 
 export interface PackSelectionArtifactData {
@@ -76,6 +81,11 @@ export interface PackSelectionArtifactData {
   effectiveCapabilityIds: string[];
   preferredCapabilityIds: string[];
   unavailableCapabilityIds: string[];
+  availablePacks: Array<{
+    id: string;
+    executable: boolean;
+    unavailablePackReason: string | null;
+  }>;
 }
 
 const PACK_POLICIES: Record<McpPackId, McpPackPolicy> = {
@@ -235,7 +245,8 @@ export function packSelectionArtifactFragment(selection: PackSelectionArtifactDa
     unavailablePackReason: selection.unavailablePackReason,
     effectiveCapabilityIds: selection.effectiveCapabilityIds,
     preferredCapabilityIds: selection.preferredCapabilityIds,
-    unavailableCapabilityIds: selection.unavailableCapabilityIds
+    unavailableCapabilityIds: selection.unavailableCapabilityIds,
+    availablePacks: selection.availablePacks
   };
 }
 
@@ -251,11 +262,13 @@ export async function persistSelectedPackArtifact(
     targetRoot,
     ...packSelectionArtifactFragment(selection)
   };
-  const nextContent = `${JSON.stringify(payload, null, 2)}\n`;
-  const currentContent = (await pathExists(outputPath)) ? await readText(outputPath) : null;
-  if (currentContent === nextContent) {
-    return outputPath;
+  if (await pathExists(outputPath)) {
+    const current = await readJson<SelectedPackArtifact>(outputPath).catch(() => null);
+    if (current && equalPackSelectionSemanticState(current, payload)) {
+      return outputPath;
+    }
   }
+  const nextContent = `${JSON.stringify(payload, null, 2)}\n`;
   await ensureDir(path.dirname(outputPath));
   await writeText(outputPath, nextContent);
   return outputPath;
@@ -410,6 +423,41 @@ function buildPackNote(
 
 function uniqueStrings(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))].sort((left, right) => left.localeCompare(right));
+}
+
+function equalPackSelectionSemanticState(
+  left: SelectedPackArtifact,
+  right: SelectedPackArtifact
+): boolean {
+  return JSON.stringify({
+    artifactType: left.artifactType,
+    version: left.version,
+    targetRoot: left.targetRoot,
+    selectedPack: left.selectedPack,
+    selectedPackSource: left.selectedPackSource,
+    explicitSelection: left.explicitSelection,
+    heuristicPackId: left.heuristicPackId,
+    executable: left.executable,
+    unavailablePackReason: left.unavailablePackReason,
+    effectiveCapabilityIds: left.effectiveCapabilityIds,
+    preferredCapabilityIds: left.preferredCapabilityIds,
+    unavailableCapabilityIds: left.unavailableCapabilityIds,
+    availablePacks: left.availablePacks
+  }) === JSON.stringify({
+    artifactType: right.artifactType,
+    version: right.version,
+    targetRoot: right.targetRoot,
+    selectedPack: right.selectedPack,
+    selectedPackSource: right.selectedPackSource,
+    explicitSelection: right.explicitSelection,
+    heuristicPackId: right.heuristicPackId,
+    executable: right.executable,
+    unavailablePackReason: right.unavailablePackReason,
+    effectiveCapabilityIds: right.effectiveCapabilityIds,
+    preferredCapabilityIds: right.preferredCapabilityIds,
+    unavailableCapabilityIds: right.unavailableCapabilityIds,
+    availablePacks: right.availablePacks
+  });
 }
 
 function trustWeight(trustLevel: McpCapability["trustLevel"]): number {

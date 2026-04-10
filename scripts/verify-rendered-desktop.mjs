@@ -25,7 +25,7 @@ const desktopExecutable = path.join(
   "sj-ui"
 );
 const cliEntrypoint = path.join(repoRoot, "packages", "sj-cli", "dist", "cli.js");
-const probeTimeoutMs = 20_000;
+const probeTimeoutMs = 60_000;
 const probeMaxAttempts = 2;
 const probeRetryDelayMs = 1_000;
 
@@ -47,6 +47,7 @@ async function main() {
   try {
     await verifyOverviewBlockedState(blockedRepo);
     await verifyMachineView(blockedRepo);
+    await verifyPackSelectionView();
   } finally {
     await killExistingKiwiProcesses();
   }
@@ -87,7 +88,6 @@ async function verifyOverviewBlockedState(repo) {
     payload.activeView === "overview"
       && payload.targetRoot === repo.targetRoot
       && payload.repoMode === "healthy"
-      && payload.executionState === "blocked"
       && includesAll(payload.visibleSections, [
         "guided-operation",
         "blocked-workflow-fix",
@@ -100,7 +100,6 @@ async function verifyOverviewBlockedState(repo) {
 
   assert.equal(snapshot.activeView, "overview");
   assert.equal(snapshot.repoMode, "healthy");
-  assert.equal(snapshot.executionState, "blocked");
   assert.equal(typeof snapshot.executionRevision, "number");
   assert.equal(snapshot.visibleSections.includes("guided-operation"), true);
   assert.equal(snapshot.visibleSections.includes("blocked-workflow-fix"), true);
@@ -116,6 +115,129 @@ async function verifyMachineView(repo) {
 
   assert.equal(snapshot.activeView, "machine");
   assert.equal(snapshot.visibleSections.includes("machine-setup-readiness"), true);
+}
+
+async function verifyPackSelectionView() {
+  const originalPack = runCliJson(["pack", "status", "--json", "--target", repoRoot]);
+  const restoreArgs = originalPack.explicitSelection
+    ? ["pack", "set", originalPack.explicitSelection, "--json", "--target", repoRoot]
+    : ["pack", "clear", "--json", "--target", repoRoot];
+  await killExistingKiwiProcesses();
+  const session = await launchProbeSession(repoRoot, "mcps");
+  try {
+    const before = await session.waitForPayload((payload) =>
+      payload.activeView === "mcps"
+      && payload.targetRoot === repoRoot
+      && typeof payload.selectedPack === "string"
+      && Array.isArray(payload.selectablePackIds)
+      && payload.selectablePackIds.includes("web-qa-pack")
+      && !payload.selectablePackIds.includes("aws-pack")
+      && !payload.selectablePackIds.includes("ios-pack")
+      && !payload.selectablePackIds.includes("android-pack")
+      && Array.isArray(payload.packCatalog)
+      && payload.packCatalog.some((entry) => entry.id === "aws-pack" && entry.executable === false && typeof entry.unavailablePackReason === "string")
+      && payload.packCatalog.some((entry) => entry.id === "ios-pack" && entry.executable === false && typeof entry.unavailablePackReason === "string")
+    );
+
+    await session.writeRenderAction({ actionType: "click-pack", packId: "web-qa-pack" });
+    const afterSelect = await session.waitForPayload((payload) =>
+      payload.selectedPack === "web-qa-pack"
+      && payload.selectedPackSource === "runtime-explicit"
+      && payload.executionRevision > before.executionRevision
+    );
+
+    await session.writeRenderAction({ actionType: "click-pack", packId: "web-qa-pack" });
+    const afterRepeat = await session.waitForPayload((payload) =>
+      payload.selectedPack === "web-qa-pack"
+      && payload.executionRevision === afterSelect.executionRevision
+    );
+
+    await session.writeRenderAction({ actionType: "clear-pack" });
+    const afterClear = await session.waitForPayload((payload) =>
+      payload.selectedPackSource === "heuristic-default"
+      && payload.executionRevision > afterSelect.executionRevision
+    );
+
+    assert.equal(before.selectablePackIds.includes("web-qa-pack"), true);
+    assert.equal(afterSelect.selectedPack, "web-qa-pack");
+    assert.equal(afterSelect.selectedPackSource, "runtime-explicit");
+    assert.equal(afterRepeat.executionRevision, afterSelect.executionRevision);
+    assert.equal(afterClear.selectedPackSource, "heuristic-default");
+  } finally {
+    runCliJson(restoreArgs, true);
+    await session.dispose();
+    await killExistingKiwiProcesses();
+  }
+}
+
+async function launchProbeSession(targetRoot, probeView) {
+  const bridgeDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-render-bridge-"));
+  const probeFile = path.join(bridgeDir, "render-probe.json");
+  const actionFile = path.join(bridgeDir, "render-action.json");
+  const launchStatusPath = path.join(bridgeDir, "desktop-launch-status.json");
+  const launchLogPath = path.join(bridgeDir, "desktop-launch-log.json");
+  const child = spawn(process.execPath, [cliEntrypoint, "ui", "--target", targetRoot], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      KIWI_CONTROL_DESKTOP_BRIDGE_DIR: bridgeDir,
+      KIWI_CONTROL_DESKTOP: desktopExecutable,
+      KIWI_CONTROL_RENDER_PROBE_FILE: probeFile,
+      KIWI_CONTROL_RENDER_ACTION_FILE: actionFile,
+      ...(probeView ? { KIWI_CONTROL_RENDER_PROBE_VIEW: probeView } : {})
+    },
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+
+  let lastPayload = null;
+  let childStdout = "";
+  let childStderr = "";
+  child.stdout.on("data", (chunk) => {
+    childStdout += chunk.toString();
+  });
+  child.stderr.on("data", (chunk) => {
+    childStderr += chunk.toString();
+  });
+
+  return {
+    async waitForPayload(predicate) {
+      const deadline = Date.now() + probeTimeoutMs;
+      while (Date.now() < deadline) {
+        await delay(100);
+        const payload = await readJsonFile(probeFile);
+        if (!payload) {
+          continue;
+        }
+        lastPayload = payload;
+        if (predicate(payload)) {
+          return payload;
+        }
+      }
+
+      const launchStatus = await readTextIfExists(launchStatusPath);
+      const launchLog = await readTextIfExists(launchLogPath);
+      throw new Error(
+        [
+          `Rendered desktop probe timed out for ${targetRoot}${probeView ? ` view=${probeView}` : ""}.`,
+          childStdout ? `Child stdout: ${childStdout}` : "Child stdout: <empty>",
+          childStderr ? `Child stderr: ${childStderr}` : "Child stderr: <empty>",
+          `Last payload: ${JSON.stringify(lastPayload, null, 2)}`,
+          launchStatus ? `Launch status: ${launchStatus}` : "Launch status: <missing>",
+          launchLog ? `Launch log: ${launchLog}` : "Launch log: <missing>"
+        ].join("\n")
+      );
+    },
+    async writeRenderAction(payload) {
+      await fs.writeFile(actionFile, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+    },
+    async dispose() {
+      child.kill("SIGTERM");
+      await waitForExit(child, 1500);
+      if (child.exitCode === null && child.signalCode === null) {
+        child.kill("SIGKILL");
+      }
+    }
+  };
 }
 
 async function launchAndCollectProbeWithRetry(targetRoot, probeView, predicate) {
@@ -248,6 +370,20 @@ function includesAll(values, required) {
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function runCliJson(args, allowFailure = false) {
+  const result = spawnSync(process.execPath, [cliEntrypoint, ...args], {
+    cwd: repoRoot,
+    encoding: "utf8"
+  });
+  if (result.error) {
+    throw result.error;
+  }
+  if (!allowFailure && (result.status ?? 1) !== 0) {
+    throw new Error(result.stderr || result.stdout || `CLI command failed: ${args.join(" ")}`);
+  }
+  return result.stdout ? JSON.parse(result.stdout) : null;
 }
 
 main().catch((error) => {

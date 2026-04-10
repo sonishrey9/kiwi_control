@@ -66,6 +66,11 @@ export interface ReadyRepoSubstrateState {
     unavailablePackReason: string | null;
     effectiveCapabilityIds: string[];
     preferredCapabilityIds: string[];
+    availablePacks: Array<{
+      id: string;
+      executable: boolean;
+      unavailablePackReason: string | null;
+    }>;
   };
   artifacts: Record<string, ReadySubstrateArtifact>;
   readFirst: string[];
@@ -188,7 +193,8 @@ export async function buildReadyRepoSubstrate(
       executable: packSelection?.executable ?? false,
       unavailablePackReason: packSelection?.unavailablePackReason ?? null,
       effectiveCapabilityIds: packSelection?.effectiveCapabilityIds ?? [],
-      preferredCapabilityIds: packSelection?.preferredCapabilityIds ?? []
+      preferredCapabilityIds: packSelection?.preferredCapabilityIds ?? [],
+      availablePacks: packSelection?.availablePacks ?? []
     },
     artifacts,
     readFirst: [
@@ -216,6 +222,12 @@ export async function persistReadyRepoSubstrate(
 ): Promise<string> {
   const outputPath = readySubstratePath(targetRoot);
   const state = await buildReadyRepoSubstrate(targetRoot, runtimeSnapshot, packSelection);
+  if (await pathExists(outputPath)) {
+    const current = await readJson<ReadyRepoSubstrateState>(outputPath).catch(() => null);
+    if (current && equalReadySubstrateSemanticState(current, state)) {
+      return outputPath;
+    }
+  }
   await ensureDir(path.dirname(outputPath));
   await writeText(outputPath, `${JSON.stringify(state, null, 2)}\n`);
   return outputPath;
@@ -243,4 +255,39 @@ function artifact(
     required,
     role
   };
+}
+
+function equalReadySubstrateSemanticState(
+  left: ReadyRepoSubstrateState,
+  right: ReadyRepoSubstrateState
+): boolean {
+  return JSON.stringify({
+    artifactType: left.artifactType,
+    version: left.version,
+    targetRoot: left.targetRoot,
+    status: left.status,
+    ready: left.ready,
+    summary: left.summary,
+    runtimeAuthority: left.runtimeAuthority,
+    graphAuthority: left.graphAuthority,
+    packSelection: left.packSelection,
+    artifacts: left.artifacts,
+    readFirst: left.readFirst,
+    toolEntry: left.toolEntry,
+    missingRequired: left.missingRequired
+  }) === JSON.stringify({
+    artifactType: right.artifactType,
+    version: right.version,
+    targetRoot: right.targetRoot,
+    status: right.status,
+    ready: right.ready,
+    summary: right.summary,
+    runtimeAuthority: right.runtimeAuthority,
+    graphAuthority: right.graphAuthority,
+    packSelection: right.packSelection,
+    artifacts: right.artifacts,
+    readFirst: right.readFirst,
+    toolEntry: right.toolEntry,
+    missingRequired: right.missingRequired
+  });
 }

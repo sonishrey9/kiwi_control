@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import { promises as fs } from "node:fs";
@@ -134,6 +135,39 @@ test("pack status/set/clear updates runtime-backed pack policy and exported arti
   assert.equal(clearPayload.changed, true);
   assert.equal(clearPayload.selectedPackSource, "heuristic-default");
   assert.equal(clearPayload.explicitSelection, null);
+
+  const trackedArtifacts = [
+    ".agent/state/selected-pack.json",
+    ".agent/state/ready-substrate.json",
+    ".agent/context/agent-pack.json",
+    ".agent/context/repo-map.json"
+  ];
+  const beforeStatusHashes = await hashFiles(target, trackedArtifacts);
+  const statusLogs: string[] = [];
+  const statusExit = await runPack({
+    repoRoot: repoRootPath,
+    targetRoot: target,
+    action: "status",
+    json: true,
+    logger: jsonLogger(statusLogs)
+  });
+  assert.equal(statusExit, 0);
+  const afterStatusHashes = await hashFiles(target, trackedArtifacts);
+  assert.deepEqual(afterStatusHashes, beforeStatusHashes);
+
+  const clearAgainLogs: string[] = [];
+  const clearAgainExit = await runPack({
+    repoRoot: repoRootPath,
+    targetRoot: target,
+    action: "clear",
+    json: true,
+    logger: jsonLogger(clearAgainLogs)
+  });
+  assert.equal(clearAgainExit, 0);
+  const clearAgainPayload = JSON.parse(clearAgainLogs.join("\n")) as { changed: boolean };
+  assert.equal(clearAgainPayload.changed, false);
+  const afterClearAgainHashes = await hashFiles(target, trackedArtifacts);
+  assert.deepEqual(afterClearAgainHashes, beforeStatusHashes);
 });
 
 test("blocked packs return an exact unavailable reason", async () => {
@@ -170,3 +204,17 @@ test("blocked packs return an exact unavailable reason", async () => {
   assert.equal(payload.ok, false);
   assert.match(payload.unavailablePackReason ?? "", /AWS Pack is blocked/i);
 });
+
+async function hashFiles(targetRoot: string, relativePaths: string[]): Promise<Record<string, string | null>> {
+  const hashes: Record<string, string | null> = {};
+  for (const relativePath of relativePaths) {
+    const fullPath = path.join(targetRoot, relativePath);
+    try {
+      const content = await fs.readFile(fullPath);
+      hashes[relativePath] = createHash("sha256").update(content).digest("hex");
+    } catch {
+      hashes[relativePath] = null;
+    }
+  }
+  return hashes;
+}

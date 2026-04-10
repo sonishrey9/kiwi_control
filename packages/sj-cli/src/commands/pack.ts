@@ -71,6 +71,15 @@ export async function runPack(options: PackOptions): Promise<number> {
   }
 
   if (options.action === "clear") {
+    if (before.selectedPackId === null) {
+      const { controlState } = await syncPackSelectionSideEffects({
+        repoRoot: options.repoRoot,
+        targetRoot: options.targetRoot,
+        ...(options.profileName ? { profileName: options.profileName } : {}),
+        persist: false
+      });
+      return emitPackResult(options, controlState, true, false, null);
+    }
     await clearRuntimePackSelection({
       targetRoot: options.targetRoot,
       triggerCommand: "kiwi-control pack clear",

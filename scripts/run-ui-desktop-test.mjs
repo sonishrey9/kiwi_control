@@ -54,5 +54,43 @@ async function main() {
     throw result.error;
   }
 
-  process.exit(result.status ?? 1);
+  if ((result.status ?? 1) !== 0) {
+    process.exit(result.status ?? 1);
+  }
+
+  if (process.platform === "darwin") {
+    const buildDesktop = spawnSync(process.execPath, [path.join(repoRoot, "scripts", "run-ui-desktop-build.mjs")], {
+      cwd: repoRoot,
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        CARGO_TARGET_DIR: cargoTargetDir,
+        COPYFILE_DISABLE: "1",
+        COPY_EXTENDED_ATTRIBUTES_DISABLE: "1"
+      }
+    });
+    if (buildDesktop.error) {
+      throw buildDesktop.error;
+    }
+    if ((buildDesktop.status ?? 1) !== 0) {
+      process.exit(buildDesktop.status ?? 1);
+    }
+
+    const renderedCheck = spawnSync(process.execPath, [path.join(repoRoot, "scripts", "verify-rendered-desktop.mjs")], {
+      cwd: repoRoot,
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        CARGO_TARGET_DIR: cargoTargetDir,
+        COPYFILE_DISABLE: "1",
+        COPY_EXTENDED_ATTRIBUTES_DISABLE: "1"
+      }
+    });
+    if (renderedCheck.error) {
+      throw renderedCheck.error;
+    }
+    process.exit(renderedCheck.status ?? 1);
+  }
+
+  process.exit(0);
 }

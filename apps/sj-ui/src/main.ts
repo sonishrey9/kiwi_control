@@ -1125,6 +1125,7 @@ let activeGraphProjection: GraphProjection | null = null;
 let graphPatchQueued = false;
 let pendingGraphPatchPaths = new Set<string>();
 let graphViewportElement: SVGGElement | null = null;
+let renderActionInFlight = false;
 
 try {
   app.innerHTML = buildShellHtml();
@@ -1468,6 +1469,9 @@ async function boot(): Promise<void> {
   window.setInterval(() => {
     void pollLatestRuntimeRevision();
   }, RUNTIME_REVISION_FALLBACK_POLL_MS);
+  window.setInterval(() => {
+    void consumePendingRenderAction();
+  }, 250);
 }
 
 function resolveBrowserPreviewRequest(): { fixturePath: string } | null {
@@ -3332,6 +3336,9 @@ function reportRenderProbe(state: RepoControlState): void {
   const visibleCommands = [...document.querySelectorAll<HTMLElement>("[data-ui-command]")]
     .map((element) => element.dataset.uiCommand ?? "")
     .filter((value): value is string => value.length > 0);
+  const selectablePackIds = [...document.querySelectorAll<HTMLElement>("[data-pack-action=\"set\"][data-pack-id]")]
+    .map((element) => element.dataset.packId ?? "")
+    .filter((value): value is string => value.length > 0);
   const executionPlan = state.kiwiControl?.executionPlan;
   const currentStep =
     state.runtimeDecision.currentStepId
@@ -3346,6 +3353,12 @@ function reportRenderProbe(state: RepoControlState): void {
     targetRoot: state.targetRoot,
     selectedPack: state.mcpPacks.selectedPack.id,
     selectedPackSource: state.mcpPacks.selectedPackSource,
+    selectablePackIds,
+    packCatalog: state.mcpPacks.available.map((pack) => ({
+      id: pack.id,
+      executable: pack.executable,
+      unavailablePackReason: pack.unavailablePackReason
+    })),
     repoMode: state.repoState.mode,
     executionState: state.executionState.lifecycle,
     executionRevision: state.executionState.revision,
@@ -3366,6 +3379,42 @@ function reportRenderProbe(state: RepoControlState): void {
   void invoke("write_render_probe", { payload }).catch(() => {
     // Probe reporting is opt-in and must never affect the product flow.
   });
+}
+
+interface RenderActionPayload {
+  actionType: "click-pack" | "clear-pack";
+  packId?: string;
+}
+
+async function consumePendingRenderAction(): Promise<void> {
+  if (!isTauriBridgeAvailable() || renderActionInFlight) {
+    return;
+  }
+  renderActionInFlight = true;
+  try {
+    const action = await invoke<RenderActionPayload | null>("consume_render_action");
+    if (!action) {
+      return;
+    }
+    if (action.actionType === "click-pack" && action.packId) {
+      const button = document.querySelector<HTMLElement>(`[data-pack-action="set"][data-pack-id="${escapeSelectorValue(action.packId)}"]`);
+      if (button) {
+        button.click();
+        return;
+      }
+      const summary = document.querySelector<HTMLElement>(`[data-pack-card="true"][data-pack-id="${escapeSelectorValue(action.packId)}"] summary`);
+      summary?.click();
+      return;
+    }
+    if (action.actionType === "clear-pack") {
+      const clearButton = document.querySelector<HTMLElement>("[data-pack-action=\"clear\"]");
+      clearButton?.click();
+    }
+  } catch {
+    // Render actions are test-only and must never affect normal product flow.
+  } finally {
+    renderActionInFlight = false;
+  }
 }
 
 function renderState(state: RepoControlState): void {
@@ -4281,7 +4330,7 @@ function renderMcpView(state: RepoControlState): string {
         ${renderPanelHeader("Available Packs", "Pack selection is runtime-backed policy. Unavailable packs are blocked until matching integrations are registered.")}
         <div class="kc-fold-grid">
           ${state.mcpPacks.available.map((pack) => `
-            <details class="kc-fold-card" ${pack.id === selectedPack.id ? "open" : ""}>
+            <details class="kc-fold-card" data-pack-card="true" data-pack-id="${escapeHtml(pack.id)}" ${pack.id === selectedPack.id ? "open" : ""}>
               <summary>
                 <div>
                   <strong>${escapeHtml(pack.name ?? pack.id)}</strong>
@@ -4308,7 +4357,7 @@ function renderMcpView(state: RepoControlState): string {
                     ? renderNoteRow("Selected", "success", state.mcpPacks.selectedPackSource === "runtime-explicit" ? "Explicit runtime selection is active." : "Heuristic default is active.")
                     : pack.executable
                       ? `<button class="kc-action-button" data-pack-action="set" data-pack-id="${escapeHtml(pack.id)}">Select pack</button>`
-                      : renderEmptyState("Blocked until matching integrations are registered.")}
+                      : `<button class="kc-action-button secondary" data-pack-action="blocked" data-pack-id="${escapeHtml(pack.id)}" disabled>${escapeHtml(pack.unavailablePackReason ?? "Unavailable")}</button>`}
                 </div>
               </div>
             </details>

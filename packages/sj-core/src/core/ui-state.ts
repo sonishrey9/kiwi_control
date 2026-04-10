@@ -873,7 +873,12 @@ export async function buildRepoControlStateFromConfig(options: {
       unavailablePackReason: packSelection.unavailablePackReason,
       effectiveCapabilityIds: packSelection.effectiveCapabilityIds,
       preferredCapabilityIds: packSelection.preferredCapabilityIds,
-      unavailableCapabilityIds: packSelection.unavailableCapabilityIds
+      unavailableCapabilityIds: packSelection.unavailableCapabilityIds,
+      availablePacks: packSelection.availablePacks.map((entry) => ({
+        id: entry.id,
+        executable: entry.executable,
+        unavailablePackReason: entry.unavailablePackReason
+      }))
     })
   });
   const machineGuidanceContext = buildMachineGuidanceContext({

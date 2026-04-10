@@ -504,6 +504,38 @@
       "context7",
       "sequential-thinking"
     ],
-    "unavailableCapabilityIds": []
+    "unavailableCapabilityIds": [],
+    "availablePacks": [
+      {
+        "id": "core-pack",
+        "executable": true,
+        "unavailablePackReason": null
+      },
+      {
+        "id": "research-pack",
+        "executable": true,
+        "unavailablePackReason": null
+      },
+      {
+        "id": "web-qa-pack",
+        "executable": true,
+        "unavailablePackReason": null
+      },
+      {
+        "id": "aws-pack",
+        "executable": false,
+        "unavailablePackReason": "AWS Pack is blocked because this repo does not register any AWS-specific MCP or tool integrations in the current registry/inventory."
+      },
+      {
+        "id": "ios-pack",
+        "executable": false,
+        "unavailablePackReason": "iOS Pack is blocked because this repo does not register any Xcode or simulator integrations in the current registry/inventory."
+      },
+      {
+        "id": "android-pack",
+        "executable": false,
+        "unavailablePackReason": "Android Pack is blocked because this repo does not register any Android-specific MCP or emulator integrations in the current registry/inventory."
+      }
+    ]
   }
 }
