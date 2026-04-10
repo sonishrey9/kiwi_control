@@ -1,11 +1,16 @@
 import type {
   CommandState,
   DecisionSummary,
+  DesktopReadinessState,
   DisplayExecutionPlanStep,
   ExecutionPlanPanelRenderContext,
   FocusedItem,
   InspectorRenderContext,
   MachineHeroSummary,
+  OverviewHeroState,
+  PackPanelState,
+  PrimaryBannerState,
+  TopMetadataGroups,
   UiMode
 } from "./contracts.js";
 
@@ -40,6 +45,47 @@ type MachineHeroState = {
     assistant: { score: number; missingSignals: string[] };
   };
   guidance: Array<{ priority: "critical" | "recommended" | "optional"; message: string; fixCommand?: string; hintCommand?: string }>;
+};
+
+type OverviewHeroInput = {
+  repoTitle: string;
+  repoDetail: string;
+  nextActionSummary: string;
+  primaryAction: {
+    action: string;
+    reason: string;
+    priority?: "critical" | "high" | "normal" | "low" | "neutral";
+  } | null;
+};
+
+type TopMetadataGroupsInput = {
+  projectType: string;
+  executionMode: string;
+  validationState: string;
+  decision: DecisionSummary;
+};
+
+type PackCatalogEntry = {
+  id: string;
+  name?: string;
+  description: string;
+  executable: boolean;
+  unavailablePackReason: string | null;
+  allowedCapabilityIds: string[];
+  preferredCapabilityIds: string[];
+  guidance?: string[];
+};
+
+type PackPanelInput = {
+  selectedPack: {
+    id: string;
+    name?: string;
+    description: string;
+    guidance?: string[];
+  };
+  selectedPackSource: string;
+  explicitSelection: string | null;
+  available: PackCatalogEntry[];
 };
 
 export function buildDecisionSummary(
@@ -100,6 +146,141 @@ export function buildDecisionSummary(
     lastChangedAt,
     recentFailures,
     newWarnings
+  };
+}
+
+export function buildPrimaryBannerState(params: {
+  loadStatus: DesktopReadinessState;
+  activeView: string;
+}): PrimaryBannerState {
+  if (!params.loadStatus.visible) {
+    return {
+      visible: false,
+      phaseLabel: "",
+      label: "",
+      detail: "",
+      tone: "ready",
+      progress: 100,
+      nextCommand: null
+    };
+  }
+
+  let detail = params.loadStatus.detail;
+  if (params.loadStatus.tone === "blocked") {
+    detail = params.activeView === "overview"
+      ? "Use the primary recovery action below."
+      : "Use the repo-scoped recovery command for this repo.";
+  } else if (params.loadStatus.tone === "degraded") {
+    detail = "Using cached or degraded repo state. Use the repair command if this does not recover on its own.";
+  }
+
+  return {
+    visible: true,
+    phaseLabel: params.loadStatus.phase.replaceAll("_", " "),
+    label: params.loadStatus.label,
+    detail,
+    tone: params.loadStatus.tone,
+    progress: params.loadStatus.progress,
+    nextCommand: params.loadStatus.nextCommand
+  };
+}
+
+export function buildOverviewHeroState(params: {
+  state: OverviewHeroInput;
+  currentFocus: string;
+  primaryActionCommand: string | null;
+}): OverviewHeroState {
+  const primaryAction = params.state.primaryAction;
+  return {
+    title: primaryAction?.action ?? params.state.repoTitle,
+    detail: primaryAction?.reason ?? params.state.nextActionSummary ?? params.state.repoDetail,
+    badgeLabel: primaryAction?.priority ?? "neutral",
+    badgeTone: primaryAction?.priority ?? "neutral",
+    command: params.primaryActionCommand,
+    supportingText: params.currentFocus
+  };
+}
+
+export function buildTopMetadataGroups(params: {
+  state: TopMetadataGroupsInput;
+}): TopMetadataGroups {
+  return {
+    centerItems: [
+      { label: "Next", value: params.state.decision.nextAction },
+      { label: "Repo", value: params.state.projectType },
+      { label: "Status", value: `${params.state.decision.systemHealth} · ${params.state.decision.executionSafety}` },
+      { label: "Changed", value: params.state.decision.lastChangedAt }
+    ],
+    statusDetail: `${params.state.executionMode} · ${params.state.validationState}`
+  };
+}
+
+export function isInspectorDefaultOpen(view: string, mode: UiMode): boolean {
+  switch (view) {
+    case "overview":
+    case "context":
+    case "graph":
+    case "tokens":
+    case "feedback":
+    case "mcps":
+    case "system":
+    case "validation":
+    case "machine":
+      break;
+    default:
+      break;
+  }
+  return mode === "inspection";
+}
+
+export function buildPackPanelState(input: PackPanelInput): PackPanelState {
+  const selectedPackLabel = input.selectedPackSource === "runtime-explicit"
+    ? "Pinned for this repo"
+    : "Default for this repo";
+  const selectedPackSourceLabel = input.selectedPackSource === "runtime-explicit"
+    ? "Runtime explicit"
+    : "Heuristic default";
+  const selectedEntry = input.available.find((pack) => pack.id === input.selectedPack.id) ?? null;
+
+  const toCard = (
+    pack: PackPanelInput["available"][number],
+    overrides: Partial<PackPanelState["selectedPackCard"]> = {}
+  ) => ({
+    id: pack.id,
+    name: pack.name ?? pack.id,
+    description: pack.description,
+    stateLabel: pack.executable ? "Executable" : "Blocked",
+    stateTone: pack.executable ? "neutral" as const : "warn" as const,
+    sourceLabel: null,
+    blockedReason: pack.unavailablePackReason,
+    allowedCapabilityIds: pack.allowedCapabilityIds,
+    preferredCapabilityIds: pack.preferredCapabilityIds,
+    guidance: (pack.guidance ?? []).slice(0, 2),
+    ...overrides
+  });
+
+  return {
+    selectedPackCard: {
+      id: input.selectedPack.id,
+      name: input.selectedPack.name ?? input.selectedPack.id,
+      description: input.selectedPack.description,
+      stateLabel: selectedPackLabel,
+      stateTone: input.selectedPackSource === "runtime-explicit" ? "success" : "neutral",
+      sourceLabel: selectedPackSourceLabel,
+      blockedReason: selectedEntry?.unavailablePackReason ?? null,
+      allowedCapabilityIds: selectedEntry?.allowedCapabilityIds ?? [],
+      preferredCapabilityIds: selectedEntry?.preferredCapabilityIds ?? [],
+      guidance: (input.selectedPack.guidance ?? []).slice(0, 2)
+    },
+    executablePackCards: input.available
+      .filter((pack) => pack.executable && pack.id !== input.selectedPack.id)
+      .map((pack) => toCard(pack)),
+    blockedPackCards: input.available
+      .filter((pack) => !pack.executable)
+      .map((pack) => toCard(pack, { stateTone: "warn" })),
+    showClearAction: input.explicitSelection !== null,
+    selectedPackLabel,
+    selectedPackSourceLabel
   };
 }
 

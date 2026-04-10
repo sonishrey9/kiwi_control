@@ -1,0 +1,360 @@
+{
+  "beforeMcp": {
+    "activeMode": "execution",
+    "activeView": "mcps",
+    "bootVisible": true,
+    "currentStep": "validate",
+    "executionRevision": 55,
+    "executionState": "blocked",
+    "historyLineCount": 10,
+    "inspectorOpen": false,
+    "loadDetail": "Desktop launched. Kiwi is loading repo-local state now.",
+    "loadLabel": "Opening repo",
+    "loadPhase": "opening",
+    "mainScrollTop": 0,
+    "mounted": false,
+    "packCatalog": [
+      {
+        "executable": true,
+        "id": "core-pack",
+        "unavailablePackReason": null
+      },
+      {
+        "executable": true,
+        "id": "research-pack",
+        "unavailablePackReason": null
+      },
+      {
+        "executable": true,
+        "id": "web-qa-pack",
+        "unavailablePackReason": null
+      },
+      {
+        "executable": false,
+        "id": "aws-pack",
+        "unavailablePackReason": "AWS Pack is blocked because this repo does not register any AWS-specific MCP or tool integrations in the current registry/inventory."
+      },
+      {
+        "executable": false,
+        "id": "ios-pack",
+        "unavailablePackReason": "iOS Pack is blocked because this repo does not register any Xcode or simulator integrations in the current registry/inventory."
+      },
+      {
+        "executable": false,
+        "id": "android-pack",
+        "unavailablePackReason": "Android Pack is blocked because this repo does not register any Android-specific MCP or emulator integrations in the current registry/inventory."
+      }
+    ],
+    "repoMode": "initialized-with-warnings",
+    "selectablePackIds": [
+      "core-pack",
+      "web-qa-pack"
+    ],
+    "selectedPack": "research-pack",
+    "selectedPackSource": "heuristic-default",
+    "targetRoot": "/Volumes/shrey ssd/shrey-junior",
+    "visibleCommands": [
+      "guide",
+      "next",
+      "review",
+      "validate",
+      "retry",
+      "run-auto",
+      "checkpoint",
+      "handoff"
+    ],
+    "visibleSections": [
+      "mcp-selected-pack",
+      "mcp-selectable-packs",
+      "mcp-blocked-packs"
+    ]
+  },
+  "afterSet": {
+    "activeMode": "execution",
+    "activeView": "mcps",
+    "bootVisible": false,
+    "currentStep": "validate",
+    "executionRevision": 56,
+    "executionState": "blocked",
+    "historyLineCount": 10,
+    "inspectorOpen": false,
+    "loadDetail": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
+    "loadLabel": "Workflow blocked",
+    "loadPhase": "ready",
+    "mainScrollTop": 0,
+    "mounted": true,
+    "packCatalog": [
+      {
+        "executable": true,
+        "id": "core-pack",
+        "unavailablePackReason": null
+      },
+      {
+        "executable": true,
+        "id": "research-pack",
+        "unavailablePackReason": null
+      },
+      {
+        "executable": true,
+        "id": "web-qa-pack",
+        "unavailablePackReason": null
+      },
+      {
+        "executable": false,
+        "id": "aws-pack",
+        "unavailablePackReason": "AWS Pack is blocked because this repo does not register any AWS-specific MCP or tool integrations in the current registry/inventory."
+      },
+      {
+        "executable": false,
+        "id": "ios-pack",
+        "unavailablePackReason": "iOS Pack is blocked because this repo does not register any Xcode or simulator integrations in the current registry/inventory."
+      },
+      {
+        "executable": false,
+        "id": "android-pack",
+        "unavailablePackReason": "Android Pack is blocked because this repo does not register any Android-specific MCP or emulator integrations in the current registry/inventory."
+      }
+    ],
+    "repoMode": "initialized-with-warnings",
+    "selectablePackIds": [
+      "core-pack",
+      "research-pack"
+    ],
+    "selectedPack": "web-qa-pack",
+    "selectedPackSource": "runtime-explicit",
+    "targetRoot": "/Volumes/shrey ssd/shrey-junior",
+    "visibleCommands": [
+      "guide",
+      "next",
+      "review",
+      "validate",
+      "retry",
+      "run-auto",
+      "checkpoint",
+      "handoff"
+    ],
+    "visibleSections": [
+      "command-banner",
+      "mcp-selected-pack",
+      "mcp-selectable-packs",
+      "mcp-blocked-packs"
+    ]
+  },
+  "afterRepeatSet": {
+    "activeMode": "execution",
+    "activeView": "mcps",
+    "bootVisible": false,
+    "currentStep": "validate",
+    "executionRevision": 56,
+    "executionState": "blocked",
+    "historyLineCount": 10,
+    "inspectorOpen": false,
+    "loadDetail": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
+    "loadLabel": "Workflow blocked",
+    "loadPhase": "ready",
+    "mainScrollTop": 0,
+    "mounted": true,
+    "packCatalog": [
+      {
+        "executable": true,
+        "id": "core-pack",
+        "unavailablePackReason": null
+      },
+      {
+        "executable": true,
+        "id": "research-pack",
+        "unavailablePackReason": null
+      },
+      {
+        "executable": true,
+        "id": "web-qa-pack",
+        "unavailablePackReason": null
+      },
+      {
+        "executable": false,
+        "id": "aws-pack",
+        "unavailablePackReason": "AWS Pack is blocked because this repo does not register any AWS-specific MCP or tool integrations in the current registry/inventory."
+      },
+      {
+        "executable": false,
+        "id": "ios-pack",
+        "unavailablePackReason": "iOS Pack is blocked because this repo does not register any Xcode or simulator integrations in the current registry/inventory."
+      },
+      {
+        "executable": false,
+        "id": "android-pack",
+        "unavailablePackReason": "Android Pack is blocked because this repo does not register any Android-specific MCP or emulator integrations in the current registry/inventory."
+      }
+    ],
+    "repoMode": "initialized-with-warnings",
+    "selectablePackIds": [
+      "core-pack",
+      "research-pack"
+    ],
+    "selectedPack": "web-qa-pack",
+    "selectedPackSource": "runtime-explicit",
+    "targetRoot": "/Volumes/shrey ssd/shrey-junior",
+    "visibleCommands": [
+      "guide",
+      "next",
+      "review",
+      "validate",
+      "retry",
+      "run-auto",
+      "checkpoint",
+      "handoff"
+    ],
+    "visibleSections": [
+      "command-banner",
+      "mcp-selected-pack",
+      "mcp-selectable-packs",
+      "mcp-blocked-packs"
+    ]
+  },
+  "afterClear": {
+    "activeMode": "execution",
+    "activeView": "mcps",
+    "bootVisible": false,
+    "currentStep": "validate",
+    "executionRevision": 57,
+    "executionState": "blocked",
+    "historyLineCount": 10,
+    "inspectorOpen": false,
+    "loadDetail": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
+    "loadLabel": "Workflow blocked",
+    "loadPhase": "ready",
+    "mainScrollTop": 0,
+    "mounted": true,
+    "packCatalog": [
+      {
+        "executable": true,
+        "id": "core-pack",
+        "unavailablePackReason": null
+      },
+      {
+        "executable": true,
+        "id": "research-pack",
+        "unavailablePackReason": null
+      },
+      {
+        "executable": true,
+        "id": "web-qa-pack",
+        "unavailablePackReason": null
+      },
+      {
+        "executable": false,
+        "id": "aws-pack",
+        "unavailablePackReason": "AWS Pack is blocked because this repo does not register any AWS-specific MCP or tool integrations in the current registry/inventory."
+      },
+      {
+        "executable": false,
+        "id": "ios-pack",
+        "unavailablePackReason": "iOS Pack is blocked because this repo does not register any Xcode or simulator integrations in the current registry/inventory."
+      },
+      {
+        "executable": false,
+        "id": "android-pack",
+        "unavailablePackReason": "Android Pack is blocked because this repo does not register any Android-specific MCP or emulator integrations in the current registry/inventory."
+      }
+    ],
+    "repoMode": "initialized-with-warnings",
+    "selectablePackIds": [
+      "core-pack",
+      "web-qa-pack"
+    ],
+    "selectedPack": "research-pack",
+    "selectedPackSource": "heuristic-default",
+    "targetRoot": "/Volumes/shrey ssd/shrey-junior",
+    "visibleCommands": [
+      "guide",
+      "next",
+      "review",
+      "validate",
+      "retry",
+      "run-auto",
+      "checkpoint",
+      "handoff"
+    ],
+    "visibleSections": [
+      "command-banner",
+      "mcp-selected-pack",
+      "mcp-selectable-packs",
+      "mcp-blocked-packs"
+    ]
+  },
+  "afterRepeatClear": {
+    "activeMode": "execution",
+    "activeView": "mcps",
+    "bootVisible": false,
+    "currentStep": "validate",
+    "executionRevision": 57,
+    "executionState": "blocked",
+    "historyLineCount": 10,
+    "inspectorOpen": false,
+    "loadDetail": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts",
+    "loadLabel": "Workflow blocked",
+    "loadPhase": "ready",
+    "mainScrollTop": 0,
+    "mounted": true,
+    "packCatalog": [
+      {
+        "executable": true,
+        "id": "core-pack",
+        "unavailablePackReason": null
+      },
+      {
+        "executable": true,
+        "id": "research-pack",
+        "unavailablePackReason": null
+      },
+      {
+        "executable": true,
+        "id": "web-qa-pack",
+        "unavailablePackReason": null
+      },
+      {
+        "executable": false,
+        "id": "aws-pack",
+        "unavailablePackReason": "AWS Pack is blocked because this repo does not register any AWS-specific MCP or tool integrations in the current registry/inventory."
+      },
+      {
+        "executable": false,
+        "id": "ios-pack",
+        "unavailablePackReason": "iOS Pack is blocked because this repo does not register any Xcode or simulator integrations in the current registry/inventory."
+      },
+      {
+        "executable": false,
+        "id": "android-pack",
+        "unavailablePackReason": "Android Pack is blocked because this repo does not register any Android-specific MCP or emulator integrations in the current registry/inventory."
+      }
+    ],
+    "repoMode": "initialized-with-warnings",
+    "selectablePackIds": [
+      "core-pack",
+      "web-qa-pack"
+    ],
+    "selectedPack": "research-pack",
+    "selectedPackSource": "heuristic-default",
+    "targetRoot": "/Volumes/shrey ssd/shrey-junior",
+    "visibleCommands": [
+      "guide",
+      "next",
+      "review",
+      "validate",
+      "retry",
+      "run-auto",
+      "checkpoint",
+      "handoff"
+    ],
+    "visibleSections": [
+      "command-banner",
+      "mcp-selected-pack",
+      "mcp-selectable-packs",
+      "mcp-blocked-packs"
+    ]
+  },
+  "launchStatus": "{\n  \"requestId\": \"99d0ef14-ada3-4ae2-97ba-f185e9a91951\",\n  \"targetRoot\": \"/Volumes/shrey ssd/shrey-junior\",\n  \"state\": \"ready\",\n  \"detail\": \"Loaded repo-local state for /Volumes/shrey ssd/shrey-junior.\",\n  \"reportedAt\": \"1775821167001\",\n  \"revision\": 55,\n  \"launchSource\": \"source-bundle\"\n}",
+  "launchLog": "{\"event\":\"attach-requested\",\"requestId\":\"99d0ef14-ada3-4ae2-97ba-f185e9a91951\",\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"launchSource\":\"existing-session\",\"detail\":\"probing for an existing desktop session\",\"reportedAt\":\"2026-04-10T11:39:24.534Z\"}\n{\"event\":\"attach-timeout\",\"requestId\":\"99d0ef14-ada3-4ae2-97ba-f185e9a91951\",\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"launchSource\":\"existing-session\",\"detail\":\"no existing session acknowledged within 1500ms\",\"reportedAt\":\"2026-04-10T11:39:26.068Z\"}\n{\"event\":\"launch-requested\",\"requestId\":\"99d0ef14-ada3-4ae2-97ba-f185e9a91951\",\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"launchSource\":\"source-bundle\",\"detail\":\"the local source bundle\",\"reportedAt\":\"2026-04-10T11:39:26.069Z\"}\n{\"event\":\"launch-attempt\",\"requestId\":\"99d0ef14-ada3-4ae2-97ba-f185e9a91951\",\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"launchSource\":\"source-bundle\",\"command\":\"/Volumes/shrey ssd/shrey-junior/apps/sj-ui/src-tauri/target/release/bundle/macos/Kiwi Control.app/Contents/MacOS/sj-ui\",\"args\":[],\"reportedAt\":\"2026-04-10T11:39:26.070Z\"}\n{\"event\":\"launch-spawned\",\"requestId\":\"99d0ef14-ada3-4ae2-97ba-f185e9a91951\",\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"launchSource\":\"source-bundle\",\"command\":\"/Volumes/shrey ssd/shrey-junior/apps/sj-ui/src-tauri/target/release/bundle/macos/Kiwi Control.app/Contents/MacOS/sj-ui\",\"args\":[],\"reportedAt\":\"2026-04-10T11:39:26.074Z\"}\n{\"event\":\"desktop-startup\",\"reportedAt\":\"1775821166307\",\"requestId\":null,\"targetRoot\":null,\"detail\":null,\"launchSource\":null}\n{\"event\":\"desktop-request-observed\",\"reportedAt\":\"1775821166307\",\"requestId\":\"99d0ef14-ada3-4ae2-97ba-f185e9a91951\",\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"detail\":\"origin=startup\",\"launchSource\":\"source-bundle\"}\n{\"event\":\"ui-initial-launch-request-consumed\",\"reportedAt\":\"1775821166449\",\"requestId\":\"99d0ef14-ada3-4ae2-97ba-f185e9a91951\",\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"detail\":null,\"launchSource\":null}\n{\"event\":\"ui-launch-request-received\",\"reportedAt\":\"1775821166449\",\"requestId\":\"99d0ef14-ada3-4ae2-97ba-f185e9a91951\",\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"detail\":null,\"launchSource\":null}\n{\"event\":\"desktop-repo-state-requested\",\"reportedAt\":\"1775821166454\",\"requestId\":null,\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"detail\":null,\"launchSource\":null}\n{\"event\":\"desktop-repo-state-ready\",\"reportedAt\":\"1775821166776\",\"requestId\":null,\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"detail\":null,\"launchSource\":null}\n{\"event\":\"ui-repo-state-rendered\",\"reportedAt\":\"1775821166792\",\"requestId\":\"99d0ef14-ada3-4ae2-97ba-f185e9a91951\",\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"detail\":\"initialized-with-warnings:fresh\",\"launchSource\":null}\n{\"event\":\"ui-ack-attempt\",\"reportedAt\":\"1775821166990\",\"requestId\":\"99d0ef14-ada3-4ae2-97ba-f185e9a91951\",\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"detail\":\"ready\",\"launchSource\":null}\n{\"event\":\"desktop-ready-acknowledged\",\"reportedAt\":\"1775821167001\",\"requestId\":\"99d0ef14-ada3-4ae2-97ba-f185e9a91951\",\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"detail\":\"Loaded repo-local state for /Volumes/shrey ssd/shrey-junior.\",\"launchSource\":\"source-bundle\"}\n{\"event\":\"ui-ack-succeeded\",\"reportedAt\":\"1775821167005\",\"requestId\":\"99d0ef14-ada3-4ae2-97ba-f185e9a91951\",\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"detail\":\"ready\",\"launchSource\":null}\n{\"event\":\"launch-dispatched\",\"requestId\":\"99d0ef14-ada3-4ae2-97ba-f185e9a91951\",\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"launchSource\":\"source-bundle\",\"detail\":\"the local source bundle\",\"command\":\"/Volumes/shrey ssd/shrey-junior/apps/sj-ui/src-tauri/target/release/bundle/macos/Kiwi Control.app/Contents/MacOS/sj-ui\",\"args\":[],\"reportedAt\":\"2026-04-10T11:39:27.076Z\"}\n{\"event\":\"launch-ready\",\"requestId\":\"99d0ef14-ada3-4ae2-97ba-f185e9a91951\",\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"detail\":\"Loaded repo-local state for /Volumes/shrey ssd/shrey-junior.\",\"launchSource\":\"source-bundle\",\"reportedAt\":\"2026-04-10T11:39:27.076Z\"}\n{\"event\":\"desktop-ready-focus-complete\",\"reportedAt\":\"1775821167122\",\"requestId\":\"99d0ef14-ada3-4ae2-97ba-f185e9a91951\",\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"detail\":null,\"launchSource\":null}\n{\"event\":\"desktop-repo-state-requested\",\"reportedAt\":\"1775821168159\",\"requestId\":null,\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"detail\":null,\"launchSource\":null}\n{\"event\":\"desktop-repo-state-ready\",\"reportedAt\":\"1775821168444\",\"requestId\":null,\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"detail\":null,\"launchSource\":null}\n{\"event\":\"ui-repo-state-rendered\",\"reportedAt\":\"1775821168459\",\"requestId\":null,\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"detail\":\"initialized-with-warnings:fresh\",\"launchSource\":null}\n{\"event\":\"desktop-repo-state-requested\",\"reportedAt\":\"1775821169152\",\"requestId\":null,\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"detail\":null,\"launchSource\":null}\n{\"event\":\"desktop-repo-state-ready\",\"reportedAt\":\"1775821169450\",\"requestId\":null,\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"detail\":null,\"launchSource\":null}\n{\"event\":\"ui-repo-state-rendered\",\"reportedAt\":\"1775821169466\",\"requestId\":null,\"targetRoot\":\"/Volumes/shrey ssd/shrey-junior\",\"detail\":\"initialized-with-warnings:fresh\",\"launchSource\":null}\n",
+  "stdout": "Opened Kiwi Control via the local source bundle for /Volumes/shrey ssd/shrey-junior. Launch source: source-bundle. The app is visible and loading this repo now.\n",
+  "stderr": ""
+}

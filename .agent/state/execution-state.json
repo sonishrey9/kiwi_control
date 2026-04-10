@@ -1,7 +1,7 @@
 {
   "artifactType": "kiwi-control/execution-state",
   "version": 1,
-  "revision": 45,
+  "revision": 57,
   "operationId": "cb6b1283-d9e0-4612-be97-2dd24a5181c6",
   "task": "update README docs",
   "sourceCommand": "kiwi-control validate \"update README docs\"",
@@ -11,7 +11,7 @@
   "blockedBy": [
     "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
   ],
-  "lastUpdatedAt": "2026-04-10T10:28:31Z",
+  "lastUpdatedAt": "2026-04-10T11:39:28Z",
   "artifacts": {
     "changedFiles": [
       ".agent/context-authority.json",
@@ -47,7 +47,7 @@
     ]
   },
   "lastEvent": {
-    "revision": 45,
+    "revision": 57,
     "operationId": "cb6b1283-d9e0-4612-be97-2dd24a5181c6",
     "type": "repo-pack-cleared",
     "lifecycle": "blocked",
@@ -59,6 +59,6 @@
       "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
     ],
     "artifacts": {},
-    "recordedAt": "2026-04-10T10:28:31Z"
+    "recordedAt": "2026-04-10T11:39:28Z"
   }
 }

@@ -3,10 +3,10 @@ import type { TopBarRenderContext } from "./contracts.js";
 export function renderTopBarView(context: TopBarRenderContext): string {
   const {
     state,
-    decision,
     repoLabel,
     phase,
-    validationState,
+    topMetadata,
+    primaryBanner,
     themeLabel,
     activeTheme,
     activeMode,
@@ -17,8 +17,6 @@ export function renderTopBarView(context: TopBarRenderContext): string {
     currentTask,
     retryEnabled,
     composerConstraint,
-    runtimeInfo,
-    loadStatus,
     helpers
   } = context;
   const {
@@ -39,18 +37,10 @@ export function renderTopBarView(context: TopBarRenderContext): string {
           <span class="kc-repo-path">${escapeHtml(state.targetRoot || "No repo loaded yet")}</span>
         </button>
         ${renderHeaderBadge(state.repoState.title, state.repoState.mode)}
-        ${renderHeaderBadge(state.projectType, "neutral")}
         ${phase !== "none recorded" ? renderHeaderBadge(phase, "neutral") : ""}
       </div>
       <div class="kc-topbar-center">
-        ${renderHeaderMeta("Next", decision.nextAction)}
-        ${renderHeaderMeta("Blocking", decision.blockingIssue)}
-        ${renderHeaderMeta("Health", decision.systemHealth)}
-        ${renderHeaderMeta("Safe", decision.executionSafety)}
-        ${renderHeaderMeta("Changed", decision.lastChangedAt)}
-        ${renderHeaderMeta("Failures", String(decision.recentFailures))}
-        ${renderHeaderMeta("Warnings", String(decision.newWarnings))}
-        ${runtimeInfo ? renderHeaderMeta(runtimeInfo.label, runtimeInfo.detail) : ""}
+        ${topMetadata.centerItems.map((item) => renderHeaderMeta(item.label, item.value)).join("")}
       </div>
       <div class="kc-topbar-right">
         <div class="kc-inline-badges">
@@ -59,7 +49,7 @@ export function renderTopBarView(context: TopBarRenderContext): string {
         </div>
         <div class="kc-status-chip">
           <strong>${escapeHtml(activeMode)}</strong>
-          <span>${escapeHtml(validationState)}</span>
+          <span>${escapeHtml(topMetadata.statusDetail)}</span>
         </div>
         <button class="kc-theme-toggle" type="button" data-theme-toggle>
           ${iconSvg(activeTheme === "dark" ? "sun" : "moon")}
@@ -107,19 +97,19 @@ export function renderTopBarView(context: TopBarRenderContext): string {
         `
         : ""}
     </div>
-    ${loadStatus.visible
+    ${primaryBanner.visible
       ? `
-        <div class="kc-load-strip tone-${loadStatus.tone}">
+        <div class="kc-load-strip tone-${primaryBanner.tone}">
           <div class="kc-load-row">
             <span class="kc-load-badge">
               <span class="kc-load-dot"></span>
-              ${escapeHtml(loadStatus.label)}
+              ${escapeHtml(primaryBanner.label)}
             </span>
-            <strong>${escapeHtml(loadStatus.detail)}</strong>
+            <strong>${escapeHtml(primaryBanner.detail)}</strong>
           </div>
-          ${loadStatus.nextCommand ? `<div class="kc-action-hint is-blocked"><code class="kc-command-chip">${escapeHtml(formatCliCommand(loadStatus.nextCommand, currentTargetRoot))}</code></div>` : ""}
+          ${primaryBanner.nextCommand ? `<div class="kc-action-hint is-blocked"><code class="kc-command-chip">${escapeHtml(formatCliCommand(primaryBanner.nextCommand, currentTargetRoot))}</code></div>` : ""}
           <div class="kc-load-progress">
-            <span class="kc-load-progress-fill" style="width:${loadStatus.progress}%"></span>
+            <span class="kc-load-progress-fill" style="width:${primaryBanner.progress}%"></span>
           </div>
         </div>
       `

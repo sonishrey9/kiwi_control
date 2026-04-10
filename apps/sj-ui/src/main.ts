@@ -21,7 +21,12 @@ import {
 import {
   buildDecisionSummary as buildDecisionSummaryModel,
   buildExecutionPlanPanelContextModel,
-  buildInspectorContextModel
+  buildInspectorContextModel,
+  buildOverviewHeroState,
+  buildPackPanelState,
+  buildPrimaryBannerState,
+  buildTopMetadataGroups,
+  isInspectorDefaultOpen
 } from "./ui/view-models.js";
 import {
   buildActiveTargetHint as buildActiveTargetHintModel,
@@ -1057,7 +1062,8 @@ let activeLogTab: LogTab = "history";
 let activeValidationTab: ValidationTab = "all";
 let activeHandoffTab: HandoffTab = "handoffs";
 let isLogDrawerOpen = false;
-let isInspectorOpen = true;
+let isInspectorOpen = false;
+let inspectorPreferenceLocked = false;
 let currentState = buildBridgeUnavailableState("");
 let activeTheme: ThemeMode = loadStoredTheme();
 let activeMode: UiMode = "execution";
@@ -1156,6 +1162,12 @@ let graphViewportElement: SVGGElement | null = null;
 let renderActionInFlight = false;
 let pendingCenterScrollReset = false;
 
+function syncInspectorOpenState(): void {
+  if (!inspectorPreferenceLocked) {
+    isInspectorOpen = isInspectorDefaultOpen(activeView, activeMode);
+  }
+}
+
 try {
   app.innerHTML = buildShellHtml();
 
@@ -1186,6 +1198,7 @@ try {
     if (nextView !== activeView) {
       activeView = nextView;
       pendingCenterScrollReset = true;
+      syncInspectorOpenState();
     }
     scheduleRenderState();
     scheduleMachineHydrationForView(activeView, false);
@@ -1199,6 +1212,7 @@ try {
   }
 
   if (target.closest("[data-toggle-inspector]")) {
+    inspectorPreferenceLocked = true;
     isInspectorOpen = !isInspectorOpen;
     scheduleRenderState();
     return;
@@ -1232,6 +1246,7 @@ try {
       isLogDrawerOpen = false;
       activeLogTab = "history";
     }
+    syncInspectorOpenState();
     scheduleRenderState();
     return;
   }
@@ -1544,6 +1559,8 @@ async function loadBrowserPreview(): Promise<boolean> {
   if (payload.activeMode) {
     activeMode = payload.activeMode;
   }
+  inspectorPreferenceLocked = false;
+  syncInspectorOpenState();
 
   bridgeNoteElement.textContent = payload.state.repoState.detail;
   renderState(payload.state);
@@ -2214,6 +2231,8 @@ function syncInteractiveSessionState(state: RepoControlState): void {
     hydratedMachineSections.clear();
     machineHydrationActiveSections.clear();
     machineHydrationInFlight = false;
+    inspectorPreferenceLocked = false;
+    syncInspectorOpenState();
     if (deferredMachineHydrationTimer != null) {
       window.clearTimeout(deferredMachineHydrationTimer);
       deferredMachineHydrationTimer = null;
@@ -3006,37 +3025,6 @@ function basenameForPath(path: string): string {
   return segments[segments.length - 1] ?? path;
 }
 
-function renderReadinessBanner(loadStatus: DesktopReadinessState): string {
-  const bannerTone =
-    loadStatus.tone === "ready"
-      ? "success"
-      : loadStatus.tone === "degraded"
-        ? "warn"
-        : loadStatus.tone === "blocked"
-          ? "blocked"
-          : "neutral";
-  const detail =
-    activeView === "overview" && (loadStatus.tone === "blocked" || loadStatus.tone === "degraded")
-      ? "One repo-level issue needs attention. Use the next action below."
-      : loadStatus.detail;
-  return `
-    <div class="kc-view-shell">
-      <section class="kc-panel kc-command-banner tone-${bannerTone}">
-        <div class="kc-command-banner-head">
-          <div>
-            <p class="kc-section-micro">${escapeHtml(loadStatus.phase.replaceAll("_", " "))}</p>
-            <strong>${escapeHtml(loadStatus.label)}</strong>
-          </div>
-          <span class="kc-load-badge"><span class="kc-load-dot"></span>${escapeHtml(loadStatus.phase.replaceAll("_", " "))}</span>
-        </div>
-        <p>${escapeHtml(detail)}</p>
-        ${loadStatus.nextCommand ? `<div class="kc-command-banner-actions"><code class="kc-command-chip">${escapeHtml(formatCliCommand(loadStatus.nextCommand, currentTargetRoot))}</code></div>` : ""}
-        <div class="kc-load-progress"><span class="kc-load-progress-fill" style="width:${loadStatus.progress}%"></span></div>
-      </section>
-    </div>
-  `;
-}
-
 function renderRecoveryGuidanceBanner(
   guidance: RecoveryGuidance,
   options: {
@@ -3051,7 +3039,7 @@ function renderRecoveryGuidanceBanner(
       : guidance.detail;
   return `
     <div class="kc-view-shell">
-      <section class="kc-panel kc-command-banner tone-${bannerTone}">
+      <section class="kc-panel kc-command-banner tone-${bannerTone}" data-render-section="command-banner">
         <div class="kc-command-banner-head">
           <div>
             <p class="kc-section-micro">${escapeHtml(options.kicker)}</p>
@@ -3071,40 +3059,10 @@ function renderRecoveryGuidanceBanner(
 }
 
 function renderCommandBanner(): string {
-  const loadStatus = buildLoadStatus(currentState);
-  const repoRecoveryGuidance = buildRepoRecoveryGuidance(currentState);
-
   if (lastBlockedActionGuidance) {
     return renderRecoveryGuidanceBanner(lastBlockedActionGuidance, {
       kicker: "Action blocked"
     });
-  }
-
-  if (commandState.loading || isLoadingRepoState) {
-    return renderReadinessBanner(loadStatus);
-  }
-
-  if (repoRecoveryGuidance && (repoRecoveryGuidance.tone === "blocked" || repoRecoveryGuidance.tone === "failed" || repoRecoveryGuidance.tone === "degraded")) {
-    if (
-      loadStatus.visible
-      || repoRecoveryGuidance.tone !== "blocked"
-      || currentState.repoState.mode === "repo-not-initialized"
-      || currentState.repoState.mode === "initialized-invalid"
-    ) {
-      return renderRecoveryGuidanceBanner(repoRecoveryGuidance, {
-        kicker:
-          repoRecoveryGuidance.tone === "blocked"
-            ? "Workflow blocked"
-            : repoRecoveryGuidance.tone === "degraded"
-              ? "Using cached snapshot"
-              : "Load failed",
-        actionLabel: repoRecoveryGuidance.actionLabel ?? null
-      });
-    }
-  }
-
-  if (loadStatus.visible) {
-    return renderReadinessBanner(loadStatus);
   }
 
   if (!commandState.lastResult && !commandState.lastError) {
@@ -3124,7 +3082,7 @@ function renderCommandBanner(): string {
 
   return `
     <div class="kc-view-shell">
-      <section class="kc-panel kc-command-banner tone-${tone}">
+      <section class="kc-panel kc-command-banner tone-${tone}" data-render-section="command-banner">
         <div class="kc-command-banner-head">
           <div>
             <p class="kc-section-micro">Command Result</p>
@@ -3412,6 +3370,7 @@ function reportRenderProbe(state: RepoControlState): void {
     mounted: Boolean(window.__KIWI_BOOT_API__?.mounted),
     bootVisible,
     activeView,
+    activeMode,
     targetRoot: state.targetRoot,
     selectedPack: state.mcpPacks.selectedPack.id,
     selectedPackSource: state.mcpPacks.selectedPackSource,
@@ -3424,6 +3383,7 @@ function reportRenderProbe(state: RepoControlState): void {
     repoMode: state.repoState.mode,
     executionState: state.executionState.lifecycle,
     executionRevision: state.executionState.revision,
+    inspectorOpen: isInspectorOpen,
     mainScrollTop: Math.round(centerMainElement?.scrollTop ?? 0),
     historyLineCount,
     currentStep,
@@ -3446,9 +3406,10 @@ function reportRenderProbe(state: RepoControlState): void {
 }
 
 interface RenderActionPayload {
-  actionType: "click-pack" | "clear-pack" | "switch-view" | "set-main-scroll";
+  actionType: "click-pack" | "clear-pack" | "switch-view" | "switch-mode" | "set-main-scroll";
   packId?: string;
   view?: string;
+  mode?: UiMode;
   y?: number;
 }
 
@@ -3482,9 +3443,20 @@ async function consumePendingRenderAction(): Promise<void> {
       if (nextView && nextView !== activeView) {
         activeView = nextView;
         pendingCenterScrollReset = true;
+        syncInspectorOpenState();
       }
       scheduleRenderState();
       scheduleMachineHydrationForView(activeView, false);
+      return;
+    }
+    if (action.actionType === "switch-mode" && action.mode) {
+      activeMode = action.mode;
+      if (activeMode === "execution") {
+        isLogDrawerOpen = false;
+        activeLogTab = "history";
+      }
+      syncInspectorOpenState();
+      scheduleRenderState();
       return;
     }
     if (action.actionType === "set-main-scroll" && typeof action.y === "number") {
@@ -3566,6 +3538,18 @@ function renderTopBar(state: RepoControlState): string {
   const repoLabel = getRepoLabel(state.targetRoot);
   const phase = getPanelValue(state.repoOverview, "Current phase");
   const validationState = getPanelValue(state.repoOverview, "Validation state");
+  const topMetadata = buildTopMetadataGroups({
+    state: {
+      projectType: state.projectType,
+      executionMode: state.executionMode,
+      validationState,
+      decision
+    }
+  });
+  const primaryBanner = buildPrimaryBannerState({
+    loadStatus: buildLoadStatus(state),
+    activeView
+  });
   const themeLabel = activeTheme === "dark" ? "Light mode" : "Dark mode";
   const currentTask = state.kiwiControl?.contextView.task ?? state.kiwiControl?.nextActions.actions[0]?.action ?? "";
   const retryEnabled = Boolean(state.runtimeDecision.recovery?.retryCommand) || Boolean(currentTargetRoot);
@@ -3573,12 +3557,6 @@ function renderTopBar(state: RepoControlState): string {
     commandState.composer
       ? deriveComposerConstraint(state, commandState.composer, commandState.draftValue)
       : null;
-  const runtimeInfo = desktopRuntimeInfo
-    ? {
-        label: "App",
-        detail: `${describeBuildSource(desktopRuntimeInfo.buildSource)} · v${desktopRuntimeInfo.appVersion}${desktopRuntimeInfo.runtimeIdentity ? ` · runtime ${desktopRuntimeInfo.runtimeIdentity.packagingSourceCategory} (${desktopRuntimeInfo.runtimeIdentity.callerSurface})` : ""}`
-      }
-    : null;
 
   return renderTopBarView({
     state,
@@ -3586,6 +3564,8 @@ function renderTopBar(state: RepoControlState): string {
     repoLabel,
     phase,
     validationState,
+    topMetadata,
+    primaryBanner,
     themeLabel,
     activeTheme,
     activeMode,
@@ -3596,8 +3576,6 @@ function renderTopBar(state: RepoControlState): string {
     currentTask,
     retryEnabled,
     composerConstraint,
-    runtimeInfo,
-    loadStatus: buildLoadStatus(state),
     helpers: buildUiRenderHelpers()
   });
 }
@@ -3747,11 +3725,20 @@ function renderOverviewView(state: RepoControlState): string {
   const interactiveTree = deriveInteractiveTree(state);
   const readiness = deriveReadinessSummary(state);
   const repoRecoveryGuidance = buildRepoRecoveryGuidance(state);
-  const primaryAction = kc.nextActions.actions[0] ?? null;
-  const primaryActionCommand = formatCliCommand(primaryAction?.command, state.targetRoot);
+  const primaryActionCommand = formatCliCommand(kc.nextActions.actions[0]?.command, state.targetRoot);
   const currentFocus = getPanelValue(state.continuity, "Current focus");
   const activeSpecialist = state.specialists.activeProfile?.name ?? state.specialists.activeSpecialist;
   const selectedTask = kc.contextView.task ?? "No prepared task";
+  const overviewHero = buildOverviewHeroState({
+    state: {
+      repoTitle: state.repoState.title,
+      repoDetail: state.repoState.detail,
+      nextActionSummary: kc.nextActions.summary,
+      primaryAction: kc.nextActions.actions[0] ?? null
+    },
+    currentFocus,
+    primaryActionCommand
+  });
   const explainSelectionEntries = buildExplainSelectionEntries(kc.fileAnalysis.selected);
   const blockedWorkflowEntries = buildBlockedWorkflowEntries({
     targetRoot: state.targetRoot,
@@ -3766,18 +3753,18 @@ function renderOverviewView(state: RepoControlState): string {
 
   return `
     <div class="kc-view-shell">
-      <section class="kc-panel kc-panel-primary">
+      <section class="kc-panel kc-panel-primary" data-render-section="overview-primary-hero">
         <div class="kc-panel-heading">
           <div class="kc-panel-kicker">
             ${iconLabel(iconSvg("overview"), "Next Action")}
-            ${primaryAction ? renderHeaderBadge(primaryAction.priority, primaryAction.priority) : renderHeaderBadge("stable", "neutral")}
+            ${renderHeaderBadge(overviewHero.badgeLabel, overviewHero.badgeTone)}
           </div>
-          <h1>${escapeHtml(primaryAction?.action ?? state.repoState.title)}</h1>
-          <p>${escapeHtml(primaryAction?.reason ?? (kc.nextActions.summary || state.repoState.detail))}</p>
+          <h1>${escapeHtml(overviewHero.title)}</h1>
+          <p>${escapeHtml(overviewHero.detail)}</p>
         </div>
         <div class="kc-primary-footer">
-          ${primaryActionCommand ? `<code class="kc-command-chip">${escapeHtml(primaryActionCommand)}</code>` : ""}
-          <span>${escapeHtml(currentFocus)}</span>
+          ${overviewHero.command ? `<code class="kc-command-chip">${escapeHtml(overviewHero.command)}</code>` : ""}
+          <span>${escapeHtml(overviewHero.supportingText)}</span>
         </div>
       </section>
 
@@ -4246,49 +4233,46 @@ function renderMcpView(state: RepoControlState): string {
   const highTrustCount = capabilities.filter((entry) => entry.trustLevel === "high").length;
   const writeCapableCount = capabilities.filter((entry) => entry.writeCapable).length;
   const approvalCount = capabilities.filter((entry) => entry.approvalRequired).length;
-  const selectedPack = state.mcpPacks.selectedPack;
-  const suggestedPack = state.mcpPacks.suggestedPack;
-  const showClearButton = state.mcpPacks.explicitSelection !== null;
-  const executablePacks = state.mcpPacks.available.filter((pack) => pack.executable);
-  const selectablePacks = executablePacks.filter((pack) => pack.id !== selectedPack.id);
-  const blockedPacks = state.mcpPacks.available.filter((pack) => !pack.executable);
+  const packPanel = buildPackPanelState({
+    selectedPack: state.mcpPacks.selectedPack,
+    selectedPackSource: state.mcpPacks.selectedPackSource,
+    explicitSelection: state.mcpPacks.explicitSelection,
+    available: state.mcpPacks.available
+  });
 
   return `
     <div class="kc-view-shell">
       <section class="kc-view-header">
         <div>
           <p class="kc-view-kicker">MCP / Tool Integrations</p>
-          <h1>${escapeHtml(selectedPack.name ?? selectedPack.id)}</h1>
-          <p>${escapeHtml(selectedPack.description)}</p>
+          <h1>${escapeHtml(packPanel.selectedPackCard.name)}</h1>
+          <p>${escapeHtml(`${packPanel.selectedPackLabel}. ${packPanel.selectedPackCard.description}`)}</p>
         </div>
         ${renderHeaderBadge(state.mcpPacks.capabilityStatus, state.mcpPacks.capabilityStatus === "compatible" ? "success" : "warn")}
       </section>
 
       <div class="kc-stat-grid">
-        ${renderStatCard("Compatible MCPs", String(capabilities.length), state.mcpPacks.selectedPackSource === "runtime-explicit" ? "explicit pack policy" : "heuristic pack policy", capabilities.length > 0 ? "success" : "warn")}
+        ${renderStatCard("Compatible MCPs", String(capabilities.length), packPanel.selectedPackSourceLabel, capabilities.length > 0 ? "success" : "warn")}
         ${renderStatCard("High Trust", String(highTrustCount), "preferred first", highTrustCount > 0 ? "success" : "neutral")}
         ${renderStatCard("Write Capable", String(writeCapableCount), "requires judgment", writeCapableCount > 0 ? "warn" : "neutral")}
         ${renderStatCard("Approval Gates", String(approvalCount), "use with care", approvalCount > 0 ? "warn" : "neutral")}
       </div>
 
       <div class="kc-two-column">
-        <section class="kc-panel">
+        <section class="kc-panel" data-render-section="mcp-selected-pack">
           ${renderPanelHeader("Selected Pack", state.mcpPacks.note)}
           <div class="kc-stack-list">
-            ${renderInfoRow("Source", state.mcpPacks.selectedPackSource)}
-            ${renderInfoRow("Heuristic default", suggestedPack.name ?? suggestedPack.id)}
+            ${renderNoteRow("Current state", packPanel.selectedPackCard.stateLabel, packPanel.selectedPackCard.sourceLabel ?? state.mcpPacks.note)}
+            ${renderInfoRow("Source", packPanel.selectedPackSourceLabel)}
+            ${renderInfoRow("Heuristic default", state.mcpPacks.suggestedPack.name ?? state.mcpPacks.suggestedPack.id)}
             ${renderInfoRow("Executable", state.mcpPacks.executable ? "yes" : "no")}
           </div>
           ${state.mcpPacks.unavailablePackReason ? `<div class="kc-divider"></div><div class="kc-stack-list">${renderNoteRow("Blocked", "warn", state.mcpPacks.unavailablePackReason)}</div>` : ""}
           <div class="kc-divider"></div>
           <div class="kc-stack-list">
-            ${(selectedPack.guidance ?? []).map((item: string) => renderBulletRow(item)).join("")}
+            ${packPanel.selectedPackCard.guidance.map((item: string) => renderBulletRow(item)).join("")}
           </div>
-          <div class="kc-divider"></div>
-          <div class="kc-stack-list">
-            ${(selectedPack.realismNotes ?? []).map((item: string) => renderNoteRow("Reality check", "advisory", item)).join("")}
-          </div>
-          ${showClearButton ? `<div class="kc-divider"></div><div class="kc-stack-list"><button class="kc-action-button secondary" data-pack-action="clear">Clear explicit pack</button></div>` : ""}
+          ${packPanel.showClearAction ? `<div class="kc-divider"></div><div class="kc-stack-list"><button class="kc-action-button secondary" data-pack-action="clear">Clear explicit pack</button></div>` : ""}
         </section>
         <section class="kc-panel">
           ${renderPanelHeader("Compatible MCP Capabilities", "These integrations are active for the selected pack, repo profile, and workflow role.")}
@@ -4302,19 +4286,19 @@ function renderMcpView(state: RepoControlState): string {
         <section class="kc-panel" data-render-section="mcp-selectable-packs">
           ${renderPanelHeader("Selectable Packs", "Executable packs you can switch to in this repo.")}
           <div class="kc-fold-grid">
-            ${selectablePacks.length > 0
-              ? selectablePacks.map((pack) => `
+            ${packPanel.executablePackCards.length > 0
+              ? packPanel.executablePackCards.map((pack) => `
             <details class="kc-fold-card" data-pack-card="true" data-pack-id="${escapeHtml(pack.id)}">
               <summary>
                 <div>
-                  <strong>${escapeHtml(pack.name ?? pack.id)}</strong>
+                  <strong>${escapeHtml(pack.name)}</strong>
                   <span>${escapeHtml(pack.description)}</span>
                 </div>
-                ${renderHeaderBadge("available", "neutral")}
+                ${renderHeaderBadge(pack.stateLabel, pack.stateTone)}
               </summary>
               <div class="kc-fold-body">
                 <div class="kc-stack-list">
-                  ${(pack.guidance ?? []).map((item) => renderBulletRow(item)).join("")}
+                  ${pack.guidance.map((item) => renderBulletRow(item)).join("")}
                 </div>
                 <div class="kc-divider"></div>
                 <div class="kc-stack-list">
@@ -4333,12 +4317,12 @@ function renderMcpView(state: RepoControlState): string {
         </section>
         <section class="kc-panel" data-render-section="mcp-blocked-packs">
           ${renderPanelHeader("Unavailable Here", "Visible for clarity, but blocked until matching integrations are registered.")}
-          ${blockedPacks.length > 0
-            ? `<div class="kc-stack-list">${blockedPacks.map((pack) => `
+          ${packPanel.blockedPackCards.length > 0
+            ? `<div class="kc-stack-list">${packPanel.blockedPackCards.map((pack) => `
                 <div class="kc-note-row kc-note-row-blocked">
                   <div>
-                    <strong>${escapeHtml(pack.name ?? pack.id)}</strong>
-                    <span>${escapeHtml(pack.unavailablePackReason ?? "This pack is not available in the current repo.")}</span>
+                    <strong>${escapeHtml(pack.name)}</strong>
+                    <span>${escapeHtml(pack.blockedReason ?? "This pack is not available in the current repo.")}</span>
                   </div>
                   <button class="kc-action-button secondary" data-pack-action="blocked" data-pack-id="${escapeHtml(pack.id)}" disabled>Unavailable</button>
                 </div>
@@ -5687,17 +5671,6 @@ function buildActiveTargetHint(state: RepoControlState): string {
 
 function buildFinalReadyDetail(state: RepoControlState): string {
   return buildFinalReadyDetailModel(state, currentTargetRoot);
-}
-
-function describeBuildSource(source: DesktopRuntimeInfo["buildSource"]): string {
-  switch (source) {
-    case "source-bundle":
-      return "local source bundle";
-    case "installed-bundle":
-      return "installed bundle";
-    default:
-      return "fallback launcher";
-  }
 }
 
 function buildBridgeNote(state: RepoControlState, source: "cli" | "manual" | "auto" | "shell"): string {

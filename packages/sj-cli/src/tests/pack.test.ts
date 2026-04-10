@@ -6,6 +6,7 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import { bootstrapTarget } from "@shrey-junior/sj-core/core/bootstrap.js";
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
+import { getRuntimeSnapshot } from "@shrey-junior/sj-core/runtime/client.js";
 import { readJson } from "@shrey-junior/sj-core/utils/fs.js";
 import { runAgentPack } from "../commands/agent-pack.js";
 import { runPack } from "../commands/pack.js";
@@ -57,6 +58,7 @@ test("pack status/set/clear updates runtime-backed pack policy and exported arti
     selectedPackSource: string;
     explicitSelection: string | null;
     effectiveCapabilityIds: string[];
+    executionRevision: number;
   };
   assert.equal(before.selectedPackSource, "heuristic-default");
   assert.equal(before.explicitSelection, null);
@@ -77,6 +79,7 @@ test("pack status/set/clear updates runtime-backed pack policy and exported arti
     selectedPackSource: string;
     explicitSelection: string | null;
     effectiveCapabilityIds: string[];
+    executionRevision: number;
     artifactPaths: { selectedPack: string };
   };
   assert.equal(setPayload.changed, true);
@@ -85,6 +88,7 @@ test("pack status/set/clear updates runtime-backed pack policy and exported arti
   assert.equal(setPayload.explicitSelection, "research-pack");
   assert.deepEqual(setPayload.effectiveCapabilityIds.includes("exa"), true);
   assert.deepEqual(setPayload.effectiveCapabilityIds.includes("playwright"), false);
+  assert.equal(setPayload.executionRevision > before.executionRevision, true);
 
   const selectedPackArtifact = await readJson<{
     selectedPack: string;
@@ -103,6 +107,7 @@ test("pack status/set/clear updates runtime-backed pack policy and exported arti
   assert.equal(readySubstrate.packSelection?.selectedPack, "research-pack");
   assert.equal(readySubstrate.packSelection?.selectedPackSource, "runtime-explicit");
 
+  const beforeRepeatSetHashes = await hashFiles(target, trackedArtifacts);
   const idempotentLogs: string[] = [];
   const idempotentExit = await runPack({
     repoRoot: repoRootPath,
@@ -113,9 +118,14 @@ test("pack status/set/clear updates runtime-backed pack policy and exported arti
     logger: jsonLogger(idempotentLogs)
   });
   assert.equal(idempotentExit, 0);
-  const idempotentPayload = JSON.parse(idempotentLogs.join("\n")) as { changed: boolean; selectedPack: string };
+  const idempotentPayload = JSON.parse(idempotentLogs.join("\n")) as { changed: boolean; selectedPack: string; executionRevision: number };
   assert.equal(idempotentPayload.changed, false);
   assert.equal(idempotentPayload.selectedPack, "research-pack");
+  const afterRepeatSnapshot = await getRuntimeSnapshot(target);
+  assert.equal(afterRepeatSnapshot.revision, setPayload.executionRevision);
+  assert.equal(idempotentPayload.executionRevision, setPayload.executionRevision);
+  const afterRepeatSetHashes = await hashFiles(target, trackedArtifacts);
+  assert.deepEqual(afterRepeatSetHashes, beforeRepeatSetHashes);
 
   const clearLogs: string[] = [];
   const clearExit = await runPack({
@@ -131,17 +141,32 @@ test("pack status/set/clear updates runtime-backed pack policy and exported arti
     selectedPack: string;
     selectedPackSource: string;
     explicitSelection: string | null;
+    executionRevision: number;
   };
   assert.equal(clearPayload.changed, true);
   assert.equal(clearPayload.selectedPackSource, "heuristic-default");
   assert.equal(clearPayload.explicitSelection, null);
+  assert.equal(clearPayload.executionRevision > setPayload.executionRevision, true);
 
-  const trackedArtifacts = [
-    ".agent/state/selected-pack.json",
-    ".agent/state/ready-substrate.json",
-    ".agent/context/agent-pack.json",
-    ".agent/context/repo-map.json"
-  ];
+  const afterClearReferenceHashes = await hashFiles(target, trackedArtifacts);
+  const clearAgainSnapshotBefore = await getRuntimeSnapshot(target);
+  assert.equal(clearAgainSnapshotBefore.revision, clearPayload.executionRevision);
+
+  const clearAgainLogs: string[] = [];
+  const clearAgainExit = await runPack({
+    repoRoot: repoRootPath,
+    targetRoot: target,
+    action: "clear",
+    json: true,
+    logger: jsonLogger(clearAgainLogs)
+  });
+  assert.equal(clearAgainExit, 0);
+  const clearAgainPayload = JSON.parse(clearAgainLogs.join("\n")) as { changed: boolean; executionRevision: number };
+  assert.equal(clearAgainPayload.changed, false);
+  assert.equal(clearAgainPayload.executionRevision, clearPayload.executionRevision);
+  const afterClearAgainHashes = await hashFiles(target, trackedArtifacts);
+  assert.deepEqual(afterClearAgainHashes, afterClearReferenceHashes);
+
   const beforeStatusHashes = await hashFiles(target, trackedArtifacts);
   const statusLogs: string[] = [];
   const statusExit = await runPack({
@@ -154,20 +179,6 @@ test("pack status/set/clear updates runtime-backed pack policy and exported arti
   assert.equal(statusExit, 0);
   const afterStatusHashes = await hashFiles(target, trackedArtifacts);
   assert.deepEqual(afterStatusHashes, beforeStatusHashes);
-
-  const clearAgainLogs: string[] = [];
-  const clearAgainExit = await runPack({
-    repoRoot: repoRootPath,
-    targetRoot: target,
-    action: "clear",
-    json: true,
-    logger: jsonLogger(clearAgainLogs)
-  });
-  assert.equal(clearAgainExit, 0);
-  const clearAgainPayload = JSON.parse(clearAgainLogs.join("\n")) as { changed: boolean };
-  assert.equal(clearAgainPayload.changed, false);
-  const afterClearAgainHashes = await hashFiles(target, trackedArtifacts);
-  assert.deepEqual(afterClearAgainHashes, beforeStatusHashes);
 });
 
 test("blocked packs return an exact unavailable reason", async () => {
@@ -200,9 +211,11 @@ test("blocked packs return an exact unavailable reason", async () => {
     ok: boolean;
     selectedPack: string;
     unavailablePackReason: string | null;
+    availablePacks: Array<{ id: string; executable: boolean }>;
   };
   assert.equal(payload.ok, false);
   assert.match(payload.unavailablePackReason ?? "", /AWS Pack is blocked/i);
+  assert.equal(payload.availablePacks.some((entry) => entry.id === "aws-pack" && entry.executable), false);
 });
 
 async function hashFiles(targetRoot: string, relativePaths: string[]): Promise<Record<string, string | null>> {
@@ -218,3 +231,10 @@ async function hashFiles(targetRoot: string, relativePaths: string[]): Promise<R
   }
   return hashes;
 }
+
+const trackedArtifacts = [
+    ".agent/state/selected-pack.json",
+    ".agent/state/ready-substrate.json",
+    ".agent/context/agent-pack.json",
+    ".agent/context/repo-map.json"
+];

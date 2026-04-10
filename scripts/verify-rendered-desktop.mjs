@@ -87,30 +87,41 @@ async function createBlockedRepo() {
 async function verifyOverviewBlockedState(repo) {
   const snapshot = await launchAndCollectProbeWithRetry(repo.targetRoot, null, (payload) =>
     payload.activeView === "overview"
+      && payload.activeMode === "execution"
       && payload.targetRoot === repo.targetRoot
       && payload.repoMode === "healthy"
       && includesAll(payload.visibleSections, [
+        "overview-primary-hero",
         "blocked-workflow-fix",
         "explain-selection"
       ])
+      && !payload.visibleSections.includes("command-banner")
+      && payload.inspectorOpen === false
       && includesAll(payload.visibleCommands, ["guide", "next", "validate"])
   );
 
   assert.equal(snapshot.activeView, "overview");
   assert.equal(snapshot.repoMode, "healthy");
   assert.equal(typeof snapshot.executionRevision, "number");
+  assert.equal(snapshot.inspectorOpen, false);
+  assert.equal(snapshot.visibleSections.includes("overview-primary-hero"), true);
   assert.equal(snapshot.visibleSections.includes("blocked-workflow-fix"), true);
   assert.equal(snapshot.visibleSections.includes("explain-selection"), true);
+  assert.equal(snapshot.visibleSections.includes("command-banner"), false);
 }
 
 async function verifyMachineView(repo) {
   const snapshot = await launchAndCollectProbeWithRetry(repo.targetRoot, "machine", (payload) =>
     payload.activeView === "machine"
       && payload.targetRoot === repo.targetRoot
+      && payload.inspectorOpen === false
+      && !payload.visibleSections.includes("overview-primary-hero")
+      && !payload.visibleSections.includes("command-banner")
       && payload.visibleSections.includes("machine-setup-readiness")
   );
 
   assert.equal(snapshot.activeView, "machine");
+  assert.equal(snapshot.inspectorOpen, false);
   assert.equal(snapshot.visibleSections.includes("machine-setup-readiness"), true);
 }
 
@@ -135,7 +146,9 @@ async function verifyPackSelectionView() {
   try {
     const before = await session.waitForPayload((payload) =>
       payload.activeView === "mcps"
+      && payload.activeMode === "execution"
       && payload.targetRoot === repoRoot
+      && payload.inspectorOpen === false
       && typeof payload.selectedPack === "string"
       && Array.isArray(payload.selectablePackIds)
       && payload.selectablePackIds.includes("web-qa-pack")
@@ -152,6 +165,7 @@ async function verifyPackSelectionView() {
       payload.selectedPack === "web-qa-pack"
       && payload.selectedPackSource === "runtime-explicit"
       && payload.executionRevision > before.executionRevision
+      && !payload.selectablePackIds.includes("web-qa-pack")
     );
 
     await session.writeRenderAction({ actionType: "click-pack", packId: "web-qa-pack" });
@@ -166,11 +180,19 @@ async function verifyPackSelectionView() {
       && payload.executionRevision > afterSelect.executionRevision
     );
 
+    await session.writeRenderAction({ actionType: "clear-pack" });
+    const afterRepeatClear = await session.waitForPayload((payload) =>
+      payload.selectedPackSource === "heuristic-default"
+      && payload.executionRevision === afterClear.executionRevision
+    );
+
     assert.equal(before.selectablePackIds.includes("web-qa-pack"), true);
+    assert.equal(before.inspectorOpen, false);
     assert.equal(afterSelect.selectedPack, "web-qa-pack");
     assert.equal(afterSelect.selectedPackSource, "runtime-explicit");
     assert.equal(afterRepeat.executionRevision, afterSelect.executionRevision);
     assert.equal(afterClear.selectedPackSource, "heuristic-default");
+    assert.equal(afterRepeatClear.executionRevision, afterClear.executionRevision);
   } finally {
     runCliJson(restoreArgs, true);
     await session.dispose();

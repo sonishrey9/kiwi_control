@@ -2,7 +2,15 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildDecisionSummary, buildMachineHeroSummary } from "./view-models.js";
+import {
+  buildDecisionSummary,
+  buildMachineHeroSummary,
+  buildOverviewHeroState,
+  buildPackPanelState,
+  buildPrimaryBannerState,
+  buildTopMetadataGroups,
+  isInspectorDefaultOpen
+} from "./view-models.js";
 
 test("decision summary marks execution as guarded when using warm snapshots", () => {
   const summary = buildDecisionSummary(
@@ -81,4 +89,134 @@ test("machine hero summary surfaces stale state before claiming readiness", () =
 
   assert.equal(summary.overallStatus, "stale");
   assert.match(summary.title, /stale/i);
+});
+
+test("primary banner stays lightweight on blocked overview states", () => {
+  const banner = buildPrimaryBannerState({
+    activeView: "overview",
+    loadStatus: {
+      visible: true,
+      phase: "ready",
+      label: "Workflow blocked",
+      detail: "Prepared scope violated by touched files: a, b, c",
+      progress: 96,
+      tone: "blocked",
+      nextCommand: "kc prepare"
+    }
+  });
+  const hero = buildOverviewHeroState({
+    state: {
+      repoTitle: "Workflow blocked",
+      repoDetail: "Prepared scope violated",
+      nextActionSummary: "Prepared scope violated",
+      primaryAction: {
+        action: "Fix the blocking execution issue",
+        reason: "Prepared scope violated by touched files: a, b, c",
+        priority: "critical"
+      }
+    } as never,
+    currentFocus: "Current focus",
+    primaryActionCommand: "kc prepare"
+  });
+
+  assert.equal(banner.detail, "Use the primary recovery action below.");
+  assert.notEqual(banner.detail, hero.detail);
+});
+
+test("top metadata groups stay compact and fold execution mode into the status chip", () => {
+  const groups = buildTopMetadataGroups({
+    state: {
+      projectType: "node",
+      executionMode: "assisted",
+      validationState: "1 warning",
+      decision: {
+        nextAction: "Guide",
+        blockingIssue: "none",
+        systemHealth: "attention",
+        executionSafety: "guarded",
+        lastChangedAt: "2026-04-10T10:00:00.000Z",
+        recentFailures: 1,
+        newWarnings: 2
+      }
+    } as never
+  });
+
+  assert.equal(groups.centerItems.length, 4);
+  assert.equal(groups.centerItems[1]?.value, "node");
+  assert.equal(groups.statusDetail, "assisted · 1 warning");
+});
+
+test("inspector defaults closed in execution mode and open in inspection mode", () => {
+  assert.equal(isInspectorDefaultOpen("overview", "execution"), false);
+  assert.equal(isInspectorDefaultOpen("mcps", "execution"), false);
+  assert.equal(isInspectorDefaultOpen("overview", "inspection"), true);
+});
+
+test("pack panel groups selected, executable alternatives, and blocked packs cleanly", () => {
+  const panel = buildPackPanelState({
+    selectedPack: {
+      id: "research-pack",
+      name: "Research Pack",
+      description: "Research",
+      guidance: ["research"],
+      realismNotes: [],
+      suggestedProjectTypes: [],
+      executable: true,
+      unavailablePackReason: null,
+      allowedCapabilityIds: ["exa"],
+      preferredCapabilityIds: ["exa"],
+      unavailableCapabilityIds: []
+    },
+    selectedPackSource: "heuristic-default",
+    explicitSelection: null,
+    available: [
+      {
+        id: "research-pack",
+        name: "Research Pack",
+        description: "Research",
+        guidance: ["research"],
+        realismNotes: [],
+        suggestedProjectTypes: [],
+        executable: true,
+        unavailablePackReason: null,
+        allowedCapabilityIds: ["exa"],
+        preferredCapabilityIds: ["exa"],
+        unavailableCapabilityIds: []
+      },
+      {
+        id: "web-qa-pack",
+        name: "Web QA Pack",
+        description: "QA",
+        guidance: ["qa"],
+        realismNotes: [],
+        suggestedProjectTypes: [],
+        executable: true,
+        unavailablePackReason: null,
+        allowedCapabilityIds: ["playwright"],
+        preferredCapabilityIds: ["playwright"],
+        unavailableCapabilityIds: []
+      },
+      {
+        id: "aws-pack",
+        name: "AWS Pack",
+        description: "AWS",
+        guidance: ["aws"],
+        realismNotes: [],
+        suggestedProjectTypes: [],
+        executable: false,
+        unavailablePackReason: "blocked",
+        allowedCapabilityIds: ["aws-docs"],
+        preferredCapabilityIds: ["aws-docs"],
+        unavailableCapabilityIds: ["aws-docs"]
+      }
+    ]
+  } as never);
+
+  assert.equal(panel.selectedPackLabel, "Default for this repo");
+  assert.equal(panel.selectedPackCard.sourceLabel, "Heuristic default");
+  assert.equal(panel.executablePackCards.length, 1);
+  assert.equal(panel.executablePackCards[0]?.id, "web-qa-pack");
+  assert.equal(panel.blockedPackCards.length, 1);
+  assert.equal(panel.blockedPackCards[0]?.id, "aws-pack");
+  assert.equal(panel.showClearAction, false);
 });

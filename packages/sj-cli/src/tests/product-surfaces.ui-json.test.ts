@@ -147,6 +147,7 @@ test("ui command returns structured repo-control state in json mode", async () =
       explicitSelection: string | null;
       suggestedPack: { id: string };
       compatibleCapabilities: Array<{ id: string }>;
+      available: Array<{ id: string; executable: boolean }>;
       effectiveCapabilityIds: string[];
       preferredCapabilityIds: string[];
       executable: boolean;
@@ -283,6 +284,8 @@ test("ui command returns structured repo-control state in json mode", async () =
   assert.equal(Array.isArray(payload.mcpPacks.effectiveCapabilityIds), true);
   assert.equal(Array.isArray(payload.mcpPacks.preferredCapabilityIds), true);
   assert.equal(payload.mcpPacks.compatibleCapabilities.some((entry) => entry.id.endsWith("-specialist")), false);
+  assert.equal(payload.mcpPacks.available.some((entry) => entry.id.endsWith("-specialist")), false);
+  assert.equal(payload.mcpPacks.available.some((entry) => ["aws-pack", "ios-pack", "android-pack"].includes(entry.id) && entry.executable), false);
   assert.match(payload.mcpPacks.note, /MCP/i);
   assert.equal(payload.validation.ok, true);
   assert.equal(Array.isArray(payload.machineAdvisory.inventory), true);

@@ -100,6 +100,35 @@ export interface DecisionSummary {
   newWarnings: number;
 }
 
+export interface PrimaryBannerState {
+  visible: boolean;
+  phaseLabel: string;
+  label: string;
+  detail: string;
+  tone: DesktopReadinessTone;
+  progress: number;
+  nextCommand: string | null;
+}
+
+export interface OverviewHeroState {
+  title: string;
+  detail: string;
+  badgeLabel: string;
+  badgeTone: "critical" | "high" | "normal" | "low" | "neutral" | "success" | "warn";
+  command: string | null;
+  supportingText: string;
+}
+
+export interface TopMetadataGroup {
+  label: string;
+  value: string;
+}
+
+export interface TopMetadataGroups {
+  centerItems: TopMetadataGroup[];
+  statusDetail: string;
+}
+
 export interface MachineHeroSummary {
   overallStatus: "ready" | "partial" | "stale";
   overallTone: "success" | "warn";
@@ -129,6 +158,28 @@ export interface ExplainCommandEntry {
   command: string;
   label: string;
   detail: string;
+}
+
+export interface PackCardState {
+  id: string;
+  name: string;
+  description: string;
+  stateLabel: string;
+  stateTone: "neutral" | "success" | "warn";
+  sourceLabel: string | null;
+  blockedReason: string | null;
+  allowedCapabilityIds: string[];
+  preferredCapabilityIds: string[];
+  guidance: string[];
+}
+
+export interface PackPanelState {
+  selectedPackCard: PackCardState;
+  executablePackCards: PackCardState[];
+  blockedPackCards: PackCardState[];
+  showClearAction: boolean;
+  selectedPackLabel: string;
+  selectedPackSourceLabel: string;
 }
 
 export interface BlockedWorkflowEntry {
@@ -548,6 +599,8 @@ export interface TopBarRenderContext {
   repoLabel: string;
   phase: string;
   validationState: string;
+  topMetadata: TopMetadataGroups;
+  primaryBanner: PrimaryBannerState;
   themeLabel: string;
   activeTheme: ThemeMode;
   activeMode: UiMode;
@@ -562,11 +615,6 @@ export interface TopBarRenderContext {
     reason: string;
     nextCommand: string | null;
   } | null;
-  runtimeInfo: {
-    label: string;
-    detail: string;
-  } | null;
-  loadStatus: DesktopReadinessState;
   helpers: RenderHelperSet;
 }
 

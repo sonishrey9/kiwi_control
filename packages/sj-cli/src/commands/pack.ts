@@ -49,6 +49,15 @@ export async function runPack(options: PackOptions): Promise<number> {
         requestedEntry.unavailablePackReason ?? `${requestedPackId} is not selectable in this repo.`
       );
     }
+    if (before.selectedPackId === requestedPackId) {
+      return emitPackResult(
+        options,
+        preflightState,
+        true,
+        false,
+        null
+      );
+    }
     await setRuntimePackSelection({
       targetRoot: options.targetRoot,
       packId: requestedPackId,
@@ -129,6 +138,7 @@ function emitPackResult(
     effectiveCapabilityIds: controlState.mcpPacks.effectiveCapabilityIds,
     preferredCapabilityIds: controlState.mcpPacks.preferredCapabilityIds,
     unavailableCapabilityIds: selectedEntry?.unavailableCapabilityIds ?? [],
+    executionRevision: controlState.executionState.revision,
     availablePacks: controlState.mcpPacks.available.map((entry) => ({
       id: entry.id,
       name: entry.name,
