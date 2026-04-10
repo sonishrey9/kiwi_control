@@ -404,21 +404,21 @@ button {
 
 .kc-rail {
   display: flex;
-  width: 72px;
-  flex: 0 0 72px;
+  width: 116px;
+  flex: 0 0 116px;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 0;
+  align-items: stretch;
+  gap: 12px;
+  padding: 14px 10px 12px;
   border-right: 1px solid var(--sidebar-border);
   background: color-mix(in srgb, var(--sidebar) 98%, transparent);
 }
 
 .kc-rail-brand {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   width: 100%;
-  padding-bottom: 8px;
+  padding: 0 4px 10px;
 }
 
 .kc-logo {
@@ -440,41 +440,45 @@ button {
   min-height: 0;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 10px;
-  padding: 0 8px;
+  gap: 12px;
+  padding: 0;
   overflow-y: auto;
 }
 
 .kc-rail-group {
   display: grid;
-  gap: 4px;
+  gap: 6px;
 }
 
 .kc-rail-group-label {
-  padding: 0 10px 4px;
+  padding: 0 6px 2px;
   color: var(--muted-foreground);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.16em;
+  text-align: left;
   text-transform: uppercase;
 }
 
 .kc-rail-group-secondary {
-  padding-top: 8px;
+  padding-top: 10px;
   border-top: 1px solid var(--sidebar-border);
 }
 
 .kc-rail-button {
   display: flex;
   width: 100%;
-  flex-direction: column;
   align-items: center;
-  gap: 5px;
-  padding: 8px 4px;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid transparent;
   border-radius: 10px;
   color: var(--sidebar-foreground);
   cursor: pointer;
+  text-align: left;
   transition:
+    border-color 140ms ease,
     background-color 140ms ease,
     color 140ms ease,
     transform 140ms ease;
@@ -482,11 +486,13 @@ button {
 
 .kc-rail-button:hover {
   background: color-mix(in srgb, var(--sidebar-accent) 76%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 18%, var(--sidebar-border));
   color: var(--foreground);
 }
 
 .kc-rail-button.is-active {
   background: color-mix(in srgb, var(--sidebar-accent) 100%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--sidebar-border));
   color: var(--foreground);
 }
 
@@ -496,33 +502,34 @@ button {
 
 .kc-rail-icon {
   display: inline-flex;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
   align-items: center;
   justify-content: center;
   color: var(--muted-foreground);
 }
 
 .kc-rail-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .kc-rail-label {
   max-width: 100%;
   color: inherit;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  line-height: 1.15;
-  text-align: center;
+  line-height: 1.2;
+  text-align: left;
 }
 
 .kc-rail-footer {
-  padding: 0 10px 6px;
+  padding: 4px 6px 6px;
   color: var(--muted-foreground);
   font-size: 10px;
   line-height: 1.45;
-  text-align: center;
+  text-align: left;
 }
 
 .kc-workspace {
@@ -2046,23 +2053,29 @@ button {
 
 @media (max-width: 900px) {
   .kc-rail {
-    width: 58px;
-    flex-basis: 58px;
+    width: 64px;
+    flex-basis: 64px;
     gap: 6px;
-    padding: 10px 0 8px;
+    padding: 10px 6px 8px;
+    align-items: center;
   }
 
   .kc-rail-nav {
-    padding: 0 6px;
+    padding: 0;
   }
 
   .kc-rail-button {
-    gap: 4px;
-    padding: 7px 2px;
+    justify-content: center;
+    gap: 0;
+    padding: 9px 4px;
   }
 
   .kc-rail-label {
-    font-size: 9px;
+    display: none;
+  }
+
+  .kc-rail-group-label {
+    display: none;
   }
 
   .kc-rail-footer {
