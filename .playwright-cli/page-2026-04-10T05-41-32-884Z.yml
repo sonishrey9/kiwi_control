@@ -1,0 +1,869 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - button "shrey-junior /Volumes/shrey ssd/shrey-junior" [ref=e7]:
+          - generic [ref=e8]: shrey-junior
+          - generic [ref=e9]: /Volumes/shrey ssd/shrey-junior
+        - generic [ref=e10]: Repo is usable with warnings
+        - generic [ref=e11]: node
+        - generic [ref=e12]: bootstrap initialized [complete]
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - button "Execution" [ref=e15] [cursor=pointer]
+          - button "Inspection" [ref=e16] [cursor=pointer]
+        - generic [ref=e17]:
+          - strong [ref=e18]: execution
+          - generic [ref=e19]: 1 warning
+        - button "Light mode" [ref=e20] [cursor=pointer]:
+          - img [ref=e21]
+          - generic [ref=e27]: Light mode
+        - button [ref=e28] [cursor=pointer]:
+          - img [ref=e29]
+        - button [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+    - generic [ref=e35]:
+      - button "Guide" [ref=e36] [cursor=pointer]
+      - button "Next" [ref=e37] [cursor=pointer]
+      - button "Review" [ref=e38] [cursor=pointer]
+      - button "Validate" [ref=e39] [cursor=pointer]
+      - button "Retry" [ref=e40] [cursor=pointer]
+      - button "Run Auto" [ref=e41] [cursor=pointer]
+      - button "Checkpoint" [ref=e42] [cursor=pointer]
+      - button "Handoff" [ref=e43] [cursor=pointer]
+    - generic [ref=e44]:
+      - generic [ref=e45]:
+        - generic [ref=e46]: Workflow blocked
+        - strong [ref=e48]: "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+      - code [ref=e50]: kc prepare "update README docs" --target "/Volumes/shrey ssd/shrey-junior"
+  - generic [ref=e53]:
+    - complementary [ref=e54]:
+      - generic [ref=e56]: K
+      - navigation [ref=e57]:
+        - button "Overview" [ref=e58] [cursor=pointer]:
+          - img [ref=e60]
+          - generic [ref=e65]: Overview
+        - button "Context" [ref=e66] [cursor=pointer]:
+          - img [ref=e68]
+          - generic [ref=e70]: Context
+        - button "Graph" [ref=e71] [cursor=pointer]:
+          - img [ref=e73]
+          - generic [ref=e83]: Graph
+        - button "Tokens" [ref=e84] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e88]: Tokens
+        - button "Feedback" [ref=e89] [cursor=pointer]:
+          - img [ref=e91]
+          - generic [ref=e97]: Feedback
+        - button "MCPs" [ref=e98] [cursor=pointer]:
+          - img [ref=e100]
+          - generic [ref=e103]: MCPs
+        - button "Specialists" [ref=e104] [cursor=pointer]:
+          - img [ref=e106]
+          - generic [ref=e109]: Specialists
+        - button "System" [ref=e110] [cursor=pointer]:
+          - img [ref=e112]
+          - generic [ref=e114]: System
+        - button "Validation" [ref=e115] [cursor=pointer]:
+          - img [ref=e117]
+          - generic [ref=e120]: Validation
+        - button "Machine" [ref=e121] [cursor=pointer]:
+          - img [ref=e123]
+          - generic [ref=e125]: Machine
+      - generic [ref=e126]: 1 warning remain, but the repo-local control surfaces are present and readable.
+    - generic [ref=e128]:
+      - generic [ref=e129]:
+        - generic [ref=e130]:
+          - generic [ref=e132]:
+            - generic [ref=e133]:
+              - generic [ref=e134]:
+                - paragraph [ref=e135]: Workflow blocked
+                - strong [ref=e136]: Workflow blocked
+              - generic [ref=e137]: blocked
+            - paragraph [ref=e139]: "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+            - code [ref=e141]: kc prepare "update README docs" --target "/Volumes/shrey ssd/shrey-junior"
+          - generic [ref=e142]:
+            - generic [ref=e143]:
+              - generic [ref=e144]:
+                - generic [ref=e145]:
+                  - generic [ref=e146]:
+                    - img [ref=e147]
+                    - emphasis [ref=e152]: Next Action
+                  - generic [ref=e153]: critical
+                - heading "Fix the blocking execution issue" [level=1] [ref=e154]
+                - paragraph [ref=e155]: "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+              - generic [ref=e156]:
+                - code [ref=e157]: kc prepare "update README docs" --target "/Volumes/shrey ssd/shrey-junior"
+                - generic [ref=e158]: Open .agent/state/latest-task-packets.json and execute the claude run packet before validating the outcome.
+            - generic [ref=e159]:
+              - article [ref=e160]:
+                - generic [ref=e161]: Repo Health
+                - strong [ref=e162]: Repo is usable with warnings
+                - emphasis [ref=e163]: passing
+              - article [ref=e164]:
+                - generic [ref=e165]: Task
+                - strong [ref=e166]: update README docs
+                - emphasis [ref=e167]: Useful evidence was found across the repo, but coverage is still partial.
+              - article [ref=e168]:
+                - generic [ref=e169]: Selected
+                - strong [ref=e170]: "60"
+                - emphasis [ref=e171]: files Kiwi chose
+              - article [ref=e172]:
+                - generic [ref=e173]: Ignored
+                - strong [ref=e174]: "76"
+                - emphasis [ref=e175]: files Kiwi filtered out
+              - article [ref=e176]:
+                - generic [ref=e177]: Lifecycle
+                - strong [ref=e178]: blocked
+                - emphasis [ref=e179]: "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+              - article [ref=e180]:
+                - generic [ref=e181]: Skills
+                - strong [ref=e182]: "0"
+                - emphasis [ref=e183]: none active
+            - generic [ref=e184]:
+              - generic [ref=e185]:
+                - generic [ref=e186]:
+                  - paragraph [ref=e187]: Guided Operation
+                  - heading "Guided Operation" [level=3] [ref=e188]
+                - generic [ref=e189]: What is happening, what is wrong, and what to do next.
+              - generic [ref=e190]:
+                - generic [ref=e192]:
+                  - generic [ref=e193]:
+                    - generic [ref=e194]:
+                      - strong [ref=e195]: Readiness
+                      - generic [ref=e196]: "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+                    - emphasis [ref=e197]: Workflow blocked
+                  - generic [ref=e198]:
+                    - generic [ref=e199]:
+                      - strong [ref=e200]: Current state
+                      - generic [ref=e201]: 1 warning remain, but the repo-local control surfaces are present and readable.
+                    - emphasis [ref=e202]: Repo is usable with warnings
+                  - generic [ref=e203]:
+                    - generic [ref=e204]:
+                      - strong [ref=e205]: Blocking issue
+                      - generic [ref=e206]: No hard blocker is currently active.
+                    - emphasis [ref=e207]: "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+                  - generic [ref=e208]:
+                    - generic [ref=e209]:
+                      - strong [ref=e210]: Recommended next action
+                      - generic [ref=e211]: kc prepare "update README docs" --target "/Volumes/shrey ssd/shrey-junior"
+                    - emphasis [ref=e212]: Fix the blocking execution issue
+                  - generic [ref=e213]:
+                    - generic [ref=e214]:
+                      - strong [ref=e215]: Do this now
+                      - generic [ref=e216]: kc prepare "update README docs" --target "/Volumes/shrey ssd/shrey-junior"
+                    - emphasis [ref=e217]: Workflow blocked
+                - generic [ref=e219]:
+                  - generic [ref=e220]:
+                    - generic [ref=e221]:
+                      - strong [ref=e222]: Execution safety
+                      - generic [ref=e223]: Context or validation signals suggest caution.
+                    - emphasis [ref=e224]: guarded
+                  - generic [ref=e225]:
+                    - generic [ref=e226]:
+                      - strong [ref=e227]: Recent change
+                      - generic [ref=e228]: "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+                    - emphasis [ref=e229]: 9 Apr, 21:16
+                  - generic [ref=e230]:
+                    - generic [ref=e231]:
+                      - strong [ref=e232]: State trust
+                      - generic [ref=e233]: Repo state and .agent artifacts remain authoritative. Local UI-only edits do not replace repo truth.
+                    - emphasis [ref=e234]: repo-local
+            - generic [ref=e235]:
+              - generic [ref=e236]:
+                - generic [ref=e237]:
+                  - paragraph [ref=e238]: How To Unblock Workflow
+                  - heading "How To Unblock Workflow" [level=3] [ref=e239]
+                - generic [ref=e240]: A concrete recovery workflow derived from the current blocked execution plan and repo-local recovery state.
+              - generic [ref=e241]:
+                - generic [ref=e242]:
+                  - generic [ref=e243]:
+                    - strong [ref=e244]: 1. Refresh the prepared scope
+                    - generic [ref=e245]: "Prepared scope violated by touched files: output/playwright/"
+                  - emphasis [ref=e246]: kc prepare "update README docs" --target "/Volumes/shrey ssd/shrey-junior"
+                - generic [ref=e247]:
+                  - generic [ref=e248]:
+                    - strong [ref=e249]: 2. Re-run validate
+                    - generic [ref=e250]: Validation must confirm expected files changed, scope remained bounded, and the task goal was achieved.
+                  - emphasis [ref=e251]: kc validate "update README docs" --target "/Volumes/shrey ssd/shrey-junior"
+                - generic [ref=e252]:
+                  - generic [ref=e253]:
+                    - strong [ref=e254]: 3. Continue with planned step 2
+                    - generic [ref=e255]: Resume the remaining workflow once the blocker is resolved.
+                  - emphasis [ref=e256]: kc checkpoint validated-progress --target "/Volumes/shrey ssd/shrey-junior"
+                - generic [ref=e257]:
+                  - generic [ref=e258]:
+                    - strong [ref=e259]: 4. Continue with planned step 3
+                    - generic [ref=e260]: Resume the remaining workflow once the blocker is resolved.
+                  - emphasis [ref=e261]: kc handoff --to fullstack-specialist --target "/Volumes/shrey ssd/shrey-junior"
+            - generic [ref=e262]:
+              - generic [ref=e263]:
+                - generic [ref=e264]:
+                  - generic [ref=e265]:
+                    - paragraph [ref=e266]: Explain This Selection
+                    - heading "Explain This Selection" [level=3] [ref=e267]
+                  - generic [ref=e268]: Low-latency parity with kc explain using the already-loaded repo state, file reasons, and dependency chains.
+                - generic [ref=e269]:
+                  - generic [ref=e270]:
+                    - generic [ref=e271]:
+                      - strong [ref=e272]: apps/sj-ui/src/ui/guidance.ts
+                      - generic [ref=e273]: Selected because of changed file, import dependency, dependency distance.
+                    - emphasis [ref=e274]: selected
+                  - generic [ref=e275]:
+                    - generic [ref=e276]:
+                      - strong [ref=e277]: packages/sj-cli/src/commands/execution-step-runner.ts
+                      - generic [ref=e278]: Selected because of changed file, import dependency, dependency distance.
+                    - emphasis [ref=e279]: selected
+                  - generic [ref=e280]:
+                    - generic [ref=e281]:
+                      - strong [ref=e282]: packages/sj-core/src/core/ui-state.ts
+                      - generic [ref=e283]: Selected because of changed file, import dependency, dependency distance.
+                    - emphasis [ref=e284]: selected
+                  - generic [ref=e285]:
+                    - generic [ref=e286]:
+                      - strong [ref=e287]: packages/sj-core/src/core/repo-readiness.ts
+                      - generic [ref=e288]: Selected because of changed file, import dependency, dependency distance.
+                    - emphasis [ref=e289]: selected
+                  - generic [ref=e290]:
+                    - generic [ref=e291]:
+                      - strong [ref=e292]: packages/sj-core/src/core/context.ts
+                      - generic [ref=e293]: "Selected because of repo context, import dependency, dependency distance. Dependency chain: packages/sj-core/src/core/ui-state.ts -> packages/sj-core/src/core/context.ts. · chain: packages/sj-core/src/core/ui-state.ts -> packages/sj-core/src/core/context.ts"
+                    - emphasis [ref=e294]: selected · chained
+                  - generic [ref=e295]:
+                    - generic [ref=e296]:
+                      - strong [ref=e297]: packages/sj-core/src/core/router.ts
+                      - generic [ref=e298]: "Selected because of repo context, import dependency, dependency distance. Dependency chain: packages/sj-core/src/core/bootstrap.ts -> packages/sj-core/src/core/router.ts. · chain: packages/sj-core/src/core/bootstrap.ts -> packages/sj-core/src/core/router.ts"
+                    - emphasis [ref=e299]: selected · chained
+              - generic [ref=e300]:
+                - generic [ref=e301]:
+                  - generic [ref=e302]:
+                    - paragraph [ref=e303]: Terminal Recovery
+                    - heading "Terminal Recovery" [level=3] [ref=e304]
+                  - generic [ref=e305]: Exact commands to run next in Terminal, grounded in the current repo state instead of a second explain round-trip.
+                - generic [ref=e306]:
+                  - generic [ref=e307]:
+                    - generic [ref=e308]:
+                      - strong [ref=e309]: kc prepare "update README docs" --target "/Volumes/shrey ssd/shrey-junior"
+                      - generic [ref=e310]: "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+                    - emphasis [ref=e311]: Workflow blocked
+                  - generic [ref=e312]:
+                    - generic [ref=e313]:
+                      - strong [ref=e314]: kc validate "update README docs" --target "/Volumes/shrey ssd/shrey-junior"
+                      - generic [ref=e315]: Use this after the blocking issue is cleared.
+                    - emphasis [ref=e316]: Then retry
+                  - generic [ref=e317]:
+                    - generic [ref=e318]:
+                      - strong [ref=e319]: kc checkpoint validated-progress --target "/Volumes/shrey ssd/shrey-junior"
+                      - generic [ref=e320]: Derived from the current execution plan without running another CLI command.
+                    - emphasis [ref=e321]: Next planned command 2
+                  - generic [ref=e322]:
+                    - generic [ref=e323]:
+                      - strong [ref=e324]: kc handoff --to fullstack-specialist --target "/Volumes/shrey ssd/shrey-junior"
+                      - generic [ref=e325]: Derived from the current execution plan without running another CLI command.
+                    - emphasis [ref=e326]: Next planned command 3
+            - generic [ref=e327]:
+              - generic [ref=e328]:
+                - generic [ref=e329]:
+                  - paragraph [ref=e330]: Terminal Help
+                  - heading "Terminal Help" [level=3] [ref=e331]
+                - generic [ref=e332]: The same command surface you would reach for from kc help, with repo-scoped commands already pinned to the active repo.
+              - generic [ref=e333]:
+                - generic [ref=e335]:
+                  - generic [ref=e336]:
+                    - generic [ref=e337]:
+                      - strong [ref=e338]: kc help
+                      - generic [ref=e339]: Show the full Kiwi Control command surface and examples.
+                    - emphasis [ref=e340]: Full CLI help
+                  - generic [ref=e341]:
+                    - generic [ref=e342]:
+                      - strong [ref=e343]: kc guide --target "/Volumes/shrey ssd/shrey-junior"
+                      - generic [ref=e344]: Show the current goal, step, and next recommended action for the loaded repo.
+                    - emphasis [ref=e345]: Guide this repo
+                  - generic [ref=e346]:
+                    - generic [ref=e347]:
+                      - strong [ref=e348]: kc status --target "/Volumes/shrey ssd/shrey-junior"
+                      - generic [ref=e349]: See repo health, next actions, and continuity state.
+                    - emphasis [ref=e350]: Inspect repo state
+                - generic [ref=e352]:
+                  - generic [ref=e353]:
+                    - generic [ref=e354]:
+                      - strong [ref=e355]: kc sync --dry-run --diff-summary --target "/Volumes/shrey ssd/shrey-junior"
+                      - generic [ref=e356]: Preview repo-local contract writes before applying sync.
+                    - emphasis [ref=e357]: Preview repo repair
+                  - generic [ref=e358]:
+                    - generic [ref=e359]:
+                      - strong [ref=e360]: kc validate --target "/Volumes/shrey ssd/shrey-junior"
+                      - generic [ref=e361]: Check repo-local validation state before checkpoint, handoff, or execution.
+                    - emphasis [ref=e362]: Validate repo contract
+                  - generic [ref=e363]:
+                    - generic [ref=e364]:
+                      - strong [ref=e365]: kc review --target "/Volumes/shrey ssd/shrey-junior"
+                      - generic [ref=e366]: Write the local review pack for the current diff with ranked risk and validation gaps.
+                    - emphasis [ref=e367]: Review current changes
+                  - generic [ref=e368]:
+                    - generic [ref=e369]:
+                      - strong [ref=e370]: kc ui --target "/Volumes/shrey ssd/shrey-junior"
+                      - generic [ref=e371]: Open this exact repo in Kiwi Control again from Terminal.
+                    - emphasis [ref=e372]: Reopen desktop
+            - generic [ref=e373]:
+              - generic [ref=e374]:
+                - generic [ref=e375]:
+                  - generic [ref=e376]:
+                    - paragraph [ref=e377]: Repo State
+                    - heading "Repo State" [level=3] [ref=e378]
+                  - generic [ref=e379]: Current repo truth, routing, and system fit.
+                - generic [ref=e380]:
+                  - generic [ref=e381]:
+                    - generic [ref=e382]: Project type
+                    - strong [ref=e383]: node
+                  - generic [ref=e384]:
+                    - generic [ref=e385]: Execution mode
+                    - strong [ref=e386]: assisted
+                  - generic [ref=e387]:
+                    - generic [ref=e388]: Active specialist
+                    - strong [ref=e389]: Frontend Specialist
+                  - generic [ref=e390]:
+                    - generic [ref=e391]: Selected pack
+                    - strong [ref=e392]: Research Pack
+                  - generic [ref=e393]:
+                    - generic [ref=e394]: Compatible MCPs
+                    - strong [ref=e395]: "6"
+                  - generic [ref=e396]:
+                    - generic [ref=e397]: Feedback
+                    - strong [ref=e398]: limited (0 runs)
+                  - generic [ref=e399]:
+                    - generic [ref=e400]: Measured usage
+                    - strong [ref=e401]: 38284.5M over 40 runs
+              - generic [ref=e402]:
+                - generic [ref=e403]:
+                  - generic [ref=e404]:
+                    - paragraph [ref=e405]: Task Summary
+                    - heading "Task Summary" [level=3] [ref=e406]
+                  - generic [ref=e407]: What Kiwi knows right now about the active working set.
+                - generic [ref=e408]:
+                  - strong [ref=e409]: update README docs
+                  - generic [ref=e410]: "Selected 43 files based on working tree changes. Signals: 35 changed, 70 import neighbors, 15 keyword matches, 15 repo context files, 0 proximity, 20 recent, 0 active skills. Coverage: 34% of candidate signal files. Diversity: 4 signal types. Discovery depth: 9. Budget: ~176681 tokens. Confidence: medium."
+                - generic [ref=e412]:
+                  - generic [ref=e413]:
+                    - strong [ref=e414]: Review pack
+                    - generic [ref=e415]: Review packages/sj-cli first across 13 changed file(s), 12 ranked file target(s), and 2 ranked module target(s).
+                  - emphasis [ref=e416]: .agent/context/review-pack.json
+            - generic [ref=e417]:
+              - generic [ref=e418]:
+                - generic [ref=e419]:
+                  - paragraph [ref=e420]: Execution Plan
+                  - heading "Execution Plan" [level=3] [ref=e421]
+                - generic [ref=e422]: "logic_error: Prepared scope violated by touched files: output/playwright/ Compatibility/debug snapshot."
+              - generic [ref=e423]:
+                - generic [ref=e424]: "state: blocked"
+                - generic [ref=e425]: "current: validate"
+                - generic [ref=e426]: "risk: low"
+                - generic [ref=e427]: "confidence: medium"
+              - generic [ref=e429]:
+                - generic [ref=e430]:
+                  - generic [ref=e431]:
+                    - strong [ref=e432]: Why it stopped
+                    - generic [ref=e433]: "Prepared scope violated by touched files: output/playwright/"
+                  - emphasis [ref=e434]: Why it stopped
+                - generic [ref=e435]:
+                  - generic [ref=e436]:
+                    - strong [ref=e437]: Do this now
+                    - generic [ref=e438]: Run this before continuing.
+                  - emphasis [ref=e439]: kc prepare "update README docs" --target "/Volumes/shrey ssd/shrey-junior"
+                - generic [ref=e440]:
+                  - generic [ref=e441]:
+                    - strong [ref=e442]: Then retry
+                    - generic [ref=e443]: Use this after the blocking issue is cleared.
+                  - emphasis [ref=e444]: kc validate "update README docs" --target "/Volumes/shrey ssd/shrey-junior"
+              - generic [ref=e445]:
+                - article [ref=e446]:
+                  - generic [ref=e447]:
+                    - generic [ref=e448]:
+                      - generic [ref=e449]: step 1
+                      - strong [ref=e450]: Prepare bounded context
+                      - paragraph [ref=e451]: Prepared 43 selected files for "update README docs".
+                    - generic [ref=e453]: success
+                  - generic [ref=e454]:
+                    - button "Focus" [ref=e455] [cursor=pointer]
+                    - button "Run" [ref=e456] [cursor=pointer]
+                    - button "Retry" [ref=e457] [cursor=pointer]
+                    - button "Skip" [ref=e458] [cursor=pointer]
+                    - button "Edit" [ref=e459] [cursor=pointer]
+                    - button "↑" [ref=e460] [cursor=pointer]
+                    - button "↓" [ref=e461] [cursor=pointer]
+                  - generic [ref=e462]:
+                    - code [ref=e463]: kiwi-control prepare "update README docs"
+                    - generic [ref=e464]: Context selection and prepared scope must be recorded before execution.
+                    - generic [ref=e465]: kiwi-control prepare "update README docs"
+                - article [ref=e466]:
+                  - generic [ref=e467]:
+                    - generic [ref=e468]:
+                      - generic [ref=e469]: step 2
+                      - strong [ref=e470]: Modify the selected files
+                      - paragraph [ref=e471]: Generated 3 task packets for "update README docs".
+                    - generic [ref=e473]: success
+                  - generic [ref=e474]:
+                    - button "Focus" [ref=e475] [cursor=pointer]
+                    - button "Run" [ref=e476] [cursor=pointer]
+                    - button "Retry" [ref=e477] [cursor=pointer]
+                    - button "Skip" [ref=e478] [cursor=pointer]
+                    - button "Edit" [ref=e479] [cursor=pointer]
+                    - button "↑" [ref=e480] [cursor=pointer]
+                    - button "↓" [ref=e481] [cursor=pointer]
+                  - generic [ref=e482]:
+                    - code [ref=e483]: kiwi-control run "update README docs"
+                    - generic [ref=e484]: Execution must produce packet/output artifacts inside the prepared scope.
+                    - generic [ref=e485]: kiwi-control run "update README docs"
+                - article [ref=e486]:
+                  - generic [ref=e487]:
+                    - generic [ref=e488]:
+                      - generic [ref=e489]: step 3
+                      - strong [ref=e490]: Validate the task outcome
+                      - paragraph [ref=e491]: Final validation confirms scope and outcome correctness.
+                    - generic [ref=e493]: failed
+                  - generic [ref=e494]:
+                    - button "Focus" [ref=e495] [cursor=pointer]
+                    - button "Run" [ref=e496] [cursor=pointer]
+                    - button "Retry" [ref=e497] [cursor=pointer]
+                    - button "Skip" [ref=e498] [cursor=pointer]
+                    - button "Edit" [ref=e499] [cursor=pointer]
+                    - button "↑" [ref=e500] [cursor=pointer]
+                    - button "↓" [ref=e501] [cursor=pointer]
+                  - generic [ref=e502]:
+                    - code [ref=e503]: kiwi-control validate "update README docs"
+                    - generic [ref=e504]: Validation must confirm expected files changed, scope remained bounded, and the task goal was achieved.
+                    - generic [ref=e505]: kiwi-control validate "update README docs"
+                - article [ref=e506]:
+                  - generic [ref=e507]:
+                    - generic [ref=e508]:
+                      - generic [ref=e509]: step 4
+                      - strong [ref=e510]: Checkpoint the validated work
+                      - paragraph [ref=e511]: Checkpoint artifacts record validated progress.
+                    - generic [ref=e513]: pending
+                  - generic [ref=e514]:
+                    - button "Focus" [ref=e515] [cursor=pointer]
+                    - button "Run" [ref=e516] [cursor=pointer]
+                    - button "Retry" [ref=e517] [cursor=pointer]
+                    - button "Skip" [ref=e518] [cursor=pointer]
+                    - button "Edit" [ref=e519] [cursor=pointer]
+                    - button "↑" [ref=e520] [cursor=pointer]
+                    - button "↓" [ref=e521] [cursor=pointer]
+                  - generic [ref=e522]:
+                    - code [ref=e523]: kiwi-control checkpoint "validated-progress"
+                    - generic [ref=e524]: Checkpointing is allowed only after validation passes.
+                    - generic [ref=e525]: kiwi-control checkpoint "validated-progress"
+                - article [ref=e526]:
+                  - generic [ref=e527]:
+                    - generic [ref=e528]:
+                      - generic [ref=e529]: step 5
+                      - strong [ref=e530]: Handoff the work
+                      - paragraph [ref=e531]: Handoff artifacts are written for the next specialist/tool.
+                    - generic [ref=e533]: pending
+                  - generic [ref=e534]:
+                    - button "Focus" [ref=e535] [cursor=pointer]
+                    - button "Run" [ref=e536] [cursor=pointer]
+                    - button "Retry" [ref=e537] [cursor=pointer]
+                    - button "Skip" [ref=e538] [cursor=pointer]
+                    - button "Edit" [ref=e539] [cursor=pointer]
+                    - button "↑" [ref=e540] [cursor=pointer]
+                    - button "↓" [ref=e541] [cursor=pointer]
+                  - generic [ref=e542]:
+                    - code [ref=e543]: kiwi-control handoff --to fullstack-specialist
+                    - generic [ref=e544]: Handoff should happen after checkpoint captures validated progress.
+                    - generic [ref=e545]: kiwi-control handoff
+            - generic [ref=e546]:
+              - generic [ref=e547]:
+                - generic [ref=e548]:
+                  - generic [ref=e549]:
+                    - paragraph [ref=e550]: Context Tree
+                    - heading "Context Tree" [level=3] [ref=e551]
+                  - generic [ref=e552]: What Kiwi selected, considered, and ignored from the live selector state.
+                - generic [ref=e553]: MEDIUM
+              - generic [ref=e554]:
+                - generic [ref=e555]:
+                  - generic [ref=e556]:
+                    - strong [ref=e557]: ✓
+                    - text: selected
+                  - generic [ref=e558]:
+                    - strong [ref=e559]: •
+                    - text: candidate
+                  - generic [ref=e560]:
+                    - strong [ref=e561]: ×
+                    - text: excluded
+                  - generic [ref=e562]:
+                    - strong [ref=e563]: local
+                    - text: UI-only until a CLI command runs
+                - generic [ref=e564]:
+                  - generic [ref=e565]:
+                    - generic [ref=e566]:
+                      - generic [ref=e567]: ×
+                      - generic [ref=e568]: README.md
+                      - generic:
+                        - button "Focus"
+                        - button "Include"
+                        - button "Exclude"
+                        - button "Ignore"
+                        - button "Open"
+                    - text: excluded
+                  - group [ref=e569]:
+                    - generic "▸ • docs/ Focus Include Exclude Ignore Open" [ref=e570]:
+                      - generic [ref=e571]: ▸
+                      - generic [ref=e572]: •
+                      - generic [ref=e573]: docs/
+                      - generic [ref=e574]:
+                        - button "Focus" [ref=e575] [cursor=pointer]
+                        - button "Include" [ref=e576] [cursor=pointer]
+                        - button "Exclude" [ref=e577] [cursor=pointer]
+                        - button "Ignore" [ref=e578] [cursor=pointer]
+                        - button "Open" [ref=e579] [cursor=pointer]
+                    - generic [ref=e580]: candidate
+                    - generic [ref=e581]:
+                      - generic [ref=e582]:
+                        - generic [ref=e583]:
+                          - generic [ref=e584]: •
+                          - generic [ref=e585]: active-role-hints.md
+                          - generic:
+                            - button "Focus"
+                            - button "Include"
+                            - button "Exclude"
+                            - button "Ignore"
+                            - button "Open"
+                        - text: candidate
+                      - generic [ref=e586]:
+                        - generic [ref=e587]:
+                          - generic [ref=e588]: •
+                          - generic [ref=e589]: architecture.md
+                          - generic:
+                            - button "Focus"
+                            - button "Include"
+                            - button "Exclude"
+                            - button "Ignore"
+                            - button "Open"
+                        - text: candidate
+                      - generic [ref=e590]:
+                        - generic [ref=e591]:
+                          - generic [ref=e592]: •
+                          - generic [ref=e593]: artifact-contracts.md
+                          - generic:
+                            - button "Focus"
+                            - button "Include"
+                            - button "Exclude"
+                            - button "Ignore"
+                            - button "Open"
+                        - text: candidate
+                      - generic [ref=e594]:
+                        - generic [ref=e595]:
+                          - generic [ref=e596]: •
+                          - generic [ref=e597]: beta-limitations.md
+                          - generic:
+                            - button "Focus"
+                            - button "Include"
+                            - button "Exclude"
+                            - button "Ignore"
+                            - button "Open"
+                        - text: candidate
+                      - generic [ref=e598]:
+                        - generic [ref=e599]:
+                          - generic [ref=e600]: •
+                          - generic [ref=e601]: beta-readiness-checklist.md
+                          - generic:
+                            - button "Focus"
+                            - button "Include"
+                            - button "Exclude"
+                            - button "Ignore"
+                            - button "Open"
+                        - text: candidate
+                      - generic [ref=e602]:
+                        - generic [ref=e603]:
+                          - generic [ref=e604]: •
+                          - generic [ref=e605]: bootstrap-and-standardize.md
+                          - generic:
+                            - button "Focus"
+                            - button "Include"
+                            - button "Exclude"
+                            - button "Ignore"
+                            - button "Open"
+                        - text: candidate
+                      - generic [ref=e606]:
+                        - generic [ref=e607]:
+                          - generic [ref=e608]: •
+                          - generic [ref=e609]: checkpointing.md
+                          - generic:
+                            - button "Focus"
+                            - button "Include"
+                            - button "Exclude"
+                            - button "Ignore"
+                            - button "Open"
+                        - text: candidate
+                      - generic [ref=e610]:
+                        - generic [ref=e611]:
+                          - generic [ref=e612]: •
+                          - generic [ref=e613]: ci-enforcement.md
+                          - generic:
+                            - button "Focus"
+                            - button "Include"
+                            - button "Exclude"
+                            - button "Ignore"
+                            - button "Open"
+                        - text: candidate
+                      - generic [ref=e614]:
+                        - generic [ref=e615]:
+                          - generic [ref=e616]: •
+                          - generic [ref=e617]: claude-role-integration.md
+                          - generic:
+                            - button "Focus"
+                            - button "Include"
+                            - button "Exclude"
+                            - button "Ignore"
+                            - button "Open"
+                        - text: candidate
+                      - generic [ref=e618]:
+                        - generic [ref=e619]:
+                          - generic [ref=e620]: •
+                          - generic [ref=e621]: contract-minimization.md
+                          - generic:
+                            - button "Focus"
+                            - button "Include"
+                            - button "Exclude"
+                            - button "Ignore"
+                            - button "Open"
+                        - text: candidate
+                      - generic [ref=e622]:
+                        - generic [ref=e623]:
+                          - generic [ref=e624]: •
+                          - generic [ref=e625]: copilot-integration.md
+                          - generic:
+                            - button "Focus"
+                            - button "Include"
+                            - button "Exclude"
+                            - button "Ignore"
+                            - button "Open"
+                        - text: candidate
+                      - generic [ref=e626]:
+                        - generic [ref=e627]:
+                          - generic [ref=e628]: •
+                          - generic [ref=e629]: daily-workflow.md
+                          - generic:
+                            - button "Focus"
+                            - button "Include"
+                            - button "Exclude"
+                            - button "Ignore"
+                            - button "Open"
+                        - text: candidate
+                      - generic [ref=e630]:
+                        - generic [ref=e631]:
+                          - generic [ref=e632]: •
+                          - generic [ref=e633]: README.md
+                          - generic:
+                            - button "Focus"
+                            - button "Include"
+                            - button "Exclude"
+                            - button "Ignore"
+                            - button "Open"
+                        - text: candidate
+                  - group [ref=e634]:
+                    - generic "▸ ✓ scripts/ Focus Include Exclude Ignore Open" [ref=e635]:
+                      - generic [ref=e636]: ▸
+                      - generic [ref=e637]: ✓
+                      - generic [ref=e638]: scripts/
+                      - generic:
+                        - button "Focus"
+                        - button "Include"
+                        - button "Exclude"
+                        - button "Ignore"
+                        - button "Open"
+                  - group [ref=e639]:
+                    - generic "▸ ✓ apps/ Focus Include Exclude Ignore Open" [ref=e640]:
+                      - generic [ref=e641]: ▸
+                      - generic [ref=e642]: ✓
+                      - generic [ref=e643]: apps/
+                      - generic:
+                        - button "Focus"
+                        - button "Include"
+                        - button "Exclude"
+                        - button "Ignore"
+                        - button "Open"
+                    - text: ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸
+                  - group [ref=e644]:
+                    - generic "▸ ✓ packages/ Focus Include Exclude Ignore Open" [ref=e645]:
+                      - generic [ref=e646]: ▸
+                      - generic [ref=e647]: ✓
+                      - generic [ref=e648]: packages/
+                      - generic:
+                        - button "Focus"
+                        - button "Include"
+                        - button "Exclude"
+                        - button "Ignore"
+                        - button "Open"
+                    - text: ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸
+            - generic [ref=e649]:
+              - generic [ref=e650]:
+                - generic [ref=e651]:
+                  - generic [ref=e652]:
+                    - paragraph [ref=e653]: What Kiwi Knows
+                    - heading "What Kiwi Knows" [level=3] [ref=e654]
+                  - generic [ref=e655]: Immediate operating context exposed as concrete system signals.
+                - generic [ref=e656]:
+                  - generic [ref=e657]:
+                    - generic [ref=e658]:
+                      - strong [ref=e659]: Reasoning
+                      - generic [ref=e660]: Useful evidence was found across the repo, but coverage is still partial.
+                    - emphasis [ref=e661]: MEDIUM
+                  - generic [ref=e662]:
+                    - generic [ref=e663]:
+                      - strong [ref=e664]: Indexing
+                      - generic [ref=e665]: Discovery reached depth 9 and stayed within budget. The incremental import index reused 222 files and refreshed 31.
+                    - emphasis [ref=e666]: 398 files
+                  - generic [ref=e667]:
+                    - generic [ref=e668]:
+                      - strong [ref=e669]: Validation
+                      - generic [ref=e670]: 1 warning remain, but the repo-local control surfaces are present and readable.
+                    - emphasis [ref=e671]: 0 errors / 1 warnings
+              - generic [ref=e672]:
+                - generic [ref=e673]:
+                  - generic [ref=e674]:
+                    - paragraph [ref=e675]: What Kiwi Learned
+                    - heading "What Kiwi Learned" [level=3] [ref=e676]
+                  - generic [ref=e677]: Adaptive feedback and recent system memory for this task scope.
+                - paragraph [ref=e678]: No learned file preference is strong enough to surface yet.
+            - generic [ref=e679]:
+              - generic [ref=e680]:
+                - generic [ref=e681]:
+                  - generic [ref=e682]:
+                    - paragraph [ref=e683]: Active Skills
+                    - heading "Active Skills" [level=3] [ref=e684]
+                  - generic [ref=e685]: Repo-local skills currently shaping the task instructions and workflow trace.
+                - paragraph [ref=e686]: No repo-local skills matched the active task.
+              - generic [ref=e687]:
+                - generic [ref=e688]:
+                  - generic [ref=e689]:
+                    - paragraph [ref=e690]: Suggested Skills
+                    - heading "Suggested Skills" [level=3] [ref=e691]
+                  - generic [ref=e692]: Additional repo-local skills that may become relevant as the task expands.
+                - paragraph [ref=e693]: No additional skills are currently suggested.
+            - generic [ref=e694]:
+              - generic [ref=e695]:
+                - generic [ref=e696]:
+                  - generic [ref=e697]:
+                    - paragraph [ref=e698]: HOW IT WORKS
+                    - heading "HOW IT WORKS" [level=3] [ref=e699]
+                  - generic [ref=e700]: What Kiwi did, how it did it, and what it intentionally left out.
+                - generic [ref=e701]:
+                  - generic [ref=e702]:
+                    - generic [ref=e703]:
+                      - strong [ref=e704]: What was done
+                      - generic [ref=e705]: Kiwi built a bounded working set from repo-local signals, then trimmed low-relevance files.
+                    - emphasis [ref=e706]: 43 selected
+                  - generic [ref=e707]:
+                    - generic [ref=e708]:
+                      - strong [ref=e709]: How it was done
+                      - generic [ref=e710]: Seeded selection from 35 changed, 70 import, 15 keyword, 0 proximity, and 15 repo-context signals.
+                    - emphasis [ref=e711]: 3 trace steps
+                  - generic [ref=e712]:
+                    - generic [ref=e713]:
+                      - strong [ref=e714]: Why it was done
+                      - generic [ref=e715]: "Fix the blocking execution issue: Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+                    - emphasis [ref=e716]: critical
+                  - generic [ref=e717]:
+                    - generic [ref=e718]:
+                      - strong [ref=e719]: What was ignored
+                      - generic [ref=e720]: Ignored compatibility plan hints because runtime recovery is active.
+                    - emphasis [ref=e721]: 77 excluded / 20 skipped
+              - generic [ref=e722]:
+                - generic [ref=e723]:
+                  - generic [ref=e724]:
+                    - paragraph [ref=e725]: DECISION LOGIC
+                    - heading "DECISION LOGIC" [level=3] [ref=e726]
+                  - generic [ref=e727]: The reasoning chain behind the current primary action.
+                - generic [ref=e728]:
+                  - generic [ref=e731]: Runtime decision state is the canonical source of truth for next-step decisions.
+                  - generic [ref=e734]: The active runtime step is validate.
+                  - generic [ref=e737]: "A canonical runtime recovery is active: blocked."
+        - generic [ref=e739]:
+          - generic [ref=e740]:
+            - button "Execution History" [ref=e742] [cursor=pointer]
+            - button [ref=e743] [cursor=pointer]:
+              - img [ref=e744]
+          - paragraph [ref=e748]: No execution history is recorded yet.
+      - complementary [ref=e749]:
+        - generic [ref=e750]:
+          - generic [ref=e751]:
+            - generic [ref=e752]:
+              - text: Inspector
+              - heading "smoke-test.sh" [level=2] [ref=e753]
+            - button "×" [ref=e754] [cursor=pointer]
+          - generic [ref=e755]:
+            - paragraph [ref=e756]: Controls
+            - generic [ref=e757]:
+              - button "Approve" [ref=e758] [cursor=pointer]
+              - button "Reject" [ref=e759] [cursor=pointer]
+              - button "Add to Context" [ref=e760] [cursor=pointer]
+              - button "Trigger Validation" [ref=e761] [cursor=pointer]
+              - button "Quick Handoff" [ref=e762] [cursor=pointer]
+            - generic [ref=e764]:
+              - generic [ref=e765]:
+                - strong [ref=e766]: Selection
+                - generic [ref=e767]: scripts/smoke-test.sh
+              - emphasis [ref=e768]: path
+            - generic [ref=e769]:
+              - generic [ref=e770]:
+                - strong [ref=e771]: Decision
+                - generic [ref=e772]: Local inspector review state for the current focus.
+              - emphasis [ref=e773]: unmarked
+          - generic [ref=e774]:
+            - paragraph [ref=e775]: Reasoning
+            - paragraph [ref=e776]: scripts/smoke-test.sh
+            - generic [ref=e777]:
+              - generic [ref=e778]: MEDIUM
+              - generic [ref=e779]: Useful evidence was found across the repo, but coverage is still partial.
+              - generic [ref=e780]: heuristic
+              - generic [ref=e781]: low confidence
+              - generic [ref=e782]: partial scan
+          - generic [ref=e783]:
+            - paragraph [ref=e784]: Decision inputs
+            - generic [ref=e785]:
+              - generic [ref=e786]:
+                - generic [ref=e787]:
+                  - strong [ref=e788]: "execution lifecycle: blocked"
+                  - generic [ref=e789]: Ignoring this signal can reduce decision quality or hide relevant files.
+                - emphasis [ref=e790]: impact
+              - generic [ref=e791]:
+                - generic [ref=e792]:
+                  - strong [ref=e793]: "current step: validate"
+                  - generic [ref=e794]: Ignoring this signal can reduce decision quality or hide relevant files.
+                - emphasis [ref=e795]: impact
+              - generic [ref=e796]:
+                - generic [ref=e797]:
+                  - strong [ref=e798]: "decision source: validate-command"
+                  - generic [ref=e799]: Ignoring this signal can reduce decision quality or hide relevant files.
+                - emphasis [ref=e800]: impact
+          - generic [ref=e801]:
+            - paragraph [ref=e802]: Lifecycle
+            - generic [ref=e803]:
+              - generic [ref=e804]:
+                - generic [ref=e805]: Stage
+                - strong [ref=e806]: blocked
+              - generic [ref=e807]:
+                - generic [ref=e808]: Validation
+                - strong [ref=e809]: error
+            - paragraph [ref=e810]: Run kiwi-control prepare "update README docs", then rerun kiwi-control validate "update README docs".
+            - paragraph [ref=e811]: Compatibility/debug snapshot.
+          - generic [ref=e812]:
+            - paragraph [ref=e813]: Token estimate
+            - generic [ref=e814]:
+              - generic [ref=e815]:
+                - generic [ref=e816]: Measured
+                - strong [ref=e817]: 38,284,534,098
+              - generic [ref=e818]:
+                - generic [ref=e819]: Selected
+                - strong [ref=e820]: ~176,613
+              - generic [ref=e821]:
+                - generic [ref=e822]: Full repo
+                - strong [ref=e823]: ~598,393
+              - generic [ref=e824]:
+                - generic [ref=e825]: Saved
+                - strong [ref=e826]: ~70%
+            - paragraph [ref=e827]: Measured run usage came from Codex session logs using a ccusage-compatible parser. Per-file measured attribution is only available when execution-log entries include non-zero token totals.
+          - generic [ref=e828]:
+            - paragraph [ref=e829]: Command
+            - code [ref=e830]: kiwi-control prepare "update README docs"

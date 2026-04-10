@@ -1,0 +1,226 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e4829]:
+      - generic [ref=e4830]:
+        - button "shrey-junior /Volumes/shrey ssd/shrey-junior" [ref=e4831]:
+          - generic [ref=e4832]: shrey-junior
+          - generic [ref=e4833]: /Volumes/shrey ssd/shrey-junior
+        - generic [ref=e4834]: Repo is usable with warnings
+        - generic [ref=e4835]: node
+        - generic [ref=e4836]: bootstrap initialized [complete]
+      - generic [ref=e4837]:
+        - generic [ref=e4838]:
+          - button "Execution" [ref=e4839] [cursor=pointer]
+          - button "Inspection" [ref=e4840] [cursor=pointer]
+        - generic [ref=e4841]:
+          - strong [ref=e4842]: execution
+          - generic [ref=e4843]: 1 warning
+        - button "Light mode" [ref=e4844] [cursor=pointer]:
+          - img [ref=e4845]
+          - generic [ref=e4851]: Light mode
+        - button [ref=e4852] [cursor=pointer]:
+          - img [ref=e4853]
+        - button [ref=e4855] [cursor=pointer]:
+          - img [ref=e4856]
+    - generic [ref=e4859]:
+      - button "Guide" [ref=e4860] [cursor=pointer]
+      - button "Next" [ref=e4861] [cursor=pointer]
+      - button "Review" [ref=e4862] [cursor=pointer]
+      - button "Validate" [ref=e4863] [cursor=pointer]
+      - button "Retry" [ref=e4864] [cursor=pointer]
+      - button "Run Auto" [ref=e4865] [cursor=pointer]
+      - button "Checkpoint" [ref=e4866] [cursor=pointer]
+      - button "Handoff" [ref=e4867] [cursor=pointer]
+    - generic [ref=e4868]:
+      - generic [ref=e4869]:
+        - generic [ref=e4870]: Workflow blocked
+        - strong [ref=e4872]: "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+      - code [ref=e4874]: kc prepare "update README docs" --target "/Volumes/shrey ssd/shrey-junior"
+  - generic [ref=e53]:
+    - complementary [ref=e54]:
+      - generic [ref=e56]: K
+      - navigation [ref=e57]:
+        - button "Overview" [ref=e4877] [cursor=pointer]:
+          - img [ref=e4879]
+          - generic [ref=e4884]: Overview
+        - button "Context" [ref=e4885] [cursor=pointer]:
+          - img [ref=e4887]
+          - generic [ref=e4889]: Context
+        - button "Graph" [ref=e4890] [cursor=pointer]:
+          - img [ref=e4892]
+          - generic [ref=e4902]: Graph
+        - button "Tokens" [ref=e4903] [cursor=pointer]:
+          - img [ref=e4905]
+          - generic [ref=e4907]: Tokens
+        - button "Feedback" [ref=e4908] [cursor=pointer]:
+          - img [ref=e4910]
+          - generic [ref=e4916]: Feedback
+        - button "MCPs" [ref=e4917] [cursor=pointer]:
+          - img [ref=e4919]
+          - generic [ref=e4922]: MCPs
+        - button "Specialists" [ref=e4923] [cursor=pointer]:
+          - img [ref=e4925]
+          - generic [ref=e4928]: Specialists
+        - button "System" [ref=e4929] [cursor=pointer]:
+          - img [ref=e4931]
+          - generic [ref=e4933]: System
+        - button "Validation" [ref=e4934] [cursor=pointer]:
+          - img [ref=e4936]
+          - generic [ref=e4939]: Validation
+        - button "Machine" [ref=e4940] [cursor=pointer]:
+          - img [ref=e4942]
+          - generic [ref=e4944]: Machine
+      - generic [ref=e126]: 1 warning remain, but the repo-local control surfaces are present and readable.
+    - generic [ref=e128]:
+      - generic [ref=e129]:
+        - generic [ref=e130]:
+          - generic [ref=e4946]:
+            - generic [ref=e4947]:
+              - generic [ref=e4948]:
+                - paragraph [ref=e4949]: Workflow blocked
+                - strong [ref=e4950]: Workflow blocked
+              - generic [ref=e4951]: blocked
+            - paragraph [ref=e4953]: "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+            - code [ref=e4955]: kc prepare "update README docs" --target "/Volumes/shrey ssd/shrey-junior"
+          - generic [ref=e4956]:
+            - generic [ref=e4957]:
+              - generic [ref=e4958]:
+                - paragraph [ref=e4959]: Feedback
+                - heading "Adaptive feedback is limited" [level=1] [ref=e4960]
+                - paragraph [ref=e4961]: Adaptive feedback is idle. Kiwi Control learns only from successful checkpoints and handoffs.
+              - generic [ref=e4962]: 0 runs
+            - generic [ref=e4963]:
+              - generic [ref=e4964]:
+                - generic [ref=e4965]:
+                  - paragraph [ref=e4966]: Adaptive Feedback
+                  - heading "Adaptive Feedback" [level=3] [ref=e4967]
+                - generic [ref=e4968]: Kiwi keeps this quiet until successful runtime-backed work creates useful signal.
+              - generic [ref=e4969]:
+                - generic [ref=e4970]:
+                  - generic [ref=e4971]:
+                    - strong [ref=e4972]: Current state
+                    - generic [ref=e4973]: Adaptive feedback is idle. Kiwi Control learns only from successful checkpoints and handoffs.
+                  - emphasis [ref=e4974]: limited
+                - generic [ref=e4975]:
+                  - generic [ref=e4976]:
+                    - strong [ref=e4977]: What to do next
+                    - generic [ref=e4978]: Use the main runtime-backed flow first. This page grows only when there is real signal to show.
+                  - emphasis [ref=e4979]: keep working normally
+        - generic [ref=e4980]:
+          - generic [ref=e4981]:
+            - button "Execution History" [ref=e4983] [cursor=pointer]
+            - button [ref=e4984] [cursor=pointer]:
+              - img [ref=e4985]
+          - generic [ref=e4988]:
+            - generic [ref=e4989]:
+              - generic [ref=e4990]: Prepare Completed
+              - strong [ref=e4991]: Prepared 43 selected files for "update README docs". · artifacts updated · 8 Apr, 3:21
+            - generic [ref=e4992]:
+              - generic [ref=e4993]: Run Packetized
+              - strong [ref=e4994]: Generated 3 task packets for "update README docs". · artifacts updated · 8 Apr, 3:21
+            - generic [ref=e4995]:
+              - generic [ref=e4996]: Run Auto Queued
+              - strong [ref=e4997]: Auto run queued the current execution plan. · 8 Apr, 3:21
+            - generic [ref=e4998]:
+              - generic [ref=e4999]: Run Auto Step Started
+              - strong [ref=e5000]: Auto run is executing validate. · 8 Apr, 3:21
+            - generic [ref=e5001]:
+              - generic [ref=e5002]: Execution Step Started
+              - strong [ref=e5003]: Executing validate. · 8 Apr, 3:21
+            - generic [ref=e5004]:
+              - generic [ref=e5005]: Validation Started
+              - strong [ref=e5006]: Validating "update README docs". · 8 Apr, 3:21
+            - generic [ref=e5007]:
+              - generic [ref=e5008]: Validation Failed
+              - strong [ref=e5009]: Touched files do not satisfy the task-category goal heuristic. · artifacts updated · 8 Apr, 3:21
+            - generic [ref=e5010]:
+              - generic [ref=e5011]: Run Auto Blocked
+              - strong [ref=e5012]: Touched files do not satisfy the task-category goal heuristic. · artifacts updated · 8 Apr, 3:21
+            - generic [ref=e5013]:
+              - generic [ref=e5014]: Prepare Completed
+              - strong [ref=e5015]: Prepared 43 selected files for "update README docs". · artifacts updated · 8 Apr, 3:22
+            - generic [ref=e5016]:
+              - generic [ref=e5017]: Validation Started
+              - strong [ref=e5018]: Validating "update README docs". · artifacts updated · 9 Apr, 21:03
+      - complementary [ref=e553]:
+        - generic [ref=e5019]:
+          - generic [ref=e5020]:
+            - generic [ref=e5021]:
+              - text: Inspector
+              - heading "Fix the blocking execution issue" [level=2] [ref=e5022]
+            - button "×" [ref=e5023] [cursor=pointer]
+          - generic [ref=e5024]:
+            - paragraph [ref=e5025]: Controls
+            - generic [ref=e5026]:
+              - button "Approve" [disabled] [ref=e5027]
+              - button "Reject" [disabled] [ref=e5028]
+              - button "Add to Context" [disabled] [ref=e5029]
+              - button "Trigger Validation" [ref=e5030] [cursor=pointer]
+              - button "Quick Handoff" [ref=e5031] [cursor=pointer]
+            - generic [ref=e5033]:
+              - generic [ref=e5034]:
+                - strong [ref=e5035]: Selection
+                - generic [ref=e5036]: "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+              - emphasis [ref=e5037]: global
+            - generic [ref=e5038]:
+              - generic [ref=e5039]:
+                - strong [ref=e5040]: Decision
+                - generic [ref=e5041]: Select a node or plan step to review it here.
+              - emphasis [ref=e5042]: unmarked
+          - generic [ref=e5043]:
+            - paragraph [ref=e5044]: Reasoning
+            - paragraph [ref=e5045]: "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+            - generic [ref=e5046]:
+              - generic [ref=e5047]: MEDIUM
+              - generic [ref=e5048]: Useful evidence was found across the repo, but coverage is still partial.
+              - generic [ref=e5049]: heuristic
+              - generic [ref=e5050]: low confidence
+              - generic [ref=e5051]: partial scan
+          - generic [ref=e5052]:
+            - paragraph [ref=e5053]: Decision inputs
+            - generic [ref=e5054]:
+              - generic [ref=e5055]:
+                - generic [ref=e5056]:
+                  - strong [ref=e5057]: "execution lifecycle: blocked"
+                  - generic [ref=e5058]: Ignoring this signal can reduce decision quality or hide relevant files.
+                - emphasis [ref=e5059]: impact
+              - generic [ref=e5060]:
+                - generic [ref=e5061]:
+                  - strong [ref=e5062]: "current step: validate"
+                  - generic [ref=e5063]: Ignoring this signal can reduce decision quality or hide relevant files.
+                - emphasis [ref=e5064]: impact
+              - generic [ref=e5065]:
+                - generic [ref=e5066]:
+                  - strong [ref=e5067]: "decision source: validate-command"
+                  - generic [ref=e5068]: Ignoring this signal can reduce decision quality or hide relevant files.
+                - emphasis [ref=e5069]: impact
+          - generic [ref=e5070]:
+            - paragraph [ref=e5071]: Lifecycle
+            - generic [ref=e5072]:
+              - generic [ref=e5073]:
+                - generic [ref=e5074]: Stage
+                - strong [ref=e5075]: blocked
+              - generic [ref=e5076]:
+                - generic [ref=e5077]: Validation
+                - strong [ref=e5078]: error
+            - paragraph [ref=e5079]: Run kiwi-control prepare "update README docs", then rerun kiwi-control validate "update README docs".
+            - paragraph [ref=e5080]: Compatibility/debug snapshot.
+          - generic [ref=e5081]:
+            - paragraph [ref=e5082]: Token estimate
+            - generic [ref=e5083]:
+              - generic [ref=e5084]:
+                - generic [ref=e5085]: Measured
+                - strong [ref=e5086]: 38,284,534,098
+              - generic [ref=e5087]:
+                - generic [ref=e5088]: Selected
+                - strong [ref=e5089]: ~176,613
+              - generic [ref=e5090]:
+                - generic [ref=e5091]: Full repo
+                - strong [ref=e5092]: ~598,393
+              - generic [ref=e5093]:
+                - generic [ref=e5094]: Saved
+                - strong [ref=e5095]: ~70%
+            - paragraph [ref=e5096]: Measured run usage came from Codex session logs using a ccusage-compatible parser. Per-file measured attribution is only available when execution-log entries include non-zero token totals.
+          - generic [ref=e5097]:
+            - paragraph [ref=e5098]: Command
+            - code [ref=e5099]: kiwi-control prepare "update README docs"

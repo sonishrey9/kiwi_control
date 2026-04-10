@@ -9,10 +9,12 @@ import type { ExecutionPlanState } from "./execution-plan.js";
 import { loadExecutionState, type ExecutionStateRecord } from "./execution-state.js";
 import {
   getRuntimeIdentity,
+  listRuntimeExecutionEvents,
   openRuntimeTarget,
   persistRuntimeDerivedOutput,
   type RuntimeDerivedOutputStatus,
   type RuntimeDecision,
+  type RuntimeExecutionEvent,
   type RuntimeIdentity,
   type RuntimeSnapshot
 } from "../runtime/client.js";
@@ -29,7 +31,7 @@ import {
 import { loadActiveRoleHints, loadContinuitySnapshot, loadLatestTaskPacketSet } from "./state.js";
 import type { ValidationIssue } from "./validator.js";
 import { validateControlPlane, validateTargetRepo } from "./validator.js";
-import { pathExists, readJson, renderDisplayPath } from "../utils/fs.js";
+import { pathExists, readJson, readText, renderDisplayPath } from "../utils/fs.js";
 import type { ContextSelectionState } from "./context-selector.js";
 import type { ContextTraceState, FileAnalysisEntry, IndexingState, SkippedPathEntry } from "./context-trace.js";
 import type { RuntimeLifecycleState } from "./runtime-lifecycle.js";
@@ -297,6 +299,12 @@ export interface KiwiControlRuntimeLifecycle {
   recentEvents: RuntimeLifecycleState["recentEvents"];
 }
 
+export interface KiwiControlExecutionEvents {
+  source: "runtime" | "compatibility" | "unavailable";
+  latestRevision: number | null;
+  recentEvents: RuntimeExecutionEvent[];
+}
+
 export interface KiwiControlMeasuredUsage {
   available: boolean;
   source: MeasuredUsageState["source"];
@@ -380,6 +388,7 @@ export interface KiwiControlState {
   tokenBreakdown: KiwiControlTokenBreakdown;
   decisionLogic: KiwiControlDecisionLogic;
   runtimeLifecycle: KiwiControlRuntimeLifecycle;
+  executionEvents: KiwiControlExecutionEvents;
   measuredUsage: KiwiControlMeasuredUsage;
   skills: KiwiControlSkills;
   workflow: KiwiControlWorkflow;
@@ -1276,6 +1285,96 @@ async function readJsonIfPresent<T>(filePath: string): Promise<T | null> {
   return readJson<T>(filePath);
 }
 
+function normalizeRuntimeExecutionEvent(raw: unknown): RuntimeExecutionEvent | null {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+  const event = raw as Record<string, unknown>;
+  if (typeof event.revision !== "number" || typeof event.eventType !== "string" || typeof event.recordedAt !== "string") {
+    return null;
+  }
+
+  return {
+    eventId: typeof event.eventId === "number" ? event.eventId : null,
+    revision: event.revision,
+    operationId: typeof event.operationId === "string" ? event.operationId : null,
+    eventType: event.eventType,
+    lifecycle: typeof event.lifecycle === "string" ? event.lifecycle as RuntimeExecutionEvent["lifecycle"] : "idle",
+    task: typeof event.task === "string" ? event.task : null,
+    sourceCommand: typeof event.sourceCommand === "string" ? event.sourceCommand : null,
+    reason: typeof event.reason === "string" ? event.reason : null,
+    nextCommand: typeof event.nextCommand === "string" ? event.nextCommand : null,
+    blockedBy: Array.isArray(event.blockedBy) ? event.blockedBy.filter((value): value is string => typeof value === "string") : [],
+    artifacts:
+      event.artifacts && typeof event.artifacts === "object"
+        ? Object.fromEntries(
+            Object.entries(event.artifacts as Record<string, unknown>).map(([key, value]) => [
+              key,
+              Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : []
+            ])
+          )
+        : {},
+    actor: typeof event.actor === "string" ? event.actor : "compatibility-fallback",
+    recordedAt: event.recordedAt
+  };
+}
+
+async function loadExecutionEventFeed(
+  targetRoot: string,
+  runtimeSnapshot?: RuntimeSnapshot
+): Promise<KiwiControlExecutionEvents> {
+  if (runtimeSnapshot) {
+    try {
+      const runtimeEvents = await listRuntimeExecutionEvents(targetRoot);
+      return {
+        source: "runtime",
+        latestRevision: runtimeEvents.latestRevision,
+        recentEvents: runtimeEvents.events.slice(0, 12)
+      };
+    } catch {
+      // Fall through to the repo-local compatibility export below.
+    }
+  }
+
+  const compatibilityPath = path.join(targetRoot, ".agent", "state", "execution-events.ndjson");
+  if (!(await pathExists(compatibilityPath))) {
+    return {
+      source: "unavailable",
+      latestRevision: runtimeSnapshot?.revision ?? null,
+      recentEvents: []
+    };
+  }
+
+  try {
+    const raw = await readText(compatibilityPath);
+    const recentEvents = raw
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .slice(-12)
+      .map((line) => {
+        try {
+          return normalizeRuntimeExecutionEvent(JSON.parse(line));
+        } catch {
+          return null;
+        }
+      })
+      .filter((event): event is RuntimeExecutionEvent => event !== null)
+      .reverse();
+    return {
+      source: "compatibility",
+      latestRevision: recentEvents[0]?.revision ?? runtimeSnapshot?.revision ?? null,
+      recentEvents
+    };
+  } catch {
+    return {
+      source: "unavailable",
+      latestRevision: runtimeSnapshot?.revision ?? null,
+      recentEvents: []
+    };
+  }
+}
+
 async function loadKiwiControlState(
   targetRoot: string,
   validationIssues: ValidationIssue[],
@@ -1309,7 +1408,8 @@ async function loadKiwiControlState(
     hasInstructions,
     preparedScope,
     repoIntelligence,
-    readySubstrate
+    readySubstrate,
+    executionEvents
   ] = await Promise.all([
     readJsonIfPresent<ContextSelectionState>(contextSelectionPath),
     readJsonIfPresent<IndexingState>(indexingPath),
@@ -1363,7 +1463,8 @@ async function loadKiwiControlState(
       reviewPackPath: null,
       reviewPackSummary: null
     })),
-    buildReadyRepoSubstrate(targetRoot, options.runtimeSnapshot, options.packSelection)
+    buildReadyRepoSubstrate(targetRoot, options.runtimeSnapshot, options.packSelection),
+    loadExecutionEventFeed(targetRoot, options.runtimeSnapshot)
   ]);
 
   let contextView: KiwiControlContextView = {
@@ -1800,7 +1901,7 @@ async function loadKiwiControlState(
   return {
     contextView, tokenAnalytics, efficiency,
     nextActions, feedback, execution, wastedFiles, heavyDirectories, indexing,
-    fileAnalysis, contextTrace, tokenBreakdown, decisionLogic, runtimeLifecycle,
+    fileAnalysis, contextTrace, tokenBreakdown, decisionLogic, runtimeLifecycle, executionEvents,
     measuredUsage, skills,
     workflow: {
       task: workflowState.task,

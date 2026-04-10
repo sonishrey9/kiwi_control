@@ -1,0 +1,772 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e2635]:
+      - generic [ref=e2636]:
+        - button "shrey-junior /Volumes/shrey ssd/shrey-junior" [ref=e2637]:
+          - generic [ref=e2638]: shrey-junior
+          - generic [ref=e2639]: /Volumes/shrey ssd/shrey-junior
+        - generic [ref=e2640]: Repo is usable with warnings
+        - generic [ref=e2641]: node
+        - generic [ref=e2642]: bootstrap initialized [complete]
+      - generic [ref=e2643]:
+        - generic [ref=e2644]:
+          - button "Execution" [ref=e2645] [cursor=pointer]
+          - button "Inspection" [ref=e2646] [cursor=pointer]
+        - generic [ref=e2647]:
+          - strong [ref=e2648]: execution
+          - generic [ref=e2649]: 1 warning
+        - button "Light mode" [ref=e2650] [cursor=pointer]:
+          - img [ref=e2651]
+          - generic [ref=e2657]: Light mode
+        - button [ref=e2658] [cursor=pointer]:
+          - img [ref=e2659]
+        - button [ref=e2661] [cursor=pointer]:
+          - img [ref=e2662]
+    - generic [ref=e2665]:
+      - button "Guide" [ref=e2666] [cursor=pointer]
+      - button "Next" [ref=e2667] [cursor=pointer]
+      - button "Review" [ref=e2668] [cursor=pointer]
+      - button "Validate" [ref=e2669] [cursor=pointer]
+      - button "Retry" [ref=e2670] [cursor=pointer]
+      - button "Run Auto" [ref=e2671] [cursor=pointer]
+      - button "Checkpoint" [ref=e2672] [cursor=pointer]
+      - button "Handoff" [ref=e2673] [cursor=pointer]
+    - generic [ref=e2674]:
+      - generic [ref=e2675]:
+        - generic [ref=e2676]: Workflow blocked
+        - strong [ref=e2678]: "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+      - code [ref=e2680]: kc prepare "update README docs" --target "/Volumes/shrey ssd/shrey-junior"
+  - generic [ref=e53]:
+    - complementary [ref=e54]:
+      - generic [ref=e56]: K
+      - navigation [ref=e57]:
+        - button "Overview" [ref=e2683] [cursor=pointer]:
+          - img [ref=e2685]
+          - generic [ref=e2690]: Overview
+        - button "Context" [ref=e2691] [cursor=pointer]:
+          - img [ref=e2693]
+          - generic [ref=e2695]: Context
+        - button "Graph" [ref=e2696] [cursor=pointer]:
+          - img [ref=e2698]
+          - generic [ref=e2708]: Graph
+        - button "Tokens" [ref=e2709] [cursor=pointer]:
+          - img [ref=e2711]
+          - generic [ref=e2713]: Tokens
+        - button "Feedback" [ref=e2714] [cursor=pointer]:
+          - img [ref=e2716]
+          - generic [ref=e2722]: Feedback
+        - button "MCPs" [ref=e2723] [cursor=pointer]:
+          - img [ref=e2725]
+          - generic [ref=e2728]: MCPs
+        - button "Specialists" [ref=e2729] [cursor=pointer]:
+          - img [ref=e2731]
+          - generic [ref=e2734]: Specialists
+        - button "System" [ref=e2735] [cursor=pointer]:
+          - img [ref=e2737]
+          - generic [ref=e2739]: System
+        - button "Validation" [ref=e2740] [cursor=pointer]:
+          - img [ref=e2742]
+          - generic [ref=e2745]: Validation
+        - button "Machine" [ref=e2746] [cursor=pointer]:
+          - img [ref=e2748]
+          - generic [ref=e2750]: Machine
+      - generic [ref=e126]: 1 warning remain, but the repo-local control surfaces are present and readable.
+    - generic [ref=e128]:
+      - generic [ref=e129]:
+        - generic [ref=e130]:
+          - generic [ref=e2752]:
+            - generic [ref=e2753]:
+              - generic [ref=e2754]:
+                - paragraph [ref=e2755]: Workflow blocked
+                - strong [ref=e2756]: Workflow blocked
+              - generic [ref=e2757]: blocked
+            - paragraph [ref=e2759]: "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+            - code [ref=e2761]: kc prepare "update README docs" --target "/Volumes/shrey ssd/shrey-junior"
+          - generic [ref=e2762]:
+            - generic [ref=e2763]:
+              - generic [ref=e2764]:
+                - paragraph [ref=e2765]: Context Selection
+                - heading "update README docs" [level=1] [ref=e2766]
+                - paragraph [ref=e2767]: Useful evidence was found across the repo, but coverage is still partial.
+              - generic [ref=e2768]:
+                - generic [ref=e2769]:
+                  - strong [ref=e2770]: "43"
+                  - generic [ref=e2771]: selected
+                - generic [ref=e2772]:
+                  - strong [ref=e2773]: "14"
+                  - generic [ref=e2774]: candidate
+                - generic [ref=e2775]:
+                  - strong [ref=e2776]: "69"
+                  - generic [ref=e2777]: excluded
+            - generic [ref=e2778]:
+              - generic [ref=e2779]:
+                - generic [ref=e2780]:
+                  - generic [ref=e2781]:
+                    - generic [ref=e2782]:
+                      - paragraph [ref=e2783]: Repo Tree
+                      - heading "Repo Tree" [level=3] [ref=e2784]
+                    - generic [ref=e2785]: Selected, candidate, and excluded files grounded in live selector state.
+                  - generic [ref=e2786]:
+                    - button "Include visible" [ref=e2787] [cursor=pointer]
+                    - button "Exclude visible" [ref=e2788] [cursor=pointer]
+                    - button "Reset local edits" [ref=e2789] [cursor=pointer]
+                    - button "Undo" [ref=e2790] [cursor=pointer]
+                    - button "Refresh" [ref=e2791] [cursor=pointer]:
+                      - img [ref=e2792]
+                      - text: Refresh
+                - paragraph [ref=e2797]: Local include, exclude, and ignore edits stay in this desktop session until a CLI or runtime write commits them.
+                - generic [ref=e2798]:
+                  - generic [ref=e2799]:
+                    - generic [ref=e2800]:
+                      - strong [ref=e2801]: ✓
+                      - text: selected
+                    - generic [ref=e2802]:
+                      - strong [ref=e2803]: •
+                      - text: candidate
+                    - generic [ref=e2804]:
+                      - strong [ref=e2805]: ×
+                      - text: excluded
+                  - generic [ref=e2806]:
+                    - generic [ref=e2807]:
+                      - generic [ref=e2808]:
+                        - generic [ref=e2809]: ×
+                        - generic [ref=e2810]: README.md
+                        - generic:
+                          - button "Focus"
+                          - button "Include"
+                          - button "Exclude"
+                          - button "Ignore"
+                          - button "Open"
+                      - text: excluded
+                    - group [ref=e2811]:
+                      - generic "▸ • docs/ Focus Include Exclude Ignore Open" [ref=e2812]:
+                        - generic [ref=e2813]: ▸
+                        - generic [ref=e2814]: •
+                        - generic [ref=e2815]: docs/
+                        - generic [ref=e2816]:
+                          - button "Focus" [ref=e2817] [cursor=pointer]
+                          - button "Include" [ref=e2818] [cursor=pointer]
+                          - button "Exclude" [ref=e2819] [cursor=pointer]
+                          - button "Ignore" [ref=e2820] [cursor=pointer]
+                          - button "Open" [ref=e2821] [cursor=pointer]
+                      - generic [ref=e2822]: candidate
+                      - generic [ref=e2823]:
+                        - generic [ref=e2824]:
+                          - generic [ref=e2825]:
+                            - generic [ref=e2826]: •
+                            - generic [ref=e2827]: active-role-hints.md
+                            - generic:
+                              - button "Focus"
+                              - button "Include"
+                              - button "Exclude"
+                              - button "Ignore"
+                              - button "Open"
+                          - text: candidate
+                        - generic [ref=e2828]:
+                          - generic [ref=e2829]:
+                            - generic [ref=e2830]: •
+                            - generic [ref=e2831]: architecture.md
+                            - generic:
+                              - button "Focus"
+                              - button "Include"
+                              - button "Exclude"
+                              - button "Ignore"
+                              - button "Open"
+                          - text: candidate
+                        - generic [ref=e2832]:
+                          - generic [ref=e2833]:
+                            - generic [ref=e2834]: •
+                            - generic [ref=e2835]: artifact-contracts.md
+                            - generic:
+                              - button "Focus"
+                              - button "Include"
+                              - button "Exclude"
+                              - button "Ignore"
+                              - button "Open"
+                          - text: candidate
+                        - generic [ref=e2836]:
+                          - generic [ref=e2837]:
+                            - generic [ref=e2838]: •
+                            - generic [ref=e2839]: beta-limitations.md
+                            - generic:
+                              - button "Focus"
+                              - button "Include"
+                              - button "Exclude"
+                              - button "Ignore"
+                              - button "Open"
+                          - text: candidate
+                        - generic [ref=e2840]:
+                          - generic [ref=e2841]:
+                            - generic [ref=e2842]: •
+                            - generic [ref=e2843]: beta-readiness-checklist.md
+                            - generic:
+                              - button "Focus"
+                              - button "Include"
+                              - button "Exclude"
+                              - button "Ignore"
+                              - button "Open"
+                          - text: candidate
+                        - generic [ref=e2844]:
+                          - generic [ref=e2845]:
+                            - generic [ref=e2846]: •
+                            - generic [ref=e2847]: bootstrap-and-standardize.md
+                            - generic:
+                              - button "Focus"
+                              - button "Include"
+                              - button "Exclude"
+                              - button "Ignore"
+                              - button "Open"
+                          - text: candidate
+                        - generic [ref=e2848]:
+                          - generic [ref=e2849]:
+                            - generic [ref=e2850]: •
+                            - generic [ref=e2851]: checkpointing.md
+                            - generic:
+                              - button "Focus"
+                              - button "Include"
+                              - button "Exclude"
+                              - button "Ignore"
+                              - button "Open"
+                          - text: candidate
+                        - generic [ref=e2852]:
+                          - generic [ref=e2853]:
+                            - generic [ref=e2854]: •
+                            - generic [ref=e2855]: ci-enforcement.md
+                            - generic:
+                              - button "Focus"
+                              - button "Include"
+                              - button "Exclude"
+                              - button "Ignore"
+                              - button "Open"
+                          - text: candidate
+                        - generic [ref=e2856]:
+                          - generic [ref=e2857]:
+                            - generic [ref=e2858]: •
+                            - generic [ref=e2859]: claude-role-integration.md
+                            - generic:
+                              - button "Focus"
+                              - button "Include"
+                              - button "Exclude"
+                              - button "Ignore"
+                              - button "Open"
+                          - text: candidate
+                        - generic [ref=e2860]:
+                          - generic [ref=e2861]:
+                            - generic [ref=e2862]: •
+                            - generic [ref=e2863]: contract-minimization.md
+                            - generic:
+                              - button "Focus"
+                              - button "Include"
+                              - button "Exclude"
+                              - button "Ignore"
+                              - button "Open"
+                          - text: candidate
+                        - generic [ref=e2864]:
+                          - generic [ref=e2865]:
+                            - generic [ref=e2866]: •
+                            - generic [ref=e2867]: copilot-integration.md
+                            - generic:
+                              - button "Focus"
+                              - button "Include"
+                              - button "Exclude"
+                              - button "Ignore"
+                              - button "Open"
+                          - text: candidate
+                        - generic [ref=e2868]:
+                          - generic [ref=e2869]:
+                            - generic [ref=e2870]: •
+                            - generic [ref=e2871]: daily-workflow.md
+                            - generic:
+                              - button "Focus"
+                              - button "Include"
+                              - button "Exclude"
+                              - button "Ignore"
+                              - button "Open"
+                          - text: candidate
+                        - generic [ref=e2872]:
+                          - generic [ref=e2873]:
+                            - generic [ref=e2874]: •
+                            - generic [ref=e2875]: README.md
+                            - generic:
+                              - button "Focus"
+                              - button "Include"
+                              - button "Exclude"
+                              - button "Ignore"
+                              - button "Open"
+                          - text: candidate
+                    - group [ref=e2876]:
+                      - generic "▸ ✓ scripts/ Focus Include Exclude Ignore Open" [ref=e2877]:
+                        - generic [ref=e2878]: ▸
+                        - generic [ref=e2879]: ✓
+                        - generic [ref=e2880]: scripts/
+                        - generic:
+                          - button "Focus"
+                          - button "Include"
+                          - button "Exclude"
+                          - button "Ignore"
+                          - button "Open"
+                    - group [ref=e2881]:
+                      - generic "▸ ✓ apps/ Focus Include Exclude Ignore Open" [ref=e2882]:
+                        - generic [ref=e2883]: ▸
+                        - generic [ref=e2884]: ✓
+                        - generic [ref=e2885]: apps/
+                        - generic:
+                          - button "Focus"
+                          - button "Include"
+                          - button "Exclude"
+                          - button "Ignore"
+                          - button "Open"
+                      - text: ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸
+                    - group [ref=e2886]:
+                      - generic "▸ ✓ packages/ Focus Include Exclude Ignore Open" [ref=e2887]:
+                        - generic [ref=e2888]: ▸
+                        - generic [ref=e2889]: ✓
+                        - generic [ref=e2890]: packages/
+                        - generic:
+                          - button "Focus"
+                          - button "Include"
+                          - button "Exclude"
+                          - button "Ignore"
+                          - button "Open"
+                      - text: ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸
+              - generic [ref=e2891]:
+                - generic [ref=e2892]:
+                  - generic [ref=e2893]:
+                    - paragraph [ref=e2894]: Navigation Map
+                    - heading "Navigation Map" [level=3] [ref=e2895]
+                  - generic [ref=e2896]: Use this as a high-density orientation strip before drilling into the full tree.
+                - generic [ref=e2897]:
+                  - generic [ref=e2898]: README.md:excluded
+                  - generic [ref=e2899]: docs:candidate
+                  - generic [ref=e2900]: scripts:selected
+                  - generic [ref=e2901]: apps:selected
+                  - generic [ref=e2902]: packages:selected
+                - generic [ref=e2904]:
+                  - generic [ref=e2905]:
+                    - paragraph [ref=e2906]: Selection State
+                    - heading "Selection State" [level=3] [ref=e2907]
+                  - generic [ref=e2908]: "Selected 43 files based on working tree changes. Signals: 35 changed, 70 import neighbors, 15 keyword matches, 15 repo context files, 0 proximity, 20 recent, 0 active skills. Coverage: 34% of candidate signal files. Diversity: 4 signal types. Discovery depth: 9. Budget: ~176681 tokens. Confidence: medium."
+                - generic [ref=e2909]:
+                  - generic [ref=e2910]:
+                    - generic [ref=e2911]: Confidence
+                    - strong [ref=e2912]: MEDIUM
+                  - generic [ref=e2913]:
+                    - generic [ref=e2914]: Scope area
+                    - strong [ref=e2915]: docs
+                  - generic [ref=e2916]:
+                    - generic [ref=e2917]: Selected files
+                    - strong [ref=e2918]: "43"
+                  - generic [ref=e2919]:
+                    - generic [ref=e2920]: Observed files
+                    - strong [ref=e2921]: "126"
+                  - generic [ref=e2922]:
+                    - generic [ref=e2923]: Indexed files
+                    - strong [ref=e2924]: "253"
+                  - generic [ref=e2925]:
+                    - generic [ref=e2926]: Impact files
+                    - strong [ref=e2927]: "70"
+                  - generic [ref=e2928]:
+                    - generic [ref=e2929]: Keyword matches
+                    - strong [ref=e2930]: "15"
+                  - generic [ref=e2931]:
+                    - generic [ref=e2932]: Import neighbors
+                    - strong [ref=e2933]: "70"
+                  - generic [ref=e2934]:
+                    - generic [ref=e2935]: Discovery depth
+                    - strong [ref=e2936]: "9"
+                - generic [ref=e2938]:
+                  - paragraph [ref=e2939]: Coverage
+                  - paragraph [ref=e2940]: Discovery reached depth 9 and stayed within budget. The incremental import index reused 222 files and refreshed 31.
+                  - generic [ref=e2941]:
+                    - generic [ref=e2942]: visited 58 dirs
+                    - generic [ref=e2943]: file budget clear
+                    - generic [ref=e2944]: dir budget clear
+                - generic [ref=e2946]:
+                  - paragraph [ref=e2947]: Selected files
+                  - generic [ref=e2948]:
+                    - generic [ref=e2949]: scripts/smoke-test.sh
+                    - generic [ref=e2950]: scripts/test-desktop-features.sh
+                    - generic [ref=e2951]: scripts/verify-cli-ui-truth.mjs
+                    - generic [ref=e2952]: scripts/verify-rendered-desktop.mjs
+                    - generic [ref=e2953]: apps/sj-ui/src/ui/contracts.ts
+                    - generic [ref=e2954]: apps/sj-ui/src/ui/guidance.test.ts
+                    - generic [ref=e2955]: apps/sj-ui/src/ui/guidance.ts
+                    - generic [ref=e2956]: apps/sj-ui/src/ui/readiness.test.ts
+                    - generic [ref=e2957]: apps/sj-ui/src/ui/readiness.ts
+                    - generic [ref=e2958]: apps/sj-ui/src/bootcheck.ts
+                    - generic [ref=e2959]: apps/sj-ui/src/main.ts
+                    - generic [ref=e2960]: apps/sj-ui/src-tauri/src/main.rs
+                    - generic [ref=e2961]: apps/sj-ui/src-tauri/src/state_watch.rs
+                    - generic [ref=e2962]: packages/sj-cli/src/commands/checkpoint.ts
+                    - generic [ref=e2963]: packages/sj-cli/src/commands/doctor.ts
+                    - generic [ref=e2964]: packages/sj-cli/src/commands/execution-step-runner.ts
+                    - generic [ref=e2965]: packages/sj-cli/src/commands/handoff.ts
+                    - generic [ref=e2966]: packages/sj-cli/src/commands/init.ts
+                    - generic [ref=e2967]: packages/sj-cli/src/commands/prepare.ts
+                    - generic [ref=e2968]: packages/sj-cli/src/commands/run-auto.ts
+                    - generic [ref=e2969]: packages/sj-cli/src/commands/run.ts
+                    - generic [ref=e2970]: packages/sj-cli/src/commands/status.ts
+                    - generic [ref=e2971]: packages/sj-cli/src/commands/sync.ts
+                    - generic [ref=e2972]: packages/sj-cli/src/commands/ui.ts
+                    - generic [ref=e2973]: packages/sj-cli/src/commands/validate.ts
+                    - generic [ref=e2974]: packages/sj-cli/src/tests/execution-state.test.ts
+                    - generic [ref=e2975]: packages/sj-cli/src/tests/product-surfaces.desktop-launch.test.ts
+                    - generic [ref=e2976]: packages/sj-cli/src/tests/product-surfaces.ui-json.test.ts
+                    - generic [ref=e2977]: packages/sj-cli/src/tests/project-detect.test.ts
+                    - generic [ref=e2978]: packages/sj-cli/src/tests/sync.test.ts
+                    - generic [ref=e2979]: packages/sj-core/src/core/bootstrap.ts
+                    - generic [ref=e2980]: packages/sj-core/src/core/config.ts
+                    - generic [ref=e2981]: packages/sj-core/src/core/context.ts
+                    - generic [ref=e2982]: packages/sj-core/src/core/execution-state.ts
+                    - generic [ref=e2983]: packages/sj-core/src/core/product.ts
+                    - generic [ref=e2984]: packages/sj-core/src/core/project-detect.ts
+                    - generic [ref=e2985]: packages/sj-core/src/core/repo-readiness.ts
+                    - generic [ref=e2986]: packages/sj-core/src/core/router.ts
+                    - generic [ref=e2987]: packages/sj-core/src/core/specialists.ts
+                    - generic [ref=e2988]: packages/sj-core/src/core/state.ts
+                    - generic [ref=e2989]: packages/sj-core/src/core/ui-state.ts
+                    - generic [ref=e2990]: packages/sj-core/src/runtime/ui-bridge.ts
+                    - generic [ref=e2991]: packages/sj-core/src/utils/fs.ts
+            - generic [ref=e2992]:
+              - generic [ref=e2993]:
+                - generic [ref=e2994]:
+                  - paragraph [ref=e2995]: How Kiwi Indexed This Repo
+                  - heading "How Kiwi Indexed This Repo" [level=3] [ref=e2996]
+                - generic [ref=e2997]: These are the actual scan and signal mechanics behind the current tree, not generic advice.
+              - generic [ref=e2998]:
+                - generic [ref=e2999]:
+                  - generic [ref=e3000]:
+                    - strong [ref=e3001]: Index coverage
+                    - generic [ref=e3002]: Discovery reached depth 9 and stayed within budget. The incremental import index reused 222 files and refreshed 31.
+                  - emphasis [ref=e3003]: 253 indexed · 31 refreshed · 222 reused
+                - generic [ref=e3004]:
+                  - generic [ref=e3005]:
+                    - strong [ref=e3006]: Selection signals
+                    - generic [ref=e3007]: These are the signal buckets Kiwi used to pull files into the working set.
+                  - emphasis [ref=e3008]: 35 changed · 70 import · 15 keyword · 15 repo
+                - generic [ref=e3009]:
+                  - generic [ref=e3010]:
+                    - strong [ref=e3011]: Observed tree
+                    - generic [ref=e3012]: The repo tree is built from the current context-selection artifact. Selected files are in-scope, candidate files were considered, and excluded files were filtered out.
+                  - emphasis [ref=e3013]: 43 selected · 14 candidate · 69 excluded
+                - generic [ref=e3014]:
+                  - generic [ref=e3015]:
+                    - strong [ref=e3016]: Initial evidence
+                    - generic [ref=e3017]: Before Kiwi expands scope, it starts from changed files, import neighbors, keyword matches, recent files, and repo-context files.
+                  - emphasis [ref=e3018]: 35 changed · 70 import neighbors · 15 keyword matches
+            - generic [ref=e3019]:
+              - generic [ref=e3020]:
+                - generic [ref=e3021]:
+                  - generic [ref=e3022]:
+                    - paragraph [ref=e3023]: FILE ANALYSIS PANEL
+                    - heading "FILE ANALYSIS PANEL" [level=3] [ref=e3024]
+                  - generic [ref=e3025]: Measured scan counts plus why files were selected, excluded, or skipped.
+                - generic [ref=e3026]:
+                  - generic [ref=e3027]:
+                    - generic [ref=e3028]: Total files
+                    - strong [ref=e3029]: "140"
+                  - generic [ref=e3030]:
+                    - generic [ref=e3031]: Scanned files
+                    - strong [ref=e3032]: "120"
+                  - generic [ref=e3033]:
+                    - generic [ref=e3034]: Skipped files
+                    - strong [ref=e3035]: "20"
+                  - generic [ref=e3036]:
+                    - generic [ref=e3037]: Selected files
+                    - strong [ref=e3038]: "43"
+                  - generic [ref=e3039]:
+                    - generic [ref=e3040]: Excluded files
+                    - strong [ref=e3041]: "77"
+                - generic [ref=e3043]:
+                  - generic [ref=e3044]:
+                    - generic [ref=e3045]:
+                      - strong [ref=e3046]: apps/sj-ui/src/ui/guidance.ts
+                      - generic [ref=e3047]: Selected because of changed file, import dependency, dependency distance.
+                    - emphasis [ref=e3048]: selected
+                  - generic [ref=e3049]:
+                    - generic [ref=e3050]:
+                      - strong [ref=e3051]: packages/sj-cli/src/commands/execution-step-runner.ts
+                      - generic [ref=e3052]: Selected because of changed file, import dependency, dependency distance.
+                    - emphasis [ref=e3053]: selected
+                  - generic [ref=e3054]:
+                    - generic [ref=e3055]:
+                      - strong [ref=e3056]: packages/sj-core/src/core/ui-state.ts
+                      - generic [ref=e3057]: Selected because of changed file, import dependency, dependency distance.
+                    - emphasis [ref=e3058]: selected
+                  - generic [ref=e3059]:
+                    - generic [ref=e3060]:
+                      - strong [ref=e3061]: apps/sj-ui/src/ui/ContextTreePanel.ts
+                      - generic [ref=e3062]: The file did not make the bounded working set.
+                    - emphasis [ref=e3063]: excluded
+                  - generic [ref=e3064]:
+                    - generic [ref=e3065]:
+                      - strong [ref=e3066]: apps/sj-ui/src/ui/ExecutionPlanPanel.ts
+                      - generic [ref=e3067]: The file did not make the bounded working set.
+                    - emphasis [ref=e3068]: excluded
+                  - generic [ref=e3069]:
+                    - generic [ref=e3070]:
+                      - strong [ref=e3071]: apps/sj-ui/src/ui/GraphPanel.ts
+                      - generic [ref=e3072]: The file did not make the bounded working set.
+                    - emphasis [ref=e3073]: excluded
+                  - generic [ref=e3074]:
+                    - generic [ref=e3075]:
+                      - strong [ref=e3076]: .agent
+                      - generic [ref=e3077]: hidden directory rule
+                    - emphasis [ref=e3078]: skipped
+                  - generic [ref=e3079]:
+                    - generic [ref=e3080]:
+                      - strong [ref=e3081]: .claude
+                      - generic [ref=e3082]: hidden directory rule
+                    - emphasis [ref=e3083]: skipped
+                  - generic [ref=e3084]:
+                    - generic [ref=e3085]:
+                      - strong [ref=e3086]: .code-review-graph
+                      - generic [ref=e3087]: hidden directory rule
+                    - emphasis [ref=e3088]: skipped
+              - generic [ref=e3089]:
+                - generic [ref=e3090]:
+                  - generic [ref=e3091]:
+                    - paragraph [ref=e3092]: CONTEXT TRACE
+                    - heading "CONTEXT TRACE" [level=3] [ref=e3093]
+                  - generic [ref=e3094]: Initial signals, expansion steps, and final bounded selection.
+                - generic [ref=e3095]:
+                  - group [ref=e3096]:
+                    - generic "initial signals Seeded selection from 35 changed, 70 import, 15 keyword, 0 proximity, and 15 repo-context signals. 12 files" [ref=e3097] [cursor=pointer]:
+                      - generic [ref=e3098]:
+                        - strong [ref=e3099]: initial signals
+                        - generic [ref=e3100]: Seeded selection from 35 changed, 70 import, 15 keyword, 0 proximity, and 15 repo-context signals.
+                      - generic [ref=e3101]: 12 files
+                    - generic [ref=e3103]:
+                      - generic [ref=e3104]: apps/sj-ui/src-tauri/src/main.rs
+                      - generic [ref=e3105]: apps/sj-ui/src/main.ts
+                      - generic [ref=e3106]: apps/sj-ui/src/ui/contracts.ts
+                      - generic [ref=e3107]: apps/sj-ui/src/ui/guidance.test.ts
+                      - generic [ref=e3108]: apps/sj-ui/src/ui/guidance.ts
+                      - generic [ref=e3109]: apps/sj-ui/src/ui/readiness.test.ts
+                      - generic [ref=e3110]: apps/sj-ui/src/ui/readiness.ts
+                      - generic [ref=e3111]: packages/sj-cli/src/commands/checkpoint.ts
+                  - group [ref=e3112]:
+                    - generic "expansion Expanded the working set to 120 candidate files using weighted signals and task-fit heuristics while reusing an incremental import index (31 updated, 222 reused). Shortest dependency chains were used for 70 structurally related files. 12 files" [ref=e3113] [cursor=pointer]:
+                      - generic [ref=e3114]:
+                        - strong [ref=e3115]: expansion
+                        - generic [ref=e3116]: Expanded the working set to 120 candidate files using weighted signals and task-fit heuristics while reusing an incremental import index (31 updated, 222 reused). Shortest dependency chains were used for 70 structurally related files.
+                      - generic [ref=e3117]: 12 files
+                    - generic [ref=e3119]:
+                      - generic [ref=e3120]: apps/sj-ui/src/ui/guidance.ts
+                      - generic [ref=e3121]: packages/sj-cli/src/commands/execution-step-runner.ts
+                      - generic [ref=e3122]: packages/sj-core/src/core/ui-state.ts
+                      - generic [ref=e3123]: packages/sj-core/src/core/repo-readiness.ts
+                      - generic [ref=e3124]: packages/sj-core/src/core/context.ts
+                      - generic [ref=e3125]: packages/sj-core/src/core/router.ts
+                      - generic [ref=e3126]: apps/sj-ui/src/ui/ContextTreePanel.ts
+                      - generic [ref=e3127]: apps/sj-ui/src/ui/ExecutionPlanPanel.ts
+                  - group [ref=e3128]:
+                    - generic "budget selection Selected 43 files within the bounded context budget before task-specific precision trimming. 43 files" [ref=e3129] [cursor=pointer]:
+                      - generic [ref=e3130]:
+                        - strong [ref=e3131]: budget selection
+                        - generic [ref=e3132]: Selected 43 files within the bounded context budget before task-specific precision trimming.
+                      - generic [ref=e3133]: 43 files
+                    - generic [ref=e3135]:
+                      - generic [ref=e3136]: apps/sj-ui/src/ui/guidance.ts
+                      - generic [ref=e3137]: packages/sj-cli/src/commands/execution-step-runner.ts
+                      - generic [ref=e3138]: packages/sj-core/src/core/ui-state.ts
+                      - generic [ref=e3139]: packages/sj-core/src/core/repo-readiness.ts
+                      - generic [ref=e3140]: packages/sj-core/src/core/context.ts
+                      - generic [ref=e3141]: packages/sj-core/src/core/router.ts
+                      - generic [ref=e3142]: apps/sj-ui/src/main.ts
+                      - generic [ref=e3143]: packages/sj-cli/src/commands/run-auto.ts
+            - generic [ref=e3144]:
+              - generic [ref=e3145]:
+                - generic [ref=e3146]:
+                  - paragraph [ref=e3147]: Dependency Chains
+                  - heading "Dependency Chains" [level=3] [ref=e3148]
+                - generic [ref=e3149]: Shortest structural paths that pulled files into the working set.
+              - generic [ref=e3150]:
+                - generic [ref=e3151]:
+                  - generic [ref=e3152]:
+                    - strong [ref=e3153]: packages/sj-core/src/core/context.ts
+                    - generic [ref=e3154]: packages/sj-core/src/core/ui-state.ts -> packages/sj-core/src/core/context.ts
+                  - emphasis [ref=e3155]: chain
+                - generic [ref=e3156]:
+                  - generic [ref=e3157]:
+                    - strong [ref=e3158]: packages/sj-core/src/core/router.ts
+                    - generic [ref=e3159]: packages/sj-core/src/core/bootstrap.ts -> packages/sj-core/src/core/router.ts
+                  - emphasis [ref=e3160]: chain
+                - generic [ref=e3161]:
+                  - generic [ref=e3162]:
+                    - strong [ref=e3163]: apps/sj-ui/src/bootcheck.ts
+                    - generic [ref=e3164]: apps/sj-ui/src/ui/guidance.ts -> apps/sj-ui/src/bootcheck.ts
+                  - emphasis [ref=e3165]: chain
+                - generic [ref=e3166]:
+                  - generic [ref=e3167]:
+                    - strong [ref=e3168]: packages/sj-core/src/utils/fs.ts
+                    - generic [ref=e3169]: packages/sj-core/src/core/bootstrap.ts -> packages/sj-core/src/utils/fs.ts
+                  - emphasis [ref=e3170]: chain
+                - generic [ref=e3171]:
+                  - generic [ref=e3172]:
+                    - strong [ref=e3173]: packages/sj-core/src/core/config.ts
+                    - generic [ref=e3174]: packages/sj-core/src/core/bootstrap.ts -> packages/sj-core/src/core/config.ts
+                  - emphasis [ref=e3175]: chain
+                - generic [ref=e3176]:
+                  - generic [ref=e3177]:
+                    - strong [ref=e3178]: packages/sj-core/src/core/state.ts
+                    - generic [ref=e3179]: packages/sj-core/src/core/bootstrap.ts -> packages/sj-core/src/core/state.ts
+                  - emphasis [ref=e3180]: chain
+            - generic [ref=e3181]:
+              - generic [ref=e3182]:
+                - generic [ref=e3183]:
+                  - paragraph [ref=e3184]: INDEXING
+                  - heading "INDEXING" [level=3] [ref=e3185]
+                - generic [ref=e3186]: How the repo scan progressed, where it stopped, and which ignore rules were applied.
+              - generic [ref=e3187]:
+                - generic [ref=e3188]:
+                  - generic [ref=e3189]: Directories visited
+                  - strong [ref=e3190]: "58"
+                - generic [ref=e3191]:
+                  - generic [ref=e3192]: Skipped directories
+                  - strong [ref=e3193]: "20"
+                - generic [ref=e3194]:
+                  - generic [ref=e3195]: Depth reached
+                  - strong [ref=e3196]: "9"
+                - generic [ref=e3197]:
+                  - generic [ref=e3198]: Files discovered
+                  - strong [ref=e3199]: "398"
+                - generic [ref=e3200]:
+                  - generic [ref=e3201]: Files analyzed
+                  - strong [ref=e3202]: "398"
+                - generic [ref=e3203]:
+                  - generic [ref=e3204]: Index reused
+                  - strong [ref=e3205]: "222"
+                - generic [ref=e3206]:
+                  - generic [ref=e3207]: Index refreshed
+                  - strong [ref=e3208]: "31"
+                - generic [ref=e3209]:
+                  - generic [ref=e3210]: Ignore rules
+                  - strong [ref=e3211]: "6"
+              - generic [ref=e3213]:
+                - generic [ref=e3214]: heuristic
+                - generic [ref=e3215]: low confidence
+                - generic [ref=e3216]: partial scan
+              - generic [ref=e3218]:
+                - generic [ref=e3221]: hidden directory
+                - generic [ref=e3224]: "directory ignore: dist"
+                - generic [ref=e3227]: "directory ignore: node_modules"
+                - generic [ref=e3230]: file ignore pattern
+        - generic [ref=e3231]:
+          - generic [ref=e3232]:
+            - button "Execution History" [ref=e3234] [cursor=pointer]
+            - button [ref=e3235] [cursor=pointer]:
+              - img [ref=e3236]
+          - generic [ref=e3239]:
+            - generic [ref=e3240]:
+              - generic [ref=e3241]: Prepare Completed
+              - strong [ref=e3242]: Prepared 43 selected files for "update README docs". · artifacts updated · 8 Apr, 3:21
+            - generic [ref=e3243]:
+              - generic [ref=e3244]: Run Packetized
+              - strong [ref=e3245]: Generated 3 task packets for "update README docs". · artifacts updated · 8 Apr, 3:21
+            - generic [ref=e3246]:
+              - generic [ref=e3247]: Run Auto Queued
+              - strong [ref=e3248]: Auto run queued the current execution plan. · 8 Apr, 3:21
+            - generic [ref=e3249]:
+              - generic [ref=e3250]: Run Auto Step Started
+              - strong [ref=e3251]: Auto run is executing validate. · 8 Apr, 3:21
+            - generic [ref=e3252]:
+              - generic [ref=e3253]: Execution Step Started
+              - strong [ref=e3254]: Executing validate. · 8 Apr, 3:21
+            - generic [ref=e3255]:
+              - generic [ref=e3256]: Validation Started
+              - strong [ref=e3257]: Validating "update README docs". · 8 Apr, 3:21
+            - generic [ref=e3258]:
+              - generic [ref=e3259]: Validation Failed
+              - strong [ref=e3260]: Touched files do not satisfy the task-category goal heuristic. · artifacts updated · 8 Apr, 3:21
+            - generic [ref=e3261]:
+              - generic [ref=e3262]: Run Auto Blocked
+              - strong [ref=e3263]: Touched files do not satisfy the task-category goal heuristic. · artifacts updated · 8 Apr, 3:21
+            - generic [ref=e3264]:
+              - generic [ref=e3265]: Prepare Completed
+              - strong [ref=e3266]: Prepared 43 selected files for "update README docs". · artifacts updated · 8 Apr, 3:22
+            - generic [ref=e3267]:
+              - generic [ref=e3268]: Validation Started
+              - strong [ref=e3269]: Validating "update README docs". · artifacts updated · 9 Apr, 21:03
+      - complementary [ref=e553]:
+        - generic [ref=e3270]:
+          - generic [ref=e3271]:
+            - generic [ref=e3272]:
+              - text: Inspector
+              - heading "smoke-test.sh" [level=2] [ref=e3273]
+            - button "×" [ref=e3274] [cursor=pointer]
+          - generic [ref=e3275]:
+            - paragraph [ref=e3276]: Controls
+            - generic [ref=e3277]:
+              - button "Approve" [ref=e3278] [cursor=pointer]
+              - button "Reject" [ref=e3279] [cursor=pointer]
+              - button "Add to Context" [ref=e3280] [cursor=pointer]
+              - button "Trigger Validation" [ref=e3281] [cursor=pointer]
+              - button "Quick Handoff" [ref=e3282] [cursor=pointer]
+            - generic [ref=e3284]:
+              - generic [ref=e3285]:
+                - strong [ref=e3286]: Selection
+                - generic [ref=e3287]: scripts/smoke-test.sh
+              - emphasis [ref=e3288]: path
+            - generic [ref=e3289]:
+              - generic [ref=e3290]:
+                - strong [ref=e3291]: Decision
+                - generic [ref=e3292]: Local inspector review state for the current focus.
+              - emphasis [ref=e3293]: unmarked
+          - generic [ref=e3294]:
+            - paragraph [ref=e3295]: Reasoning
+            - paragraph [ref=e3296]: scripts/smoke-test.sh
+            - generic [ref=e3297]:
+              - generic [ref=e3298]: MEDIUM
+              - generic [ref=e3299]: Useful evidence was found across the repo, but coverage is still partial.
+              - generic [ref=e3300]: heuristic
+              - generic [ref=e3301]: low confidence
+              - generic [ref=e3302]: partial scan
+          - generic [ref=e3303]:
+            - paragraph [ref=e3304]: Decision inputs
+            - generic [ref=e3305]:
+              - generic [ref=e3306]:
+                - generic [ref=e3307]:
+                  - strong [ref=e3308]: "execution lifecycle: blocked"
+                  - generic [ref=e3309]: Ignoring this signal can reduce decision quality or hide relevant files.
+                - emphasis [ref=e3310]: impact
+              - generic [ref=e3311]:
+                - generic [ref=e3312]:
+                  - strong [ref=e3313]: "current step: validate"
+                  - generic [ref=e3314]: Ignoring this signal can reduce decision quality or hide relevant files.
+                - emphasis [ref=e3315]: impact
+              - generic [ref=e3316]:
+                - generic [ref=e3317]:
+                  - strong [ref=e3318]: "decision source: validate-command"
+                  - generic [ref=e3319]: Ignoring this signal can reduce decision quality or hide relevant files.
+                - emphasis [ref=e3320]: impact
+          - generic [ref=e3321]:
+            - paragraph [ref=e3322]: Lifecycle
+            - generic [ref=e3323]:
+              - generic [ref=e3324]:
+                - generic [ref=e3325]: Stage
+                - strong [ref=e3326]: blocked
+              - generic [ref=e3327]:
+                - generic [ref=e3328]: Validation
+                - strong [ref=e3329]: error
+            - paragraph [ref=e3330]: Run kiwi-control prepare "update README docs", then rerun kiwi-control validate "update README docs".
+            - paragraph [ref=e3331]: Compatibility/debug snapshot.
+          - generic [ref=e3332]:
+            - paragraph [ref=e3333]: Token estimate
+            - generic [ref=e3334]:
+              - generic [ref=e3335]:
+                - generic [ref=e3336]: Measured
+                - strong [ref=e3337]: 38,284,534,098
+              - generic [ref=e3338]:
+                - generic [ref=e3339]: Selected
+                - strong [ref=e3340]: ~176,613
+              - generic [ref=e3341]:
+                - generic [ref=e3342]: Full repo
+                - strong [ref=e3343]: ~598,393
+              - generic [ref=e3344]:
+                - generic [ref=e3345]: Saved
+                - strong [ref=e3346]: ~70%
+            - paragraph [ref=e3347]: Measured run usage came from Codex session logs using a ccusage-compatible parser. Per-file measured attribution is only available when execution-log entries include non-zero token totals.
+          - generic [ref=e3348]:
+            - paragraph [ref=e3349]: Command
+            - code [ref=e3350]: kiwi-control prepare "update README docs"

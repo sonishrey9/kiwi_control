@@ -1,0 +1,158 @@
+{
+  "ok": true,
+  "changed": false,
+  "targetRoot": "/Volumes/shrey ssd/shrey-junior",
+  "selectedPack": "research-pack",
+  "selectedPackSource": "heuristic-default",
+  "explicitSelection": null,
+  "heuristicPackId": "research-pack",
+  "executable": true,
+  "unavailablePackReason": null,
+  "effectiveCapabilityIds": [
+    "exa",
+    "firecrawl",
+    "brave-search",
+    "context7",
+    "sequential-thinking",
+    "github"
+  ],
+  "preferredCapabilityIds": [
+    "exa",
+    "firecrawl",
+    "brave-search",
+    "context7",
+    "sequential-thinking"
+  ],
+  "unavailableCapabilityIds": [],
+  "availablePacks": [
+    {
+      "id": "core-pack",
+      "name": "Core Pack",
+      "executable": true,
+      "unavailablePackReason": null,
+      "allowedCapabilityIds": [
+        "filesystem",
+        "context7",
+        "github",
+        "sequential-thinking"
+      ],
+      "preferredCapabilityIds": [
+        "filesystem",
+        "context7",
+        "github"
+      ],
+      "unavailableCapabilityIds": []
+    },
+    {
+      "id": "research-pack",
+      "name": "Research Pack",
+      "executable": true,
+      "unavailablePackReason": null,
+      "allowedCapabilityIds": [
+        "exa",
+        "firecrawl",
+        "brave-search",
+        "context7",
+        "sequential-thinking",
+        "github"
+      ],
+      "preferredCapabilityIds": [
+        "exa",
+        "firecrawl",
+        "brave-search",
+        "context7",
+        "sequential-thinking"
+      ],
+      "unavailableCapabilityIds": []
+    },
+    {
+      "id": "web-qa-pack",
+      "name": "Web QA Pack",
+      "executable": true,
+      "unavailablePackReason": null,
+      "allowedCapabilityIds": [
+        "playwright",
+        "figma",
+        "cloudflare-docs",
+        "github",
+        "context7"
+      ],
+      "preferredCapabilityIds": [
+        "playwright",
+        "figma",
+        "cloudflare-docs"
+      ],
+      "unavailableCapabilityIds": []
+    },
+    {
+      "id": "aws-pack",
+      "name": "AWS Pack",
+      "executable": false,
+      "unavailablePackReason": "AWS Pack is blocked because this repo does not register any AWS-specific MCP or tool integrations in the current registry/inventory.",
+      "allowedCapabilityIds": [
+        "aws-docs",
+        "aws-cdk",
+        "aws-cli"
+      ],
+      "preferredCapabilityIds": [
+        "aws-cdk",
+        "aws-docs",
+        "aws-cli"
+      ],
+      "unavailableCapabilityIds": [
+        "aws-cdk",
+        "aws-cli",
+        "aws-docs"
+      ]
+    },
+    {
+      "id": "ios-pack",
+      "name": "iOS Pack",
+      "executable": false,
+      "unavailablePackReason": "iOS Pack is blocked because this repo does not register any Xcode or simulator integrations in the current registry/inventory.",
+      "allowedCapabilityIds": [
+        "xcode",
+        "simulator",
+        "apple-docs"
+      ],
+      "preferredCapabilityIds": [
+        "xcode",
+        "simulator",
+        "apple-docs"
+      ],
+      "unavailableCapabilityIds": [
+        "apple-docs",
+        "simulator",
+        "xcode"
+      ]
+    },
+    {
+      "id": "android-pack",
+      "name": "Android Pack",
+      "executable": false,
+      "unavailablePackReason": "Android Pack is blocked because this repo does not register any Android-specific MCP or emulator integrations in the current registry/inventory.",
+      "allowedCapabilityIds": [
+        "android-studio",
+        "emulator",
+        "adb"
+      ],
+      "preferredCapabilityIds": [
+        "android-studio",
+        "emulator",
+        "adb"
+      ],
+      "unavailableCapabilityIds": [
+        "adb",
+        "android-studio",
+        "emulator"
+      ]
+    }
+  ],
+  "note": "Research Pack is active via heuristic default. 6 MCP integration(s) match this pack policy.",
+  "artifactPaths": {
+    "selectedPack": ".agent/state/selected-pack.json",
+    "readySubstrate": ".agent/state/ready-substrate.json",
+    "agentPack": ".agent/context/agent-pack.json",
+    "repoMap": ".agent/context/repo-map.json"
+  }
+}

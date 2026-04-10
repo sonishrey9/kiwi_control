@@ -9,8 +9,8 @@ export function renderGraphViewPanel(context: GraphPanelRenderContext): string {
       <section class="kc-view-header">
         <div>
           <p class="kc-view-kicker">Repo Graph</p>
-          <h1>Mind Map</h1>
-          <p>Repo topology visualized from Kiwi’s context tree with local focus, selection, and impact-path controls.</p>
+          <h1>Context Graph</h1>
+          <p>Repo topology from Kiwi’s current context tree. Click a node to inspect it, then use Focus, Include, Exclude, or Ignore.</p>
         </div>
         ${renderHeaderBadge(graph.nodes.length > 0 ? `${graph.nodes.length} nodes` : "empty", graph.nodes.length > 0 ? "success" : "warn")}
       </section>
@@ -74,7 +74,7 @@ export function renderGraphViewPanel(context: GraphPanelRenderContext): string {
             : renderEmptyState("No cluster summary is available yet.")}
         </section>
         <section class="kc-panel">
-          ${renderPanelHeader("Node Actions", focusedNode ? `${focusedNode.label} · ${focusedNode.kind}` : "Select a node to act on it.")}
+          ${renderPanelHeader("Node Actions", focusedNode ? `${focusedNode.label} · ${focusedNode.kind}` : "Click a node in the map to act on it.")}
           ${focusedNode
             ? `
               <div class="kc-stack-list">
@@ -91,7 +91,7 @@ export function renderGraphViewPanel(context: GraphPanelRenderContext): string {
                 ${focusedNode.kind === "file" ? `<button class="kc-secondary-button" type="button" data-graph-action="open" data-path="${escapeAttribute(focusedNode.path)}">Open</button>` : ""}
               </div>
             `
-            : renderEmptyState("No graph node is currently selected.")}
+            : renderEmptyState("No graph node is selected yet. Click a node in the map to focus it here.")}
         </section>
       </div>
 

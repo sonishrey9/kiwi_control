@@ -21,11 +21,29 @@ async function main() {
     process.exit(1);
   }
 
+  const npmExecutable = process.platform === "win32" ? "npm.cmd" : "npm";
+
   await stageDesktopInstallerResources({
     repoRoot,
     resourcesRoot: installerResourcesDir,
     nodeBinaryPath: process.execPath
   });
+
+  const buildUi = spawnSync(npmExecutable, ["run", "build", "-w", "@shrey-junior/sj-ui"], {
+    cwd: repoRoot,
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      COPYFILE_DISABLE: "1",
+      COPY_EXTENDED_ATTRIBUTES_DISABLE: "1"
+    }
+  });
+  if (buildUi.error) {
+    throw buildUi.error;
+  }
+  if ((buildUi.status ?? 1) !== 0) {
+    process.exit(buildUi.status ?? 1);
+  }
 
   const cargoTargetDir = path.join(await fs.realpath(os.tmpdir()).catch(() => os.tmpdir()), "kiwi-control-tauri-target");
   await prepareRuntimeSidecar({

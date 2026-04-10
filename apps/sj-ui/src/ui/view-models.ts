@@ -27,7 +27,13 @@ type DecisionSummaryState = {
 };
 
 type MachineHeroState = {
+  stale: boolean;
   systemHealth: { criticalCount: number; warningCount: number };
+  setupSummary: {
+    installedTools: { readyCount: number; totalCount: number };
+    healthyConfigs: { readyCount: number; totalCount: number };
+    readyRuntimes: { planning: boolean; execution: boolean; assistant: boolean };
+  };
   optimizationScore: {
     planning: { score: number; missingSignals: string[] };
     execution: { score: number; missingSignals: string[] };
@@ -112,19 +118,32 @@ export function buildMachineHeroSummary(machine: MachineHeroState): MachineHeroS
   const strongestGapDetail = strongestGap?.message
     ?? weakestScore.missingSignals[0]
     ?? "No major machine gaps detected.";
-  const overallStatus = machine.systemHealth.criticalCount === 0
-    && machine.optimizationScore.planning.score >= 70
-    && machine.optimizationScore.execution.score >= 70
-      ? "ready"
-      : "needs work";
+  const hasSetupGap =
+    machine.setupSummary.installedTools.readyCount < machine.setupSummary.installedTools.totalCount
+    || machine.setupSummary.healthyConfigs.readyCount < machine.setupSummary.healthyConfigs.totalCount
+    || !machine.setupSummary.readyRuntimes.planning
+    || !machine.setupSummary.readyRuntimes.execution
+    || !machine.setupSummary.readyRuntimes.assistant;
+  const weakHeuristic = weakestScore.score < 70;
+  const overallStatus = machine.stale
+    ? "stale"
+    : machine.systemHealth.criticalCount > 0 || hasSetupGap || weakHeuristic || machine.systemHealth.warningCount > 0
+      ? "partial"
+      : "ready";
 
   return {
     overallStatus,
     overallTone: overallStatus === "ready" ? "success" : "warn",
-    title: overallStatus === "ready" ? "Setup looks ready" : "Setup needs work",
+    title: overallStatus === "ready"
+      ? "Machine setup is ready"
+      : overallStatus === "stale"
+        ? "Machine advisory is stale"
+        : "Machine setup needs attention",
     detail: overallStatus === "ready"
-      ? "Heuristic completeness looks strong across the primary runtimes."
-      : "Heuristic completeness still shows at least one meaningful machine gap.",
+      ? "Fresh machine signals show the primary runtimes and configs in good shape."
+      : overallStatus === "stale"
+        ? "Refresh the machine advisory before trusting setup guidance or suggested fixes."
+        : "At least one install, config, or runtime gap is still active for this machine.",
     bestHeuristicLabel: `${bestScore.label} heuristic`,
     bestHeuristicValue: `${bestScore.score}%`,
     strongestGapLabel: strongestGap ? "Strongest gap" : `${weakestScore.label} gap`,

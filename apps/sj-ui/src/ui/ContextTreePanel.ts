@@ -10,7 +10,6 @@ export function renderContextTreePanel(context: ContextTreePanelRenderContext): 
         <span><strong>✓</strong> selected</span>
         <span><strong>•</strong> candidate</span>
         <span><strong>×</strong> excluded</span>
-        <span><strong>local</strong> UI-only until a CLI command runs</span>
       </div>
       <div class="kc-tree-root">
         ${tree.nodes.map((node: ContextTreePanelRenderContext["tree"]["nodes"][number]) => renderContextTreeNode(node, focusedItem, contextOverrides, helpers)).join("")}

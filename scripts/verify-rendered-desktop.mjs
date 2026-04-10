@@ -46,6 +46,7 @@ async function main() {
   const blockedRepo = await createBlockedRepo();
   try {
     await verifyOverviewBlockedState(blockedRepo);
+    await verifyHistoryDrawerTruth();
     await verifyMachineView(blockedRepo);
     await verifyPackSelectionView();
   } finally {
@@ -89,11 +90,8 @@ async function verifyOverviewBlockedState(repo) {
       && payload.targetRoot === repo.targetRoot
       && payload.repoMode === "healthy"
       && includesAll(payload.visibleSections, [
-        "guided-operation",
         "blocked-workflow-fix",
-        "explain-selection",
-        "terminal-recovery",
-        "terminal-help"
+        "explain-selection"
       ])
       && includesAll(payload.visibleCommands, ["guide", "next", "validate"])
   );
@@ -101,9 +99,8 @@ async function verifyOverviewBlockedState(repo) {
   assert.equal(snapshot.activeView, "overview");
   assert.equal(snapshot.repoMode, "healthy");
   assert.equal(typeof snapshot.executionRevision, "number");
-  assert.equal(snapshot.visibleSections.includes("guided-operation"), true);
   assert.equal(snapshot.visibleSections.includes("blocked-workflow-fix"), true);
-  assert.equal(snapshot.visibleSections.includes("terminal-help"), true);
+  assert.equal(snapshot.visibleSections.includes("explain-selection"), true);
 }
 
 async function verifyMachineView(repo) {
@@ -115,6 +112,17 @@ async function verifyMachineView(repo) {
 
   assert.equal(snapshot.activeView, "machine");
   assert.equal(snapshot.visibleSections.includes("machine-setup-readiness"), true);
+}
+
+async function verifyHistoryDrawerTruth() {
+  const snapshot = await launchAndCollectProbeWithRetry(repoRoot, null, (payload) =>
+    payload.activeView === "overview"
+      && payload.targetRoot === repoRoot
+      && typeof payload.historyLineCount === "number"
+      && payload.historyLineCount > 0
+  );
+
+  assert.equal(snapshot.historyLineCount > 0, true);
 }
 
 async function verifyPackSelectionView() {

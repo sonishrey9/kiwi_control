@@ -101,7 +101,7 @@ export interface DecisionSummary {
 }
 
 export interface MachineHeroSummary {
-  overallStatus: "ready" | "needs work";
+  overallStatus: "ready" | "partial" | "stale";
   overallTone: "success" | "warn";
   title: string;
   detail: string;

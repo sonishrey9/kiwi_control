@@ -1,0 +1,282 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e9016]:
+      - generic [ref=e9017]:
+        - button "shrey-junior /Volumes/shrey ssd/shrey-junior" [ref=e9018]:
+          - generic [ref=e9019]: shrey-junior
+          - generic: /Volumes/shrey ssd/shrey-junior
+        - generic [ref=e9020]: Repo is usable with warnings
+        - generic [ref=e9021]: node
+        - generic [ref=e9022]: bootstrap initialized [complete]
+      - generic [ref=e9023]:
+        - generic [ref=e9024]:
+          - generic [ref=e9025]: Next
+          - strong [ref=e9026]: Fix the blocking execution issue
+        - generic [ref=e9027]:
+          - generic [ref=e9028]: Blocking
+          - strong [ref=e9029]: "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+        - generic [ref=e9030]:
+          - generic [ref=e9031]: Health
+          - strong [ref=e9032]: attention
+        - generic [ref=e9033]:
+          - generic [ref=e9034]: Safe
+          - strong [ref=e9035]: guarded
+        - generic [ref=e9036]:
+          - generic [ref=e9037]: Changed
+          - strong [ref=e9038]: 9 Apr, 21:16
+        - generic [ref=e9039]:
+          - generic [ref=e9040]: Failures
+          - strong [ref=e9041]: "1"
+        - generic [ref=e9042]:
+          - generic [ref=e9043]: Warnings
+          - strong [ref=e9044]: "2"
+      - generic [ref=e9045]:
+        - generic [ref=e9046]:
+          - button "Execution" [ref=e9047] [cursor=pointer]
+          - button "Inspection" [ref=e9048] [cursor=pointer]
+        - generic [ref=e9049]:
+          - strong [ref=e9050]: execution
+          - generic [ref=e9051]: 1 warning
+        - button "Dark mode" [ref=e9052] [cursor=pointer]:
+          - img [ref=e9053]
+          - generic [ref=e9055]: Dark mode
+        - button [ref=e9056] [cursor=pointer]:
+          - img [ref=e9057]
+        - button [ref=e9059] [cursor=pointer]:
+          - img [ref=e9060]
+    - generic [ref=e9063]:
+      - button "Guide" [ref=e9064] [cursor=pointer]
+      - button "Next" [ref=e9065] [cursor=pointer]
+      - button "Review" [ref=e9066] [cursor=pointer]
+      - button "Validate" [ref=e9067] [cursor=pointer]
+      - button "Retry" [ref=e9068] [cursor=pointer]
+      - button "Run Auto" [ref=e9069] [cursor=pointer]
+      - button "Checkpoint" [ref=e9070] [cursor=pointer]
+      - button "Handoff" [ref=e9071] [cursor=pointer]
+    - generic [ref=e9072]:
+      - generic [ref=e9073]:
+        - generic [ref=e9074]: Workflow blocked
+        - strong [ref=e9076]: "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+      - code [ref=e9078]: kc prepare "update README docs" --target "/Volumes/shrey ssd/shrey-junior"
+  - generic [ref=e53]:
+    - complementary [ref=e54]:
+      - generic [ref=e56]: K
+      - navigation [ref=e57]:
+        - button "Overview" [ref=e9081] [cursor=pointer]:
+          - img [ref=e9083]
+          - generic [ref=e9088]: Overview
+        - button "Context" [ref=e9089] [cursor=pointer]:
+          - img [ref=e9091]
+          - generic [ref=e9093]: Context
+        - button "Graph" [ref=e9094] [cursor=pointer]:
+          - img [ref=e9096]
+          - generic [ref=e9106]: Graph
+        - button "Tokens" [ref=e9107] [cursor=pointer]:
+          - img [ref=e9109]
+          - generic [ref=e9111]: Tokens
+        - button "Feedback" [ref=e9112] [cursor=pointer]:
+          - img [ref=e9114]
+          - generic [ref=e9120]: Feedback
+        - button "MCPs" [ref=e9121] [cursor=pointer]:
+          - img [ref=e9123]
+          - generic [ref=e9126]: MCPs
+        - button "Specialists" [ref=e9127] [cursor=pointer]:
+          - img [ref=e9129]
+          - generic [ref=e9132]: Specialists
+        - button "System" [ref=e9133] [cursor=pointer]:
+          - img [ref=e9135]
+          - generic [ref=e9137]: System
+        - button "Validation" [ref=e9138] [cursor=pointer]:
+          - img [ref=e9140]
+          - generic [ref=e9143]: Validation
+        - button "Machine" [ref=e9144] [cursor=pointer]:
+          - img [ref=e9146]
+          - generic [ref=e9148]: Machine
+      - generic [ref=e126]: 1 warning remain, but the repo-local control surfaces are present and readable.
+    - generic [ref=e130]:
+      - generic [ref=e9150]:
+        - generic [ref=e9151]:
+          - generic [ref=e9152]:
+            - paragraph [ref=e9153]: Workflow blocked
+            - strong [ref=e9154]: Workflow blocked
+          - generic [ref=e9155]: blocked
+        - paragraph [ref=e9157]: "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+        - code [ref=e9159]: kc prepare "update README docs" --target "/Volumes/shrey ssd/shrey-junior"
+      - generic [ref=e9160]:
+        - generic [ref=e9161]:
+          - generic [ref=e9162]:
+            - paragraph [ref=e9163]: MCP / Tool Integrations
+            - heading "Research Pack" [level=1] [ref=e9164]
+            - paragraph [ref=e9165]: Planning and documentation pack for discovery, migration research, and architecture work.
+          - generic [ref=e9166]: compatible
+        - generic [ref=e9167]:
+          - article [ref=e9168]:
+            - generic [ref=e9169]: Compatible MCPs
+            - strong [ref=e9170]: "6"
+            - emphasis [ref=e9171]: heuristic pack policy
+          - article [ref=e9172]:
+            - generic [ref=e9173]: High Trust
+            - strong [ref=e9174]: "4"
+            - emphasis [ref=e9175]: preferred first
+          - article [ref=e9176]:
+            - generic [ref=e9177]: Write Capable
+            - strong [ref=e9178]: "1"
+            - emphasis [ref=e9179]: requires judgment
+          - article [ref=e9180]:
+            - generic [ref=e9181]: Approval Gates
+            - strong [ref=e9182]: "2"
+            - emphasis [ref=e9183]: use with care
+        - generic [ref=e9184]:
+          - generic [ref=e9185]:
+            - generic [ref=e9186]:
+              - generic [ref=e9187]:
+                - paragraph [ref=e9188]: Selected Pack
+                - heading "Selected Pack" [level=3] [ref=e9189]
+              - generic [ref=e9190]: Research Pack is active via heuristic default. 6 MCP integration(s) match this pack policy.
+            - generic [ref=e9191]:
+              - generic [ref=e9192]:
+                - generic [ref=e9193]: Source
+                - strong [ref=e9194]: heuristic-default
+              - generic [ref=e9195]:
+                - generic [ref=e9196]: Heuristic default
+                - strong [ref=e9197]: Research Pack
+              - generic [ref=e9198]:
+                - generic [ref=e9199]: Executable
+                - strong [ref=e9200]: "yes"
+            - generic [ref=e9202]:
+              - generic [ref=e9205]: Use for planning, docs, migration prep, and cross-repo research tasks.
+              - generic [ref=e9208]: Prefer read-heavy tools and keep repo-local outputs compact and inspectable.
+            - generic [ref=e9210]:
+              - generic [ref=e9211]:
+                - generic [ref=e9212]:
+                  - strong [ref=e9213]: Reality check
+                  - generic [ref=e9214]: This pack is runtime-selectable and prefers research-oriented integrations when they are registered.
+                - emphasis [ref=e9215]: advisory
+              - generic [ref=e9216]:
+                - generic [ref=e9217]:
+                  - strong [ref=e9218]: Reality check
+                  - generic [ref=e9219]: Search availability still depends on the active repo profile and installed integrations.
+                - emphasis [ref=e9220]: advisory
+          - generic [ref=e9221]:
+            - generic [ref=e9222]:
+              - generic [ref=e9223]:
+                - paragraph [ref=e9224]: Compatible MCP Capabilities
+                - heading "Compatible MCP Capabilities" [level=3] [ref=e9225]
+              - generic [ref=e9226]: These integrations are active for the selected pack, repo profile, and workflow role.
+            - generic [ref=e9227]:
+              - article [ref=e9228]:
+                - generic [ref=e9229]:
+                  - generic [ref=e9230]:
+                    - strong [ref=e9231]: exa
+                    - text: research-search
+                  - generic [ref=e9232]: high
+                - paragraph [ref=e9233]: neural web and code search for current research, docs, and examples
+                - generic [ref=e9234]:
+                  - generic [ref=e9235]: read only
+                  - generic [ref=e9236]: no writes
+                  - generic [ref=e9237]: self-serve
+                - generic [ref=e9241]: Use for current research, library examples, or code references when repo-local authority is insufficient.
+              - article [ref=e9242]:
+                - generic [ref=e9243]:
+                  - generic [ref=e9244]:
+                    - strong [ref=e9245]: firecrawl
+                    - text: web-research
+                  - generic [ref=e9246]: medium
+                - paragraph [ref=e9247]: targeted web search and scraping for current site-specific information
+                - generic [ref=e9248]:
+                  - generic [ref=e9249]: read only
+                  - generic [ref=e9250]: no writes
+                  - generic [ref=e9251]: approval required
+                - generic [ref=e9255]: Use for focused site search or extraction when official docs or repo context are not enough.
+              - article [ref=e9256]:
+                - generic [ref=e9257]:
+                  - generic [ref=e9258]:
+                    - strong [ref=e9259]: brave-search
+                    - text: search
+                  - generic [ref=e9260]: medium
+                - paragraph [ref=e9261]: general web search for current information and discovery
+                - generic [ref=e9262]:
+                  - generic [ref=e9263]: read only
+                  - generic [ref=e9264]: no writes
+                  - generic [ref=e9265]: self-serve
+                - generic [ref=e9269]: Use for broad discovery when you do not yet know the best source.
+              - article [ref=e9270]:
+                - generic [ref=e9271]:
+                  - generic [ref=e9272]:
+                    - strong [ref=e9273]: context7
+                    - text: documentation
+                  - generic [ref=e9274]: high
+                - paragraph [ref=e9275]: official documentation lookup
+                - generic [ref=e9276]:
+                  - generic [ref=e9277]: read only
+                  - generic [ref=e9278]: no writes
+                  - generic [ref=e9279]: self-serve
+                - generic [ref=e9280]:
+                  - generic [ref=e9283]: Use when packets need vendor or framework documentation that should outrank generic memory.
+                  - generic [ref=e9286]: Prefer this for specialist packets that need authoritative references.
+              - article [ref=e9287]:
+                - generic [ref=e9288]:
+                  - generic [ref=e9289]:
+                    - strong [ref=e9290]: sequential-thinking
+                    - text: reasoning
+                  - generic [ref=e9291]: high
+                - paragraph [ref=e9292]: structured reasoning support
+                - generic [ref=e9293]:
+                  - generic [ref=e9294]: read only
+                  - generic [ref=e9295]: no writes
+                  - generic [ref=e9296]: self-serve
+                - generic [ref=e9300]: Prefer for planner, reviewer, and release-check reasoning where a traceable chain is helpful.
+              - article [ref=e9301]:
+                - generic [ref=e9302]:
+                  - generic [ref=e9303]:
+                    - strong [ref=e9304]: github
+                    - text: code-hosting
+                  - generic [ref=e9305]: high
+                - paragraph [ref=e9306]: GitHub repository metadata and automation
+                - generic [ref=e9307]:
+                  - generic [ref=e9308]: read only
+                  - generic [ref=e9309]: write capable
+                  - generic [ref=e9310]: approval required
+                - generic [ref=e9314]: Use for PR, CI, and repository metadata when repo-local context alone is insufficient.
+        - generic [ref=e9315]:
+          - generic [ref=e9316]:
+            - generic [ref=e9317]:
+              - generic [ref=e9318]:
+                - paragraph [ref=e9319]: Selectable Packs
+                - heading "Selectable Packs" [level=3] [ref=e9320]
+              - generic [ref=e9321]: Executable packs you can switch to in this repo.
+            - generic [ref=e9322]:
+              - group [ref=e9323]:
+                - generic "Core Pack Default repo-first pack for filesystem, git-aware reasoning, and contract inspection. available" [ref=e9324] [cursor=pointer]:
+                  - generic [ref=e9325]:
+                    - strong [ref=e9326]: Core Pack
+                    - generic [ref=e9327]: Default repo-first pack for filesystem, git-aware reasoning, and contract inspection.
+                  - generic [ref=e9328]: available
+              - group [ref=e9329]:
+                - generic "Web QA Pack Browser and verification guidance for web apps, UI review, and smoke testing. available" [ref=e9330] [cursor=pointer]:
+                  - generic [ref=e9331]:
+                    - strong [ref=e9332]: Web QA Pack
+                    - generic [ref=e9333]: Browser and verification guidance for web apps, UI review, and smoke testing.
+                  - generic [ref=e9334]: available
+          - generic [ref=e9335]:
+            - generic [ref=e9336]:
+              - generic [ref=e9337]:
+                - paragraph [ref=e9338]: Unavailable Here
+                - heading "Unavailable Here" [level=3] [ref=e9339]
+              - generic [ref=e9340]: Visible for clarity, but blocked until matching integrations are registered.
+            - generic [ref=e9341]:
+              - generic [ref=e9342]:
+                - generic [ref=e9343]:
+                  - strong [ref=e9344]: AWS Pack
+                  - generic [ref=e9345]: AWS Pack is blocked because this repo does not register any AWS-specific MCP or tool integrations in the current registry/inventory.
+                - button "Unavailable" [disabled] [ref=e9346]
+              - generic [ref=e9347]:
+                - generic [ref=e9348]:
+                  - strong [ref=e9349]: iOS Pack
+                  - generic [ref=e9350]: iOS Pack is blocked because this repo does not register any Xcode or simulator integrations in the current registry/inventory.
+                - button "Unavailable" [disabled] [ref=e9351]
+              - generic [ref=e9352]:
+                - generic [ref=e9353]:
+                  - strong [ref=e9354]: Android Pack
+                  - generic [ref=e9355]: Android Pack is blocked because this repo does not register any Android-specific MCP or emulator integrations in the current registry/inventory.
+                - button "Unavailable" [disabled] [ref=e9356]
