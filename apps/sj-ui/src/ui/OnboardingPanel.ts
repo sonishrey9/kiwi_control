@@ -59,16 +59,16 @@ export function buildOnboardingPanelModel(params: {
   if (runtimeInfo?.runtimeMode === "installed-user" && runtimeInfo.cli.bundledInstallerAvailable && !runtimeInfo.cli.installed) {
     actions.push({
       id: "install-cli",
-      label: "Install kc",
-      detail: `Install ${runtimeInfo.cli.installBinDir} into your normal user flow so Terminal can run kc.`
+      label: "Install kc (optional)",
+      detail: `Add kc to ${runtimeInfo.cli.installBinDir} if you want the power-user terminal path too.`
     });
   }
 
   if (targetRoot && repoMode === "repo-not-initialized") {
     actions.push({
       id: "init-repo",
-      label: "Initialize Repo",
-      detail: "Create the repo-local Kiwi control files for this folder without leaving the app."
+      label: "Initialize this repo",
+      detail: "Create the repo-local Kiwi files for this folder, then start working from the app."
     });
   }
 
@@ -78,8 +78,8 @@ export function buildOnboardingPanelModel(params: {
   const cliStatus = runtimeInfo?.cli.installed
     ? `Installed at ${runtimeInfo.cli.installedCommandPath ?? runtimeInfo.cli.installBinDir}`
     : runtimeInfo?.runtimeMode === "installed-user"
-      ? "Not installed yet. Kiwi can install kc from the app."
-      : "Source/developer mode detected. Use the source CLI or install the beta CLI separately if needed.";
+      ? "Optional. Kiwi can install kc from the app if you want terminal access."
+      : "Source/developer mode detected. Desktop use still works without a separate installed kc.";
   const repoStatus = !targetRoot
     ? "No repo is open yet."
     : repoMode === "repo-not-initialized"
@@ -88,15 +88,15 @@ export function buildOnboardingPanelModel(params: {
   const nextAction = actions[0]?.detail ?? "Repo, CLI, and desktop setup are already aligned.";
 
   return {
-    title: "Get Kiwi Ready",
-    intro: "Kiwi stays repo-local. This first-run flow makes the installed desktop and kc CLI behave like one product without a manual terminal setup dance.",
+    title: "Start in the app",
+    intro: "Open Kiwi Control, choose a repo, initialize it if needed, and work. kc is optional and only needed if you also want the terminal path.",
     desktopStatus,
     cliStatus,
     repoStatus,
     nextAction,
     actions,
     note: runtimeInfo?.runtimeMode === "installed-user"
-      ? "During beta, kc installed from the desktop depends on the Kiwi Control desktop app remaining installed."
+      ? "Desktop-first is the default path. Install kc only if you want the same repo flow from Terminal."
       : "Developer/source mode keeps the source checkout in control of desktop launching."
   };
 }

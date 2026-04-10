@@ -129,6 +129,18 @@ export interface TopMetadataGroups {
   statusDetail: string;
 }
 
+export interface ActionClusterButton {
+  label: string;
+  command: UiCommandName | null;
+  directCommand: string | null;
+  composerMode: Exclude<CommandComposerMode, null> | null;
+}
+
+export interface ActionClusterState {
+  primary: ActionClusterButton;
+  secondary: ActionClusterButton[];
+}
+
 export interface MachineHeroSummary {
   overallStatus: "ready" | "partial" | "stale";
   overallTone: "success" | "warn";
@@ -601,6 +613,8 @@ export interface TopBarRenderContext {
   validationState: string;
   topMetadata: TopMetadataGroups;
   primaryBanner: PrimaryBannerState;
+  actionCluster: ActionClusterState;
+  runtimeBadge: string | null;
   themeLabel: string;
   activeTheme: ThemeMode;
   activeMode: UiMode;

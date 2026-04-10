@@ -20,6 +20,7 @@ import {
 } from "./ui/command-help.js";
 import {
   buildDecisionSummary as buildDecisionSummaryModel,
+  buildExecutionActionCluster,
   buildExecutionPlanPanelContextModel,
   buildInspectorContextModel,
   buildOverviewHeroState,
@@ -2568,6 +2569,7 @@ async function executeKiwiCommand(
     });
     commandState.lastResult = result;
     commandState.lastError = result.ok ? null : summarizeCliCommandFailure(result);
+    isLogDrawerOpen = true;
     if (result.ok) {
       commandState.composer = null;
       commandState.draftValue = "";
@@ -2583,6 +2585,7 @@ async function executeKiwiCommand(
     } else {
       commandState.lastError = hiddenCommandError;
     }
+    isLogDrawerOpen = true;
     renderState(currentState);
     return null;
   } finally {
@@ -2617,6 +2620,7 @@ async function executePackCommand(
     });
     commandState.lastResult = result;
     commandState.lastError = result.ok ? null : summarizeCliCommandFailure(result);
+    isLogDrawerOpen = true;
     if (result.ok) {
       await refreshCurrentRepoState();
     } else {
@@ -2625,6 +2629,7 @@ async function executePackCommand(
     return result;
   } catch (error) {
     commandState.lastError = error instanceof Error ? error.message : String(error);
+    isLogDrawerOpen = true;
     renderState(currentState);
     return null;
   } finally {
@@ -3129,6 +3134,18 @@ function handleInteractiveClick(event: MouseEvent, target: HTMLElement): boolean
     return true;
   }
 
+  const explicitCommandButton = target.closest<HTMLElement>("[data-direct-command]");
+  if (explicitCommandButton?.dataset.directCommand) {
+    const parsed = parseKiwiCommand(explicitCommandButton.dataset.directCommand);
+    if (parsed) {
+      void executeKiwiCommand(parsed.command, parsed.args, { expectJson: parsed.args.includes("--json") });
+    } else {
+      commandState.lastError = `Kiwi could not run this desktop action directly: ${explicitCommandButton.dataset.directCommand}`;
+      renderState(currentState);
+    }
+    return true;
+  }
+
   const packAction = target.closest<HTMLElement>("[data-pack-action]");
   if (packAction?.dataset.packAction) {
     const action = packAction.dataset.packAction;
@@ -3372,6 +3389,11 @@ function reportRenderProbe(state: RepoControlState): void {
     activeView,
     activeMode,
     targetRoot: state.targetRoot,
+    settledOnTarget:
+      Boolean(window.__KIWI_BOOT_API__?.mounted)
+      && !bootVisible
+      && state.targetRoot === currentTargetRoot
+      && !isLoadingRepoState,
     selectedPack: state.mcpPacks.selectedPack.id,
     selectedPackSource: state.mcpPacks.selectedPackSource,
     selectablePackIds,
@@ -3525,12 +3547,24 @@ function scheduleCenterRender(): void {
 }
 
 function renderRailNav(): string {
-  return NAV_ITEMS.map((item) => `
+  const primaryViews = NAV_ITEMS.filter((item) => item.id === "overview" || item.id === "context");
+  const inspectViews = NAV_ITEMS.filter((item) => item.id !== "overview" && item.id !== "context");
+  const renderItem = (item: typeof NAV_ITEMS[number]) => `
     <button class="kc-rail-button ${item.id === activeView ? "is-active" : ""}" data-view="${item.id}" type="button">
       <span class="kc-rail-icon">${item.icon}</span>
       <span class="kc-rail-label">${escapeHtml(item.label)}</span>
     </button>
-  `).join("");
+  `;
+  return `
+    <div class="kc-rail-group">
+      <span class="kc-rail-group-label">Main</span>
+      ${primaryViews.map(renderItem).join("")}
+    </div>
+    <div class="kc-rail-group kc-rail-group-secondary">
+      <span class="kc-rail-group-label">Inspect</span>
+      ${inspectViews.map(renderItem).join("")}
+    </div>
+  `;
 }
 
 function renderTopBar(state: RepoControlState): string {
@@ -3557,6 +3591,18 @@ function renderTopBar(state: RepoControlState): string {
     commandState.composer
       ? deriveComposerConstraint(state, commandState.composer, commandState.draftValue)
       : null;
+  const actionCluster = buildExecutionActionCluster({
+    nextActionLabel: state.runtimeDecision.nextAction?.action ?? decision.nextAction,
+    nextCommand: state.runtimeDecision.nextAction?.command ?? state.runtimeDecision.nextCommand,
+    retryEnabled,
+    hasTask: Boolean(currentTask),
+    handoffAvailable: state.specialists.handoffTargets.length > 0
+  });
+  const runtimeBadge = desktopRuntimeInfo
+    ? `${desktopRuntimeInfo.runtimeMode === "installed-user" ? "desktop" : "source"} · ${desktopRuntimeInfo.buildSource}`
+    : state.runtimeIdentity
+      ? `runtime · ${state.runtimeIdentity.packagingSourceCategory}`
+      : null;
 
   return renderTopBarView({
     state,
@@ -3566,6 +3612,8 @@ function renderTopBar(state: RepoControlState): string {
     validationState,
     topMetadata,
     primaryBanner,
+    actionCluster,
+    runtimeBadge,
     themeLabel,
     activeTheme,
     activeMode,
