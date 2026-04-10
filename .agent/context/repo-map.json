@@ -1,9 +1,9 @@
 {
   "artifactType": "kiwi-control/repo-map",
   "version": 1,
-  "generatedAt": "2026-04-09T21:35:03.043Z",
+  "generatedAt": "2026-04-10T16:24:12.403Z",
   "projectType": "node",
-  "summary": "Discovered 401 files across 6 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
+  "summary": "Discovered 433 files across 7 module groups. Entry points: apps/sj-ui/package.json, apps/sj-ui/src-tauri/Cargo.toml, apps/sj-ui/src/bootcheck.ts, apps/sj-ui/src/main.ts, apps/sj-ui/src/ui/OnboardingPanel.test.ts.",
   "languages": [
     "docs",
     "javascript",
@@ -17,7 +17,6 @@
     "apps/sj-ui/src/main.ts",
     "apps/sj-ui/src/ui/OnboardingPanel.test.ts",
     "apps/sj-ui/src/ui/readiness.test.ts",
-    "apps/sj-ui/src/ui/view-models.test.ts",
     "crates/kiwi-runtime/Cargo.toml",
     "hooks/post-edit.ts",
     "hooks/pre-command.ts",
@@ -26,7 +25,8 @@
     "package.json",
     "packages/sj-cli/package.json",
     "packages/sj-cli/src/cli.ts",
-    "packages/sj-cli/src/commands/commit-plan.ts"
+    "packages/sj-cli/src/commands/commit-plan.ts",
+    "packages/sj-cli/src/commands/launch.ts"
   ],
   "keyModules": [
     {
@@ -135,6 +135,17 @@
       ]
     },
     {
+      "id": "output",
+      "fileCount": 5,
+      "entryPoints": [
+        "output/playwright/final-ui-sweep-2026-04-10/site/assets/index-CNEV6VFQ.js",
+        "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-audit-lite.js",
+        "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-audit.js",
+        "output/playwright/kiwi-desktop-audit-2026-04-10/evidence/playwright-inventory.js",
+        "output/playwright/kiwi-desktop-audit-2026-04-10/site/assets/index-BSWhRyE_.js"
+      ]
+    },
+    {
       "id": "hooks",
       "fileCount": 4,
       "entryPoints": [
@@ -204,9 +215,9 @@
       "importedByCount": 9
     }
   ],
-  "filesDiscovered": 401,
-  "importableFiles": 206,
-  "indexedFiles": 206,
+  "filesDiscovered": 433,
+  "importableFiles": 211,
+  "indexedFiles": 211,
   "packSelection": {
     "selectedPack": "research-pack",
     "selectedPackSource": "heuristic-default",

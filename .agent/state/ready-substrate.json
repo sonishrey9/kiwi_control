@@ -1,11 +1,11 @@
 {
   "artifactType": "kiwi-control/ready-substrate",
   "version": 1,
-  "generatedAt": "2026-04-10T14:51:47.904Z",
+  "generatedAt": "2026-04-10T16:24:13.960Z",
   "targetRoot": "/Volumes/shrey ssd/shrey-junior",
-  "status": "partial",
-  "ready": false,
-  "summary": "Repo substrate is partial; missing graphAuthority.",
+  "status": "ready",
+  "ready": true,
+  "summary": "Ready repo substrate is available at runtime revision 61.",
   "runtimeAuthority": {
     "valid": true,
     "revision": 61,
@@ -20,22 +20,22 @@
   },
   "graphAuthority": {
     "valid": true,
-    "ready": false,
+    "ready": true,
     "status": "ready",
-    "freshness": "stale",
-    "graphRevision": 17,
-    "sourceRevision": 25,
-    "sourceRuntimeRevision": 25,
-    "generatedAt": "2026-04-09T21:35:04Z",
+    "freshness": "fresh",
+    "graphRevision": 18,
+    "sourceRevision": 61,
+    "sourceRuntimeRevision": 61,
+    "generatedAt": "2026-04-10T16:24:13Z",
     "graphAuthorityPath": "/Volumes/shrey ssd/shrey-junior/.agent/state/runtime.sqlite3",
     "kind": "runtime-sqlite-normalized",
-    "nodeCount": 2167,
-    "edgeCount": 3047,
-    "moduleCount": 6,
-    "symbolCount": 1943,
+    "nodeCount": 2660,
+    "edgeCount": 3438,
+    "moduleCount": 7,
+    "symbolCount": 2430,
     "aliasKind": "runtime-sqlite-normalized-aliases",
-    "aliasCount": 10366,
-    "aliasAmbiguityCount": 1525,
+    "aliasCount": 12820,
+    "aliasAmbiguityCount": 1866,
     "explicitAliasSourcePath": ".agent/context/graph-aliases.json",
     "explicitAliasSourceAvailable": false,
     "artifactPath": ".agent/context/repo-map.json",
@@ -204,7 +204,5 @@
     "path": ".agent/context/agent-pack.json",
     "note": "External coding tools should start with agent-pack.json, then follow readFirst and packPointers."
   },
-  "missingRequired": [
-    "graphAuthority"
-  ]
+  "missingRequired": []
 }
