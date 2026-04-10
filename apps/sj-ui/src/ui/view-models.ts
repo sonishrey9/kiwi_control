@@ -1,4 +1,5 @@
 import type {
+  ActionClusterState,
   CommandState,
   DecisionSummary,
   DesktopReadinessState,
@@ -281,6 +282,77 @@ export function buildPackPanelState(input: PackPanelInput): PackPanelState {
     showClearAction: input.explicitSelection !== null,
     selectedPackLabel,
     selectedPackSourceLabel
+  };
+}
+
+function inferPrimaryActionCommand(commandText: string | null): ActionClusterState["primary"] | null {
+  const raw = commandText?.trim() ?? "";
+  if (!raw) {
+    return null;
+  }
+
+  if (/\bguide\b/.test(raw)) {
+    return { label: "Guide", command: "guide", directCommand: null, composerMode: null };
+  }
+  if (/\bnext\b/.test(raw)) {
+    return { label: "Next", command: "next", directCommand: null, composerMode: null };
+  }
+  if (/\breview\b/.test(raw)) {
+    return { label: "Review", command: "review", directCommand: null, composerMode: null };
+  }
+  if (/\bvalidate\b/.test(raw)) {
+    return { label: "Validate", command: "validate", directCommand: null, composerMode: null };
+  }
+  if (/\bretry\b/.test(raw)) {
+    return { label: "Retry", command: "retry", directCommand: null, composerMode: null };
+  }
+  if (/\brun\b.*\b--auto\b/.test(raw)) {
+    return { label: "Run Auto", command: null, directCommand: null, composerMode: "run-auto" };
+  }
+  if (/\bcheckpoint\b/.test(raw)) {
+    return { label: "Checkpoint", command: null, directCommand: null, composerMode: "checkpoint" };
+  }
+  if (/\bhandoff\b/.test(raw)) {
+    return { label: "Handoff", command: null, directCommand: null, composerMode: "handoff" };
+  }
+
+  return {
+    label: "Run next step",
+    command: null,
+    directCommand: raw,
+    composerMode: null
+  };
+}
+
+export function buildExecutionActionCluster(params: {
+  nextActionLabel: string;
+  nextCommand: string | null;
+  retryEnabled: boolean;
+  hasTask: boolean;
+  handoffAvailable: boolean;
+}): ActionClusterState {
+  const inferredPrimary = inferPrimaryActionCommand(params.nextCommand);
+  const primary = inferredPrimary ?? { label: params.nextActionLabel || "Guide", command: "guide", directCommand: null, composerMode: null };
+
+  const allSecondary: ActionClusterState["secondary"] = [
+    { label: "Guide", command: "guide", directCommand: null, composerMode: null },
+    { label: "Next", command: "next", directCommand: null, composerMode: null },
+    { label: "Review", command: "review", directCommand: null, composerMode: null },
+    { label: "Validate", command: "validate", directCommand: null, composerMode: null },
+    ...(params.retryEnabled ? [{ label: "Retry", command: "retry" as const, directCommand: null, composerMode: null }] : []),
+    ...(params.hasTask ? [{ label: "Run Auto", command: null, directCommand: null, composerMode: "run-auto" as const }] : []),
+    { label: "Checkpoint", command: null, directCommand: null, composerMode: "checkpoint" as const },
+    ...(params.handoffAvailable ? [{ label: "Handoff", command: null, directCommand: null, composerMode: "handoff" as const }] : [])
+  ];
+
+  return {
+    primary,
+    secondary: allSecondary.filter((entry) =>
+      entry.label !== primary.label
+      || entry.command !== primary.command
+      || entry.composerMode !== primary.composerMode
+      || entry.directCommand !== primary.directCommand
+    )
   };
 }
 

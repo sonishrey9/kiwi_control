@@ -7,6 +7,8 @@ export function renderTopBarView(context: TopBarRenderContext): string {
     phase,
     topMetadata,
     primaryBanner,
+    actionCluster,
+    runtimeBadge,
     themeLabel,
     activeTheme,
     activeMode,
@@ -51,6 +53,7 @@ export function renderTopBarView(context: TopBarRenderContext): string {
           <strong>${escapeHtml(activeMode)}</strong>
           <span>${escapeHtml(topMetadata.statusDetail)}</span>
         </div>
+        ${runtimeBadge ? `<span class="kc-inline-badge is-muted">${escapeHtml(runtimeBadge)}</span>` : ""}
         <button class="kc-theme-toggle" type="button" data-theme-toggle>
           ${iconSvg(activeTheme === "dark" ? "sun" : "moon")}
           <span>${escapeHtml(themeLabel)}</span>
@@ -65,14 +68,23 @@ export function renderTopBarView(context: TopBarRenderContext): string {
     </div>
     <div class="kc-topbar-actions">
       <div class="kc-topbar-action-group">
-        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="guide" ${actionsDisabled ? "disabled" : ""}>Guide</button>
-        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="next" ${actionsDisabled ? "disabled" : ""}>Next</button>
-        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="review" ${actionsDisabled ? "disabled" : ""}>Review</button>
-        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="validate" ${actionsDisabled ? "disabled" : ""}>Validate</button>
-        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="retry" ${!retryEnabled || actionsDisabled ? "disabled" : ""}>Retry</button>
-        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="run-auto" ${actionsDisabled || !currentTask ? "disabled" : ""}>Run Auto</button>
-        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="checkpoint" ${actionsDisabled ? "disabled" : ""}>Checkpoint</button>
-        <button class="kc-secondary-button kc-action-button" type="button" data-ui-command="handoff" ${actionsDisabled || state.specialists.handoffTargets.length === 0 ? "disabled" : ""}>Handoff</button>
+        ${actionCluster.primary.directCommand
+          ? `<button class="kc-action-button kc-action-button-primary" type="button" data-direct-command="${escapeAttribute(actionCluster.primary.directCommand)}" ${actionsDisabled ? "disabled" : ""}>${escapeHtml(actionCluster.primary.label)}</button>`
+          : actionCluster.primary.composerMode
+            ? `<button class="kc-action-button kc-action-button-primary" type="button" data-ui-command="${escapeAttribute(actionCluster.primary.composerMode)}" ${actionsDisabled ? "disabled" : ""}>${escapeHtml(actionCluster.primary.label)}</button>`
+            : `<button class="kc-action-button kc-action-button-primary" type="button" data-ui-command="${escapeAttribute(actionCluster.primary.command ?? "guide")}" ${actionsDisabled ? "disabled" : ""}>${escapeHtml(actionCluster.primary.label)}</button>`}
+        <details class="kc-action-menu">
+          <summary class="kc-secondary-button kc-action-button">More</summary>
+          <div class="kc-action-menu-panel">
+            ${actionCluster.secondary.map((action) =>
+              action.directCommand
+                ? `<button class="kc-secondary-button kc-action-button" type="button" data-direct-command="${escapeAttribute(action.directCommand)}" ${actionsDisabled ? "disabled" : ""}>${escapeHtml(action.label)}</button>`
+                : action.composerMode
+                  ? `<button class="kc-secondary-button kc-action-button" type="button" data-ui-command="${escapeAttribute(action.composerMode)}" ${actionsDisabled ? "disabled" : ""}>${escapeHtml(action.label)}</button>`
+                  : `<button class="kc-secondary-button kc-action-button" type="button" data-ui-command="${escapeAttribute(action.command ?? "guide")}" ${actionsDisabled ? "disabled" : ""}>${escapeHtml(action.label)}</button>`
+            ).join("")}
+          </div>
+        </details>
       </div>
       ${commandState.composer
         ? `

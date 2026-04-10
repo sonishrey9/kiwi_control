@@ -25,6 +25,8 @@ test("onboarding shows install-cli and choose-repo actions for installed-user fi
   assert.ok(model);
   assert.equal(model?.actions.some((action) => action.id === "choose-repo"), true);
   assert.equal(model?.actions.some((action) => action.id === "install-cli"), true);
+  assert.match(model?.intro ?? "", /kc is optional/i);
+  assert.match(model?.actions.find((action) => action.id === "install-cli")?.label ?? "", /optional/i);
 });
 
 test("onboarding shows init action for an uninitialized repo", () => {

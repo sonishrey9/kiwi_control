@@ -18,6 +18,27 @@ For most users on macOS and Windows:
 4. Launch Kiwi Control once.
 5. Use onboarding to install `kc`, choose a repo, and initialize it if needed.
 
+### Desktop-only path
+
+This is the default path Kiwi should optimize for:
+
+1. install the desktop app
+2. open the app
+3. choose a repo
+4. initialize the repo if Kiwi asks
+5. start working
+
+You do not need `kc` for basic desktop usage.
+
+### Desktop + CLI path
+
+Install `kc` only if you want the same repo flow from Terminal too:
+
+1. install the desktop app
+2. open the app once
+3. use onboarding to install `kc` if you want the terminal path
+4. keep using the same repo from desktop or CLI interchangeably
+
 ## Standalone CLI users
 
 ### Prerequisites

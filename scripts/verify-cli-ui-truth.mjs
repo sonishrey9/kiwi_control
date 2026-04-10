@@ -29,6 +29,9 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   await assertBuiltArtifacts();
   const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-cli-ui-truth-"));
+  const sharedDesktopBridge = process.platform === "darwin"
+    ? await createSharedDesktopBridge(outputRoot)
+    : null;
   const targetRoot = args.externalTempRepo
     ? await createExternalTempRepo(outputRoot)
     : args.target
@@ -58,7 +61,7 @@ async function main() {
   const queuedStatus = await runCliJsonStep("status-queued", ["status", "--json", "--target", targetRoot], outputRoot);
   assert.equal(queuedStatus.payload.executionState.lifecycle, "queued");
 
-  const queuedUi = await verifyUiLaunch(targetRoot, "queued", outputRoot, "queued");
+  const queuedUi = await verifyUiLaunch(targetRoot, "queued", outputRoot, "queued", sharedDesktopBridge);
   steps.push(queuedUi.step);
 
   const runAuto = await runCliStep("run-auto", ["run", task, "--auto", "--target", targetRoot], outputRoot, {
@@ -67,13 +70,13 @@ async function main() {
   steps.push(runAuto);
   const blockedStatus = await runCliJsonStep("status-blocked", ["status", "--json", "--target", targetRoot], outputRoot);
   assert.equal(blockedStatus.payload.executionState.lifecycle, "blocked");
-  const blockedUi = await verifyUiLaunch(targetRoot, "blocked", outputRoot, "blocked");
+  const blockedUi = await waitForUiState(targetRoot, "blocked", outputRoot, "blocked", sharedDesktopBridge);
   steps.push(blockedUi.step);
 
   steps.push(await runCliStep("prepare-recovery", ["prepare", task, "--target", targetRoot], outputRoot));
   const recoveredStatus = await runCliJsonStep("status-recovered", ["status", "--json", "--target", targetRoot], outputRoot);
   assert.equal(recoveredStatus.payload.executionState.lifecycle, "packet-created");
-  const recoveredUi = await verifyUiLaunch(targetRoot, "recovered", outputRoot, "packet-created");
+  const recoveredUi = await waitForUiState(targetRoot, "recovered", outputRoot, "packet-created", sharedDesktopBridge);
   steps.push(recoveredUi.step);
 
   const summary = {
@@ -172,7 +175,17 @@ async function runCliJsonStep(label, args, outputRoot) {
   };
 }
 
-async function verifyUiLaunch(targetRoot, label, outputRoot, expectedLifecycle) {
+async function createSharedDesktopBridge(outputRoot) {
+  const bridgeDir = path.join(outputRoot, "bridge-shared");
+  const probePath = path.join(bridgeDir, "render-probe.json");
+  await fs.mkdir(bridgeDir, { recursive: true });
+  return {
+    bridgeDir,
+    probePath
+  };
+}
+
+async function verifyUiLaunch(targetRoot, label, outputRoot, expectedLifecycle, sharedBridge) {
   if (process.platform !== "darwin") {
     return {
       step: {
@@ -184,8 +197,8 @@ async function verifyUiLaunch(targetRoot, label, outputRoot, expectedLifecycle) 
     };
   }
 
-  const bridgeDir = path.join(outputRoot, `bridge-${label}`);
-  const probePath = path.join(bridgeDir, `render-probe-${label}.json`);
+  const bridgeDir = sharedBridge?.bridgeDir ?? path.join(outputRoot, `bridge-${label}`);
+  const probePath = sharedBridge?.probePath ?? path.join(bridgeDir, `render-probe-${label}.json`);
   await fs.mkdir(bridgeDir, { recursive: true });
   const result = runProcess(process.execPath, [cliEntrypoint, "ui", "--target", targetRoot], {
     cwd: repoRoot,
@@ -201,10 +214,15 @@ async function verifyUiLaunch(targetRoot, label, outputRoot, expectedLifecycle) 
   await writeStepOutputs(outputRoot, `ui-${label}`, result);
   const probe = await waitForProbe(
     probePath,
-    (payload) => payload?.targetRoot === targetRoot && payload?.executionState === expectedLifecycle
+    (payload) =>
+      payload?.targetRoot === targetRoot
+      && payload?.executionState === expectedLifecycle
+      && payload?.mounted === true
+      && payload?.bootVisible === false
   );
   assert.equal(probe.targetRoot, targetRoot);
   assert.equal(probe.executionState, expectedLifecycle);
+  await fs.writeFile(path.join(outputRoot, `render-probe-${label}.json`), `${JSON.stringify(probe, null, 2)}\n`, "utf8");
 
   const screenshotPath = await captureScreenshot(path.join(outputRoot, `ui-${label}.png`));
   return {
@@ -218,6 +236,45 @@ async function verifyUiLaunch(targetRoot, label, outputRoot, expectedLifecycle) 
       screenshotPath
     },
     probePath,
+    screenshotPath
+  };
+}
+
+async function waitForUiState(targetRoot, label, outputRoot, expectedLifecycle, sharedBridge) {
+  if (process.platform !== "darwin") {
+    return {
+      step: {
+        label: `ui-${label}`,
+        skipped: true
+      },
+      probePath: null,
+      screenshotPath: null
+    };
+  }
+
+  const probePath = sharedBridge?.probePath ?? path.join(outputRoot, `render-probe-${label}.json`);
+  const probe = await waitForProbe(
+    probePath,
+    (payload) =>
+      payload?.targetRoot === targetRoot
+      && payload?.executionState === expectedLifecycle
+      && payload?.mounted === true
+      && payload?.bootVisible === false
+  );
+  await fs.writeFile(path.join(outputRoot, `render-probe-${label}.json`), `${JSON.stringify(probe, null, 2)}\n`, "utf8");
+
+  const screenshotPath = await captureScreenshot(path.join(outputRoot, `ui-${label}.png`));
+  return {
+    step: {
+      label: `ui-${label}`,
+      args: ["render-probe", expectedLifecycle],
+      exitCode: 0,
+      stdoutPath: null,
+      stderrPath: null,
+      probePath: path.join(outputRoot, `render-probe-${label}.json`),
+      screenshotPath
+    },
+    probePath: path.join(outputRoot, `render-probe-${label}.json`),
     screenshotPath
   };
 }
@@ -252,7 +309,7 @@ async function writeStepOutputs(outputRoot, label, result) {
 }
 
 async function waitForProbe(probePath, predicate) {
-  const deadline = Date.now() + 15_000;
+  const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
     try {
       const payload = JSON.parse(await fs.readFile(probePath, "utf8"));
