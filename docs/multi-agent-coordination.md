@@ -50,7 +50,7 @@ Role outputs are repo-local and explicit.
 - Preferred: JSON or markdown-with-frontmatter using the structured role-result schema
 - Supported fallback: loose markdown with tagged lines such as `agreement:`, `conflict:`, `validation:`, `risk:`, `touched_file:`, and `next_step:`
 
-See [result-schema.md](/Volumes/shrey%20ssd/shrey-junior/docs/result-schema.md) for the exact contract.
+See [result-schema.md](./result-schema.md) for the exact contract.
 
 ## Canonical docs
 

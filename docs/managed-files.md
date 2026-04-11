@@ -34,6 +34,7 @@ version: 1
 - `configs/`, `prompts/`, and `templates/` are canonical.
 - `.agent/*` files are fully managed outputs.
 - `.agent/state/*` files are fully managed repo-local continuity outputs.
+- Managed or generated does not automatically mean tracked in Git. Volatile runtime JSON, proof outputs, and local preview artifacts should follow [generated-artifacts.md](./generated-artifacts.md) and be restored or ignored before commit.
 - `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` may contain both human-authored text and one `shrey-junior` managed block.
 - generated task packets under `.agent/tasks/*` are derived outputs and may be regenerated freely
 

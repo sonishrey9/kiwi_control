@@ -231,7 +231,7 @@ The portable contract is no longer maximal by default.
 - role specs and agent docs are generated for relevant specialists only
 - skipped surfaces are recorded in `.agent/project.yaml`
 
-See [contract-minimization.md](/Volumes/shrey%20ssd/shrey-junior/docs/contract-minimization.md).
+See [contract-minimization.md](./contract-minimization.md).
 
 ## Task Packet Lifecycle
 
@@ -251,8 +251,8 @@ flowchart LR
 
 ## Artifact Contract Table
 
-See [artifact-contracts.md](/Volumes/shrey%20ssd/shrey-junior/docs/artifact-contracts.md) for the canonical table.
-See [checkpointing.md](/Volumes/shrey%20ssd/shrey-junior/docs/checkpointing.md) for the git-aware continuity layer.
+See [artifact-contracts.md](./artifact-contracts.md) for the canonical table.
+See [checkpointing.md](./checkpointing.md) for the git-aware continuity layer.
 
 ## Local Vs Cloud Visibility Model
 

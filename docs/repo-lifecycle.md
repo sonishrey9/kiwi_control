@@ -2,7 +2,7 @@
 
 ## 0. One Command From Any Folder
 
-Install Kiwi Control once using the public install flow in [docs/install.md](/Volumes/shrey%20ssd/shrey-junior/docs/install.md).
+Install Kiwi Control once using the public install flow in [install.md](./install.md).
 
 Then, from any folder:
 

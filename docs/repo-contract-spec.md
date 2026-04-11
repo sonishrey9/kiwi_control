@@ -129,6 +129,7 @@ Generated overlays that may be re-applied should use stable managed markers or e
 2. Repo-local files must remain understandable without hidden runtime state.
 3. Machine-global configuration may accelerate behavior, but it is not the portable contract.
 4. Cloud-hosted agents may not see `~/.codex`, `~/.claude`, editor prompts, or the local launcher.
+5. Generated runtime continuity files may be required at runtime without being committed to Git. Use [generated-artifacts.md](./generated-artifacts.md) for commit policy.
 
 ## Practical Interpretation
 

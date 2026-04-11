@@ -8,6 +8,7 @@ Read these first:
 
 - [README.md](./README.md)
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
+- [docs/generated-artifacts.md](./docs/generated-artifacts.md)
 - [SUPPORT.md](./SUPPORT.md)
 - [SECURITY.md](./SECURITY.md)
 - [docs/README.md](./docs/README.md)
@@ -23,6 +24,19 @@ The highest-value public contributions are:
 - documentation that helps users install, trust, and debug the product honestly
 
 Avoid broad speculative rewrites.
+
+## Generated artifacts
+
+Kiwi Control uses repo-local generated artifacts for continuity, review, and verification, but not all of them belong in Git.
+
+Before committing:
+
+- restore or ignore volatile `.agent/**/*.json` and `.ndjson` runtime files
+- restore or ignore local proof outputs such as `.playwright-cli/**` and `output/playwright/**`
+- restore or ignore `dist/release/**` unless the task explicitly changes release packaging source
+- remove AppleDouble sidecars such as `._*`
+
+See [docs/generated-artifacts.md](./docs/generated-artifacts.md) for the exact policy.
 
 ## Guardrails
 

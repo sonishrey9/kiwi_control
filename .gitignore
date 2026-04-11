@@ -19,6 +19,20 @@ coverage/
 .agent/state/runtime.sqlite3
 .agent/state/runtime.sqlite3-shm
 .agent/state/runtime.sqlite3-wal
+.agent/context-authority.json
+.agent/context/**/*.json
+.agent/context/generated-instructions.md
+.agent/eval/
+.agent/memory/**/*.json
+.agent/state/**/*.json
+.agent/state/**/*.ndjson
+.agent/state/checkpoints/latest.*
+.agent/tasks/
+.playwright-cli/
+output/playwright/
+dist/release/
+docs/._*
+.github/**/._*
 
 .git.backup-before-appledouble-clean/
 .git.backup-*/

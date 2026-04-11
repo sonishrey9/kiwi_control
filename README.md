@@ -10,6 +10,7 @@ Kiwi Control is a local-first, repo-first control plane for coding agents. It ke
 - Website: [kiwi-control.kiwi-ai.in](https://kiwi-control.kiwi-ai.in/)
 - Downloads: [GitHub Releases](https://github.com/sonishrey9/kiwi-control/releases/latest)
 - Install guide: [docs/install.md](./docs/install.md)
+- Generated artifact policy: [docs/generated-artifacts.md](./docs/generated-artifacts.md)
 - Support: [SUPPORT.md](./SUPPORT.md)
 - Security: [SECURITY.md](./SECURITY.md)
 - Contributing: [CONTRIBUTING.md](./CONTRIBUTING.md)
@@ -34,7 +35,8 @@ For most users, the fastest path is:
 1. Download Kiwi Control from [GitHub Releases](https://github.com/sonishrey9/kiwi-control/releases/latest) or the [installer-first website](https://kiwi-control.kiwi-ai.in/).
 2. Install the desktop app for macOS or Windows.
 3. Launch Kiwi Control once.
-4. Use onboarding to install `kc`, choose a repo, and initialize it if needed.
+4. Choose a repo and initialize it if needed.
+5. Enable terminal commands later only if you want the optional power-user CLI path.
 
 ### CLI path
 
@@ -119,6 +121,8 @@ npm test
 bash scripts/smoke-test.sh
 ```
 
+Before committing, restore generated runtime, proof, and preview artifacts that are not intended source changes. See [docs/generated-artifacts.md](./docs/generated-artifacts.md).
+
 Desktop development:
 
 ```bash
@@ -166,4 +170,4 @@ Kiwi Control is created by Shrey Soni.
 
 ## License
 
-See [LICENSE.md](./LICENSE.md).
+See [LICENSE](./LICENSE).
