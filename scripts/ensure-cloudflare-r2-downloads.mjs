@@ -27,7 +27,7 @@ if (stripTrailingSlash(downloadsUrl) !== stripTrailingSlash(expectedDownloadsUrl
 
 const client = createClient({ accountId, apiToken });
 
-const zone = await ensureZone(client, accountId, zoneName);
+const zone = await requireExistingZone(client, zoneName);
 const bucket = await ensureBucket(client, accountId, bucketName);
 const customDomain = zone.status === "active" && !skipDomainAttach
   ? await ensureCustomDomain({
@@ -54,7 +54,7 @@ const payload = {
   accountId,
   bucketCreated: bucket.created,
   bucketName: bucket.name,
-  zoneCreated: zone.created,
+  zoneCreated: false,
   zoneStatus: zone.status,
   zoneType: zone.type,
   verificationTxtName: zone.verificationTxtName,
@@ -158,40 +158,33 @@ function createClient({ accountId, apiToken }) {
   };
 }
 
-async function ensureZone(client, accountId, zoneName) {
-  const existing = await findZone(client, zoneName);
-  if (existing?.id) {
-    return {
-      created: false,
-      id: existing.id,
-      status: existing.status ?? "unknown",
-      type: existing.type ?? "unknown",
-      verificationTxtName: existing.verification_key ? `cloudflare-verify.${zoneName}` : null,
-      verificationTxtValue: existing.verification_key ?? null
-    };
-  }
-
-  const created = await client("POST", "/zones", {
-    name: zoneName,
-    account: {
-      id: accountId
-    },
-    type: "partial"
-  });
-
-  return {
-    created: true,
-    id: created?.id,
-    status: created?.status ?? "pending",
-    type: created?.type ?? "partial",
-    verificationTxtName: created?.verification_key ? `cloudflare-verify.${zoneName}` : null,
-    verificationTxtValue: created?.verification_key ?? null
-  };
-}
-
 async function findZone(client, zoneName) {
   const zones = await client("GET", `/zones?name=${encodeURIComponent(zoneName)}`);
   return Array.isArray(zones) ? zones.find((entry) => stripTrailingDot(entry.name) === zoneName) ?? null : null;
+}
+
+async function requireExistingZone(client, zoneName) {
+  const existing = await findZone(client, zoneName);
+  if (!existing?.id) {
+    throw new Error(
+      [
+        `Cloudflare does not know zone ${zoneName} in this account.`,
+        "One-time manual setup required:",
+        `1. Add ${zoneName} to Cloudflare as a partial/CNAME setup zone in the same account as the R2 bucket.`,
+        `2. Copy the Cloudflare verification TXT record for cloudflare-verify.${zoneName}.`,
+        "3. Add that TXT record in Route 53.",
+        `4. Re-run the Deploy Site workflow after the Cloudflare zone shows as active.`
+      ].join(" ")
+    );
+  }
+
+  return {
+    id: existing.id,
+    status: existing.status ?? "unknown",
+    type: existing.type ?? "unknown",
+    verificationTxtName: existing.verification_key ? `cloudflare-verify.${zoneName}` : null,
+    verificationTxtValue: existing.verification_key ?? null
+  };
 }
 
 async function ensureBucket(client, accountId, bucketName) {
