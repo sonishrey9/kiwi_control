@@ -148,6 +148,9 @@ function resolveRustHostTriple(resolvedRepoRoot) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const quiet = process.argv.includes("--quiet");
   const result = await prepareRuntimeSidecar();
-  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  if (!quiet) {
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  }
 }
