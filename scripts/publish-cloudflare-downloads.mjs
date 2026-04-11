@@ -13,7 +13,7 @@ const checksumsPath = path.join(publishRoot, "SHA256SUMS.txt");
 const outputPath = path.resolve(args.output ?? path.join(publishRoot, "downloads.json"));
 const downloadsUrl = stripTrailingSlash(args.downloadsUrl ?? process.env.DOWNLOADS_URL ?? "");
 const bucket = args.bucket ?? process.env.CLOUDFLARE_R2_BUCKET ?? "";
-const repoUrl = stripTrailingSlash(args.repoUrl ?? process.env.REPO_URL ?? "https://github.com/sonishrey9/kiwi-control");
+const repoUrl = stripTrailingSlash(args.repoUrl ?? process.env.REPO_URL ?? "https://github.com/sonishrey9/kiwi-control-backup");
 
 if (!downloadsUrl) {
   throw new Error("Missing downloads base URL. Pass --downloads-url or set DOWNLOADS_URL.");

@@ -11,7 +11,7 @@ Kiwi Control is shipping as a local-first public beta. The core repo-local contr
 - Windows desktop signing is not finalized yet.
 - macOS signing and notarization are still manual.
 - Auto-update trust is not enabled for public use yet.
-- GitHub Releases is the source of truth for beta binaries. Homebrew and winget should only be treated as live once they are actually published.
+- The public website is the source of truth for beta release status. GitHub Release assets are the current beta binary host until another delivery path is explicitly published. Homebrew and winget should only be treated as live once they are actually published.
 
 ### Product UX
 

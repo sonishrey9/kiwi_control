@@ -60,7 +60,7 @@ Before calling a release fully trusted for public distribution, complete and ver
 
 Use `npm run release:trust -- --platform macos --json` or `npm run release:trust -- --platform windows --json` to classify release trust before writing release notes. The strict form must run on release builders; macOS must report `signed-and-notarized`, and Windows must be verified on a Windows runner. SmartScreen reputation is external to Kiwi's repo checks and must not be implied by a successful signature check alone.
 
-Cloudflare-hosted downloads do not change this trust bar. Public download availability only means the artifacts are reachable. Public release trust still depends on:
+Website-hosted release status and GitHub-hosted release assets do not change this trust bar. Public download availability only means the artifacts are reachable. Public release trust still depends on:
 
 - macOS signed + notarized + stapled artifacts
 - Windows signed NSIS and MSI installers verified on Windows

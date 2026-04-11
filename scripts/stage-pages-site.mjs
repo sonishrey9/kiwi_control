@@ -8,7 +8,7 @@ const args = parseArgs(process.argv.slice(2));
 const siteRoot = path.resolve(args.siteRoot ?? path.join(repoRoot, "website"));
 const outputDir = path.resolve(args.outputDir ?? path.join(repoRoot, "dist", "site"));
 const downloadsUrl = stripTrailingSlash(args.downloadsUrl ?? process.env.DOWNLOADS_URL ?? "");
-const repoUrl = stripTrailingSlash(args.repoUrl ?? process.env.REPO_URL ?? "https://github.com/sonishrey9/kiwi-control");
+const repoUrl = stripTrailingSlash(args.repoUrl ?? process.env.REPO_URL ?? "https://github.com/sonishrey9/kiwi-control-backup");
 const packageJson = JSON.parse(await fs.readFile(path.join(repoRoot, "package.json"), "utf8"));
 
 await fs.rm(outputDir, { recursive: true, force: true });
@@ -118,12 +118,7 @@ async function resolveReleaseMetadata({ downloadsJsonPath, downloadsUrl, repoUrl
 }
 
 function fallbackReleaseMetadata({ downloadsUrl, repoUrl, version }) {
-  const releaseUrl = `${repoUrl}/releases/latest`;
   const channel = version.includes("beta") ? "beta" : "stable";
-  const artifactFallback = {
-    latestUrl: releaseUrl,
-    versionedUrl: releaseUrl
-  };
 
   return {
     publicReleaseReady: false,

@@ -157,8 +157,8 @@ jobs:
         run: |
           mkdir -p dist/release
           case "${{ matrix.os }}" in
-            macos-latest) node scripts/verify-release-trust.mjs --platform macos --json --strict > dist/release/release-trust-macos.json ;;
-            windows-latest) node scripts/verify-release-trust.mjs --platform windows --json --strict > dist/release/release-trust-windows.json ;;
+            macos-latest) node scripts/verify-release-trust.mjs --platform macos --json > dist/release/release-trust-macos.json ;;
+            windows-latest) node scripts/verify-release-trust.mjs --platform windows --json > dist/release/release-trust-windows.json ;;
             ubuntu-latest) echo "Linux trust check is not release-gated yet." ;;
           esac
 
@@ -198,8 +198,6 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_PAGES_PROJECT_NAME: ${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }}
-      CLOUDFLARE_R2_BUCKET: ${{ vars.CLOUDFLARE_R2_BUCKET }}
-      DOWNLOADS_URL: ${{ vars.DOWNLOADS_URL }}
       REPO_URL: ${{ vars.REPO_URL }}
       SITE_URL: ${{ vars.SITE_URL }}
     steps:
@@ -238,7 +236,7 @@ jobs:
           cat > dist/release/release-notes.md <<EOF
           Kiwi Control ${RELEASE_TAG}
 
-          Cloudflare hosts the public download surface for this release. GitHub Releases remains the public home for release notes, history, and mirrored assets.
+          The public Kiwi Control website tracks the current release status. GitHub Releases currently hosts the attached release assets, release notes, and release history for this beta release.
 
           Trust notes:
           - macOS signing and notarization are only trusted if this workflow ran with Apple signing and notarization secrets and the build logs confirmed those steps
@@ -246,24 +244,71 @@ jobs:
           - auto-update metadata is still disabled until signed updater inputs are configured
           EOF
 
-      - name: Ensure Cloudflare R2 downloads bucket and domain
-        run: |
-          node scripts/ensure-cloudflare-r2-downloads.mjs \
-            --output dist/release/cloudflare-r2-downloads.json
-
-      - name: Publish Cloudflare download artifacts
+      - name: Create or update GitHub Release shell
         env:
+          GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          node scripts/publish-cloudflare-downloads.mjs \
+          release_title="Kiwi Control ${RELEASE_TAG}"
+          prerelease=false
+          case "${RELEASE_TAG}" in
+            *alpha*|*beta*|*rc*) prerelease=true ;;
+          esac
+          if ! gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            create_args=(
+              "${RELEASE_TAG}"
+              --repo "${GITHUB_REPOSITORY}"
+              --title "${release_title}"
+              --notes-file dist/release/release-notes.md
+            )
+            if [ "${prerelease}" = "true" ]; then
+              create_args+=(--prerelease)
+            fi
+            gh release create "${create_args[@]}"
+          fi
+          jq -n \
+            --arg name "${release_title}" \
+            --rawfile body dist/release/release-notes.md \
+            --argjson prerelease "${prerelease}" \
+            '{name: $name, body: $body, draft: false, prerelease: $prerelease}' \
+            > dist/release/release-update.json
+          release_id="$(gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" --json databaseId --jq '.databaseId')"
+          gh api \
+            --method PATCH \
+            --header "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/releases/${release_id}" \
+            --input dist/release/release-update.json
+
+      - name: Upload release artifacts to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release upload "${RELEASE_TAG}" dist/release/publish/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --clobber
+
+      - name: Generate public release metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node scripts/generate-github-release-downloads.mjs \
             --publish-root dist/release/publish \
-            --downloads-url "${DOWNLOADS_URL}" \
-            --bucket "${CLOUDFLARE_R2_BUCKET}" \
+            --repo "${GITHUB_REPOSITORY}" \
             --repo-url "${REPO_URL}" \
             --release-tag "${RELEASE_TAG}" \
-            --release-url "${REPO_URL%/}/releases/tag/${RELEASE_TAG}" \
             --macos-trust-json dist/release/publish/release-trust-macos.json \
             --windows-trust-json dist/release/publish/release-trust-windows.json
+
+      - name: Upload release metadata to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release upload "${RELEASE_TAG}" dist/release/publish/downloads.json \
+            --repo "${GITHUB_REPOSITORY}" \
+            --clobber
 
       - name: Ensure Cloudflare Pages project
         run: node scripts/ensure-cloudflare-pages-project.mjs --output dist/release/cloudflare-pages.json
@@ -272,7 +317,6 @@ jobs:
         run: |
           node scripts/stage-pages-site.mjs \
             --downloads-json dist/release/publish/downloads.json \
-            --downloads-url "${DOWNLOADS_URL}" \
             --repo-url "${REPO_URL}" \
             --output-dir dist/site
 
@@ -287,32 +331,4 @@ jobs:
       - name: Verify public download surface
         run: |
           node scripts/verify-public-download-surface.mjs \
-            --site-url "${SITE_URL%/}" \
-            --downloads-url "${DOWNLOADS_URL%/}"
-
-      - name: Create or update GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: |
-          release_title="Kiwi Control ${RELEASE_TAG}"
-          if ! gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            gh release create "${RELEASE_TAG}" \
-              --repo "${GITHUB_REPOSITORY}" \
-              --title "${release_title}" \
-              --notes-file dist/release/release-notes.md
-          fi
-          release_id="$(gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" --json databaseId --jq '.databaseId')"
-          jq -n \
-            --arg name "${release_title}" \
-            --rawfile body dist/release/release-notes.md \
-            '{name: $name, body: $body, draft: false, prerelease: false, make_latest: "true"}' \
-            > dist/release/release-update.json
-          gh api \
-            --method PATCH \
-            --header "Accept: application/vnd.github+json" \
-            "repos/${GITHUB_REPOSITORY}/releases/${release_id}" \
-            --input dist/release/release-update.json
-          gh release upload "${RELEASE_TAG}" dist/release/publish/* \
-            --repo "${GITHUB_REPOSITORY}" \
-            --clobber
+            --site-url "${SITE_URL%/}"

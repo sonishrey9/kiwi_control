@@ -57,13 +57,11 @@ async function verifyLocalSite(siteDir) {
   const downloadsHtml = await fs.readFile(path.join(siteDir, "downloads", "index.html"), "utf8");
   const metadata = JSON.parse(await fs.readFile(path.join(siteDir, "data", "latest-release.json"), "utf8"));
   const sidecars = await findMetadataArtifacts(siteDir);
-
-  const missingPhrases = metadata.publicReleaseReady === false
-    ? [
-        ...missingPhrase(indexHtml, "Public release coming soon"),
-        ...missingPhrase(downloadsHtml, "Public release coming soon")
-      ]
+  const releaseReady = metadata.publicReleaseReady === true;
+  const missingPhrases = releaseReady === false
+    ? missingPhrase(downloadsHtml, "Cloudflare hosting does not replace signing proof")
     : [];
+  const invalidReleaseReadyMetadata = releaseReady ? validateReleaseReadyMetadata(metadata) : [];
 
   const oldWordings = [
     ...containsPhrase(indexHtml, "GitHub Releases stays the source of truth"),
@@ -74,12 +72,14 @@ async function verifyLocalSite(siteDir) {
     ok:
       missingPhrases.length === 0 &&
       sidecars.length === 0 &&
-      oldWordings.length === 0,
+      oldWordings.length === 0 &&
+      invalidReleaseReadyMetadata.length === 0,
     mode: "local",
     siteDir: path.relative(repoRoot, siteDir).replace(/\\/g, "/"),
     missingPhrases,
     sidecars,
     oldWordings,
+    invalidReleaseReadyMetadata,
     metadataSummary: {
       tagName: metadata.tagName,
       checksumsUrl: metadata.checksumsUrl,
@@ -96,35 +96,43 @@ async function verifyRemoteSite({ siteUrl }) {
   const siteResponse = await fetchOrThrow(siteUrl);
   const downloadsResponse = await fetchOrThrow(`${siteUrl}/downloads/`);
   const metadataResponse = await fetchOrThrow(`${siteUrl}/data/latest-release.json`);
+  const metadataContentType = metadataResponse.headers.get("content-type") ?? "";
   const metadata = await metadataResponse.json();
-  const artifactResults = [];
-  const metadataResults = [];
 
   const siteHtml = await siteResponse.text();
   const downloadsHtml = await downloadsResponse.text();
-  const missingPhrases = metadata.publicReleaseReady === false
-    ? [
-        ...missingPhrase(siteHtml, "Public release coming soon"),
-        ...missingPhrase(downloadsHtml, "Public release coming soon"),
-        ...missingPhrase(downloadsHtml, "Cloudflare hosting does not replace signing proof")
-      ]
+  const releaseReady = metadata.publicReleaseReady === true;
+  const missingPhrases = releaseReady === false
+    ? missingPhrase(downloadsHtml, "Cloudflare hosting does not replace signing proof")
     : [];
+  const invalidReleaseReadyMetadata = releaseReady ? validateReleaseReadyMetadata(metadata) : [];
   const oldWordings = [
     ...containsPhrase(siteHtml, "GitHub Releases stays the source of truth"),
     ...containsPhrase(downloadsHtml, "GitHub Releases is the source of truth")
   ];
+  const metadataResults = releaseReady
+    ? await verifyReleaseReadyUrls(collectReleaseUrls(metadata))
+    : [];
+  const artifactResults = metadataResults.filter((entry) => entry.kind === "artifact");
+  const auxiliaryResults = metadataResults.filter((entry) => entry.kind !== "artifact");
+  const invalidMetadataContentType = metadataContentType.includes("application/json") ? [] : [metadataContentType || "missing content-type"];
 
   return {
     ok:
       missingPhrases.length === 0 &&
-      oldWordings.length === 0,
+      oldWordings.length === 0 &&
+      invalidReleaseReadyMetadata.length === 0 &&
+      invalidMetadataContentType.length === 0 &&
+      metadataResults.every((entry) => entry.ok),
     mode: "remote",
     siteUrl,
     downloadsUrl: null,
     metadataOnly: false,
     missingPhrases,
     oldWordings,
-    metadataResults,
+    invalidReleaseReadyMetadata,
+    invalidMetadataContentType,
+    metadataResults: auxiliaryResults,
     artifactResults
   };
 }
@@ -182,6 +190,59 @@ function missingPhrase(content, phrase) {
 
 function containsPhrase(content, phrase) {
   return content.includes(phrase) ? [phrase] : [];
+}
+
+function validateReleaseReadyMetadata(metadata) {
+  const issues = [];
+  if (!metadata.releaseNotesUrl) {
+    issues.push("releaseNotesUrl");
+  }
+  if (!metadata.sourceUrl) {
+    issues.push("sourceUrl");
+  }
+  if (!metadata.checksumsUrl) {
+    issues.push("checksumsUrl");
+  }
+  if (!metadata.manifestUrl) {
+    issues.push("manifestUrl");
+  }
+  const primaryArtifactKinds = ["macosDmg", "macosAppTarball", "windowsNsis", "windowsMsi"];
+  if (!primaryArtifactKinds.some((kind) => Boolean(metadata.artifacts?.[kind]?.latestUrl))) {
+    issues.push("at least one desktop artifact latestUrl");
+  }
+  return issues;
+}
+
+function collectReleaseUrls(metadata) {
+  const urls = [
+    { label: "releaseNotesUrl", url: metadata.releaseNotesUrl, kind: "metadata" },
+    { label: "sourceUrl", url: metadata.sourceUrl, kind: "metadata" },
+    { label: "checksumsUrl", url: metadata.checksumsUrl, kind: "metadata" },
+    { label: "manifestUrl", url: metadata.manifestUrl, kind: "metadata" }
+  ];
+
+  for (const [key, artifact] of Object.entries(metadata.artifacts ?? {})) {
+    if (artifact?.latestUrl) {
+      urls.push({ label: `${key}.latestUrl`, url: artifact.latestUrl, kind: "artifact" });
+    }
+    if (artifact?.versionedUrl && artifact.versionedUrl !== artifact?.latestUrl) {
+      urls.push({ label: `${key}.versionedUrl`, url: artifact.versionedUrl, kind: "artifact" });
+    }
+  }
+
+  return urls;
+}
+
+async function verifyReleaseReadyUrls(entries) {
+  const results = [];
+  for (const entry of entries) {
+    const check = await headOrGet(entry.url);
+    results.push({
+      ...entry,
+      ...check
+    });
+  }
+  return results;
 }
 
 async function findMetadataArtifacts(rootDir) {

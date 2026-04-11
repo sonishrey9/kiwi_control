@@ -7,8 +7,9 @@ Recommended deployment:
 - host on **Cloudflare Pages**
 - keep **Route 53** authoritative for `kiwi-ai.in`
 - publish the site hostname as an external **CNAME** to the Cloudflare Pages subdomain
-- point public installers, checksums, and the release manifest to a production **Cloudflare R2 custom domain**
-- keep **GitHub Releases** for release notes and release history
+- keep the public website single-host on `kiwi-control.kiwi-ai.in`
+- let `/downloads/` be the public installer entrypoint backed by `/data/latest-release.json`
+- keep **GitHub Releases** as the current host for attached release assets, release notes, and release history unless a different binary-hosting path is explicitly published
 
 Recommended Pages project root:
 

@@ -6,7 +6,7 @@ Kiwi Control has three supported usage tracks:
 - standalone CLI users
 - source contributors
 
-For the public beta, Cloudflare-hosted downloads are the primary install surface. GitHub Releases remains the source for release notes and release history.
+For the public beta, the public website is the primary install surface. GitHub Releases currently hosts the actual release assets, release notes, and release history until a different binary-hosting path is explicitly published.
 
 ## Recommended path: desktop first
 
@@ -33,7 +33,7 @@ This is the default path Kiwi should optimize for:
 
 You do not need `kc` for basic desktop usage.
 
-For public downloads, trust status is release-specific. Cloudflare hosting makes the artifacts public, not trusted. The release notes, `SHA256SUMS.txt`, and release manifest say whether the macOS DMG was signed/notarized and whether the Windows installer was signed on a Windows runner.
+For public downloads, trust status is release-specific. Public hosting makes the artifacts reachable, not trusted. The release notes, `SHA256SUMS.txt`, and release manifest say whether the macOS DMG was signed/notarized and whether the Windows installer was signed on a Windows runner.
 
 ### Desktop + CLI path
 

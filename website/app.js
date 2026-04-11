@@ -1,4 +1,4 @@
-const REPO_URL = "https://github.com/sonishrey9/kiwi-control";
+const REPO_URL = "https://github.com/sonishrey9/kiwi-control-backup";
 const RELEASE_METADATA_URL = "/data/latest-release.json";
 const DEFAULT_VERSION = "0.2.0-beta.1";
 
@@ -122,20 +122,20 @@ function bindDownloadState(release) {
       }
     }
 
-    node.href = "/beta/";
+    node.href = "/downloads/";
     node.textContent = node.getAttribute("data-unavailable-label") ?? "Public release coming soon";
     node.setAttribute("aria-disabled", "true");
   });
 
   document.querySelectorAll(selectors.downloadMeta).forEach((node) => {
     node.textContent = release.publicReleaseReady
-      ? `Latest public release: ${release.version}`
+      ? `Latest public release: ${release.version}. Download links, checksums, and the release manifest below all point to the current published release artifacts.`
       : "No public release is published yet. This page will list installers, checksums, and verification steps when the first release is ready.";
   });
 
   document.querySelectorAll(selectors.recommendedBanner).forEach((node) => {
     node.textContent = release.publicReleaseReady
-      ? "Choose the installer that matches your desktop OS."
+      ? "Choose the installer that matches your desktop OS. Optional kc verification commands stay on the downloads page."
       : "Public release coming soon. The first installers will appear here once the desktop release is published.";
   });
 }

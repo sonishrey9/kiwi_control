@@ -282,6 +282,107 @@ test("Cloudflare download publisher supports metadata-only mode for site deploys
   assert.equal(downloads.artifacts.windowsNsis.latestUrl, "https://downloads.example.com/latest/windows/kiwi-control-setup.exe");
 });
 
+test("GitHub release metadata generator publishes only truthfully available assets", async () => {
+  const root = repoRoot();
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-github-release-metadata-"));
+  const publishRoot = path.join(tempDir, "publish");
+  await fs.mkdir(publishRoot, { recursive: true });
+
+  const manifest = {
+    version: "0.2.0-beta.2",
+    channel: "beta",
+    artifacts: [
+      { artifactType: "desktop-dmg", platform: "macos", arch: "aarch64", fileName: "kiwi-control-0.2.0-beta.2-macos-aarch64.dmg" },
+      { artifactType: "desktop-app", platform: "macos", arch: "aarch64", fileName: "kiwi-control-0.2.0-beta.2-macos-aarch64.app.tar.gz" },
+      { artifactType: "desktop-nsis", platform: "windows", arch: "x64", fileName: "kiwi-control-0.2.0-beta.2-windows-x64-setup.exe" },
+      { artifactType: "desktop-msi", platform: "windows", arch: "x64", fileName: "kiwi-control-0.2.0-beta.2-windows-x64.msi" },
+      { artifactType: "cli", platform: "macos", arch: "aarch64", fileName: "kiwi-control-cli-0.2.0-beta.2-macos-aarch64.tar.gz" }
+    ]
+  };
+  await fs.writeFile(path.join(publishRoot, "release-manifest.json"), JSON.stringify(manifest, null, 2));
+  await fs.writeFile(path.join(publishRoot, "SHA256SUMS.txt"), "hash  kiwi-control-0.2.0-beta.2-macos-aarch64.dmg\n");
+
+  const releaseJsonPath = path.join(tempDir, "release.json");
+  await fs.writeFile(
+    releaseJsonPath,
+    JSON.stringify({
+      assets: [
+        {
+          name: "kiwi-control-0.2.0-beta.2-macos-aarch64.dmg",
+          browser_download_url: "https://github.com/example/kiwi-control-backup/releases/download/v0.2.0-beta.2/kiwi-control-0.2.0-beta.2-macos-aarch64.dmg"
+        },
+        {
+          name: "kiwi-control-0.2.0-beta.2-macos-aarch64.app.tar.gz",
+          browser_download_url: "https://github.com/example/kiwi-control-backup/releases/download/v0.2.0-beta.2/kiwi-control-0.2.0-beta.2-macos-aarch64.app.tar.gz"
+        },
+        {
+          name: "kiwi-control-cli-0.2.0-beta.2-macos-aarch64.tar.gz",
+          browser_download_url: "https://github.com/example/kiwi-control-backup/releases/download/v0.2.0-beta.2/kiwi-control-cli-0.2.0-beta.2-macos-aarch64.tar.gz"
+        },
+        {
+          name: "SHA256SUMS.txt",
+          browser_download_url: "https://github.com/example/kiwi-control-backup/releases/download/v0.2.0-beta.2/SHA256SUMS.txt"
+        },
+        {
+          name: "release-manifest.json",
+          browser_download_url: "https://github.com/example/kiwi-control-backup/releases/download/v0.2.0-beta.2/release-manifest.json"
+        }
+      ]
+    }, null, 2)
+  );
+
+  const macosTrustPath = path.join(tempDir, "macos-trust.json");
+  const windowsTrustPath = path.join(tempDir, "windows-trust.json");
+  await fs.writeFile(macosTrustPath, JSON.stringify({ classification: "local-beta-build-only" }));
+  await fs.writeFile(windowsTrustPath, JSON.stringify({ classification: "windows-runner-required" }));
+
+  const result = spawnSync(process.execPath, [
+    path.join(root, "scripts", "generate-github-release-downloads.mjs"),
+    "--publish-root",
+    publishRoot,
+    "--repo",
+    "example/kiwi-control-backup",
+    "--repo-url",
+    "https://github.com/example/kiwi-control-backup",
+    "--release-tag",
+    "v0.2.0-beta.2",
+    "--release-json",
+    releaseJsonPath,
+    "--macos-trust-json",
+    macosTrustPath,
+    "--windows-trust-json",
+    windowsTrustPath
+  ], {
+    cwd: root,
+    encoding: "utf8"
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const payload = JSON.parse(await fs.readFile(path.join(publishRoot, "downloads.json"), "utf8")) as {
+    publicReleaseReady: boolean;
+    releaseNotesUrl: string;
+    checksumsUrl: string;
+    manifestUrl: string;
+    trust: { macos: string; windows: string };
+    artifacts: {
+      macosDmg: { latestUrl: string; versionedUrl: string };
+      windowsNsis: { latestUrl: string | null };
+      windowsMsi: { latestUrl: string | null };
+    };
+  };
+
+  assert.equal(payload.publicReleaseReady, true);
+  assert.equal(payload.releaseNotesUrl, "https://github.com/example/kiwi-control-backup/releases/tag/v0.2.0-beta.2");
+  assert.equal(payload.checksumsUrl, "https://github.com/example/kiwi-control-backup/releases/download/v0.2.0-beta.2/SHA256SUMS.txt");
+  assert.equal(payload.manifestUrl, "https://github.com/example/kiwi-control-backup/releases/download/v0.2.0-beta.2/release-manifest.json");
+  assert.equal(payload.trust.macos, "local-beta-build-only");
+  assert.equal(payload.trust.windows, "windows-runner-required");
+  assert.equal(payload.artifacts.macosDmg.latestUrl, "https://github.com/example/kiwi-control-backup/releases/download/v0.2.0-beta.2/kiwi-control-0.2.0-beta.2-macos-aarch64.dmg");
+  assert.equal(payload.artifacts.macosDmg.versionedUrl, payload.artifacts.macosDmg.latestUrl);
+  assert.equal(payload.artifacts.windowsNsis.latestUrl, null);
+  assert.equal(payload.artifacts.windowsMsi.latestUrl, null);
+});
+
 test("Pages staging writes same-origin release metadata and strips AppleDouble sidecars", async () => {
   const root = repoRoot();
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-pages-stage-"));

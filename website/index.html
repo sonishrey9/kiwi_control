@@ -26,15 +26,15 @@
       <section class="hero hero-download">
         <div class="hero-copy">
           <div class="eyebrow">Public website</div>
-          <div class="release-chip" data-release-badge>Public release coming soon</div>
-          <h1>Kiwi Control is live on the web. The first public desktop release is coming soon.</h1>
+          <div class="release-chip" data-release-badge>Public release status</div>
+          <h1>Kiwi Control is live on the web. Use this site for the current desktop release and install status.</h1>
           <p class="hero-text">
-            This website is the public entrypoint for Kiwi Control. Desktop remains the primary install path, and terminal commands stay optional after install. Public installers are not published yet.
+            This website is the public entrypoint for Kiwi Control. Desktop remains the primary install path, terminal commands stay optional after install, and the latest release status is always reflected here.
           </p>
           <p class="recommendation" data-recommended-banner>Use the downloads page for the current release status and the exact verification commands once installers are published.</p>
           <div class="release-links">
             <a href="/beta/">Beta notes</a>
-            <a href="https://github.com/sonishrey9/kiwi-control" data-release-source>GitHub repo</a>
+            <a href="https://github.com/sonishrey9/kiwi-control-backup/releases" data-release-source>GitHub</a>
           </div>
         </div>
 
@@ -43,18 +43,18 @@
             <div class="download-card-top">
               <span class="download-platform">macOS</span>
             </div>
-            <h2 data-download-heading>macOS public release</h2>
-            <p>Desktop-first install is still the intended path, but the first public macOS release is not published yet.</p>
-            <a class="button button-primary" href="/downloads/">Public release coming soon</a>
+            <h2 data-download-heading>macOS desktop release</h2>
+            <p>Use the current public release metadata to download the latest macOS installer when it is published.</p>
+            <a class="button button-primary" href="/downloads/" data-download-link data-download-kind="macosDmg" data-primary-label="Download for macOS" data-unavailable-label="Public release coming soon">View macOS release status</a>
           </article>
 
           <article class="download-card" data-download-card data-platform="windows">
             <div class="download-card-top">
               <span class="download-platform">Windows</span>
             </div>
-            <h2 data-download-heading>Windows public release</h2>
-            <p>Windows public installers are also pending. The website will link to the real installer files here once the first public release is ready.</p>
-            <a class="button button-primary" href="/downloads/">Public release coming soon</a>
+            <h2 data-download-heading>Windows desktop release</h2>
+            <p>Use the current public release metadata to download the latest Windows installer when it is published.</p>
+            <a class="button button-primary" href="/downloads/" data-download-link data-download-kind="windowsNsis" data-primary-label="Download for Windows" data-unavailable-label="Public release coming soon">View Windows release status</a>
           </article>
         </div>
       </section>
@@ -62,7 +62,7 @@
       <section class="status-strip panel panel-inline">
         <div>
           <strong>Status</strong>
-          <span data-release-version>Public release coming soon</span>
+          <span data-release-version>Public release status</span>
         </div>
         <div>
           <strong>Recommended path</strong>
@@ -76,11 +76,11 @@
 
       <section class="grid grid-compact">
         <article class="panel">
-          <h2>Public release coming soon</h2>
+          <h2>Public release status</h2>
           <div class="list">
             <div>1. The public website is live now.</div>
-            <div>2. The first public desktop release has not been published yet.</div>
-            <div>3. `/downloads/` will become the public installer entrypoint once signed release artifacts are ready.</div>
+            <div>2. `/downloads/` is the single public installer entrypoint.</div>
+            <div>3. Release metadata on this host tells you whether installers are live yet.</div>
           </div>
         </article>
         <article class="panel">
@@ -113,10 +113,10 @@
 
         <article class="panel detail-panel">
           <div class="eyebrow">Current public truth</div>
-          <h2>No public installer binaries yet</h2>
+          <h2>Release readiness stays explicit</h2>
           <div class="list">
-            <div>There is no public release on this website yet.</div>
-            <div>When installers are published, `/downloads/` will expose the release status, checksums, and verification commands.</div>
+            <div>This website always reflects the current public release status.</div>
+            <div>`/downloads/` exposes the release status, checksums, and verification commands.</div>
             <div data-trust-platform="macos">macOS trust status is still release-specific.</div>
             <div data-trust-platform="windows">Windows trust status is still release-specific.</div>
           </div>

@@ -5,7 +5,8 @@
 The public beta release surface should look like a coherent Kiwi Control product:
 
 - website is installer-first
-- Cloudflare R2 is the source of truth for public binaries, checksums, and the release manifest
+- the public website is the source of truth for release status
+- GitHub Release assets are the current public binary, checksum, and manifest host
 - release notes and checksums are public and easy to find
 - beta wording stays honest about trust and signing status
 
@@ -36,7 +37,7 @@ Release artifact build:
 npm run ui:desktop:build:release
 npm run release:verify-artifacts
 npm run release:trust -- --platform macos --json
-node scripts/publish-cloudflare-downloads.mjs --dry-run --downloads-url https://downloads.example.com
+node scripts/generate-github-release-downloads.mjs --publish-root dist/release/publish --repo owner/repo --release-tag v0.2.0-beta.1 --release-json /path/to/release.json
 ```
 
 macOS release build on a Mac:
@@ -97,9 +98,9 @@ Current source bundle output roots:
 The intended public beta path is:
 
 1. consolidate release artifacts into `dist/release/publish`
-2. publish the public binaries, checksums, manifest, and `downloads.json` to the Cloudflare R2 custom domain
-3. deploy the staged Pages site with `/data/latest-release.json`
-4. update GitHub Releases with the same release notes, history, and attached artifacts
+2. create or update the public GitHub Release for the current tag
+3. upload the public binaries, checksums, manifest, and `downloads.json` to that GitHub Release
+4. deploy the staged Pages site with `/data/latest-release.json`
 5. keep release notes explicit about signing, notarization, and trust status
 
 Optional terminal commands are not part of the default desktop installer lane in this pass. They are enabled explicitly from first launch or later in-app, after the desktop app is already usable.
@@ -137,9 +138,7 @@ Official Tauri signing and notarization inputs used by this repo:
   - release manifest
   - GitHub release history
 - `/downloads/` should be a real Cloudflare Pages route backed by `/data/latest-release.json`
-- Cloudflare R2 should expose stable URLs in both forms:
-  - `${DOWNLOADS_URL}/releases/v<version>/<artifact>`
-  - `${DOWNLOADS_URL}/latest/<platform>/<stable-name>`
+- the first public release links may point to GitHub Release assets even though the public website stays single-host
 
 ## Trust rules
 
@@ -166,8 +165,7 @@ Current public-beta hosting split:
 
 - Route 53 remains authoritative for `kiwi-ai.in`
 - Cloudflare Pages hosts the public site
-- Cloudflare R2 hosts the public binaries, checksums, and release manifest
-- GitHub Releases remains the release-notes and release-history surface
+- GitHub Releases currently hosts the public binaries, checksums, manifest, release notes, and release history
 
 ## Related docs
 

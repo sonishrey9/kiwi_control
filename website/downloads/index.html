@@ -21,37 +21,47 @@
 
       <section class="hero">
         <div class="eyebrow">Downloads</div>
-        <div class="release-chip" data-release-badge>Public release coming soon</div>
-        <h1>This will be the single public download entrypoint once Kiwi Control ships a public release.</h1>
+        <div class="release-chip" data-release-badge>Public release status</div>
+        <h1>This is the single public download entrypoint for Kiwi Control.</h1>
         <p>
-          The public release is not published yet. When it is ready, this page will list the desktop installers, release metadata, checksums, and the exact verification commands from the same public website host.
+          Use this page for the current public release status, desktop installers, release metadata, checksums, and the exact verification commands from the same public website host.
+        </p>
+        <p data-download-meta>
+          No public release is published yet. This page will list installers, checksums, and verification steps when the first release is ready.
         </p>
       </section>
 
       <section class="grid">
         <article class="panel">
-          <h2>Current status</h2>
+          <h2>Desktop installers</h2>
           <div class="list">
-            <div>No public macOS installer is published yet.</div>
-            <div>No public Windows installer is published yet.</div>
-            <div>No public checksums or release manifest are published yet.</div>
+            <div><a href="/downloads/" data-download-link data-download-kind="macosDmg" data-primary-label="Download macOS DMG" data-unavailable-label="macOS DMG coming soon">macOS DMG coming soon</a></div>
+            <div><a href="/downloads/" data-download-link data-download-kind="macosAppTarball" data-primary-label="Download macOS app tarball" data-unavailable-label="macOS app tarball coming soon">macOS app tarball coming soon</a></div>
+            <div><a href="/downloads/" data-download-link data-download-kind="windowsNsis" data-primary-label="Download Windows setup EXE" data-unavailable-label="Windows setup EXE coming soon">Windows setup EXE coming soon</a></div>
+            <div><a href="/downloads/" data-download-link data-download-kind="windowsMsi" data-primary-label="Download Windows MSI" data-unavailable-label="Windows MSI coming soon">Windows MSI coming soon</a></div>
           </div>
         </article>
 
         <article class="panel">
-          <h2>What will appear here later</h2>
+          <h2>Release metadata</h2>
           <div class="list">
-            <div>Desktop installer links for macOS and Windows.</div>
-            <div>Checksums and release metadata.</div>
-            <div>Fresh-shell verification commands for optional <code>kc</code>.</div>
+            <div>Current version: <strong data-release-version>Public release status</strong></div>
+            <div><a href="https://github.com/sonishrey9/kiwi-control-backup/releases/latest" data-release-notes>Release notes</a></div>
+            <div><a href="https://github.com/sonishrey9/kiwi-control-backup/releases/latest" data-release-checksums>Checksums</a></div>
+            <div><a href="https://github.com/sonishrey9/kiwi-control-backup/releases/latest" data-release-manifest>Release manifest</a></div>
+            <div><a href="https://github.com/sonishrey9/kiwi-control-backup/releases" data-release-source>GitHub</a></div>
           </div>
         </article>
 
         <article class="panel">
-          <h2>Public release coming soon</h2>
+          <h2>Optional CLI bundles</h2>
           <p>
-            Until the first public release exists, use this page as the canonical public status page rather than expecting download links to be live already.
+            Desktop install stays primary. These bundles remain optional for users who explicitly want the standalone CLI path.
           </p>
+          <div class="list">
+            <div><a href="/downloads/" data-download-link data-download-kind="cliMacos" data-primary-label="Download macOS CLI bundle" data-unavailable-label="macOS CLI bundle coming soon">macOS CLI bundle coming soon</a></div>
+            <div><a href="/downloads/" data-download-link data-download-kind="cliWindows" data-primary-label="Download Windows CLI bundle" data-unavailable-label="Windows CLI bundle coming soon">Windows CLI bundle coming soon</a></div>
+          </div>
         </article>
       </section>
 

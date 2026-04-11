@@ -35,6 +35,7 @@
     "release:package-assets": "node scripts/package-release-assets.mjs",
     "cloudflare:ensure-downloads": "node scripts/ensure-cloudflare-r2-downloads.mjs",
     "release:publish:cloudflare": "node scripts/publish-cloudflare-downloads.mjs",
+    "release:downloads:github": "node scripts/generate-github-release-downloads.mjs",
     "release:verify-artifacts": "node scripts/verify-release-artifacts.mjs",
     "release:verify:public-downloads": "node scripts/verify-public-download-surface.mjs",
     "release:trust": "node scripts/verify-release-trust.mjs",
