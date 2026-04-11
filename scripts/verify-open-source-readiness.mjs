@@ -47,12 +47,16 @@ const gitignoreExpected = [
   "output/playwright/",
   "dist/release/",
   "docs/._*",
-  ".github/**/._*"
+  ".github/**/._*",
+  "website/._*",
+  "website/**/._*"
 ];
 
 const noisyTrackedPatterns = [
   "docs/._*",
   ".github/**/._*",
+  "website/._*",
+  "website/**/._*",
   ".playwright-cli/**",
   "output/playwright/**",
   "dist/release/**",

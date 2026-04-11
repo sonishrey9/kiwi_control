@@ -1,42 +1,63 @@
 const RELEASES_URL = "https://github.com/sonishrey9/kiwi-control/releases/latest";
-const RELEASES_API_URL = "https://api.github.com/repos/sonishrey9/kiwi-control/releases/latest";
 const REPO_URL = "https://github.com/sonishrey9/kiwi-control";
+const RELEASE_METADATA_URL = "/data/latest-release.json";
 const DEFAULT_VERSION = "0.2.0-beta.1";
 
 const PLATFORM_CONFIG = {
   macos: {
     label: "macOS",
-    heroLabel: "Download for macOS",
-    description: "Desktop installer for Kiwi Control on macOS.",
-    releaseNotesLabel: "macOS release notes"
+    heroLabel: "Download for macOS"
   },
   windows: {
     label: "Windows",
-    heroLabel: "Download for Windows",
-    description: "Desktop installer for Kiwi Control on Windows.",
-    releaseNotesLabel: "Windows release notes"
+    heroLabel: "Download for Windows"
   }
+};
+
+const TRUST_LABELS = {
+  "local-beta-build-only": "Local beta build only. Do not treat download availability as notarization or public trust.",
+  "signed-not-notarized": "Signed, but not notarized yet. Treat this as pre-public-release trust.",
+  "signed-and-notarized": "Signed and notarized for public release.",
+  "windows-runner-required": "Windows trust still requires signed installers proven on a Windows host or runner.",
+  "unsigned-installers": "Installers exist, but Windows signing proof is not complete.",
+  "signed-installers": "Windows installers are signed and verified on a Windows host."
 };
 
 const selectors = {
   version: "[data-release-version]",
   releaseNotes: "[data-release-notes]",
   checksums: "[data-release-checksums]",
+  manifest: "[data-release-manifest]",
   source: "[data-release-source]",
   releaseBadge: "[data-release-badge]",
   downloadCard: "[data-download-card]",
   downloadAnchor: "[data-download-link]",
   recommendedBanner: "[data-recommended-banner]",
   releaseFallback: "[data-release-fallback]",
-  downloadMeta: "[data-download-meta]"
+  downloadMeta: "[data-download-meta]",
+  trust: "[data-trust-platform]"
 };
 
-const latestRelease = {
+const fallbackRelease = {
   tagName: `v${DEFAULT_VERSION}`,
   version: DEFAULT_VERSION,
-  htmlUrl: RELEASES_URL,
+  channel: DEFAULT_VERSION.includes("beta") ? "beta" : "stable",
+  releaseNotesUrl: RELEASES_URL,
+  sourceUrl: RELEASES_URL,
   checksumsUrl: RELEASES_URL,
-  assets: []
+  manifestUrl: RELEASES_URL,
+  trust: {
+    macos: "local-beta-build-only",
+    windows: "windows-runner-required"
+  },
+  artifacts: {
+    macosDmg: makeFallbackArtifact("kiwi-control.dmg"),
+    macosAppTarball: makeFallbackArtifact("kiwi-control.app.tar.gz"),
+    windowsNsis: makeFallbackArtifact("kiwi-control-setup.exe"),
+    windowsMsi: makeFallbackArtifact("kiwi-control.msi"),
+    cliMacos: makeFallbackArtifact("kiwi-control-cli.tar.gz"),
+    cliWindows: makeFallbackArtifact("kiwi-control-cli.zip")
+  }
 };
 
 init();
@@ -45,18 +66,20 @@ async function init() {
   const detectedPlatform = detectPlatform();
   updatePlatformLabels(detectedPlatform);
 
-  let release = latestRelease;
+  let release = fallbackRelease;
   try {
     release = await loadLatestRelease();
   } catch (error) {
-    console.warn("Falling back to latest release page:", error);
+    console.warn("Falling back to bundled release metadata:", error);
     document.querySelectorAll(selectors.releaseFallback).forEach((node) => {
       node.hidden = false;
     });
   }
 
   updateReleaseMetadata(release);
-  updateDownloadLinks(release, detectedPlatform);
+  bindArtifactLinks(release);
+  bindDownloadMeta(release, detectedPlatform);
+  bindTrustNotes(release);
 }
 
 function detectPlatform() {
@@ -74,23 +97,36 @@ function detectPlatform() {
 }
 
 async function loadLatestRelease() {
-  const response = await fetch(RELEASES_API_URL, {
+  const response = await fetch(RELEASE_METADATA_URL, {
     headers: {
-      Accept: "application/vnd.github+json"
+      Accept: "application/json"
     }
   });
 
   if (!response.ok) {
-    throw new Error(`GitHub release API returned ${response.status}`);
+    throw new Error(`release metadata returned ${response.status}`);
   }
 
-  const payload = await response.json();
+  return normalizeRelease(await response.json());
+}
+
+function normalizeRelease(payload) {
   return {
-    tagName: payload.tag_name,
-    version: payload.tag_name.replace(/^v/, ""),
-    htmlUrl: payload.html_url,
-    checksumsUrl: findAssetUrl(payload.assets, (asset) => asset.name === "SHA256SUMS.txt") ?? payload.html_url,
-    assets: payload.assets ?? []
+    tagName: payload.tagName ?? fallbackRelease.tagName,
+    version: payload.version ?? fallbackRelease.version,
+    channel: payload.channel ?? fallbackRelease.channel,
+    releaseNotesUrl: payload.releaseNotesUrl ?? fallbackRelease.releaseNotesUrl,
+    sourceUrl: payload.sourceUrl ?? fallbackRelease.sourceUrl,
+    checksumsUrl: payload.checksumsUrl ?? fallbackRelease.checksumsUrl,
+    manifestUrl: payload.manifestUrl ?? fallbackRelease.manifestUrl,
+    trust: {
+      macos: payload.trust?.macos ?? fallbackRelease.trust.macos,
+      windows: payload.trust?.windows ?? fallbackRelease.trust.windows
+    },
+    artifacts: {
+      ...fallbackRelease.artifacts,
+      ...payload.artifacts
+    }
   };
 }
 
@@ -112,9 +148,8 @@ function updatePlatformLabels(detectedPlatform) {
     }
 
     const labelNode = card.querySelector("[data-download-heading]");
-    const config = PLATFORM_CONFIG[platform];
     if (labelNode) {
-      labelNode.textContent = config.heroLabel;
+      labelNode.textContent = PLATFORM_CONFIG[platform].heroLabel;
     }
 
     if (platform === detectedPlatform.key) {
@@ -137,76 +172,75 @@ function updateReleaseMetadata(release) {
   });
 
   document.querySelectorAll(selectors.releaseNotes).forEach((node) => {
-    node.href = release.htmlUrl;
+    node.href = release.releaseNotesUrl;
   });
 
   document.querySelectorAll(selectors.checksums).forEach((node) => {
     node.href = release.checksumsUrl;
   });
 
+  document.querySelectorAll(selectors.manifest).forEach((node) => {
+    node.href = release.manifestUrl;
+  });
+
   document.querySelectorAll(selectors.source).forEach((node) => {
-    node.href = RELEASES_URL;
+    node.href = release.sourceUrl;
   });
 }
 
-function updateDownloadLinks(release, detectedPlatform) {
-  const macAsset = findPreferredAsset(release.assets, "macos", detectedPlatform.arch);
-  const windowsAsset = findPreferredAsset(release.assets, "windows", "x64");
+function bindArtifactLinks(release) {
+  document.querySelectorAll(selectors.downloadAnchor).forEach((node) => {
+    const kind = node.getAttribute("data-download-kind");
+    const mode = node.getAttribute("data-link-mode") ?? "latest";
+    const primaryLabel = node.getAttribute("data-primary-label");
+    const fallbackLabel = node.getAttribute("data-fallback-label") ?? "View release";
+    const fallbackHref = node.getAttribute("data-fallback-href") ?? release.sourceUrl;
+    const artifact = kind ? release.artifacts[kind] : null;
+    const href = mode === "versioned"
+      ? artifact?.versionedUrl ?? artifact?.latestUrl ?? fallbackHref
+      : artifact?.latestUrl ?? artifact?.versionedUrl ?? fallbackHref;
 
-  bindDownload("macos", macAsset, release);
-  bindDownload("windows", windowsAsset, release);
-  bindDownloadMeta(release, macAsset, windowsAsset, detectedPlatform);
-}
-
-function bindDownload(platform, asset, release) {
-  document.querySelectorAll(`${selectors.downloadAnchor}[data-platform='${platform}']`).forEach((node) => {
-    const fallbackLabel = node.getAttribute("data-fallback-label") ?? "View release assets";
-    if (asset) {
-      node.href = asset.browser_download_url;
-      node.textContent = node.getAttribute("data-primary-label") ?? node.textContent;
-      return;
-    }
-
-    node.href = release.htmlUrl;
-    node.textContent = fallbackLabel;
+    node.href = href;
+    node.textContent = artifact ? (primaryLabel ?? node.textContent) : fallbackLabel;
   });
 }
 
-function bindDownloadMeta(release, macAsset, windowsAsset, detectedPlatform) {
+function bindDownloadMeta(release, detectedPlatform) {
   document.querySelectorAll(selectors.downloadMeta).forEach((node) => {
-    if (detectedPlatform.key === "macos" && macAsset) {
-      node.textContent = `${PLATFORM_CONFIG.macos.label} installer: ${macAsset.name}`;
+    if (detectedPlatform.key === "macos") {
+      const artifact = release.artifacts.macosDmg;
+      node.textContent = `macOS installer: ${artifact.filename}`;
       return;
     }
 
-    if (detectedPlatform.key === "windows" && windowsAsset) {
-      node.textContent = `${PLATFORM_CONFIG.windows.label} installer: ${windowsAsset.name}`;
+    if (detectedPlatform.key === "windows") {
+      const artifact = release.artifacts.windowsNsis;
+      node.textContent = `Windows installer: ${artifact.filename}`;
       return;
     }
 
-    node.textContent = `GitHub Releases remains the source of truth for every installer and checksum in ${release.tagName}.`;
+    node.textContent = `Cloudflare hosts the public downloads for ${release.tagName}. Use /downloads for the full installer list and GitHub for release notes.`;
   });
 }
 
-function findPreferredAsset(assets, platform, preferredArch) {
-  if (platform === "macos") {
-    return (
-      findAssetUrl(assets, (asset) => asset.name.includes("-macos-") && asset.name.includes(`-${preferredArch}.dmg`)) ??
-      findAssetUrl(assets, (asset) => asset.name.includes("-macos-") && asset.name.endsWith(".dmg")) ??
-      findAssetUrl(assets, (asset) => asset.name.includes("-macos-") && asset.name.endsWith(".tar.gz"))
-    );
-  }
-
-  if (platform === "windows") {
-    return (
-      findAssetUrl(assets, (asset) => asset.name.includes("-windows-") && asset.name.endsWith(".msi")) ??
-      findAssetUrl(assets, (asset) => asset.name.includes("-windows-") && asset.name.endsWith(".zip"))
-    );
-  }
-
-  return null;
+function bindTrustNotes(release) {
+  document.querySelectorAll(selectors.trust).forEach((node) => {
+    const platform = node.getAttribute("data-trust-platform");
+    if (!platform) {
+      return;
+    }
+    const classification = release.trust?.[platform];
+    if (!classification) {
+      return;
+    }
+    node.textContent = TRUST_LABELS[classification] ?? classification;
+  });
 }
 
-function findAssetUrl(assets, predicate) {
-  return assets.find(predicate) ?? null;
+function makeFallbackArtifact(filename) {
+  return {
+    filename,
+    latestUrl: RELEASES_URL,
+    versionedUrl: `${REPO_URL}/releases/tag/v${DEFAULT_VERSION}`
+  };
 }

@@ -6,7 +6,7 @@
     <title>Download Kiwi Control</title>
     <meta
       name="description"
-      content="Download Kiwi Control for macOS or Windows. GitHub Releases is the source of truth for the current public beta installers and checksums."
+      content="Download Kiwi Control for macOS or Windows from Cloudflare-hosted public downloads, then optionally enable kc after install."
     />
     <link rel="stylesheet" href="/styles.css" />
     <script src="/app.js" defer></script>
@@ -19,23 +19,24 @@
           <a href="/install/">Install guide</a>
           <a href="/beta/">Beta notes</a>
           <a href="/support/">Support</a>
-          <a href="/downloads">All downloads</a>
+          <a href="/downloads/">All downloads</a>
         </div>
       </nav>
 
       <section class="hero hero-download">
         <div class="hero-copy">
-          <div class="eyebrow">Public beta installer</div>
+          <div class="eyebrow">Public desktop download</div>
           <div class="release-chip" data-release-badge>Latest release: v0.2.0-beta.1</div>
           <h1>Download Kiwi Control and start with the desktop app.</h1>
           <p class="hero-text">
-            The fastest path is the desktop installer. GitHub Releases stays the source of truth for binaries, release notes, and checksums.
+            Cloudflare hosts the public installers and checksums. GitHub keeps the release notes and release history. The desktop app is the main path. Terminal commands stay optional.
           </p>
           <p class="recommendation" data-recommended-banner>Choose the installer that matches your desktop OS.</p>
           <div class="release-links">
             <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-notes>Release notes</a>
             <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-checksums>Checksums</a>
-            <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-source>GitHub Releases source of truth</a>
+            <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-manifest>Release manifest</a>
+            <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-source>GitHub release history</a>
           </div>
         </div>
 
@@ -46,14 +47,14 @@
               <span class="download-recommended" data-recommended-chip hidden>Recommended</span>
             </div>
             <h2 data-download-heading>Download for macOS</h2>
-            <p>Apple silicon and Intel desktop installers are resolved from the latest GitHub Release.</p>
+            <p>Normal desktop install for macOS. Open the app after install, then enable terminal commands only if you want the optional `kc` path.</p>
             <a
               class="button button-primary"
               href="https://github.com/sonishrey9/kiwi-control/releases/latest"
               data-download-link
-              data-platform="macos"
+              data-download-kind="macosDmg"
               data-primary-label="Download for macOS"
-              data-fallback-label="View macOS release assets"
+              data-fallback-label="View macOS release"
             >
               Download for macOS
             </a>
@@ -65,14 +66,14 @@
               <span class="download-recommended" data-recommended-chip hidden>Recommended</span>
             </div>
             <h2 data-download-heading>Download for Windows</h2>
-            <p>Recommended for most users. The latest MSI is pulled from GitHub Releases when available.</p>
+            <p>Recommended installer for most Windows users. Use MSI from the downloads page when you need the enterprise-style package.</p>
             <a
               class="button button-primary"
               href="https://github.com/sonishrey9/kiwi-control/releases/latest"
               data-download-link
-              data-platform="windows"
+              data-download-kind="windowsNsis"
               data-primary-label="Download for Windows"
-              data-fallback-label="View Windows release assets"
+              data-fallback-label="View Windows release"
             >
               Download for Windows
             </a>
@@ -87,62 +88,62 @@
         </div>
         <div>
           <strong>Recommended path</strong>
-          <span data-download-meta>GitHub Releases remains the source of truth for every installer and checksum.</span>
+          <span data-download-meta>Cloudflare hosts the public downloads for the current release.</span>
         </div>
         <div>
           <strong>Fallback</strong>
-          <span>Use the full <a href="/downloads">downloads page</a> if the direct installer buttons do not match your machine.</span>
+          <span>Use the full <a href="/downloads/">downloads page</a> if you need checksums, MSI, the app tarball, or optional CLI bundles.</span>
         </div>
       </section>
 
       <section class="grid grid-compact">
         <article class="panel">
-          <h2>Install in three steps</h2>
+          <h2>Install in four steps</h2>
           <div class="list">
             <div>1. Download the desktop installer for macOS or Windows.</div>
             <div>2. Install Kiwi Control normally for your platform.</div>
-            <div>3. Launch the app and let onboarding install <code>kc</code> for the repo flow.</div>
+            <div>3. Launch the app and choose a repo.</div>
+            <div>4. Optionally enable terminal commands later if you want `kc` from Terminal.</div>
           </div>
         </article>
         <article class="panel">
-          <h2>Prefer CLI?</h2>
+          <h2>Optional CLI later</h2>
           <p>
-            The CLI bundle is still available from GitHub Releases. Manual CLI install instructions live on the
-            <a href="/install/">install page</a>, below the desktop-first flow.
+            You do not need terminal setup for normal desktop use. If you want the power-user path too, use
+            <strong>Enable terminal commands (kc)</strong> after install or grab the manual CLI bundles from
+            <a href="/downloads/">all downloads</a>.
           </p>
         </article>
         <article class="panel">
-          <h2>Beta trust posture</h2>
-          <p class="warn">Always check release notes and checksums before trusting an installer. Signing and notarization status may vary by release.</p>
+          <h2>Trust still matters</h2>
+          <p class="warn">Cloudflare hosting makes downloads public, not trusted. Always check the current release notes, checksums, and platform trust status before you trust an installer.</p>
         </article>
       </section>
 
       <section class="details-layout">
         <article class="panel detail-panel">
-          <div class="eyebrow">Detailed install</div>
-          <h2>CLI and manual setup</h2>
-          <p>Desktop is the primary path, but the CLI bundle still works when you want a direct shell-based install.</p>
+          <div class="eyebrow">After install</div>
+          <h2>Verify optional terminal commands</h2>
+          <p>Desktop use works immediately. If you later enable `kc`, open a fresh terminal and verify it.</p>
           <div class="list">
-            <div>1. Open <a href="/downloads">all downloads</a> or the latest <a href="https://github.com/sonishrey9/kiwi-control/releases/latest">release page</a>.</div>
-            <div>2. Download the CLI bundle for your OS.</div>
-            <div>3. Run <code>install.sh</code> or <code>install.ps1</code>.</div>
-            <div>4. Use <code>kiwi-control --help</code> or <code>kc --help</code>.</div>
+            <div>macOS: <code>command -v kc</code></div>
+            <div>macOS: <code>kc --help</code></div>
+            <div>Windows: <code>Get-Command kc</code></div>
+            <div>Windows: <code>kc --help</code></div>
           </div>
           <p class="detail-link-row">
             <a href="/install/">Open full install guide</a>
+            <a href="/downloads/">Open all downloads</a>
           </p>
         </article>
 
         <article class="panel detail-panel">
-          <div class="eyebrow">Before you install</div>
-          <h2>Know the current beta limits</h2>
-          <p>
-            Kiwi Control is already useful for local-first repo control, but platform trust, signing, and some polish items are still in progress.
-          </p>
+          <div class="eyebrow">Current release truth</div>
+          <h2>Public downloads, honest trust notes</h2>
           <div class="list">
-            <div>Desktop signing and notarization are still release-specific checks.</div>
-            <div>GitHub Releases is the authoritative artifact source.</div>
-            <div>Repo-local state remains the product truth, even when the app looks polished.</div>
+            <div data-trust-platform="macos">macOS trust status is release-specific.</div>
+            <div data-trust-platform="windows">Windows trust status is release-specific.</div>
+            <div>GitHub keeps release notes and history even when Cloudflare hosts the installer binaries.</div>
           </div>
           <p class="detail-link-row">
             <a href="/beta/">Read beta notes</a>
@@ -154,7 +155,7 @@
       <footer class="site-footer">
         <div>
           <strong>Created by Shrey Soni</strong>
-          <span>Kiwi Control stays local-first, repo-first, and GitHub Release-backed for public beta distribution.</span>
+          <span>Kiwi Control stays local-first and repo-first while Cloudflare serves the public download surface.</span>
         </div>
         <div class="footer-links">
           <a href="https://github.com/sonishrey9">GitHub</a>

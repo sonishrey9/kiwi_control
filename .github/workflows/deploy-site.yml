@@ -8,7 +8,9 @@ on:
       - "website/**"
       - "scripts/ensure-cloudflare-pages-project.mjs"
       - "scripts/run-ui-desktop-build.mjs"
+      - "scripts/stage-pages-site.mjs"
       - "scripts/upsert-route53-pages-record.mjs"
+      - "scripts/verify-public-download-surface.mjs"
       - ".github/workflows/deploy-site.yml"
       - ".github/workflows/ci.yml"
       - ".github/workflows/release.yml"
@@ -119,9 +121,14 @@ jobs:
             --cloudflare-json dist/release/cloudflare-pages.json \
             --output dist/release/route53-upsert.json
 
+      - name: Stage website for Pages deploy
+        run: |
+          node scripts/stage-pages-site.mjs \
+            --output-dir dist/site
+
       - name: Deploy website to Cloudflare Pages
         run: |
-          npx --yes wrangler pages deploy website \
+          npx --yes wrangler pages deploy dist/site \
             --project-name "${CLOUDFLARE_PAGES_PROJECT_NAME}" \
             --branch main \
             --commit-hash "${GITHUB_SHA}" \
@@ -161,9 +168,8 @@ jobs:
           echo "Timed out waiting for DNS propagation or Cloudflare custom domain activation" >&2
           exit 1
 
-      - name: Verify public site and downloads redirect
+      - name: Verify public site and downloads surface
         run: |
-          curl -fsSI "${SITE_URL}"
-          redirect_headers="$(curl -fsSI "${SITE_URL%/}/downloads")"
-          echo "${redirect_headers}"
-          echo "${redirect_headers}" | grep -i "^location: ${DOWNLOADS_URL}" >/dev/null
+          node scripts/verify-public-download-surface.mjs \
+            --site-url "${SITE_URL%/}" \
+            --downloads-url "${DOWNLOADS_URL%/}"

@@ -155,11 +155,20 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: |
+          mkdir -p dist/release
           case "${{ matrix.os }}" in
-            macos-latest) node scripts/verify-release-trust.mjs --platform macos --json --strict ;;
-            windows-latest) node scripts/verify-release-trust.mjs --platform windows --json --strict ;;
+            macos-latest) node scripts/verify-release-trust.mjs --platform macos --json --strict > dist/release/release-trust-macos.json ;;
+            windows-latest) node scripts/verify-release-trust.mjs --platform windows --json --strict > dist/release/release-trust-windows.json ;;
             ubuntu-latest) echo "Linux trust check is not release-gated yet." ;;
           esac
+
+      - name: Upload release trust payloads
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.os != 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-trust-${{ matrix.os }}
+          path: dist/release/release-trust-*.json
+          if-no-files-found: error
 
       - name: Package release assets
         run: node scripts/package-release-assets.mjs
@@ -185,8 +194,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_PAGES_PROJECT_NAME: ${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }}
+      CLOUDFLARE_R2_BUCKET: ${{ vars.CLOUDFLARE_R2_BUCKET }}
+      DOWNLOADS_URL: ${{ vars.DOWNLOADS_URL }}
+      REPO_URL: ${{ vars.REPO_URL }}
+      SITE_URL: ${{ vars.SITE_URL }}
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
 
       - uses: actions/download-artifact@v4
         with:
@@ -198,6 +219,9 @@ jobs:
           shopt -s nullglob
           for dir in dist/release/downloads/release-assets-*; do
             cp -R "$dir"/. dist/release/publish/
+          done
+          for trust_file in dist/release/downloads/release-trust-*/release-trust-*.json; do
+            cp "$trust_file" dist/release/publish/
           done
           cp dist/release/downloads/release-manifest-ubuntu/release-manifest.json dist/release/publish/release-manifest.json
 
@@ -214,13 +238,52 @@ jobs:
           cat > dist/release/release-notes.md <<EOF
           Kiwi Control ${RELEASE_TAG}
 
-          Public beta assets are attached here. GitHub Releases remains the source of truth for downloads, and the public site points to this release stream through /releases/latest.
+          Cloudflare hosts the public download surface for this release. GitHub Releases remains the public home for release notes, history, and mirrored assets.
 
           Trust notes:
           - macOS signing and notarization are only trusted if this workflow ran with Apple signing and notarization secrets and the build logs confirmed those steps
           - Windows code signing is only trusted if the Windows job ran with signing secrets on a Windows runner and the build logs confirmed signing
           - auto-update metadata is still disabled until signed updater inputs are configured
           EOF
+
+      - name: Publish Cloudflare download artifacts
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node scripts/publish-cloudflare-downloads.mjs \
+            --publish-root dist/release/publish \
+            --downloads-url "${DOWNLOADS_URL}" \
+            --bucket "${CLOUDFLARE_R2_BUCKET}" \
+            --repo-url "${REPO_URL}" \
+            --release-tag "${RELEASE_TAG}" \
+            --release-url "${REPO_URL%/}/releases/tag/${RELEASE_TAG}" \
+            --macos-trust-json dist/release/publish/release-trust-macos.json \
+            --windows-trust-json dist/release/publish/release-trust-windows.json
+
+      - name: Ensure Cloudflare Pages project
+        run: node scripts/ensure-cloudflare-pages-project.mjs --output dist/release/cloudflare-pages.json
+
+      - name: Stage website for Cloudflare Pages
+        run: |
+          node scripts/stage-pages-site.mjs \
+            --downloads-json dist/release/publish/downloads.json \
+            --downloads-url "${DOWNLOADS_URL}" \
+            --repo-url "${REPO_URL}" \
+            --output-dir dist/site
+
+      - name: Deploy website to Cloudflare Pages
+        run: |
+          npx --yes wrangler pages deploy dist/site \
+            --project-name "${CLOUDFLARE_PAGES_PROJECT_NAME}" \
+            --branch main \
+            --commit-hash "${GITHUB_SHA}" \
+            --commit-message "${GITHUB_SHA}: release ${GITHUB_REF_NAME}"
+
+      - name: Verify public download surface
+        run: |
+          node scripts/verify-public-download-surface.mjs \
+            --site-url "${SITE_URL%/}" \
+            --downloads-url "${DOWNLOADS_URL%/}"
 
       - name: Create or update GitHub Release
         env:

@@ -8,7 +8,7 @@ Kiwi Control is a local-first, repo-first control plane for coding agents. It ke
 ## Quick links
 
 - Website: [kiwi-control.kiwi-ai.in](https://kiwi-control.kiwi-ai.in/)
-- Downloads: [GitHub Releases](https://github.com/sonishrey9/kiwi-control/releases/latest)
+- Downloads: [kiwi-control.kiwi-ai.in/downloads](https://kiwi-control.kiwi-ai.in/downloads/)
 - Install guide: [docs/install.md](./docs/install.md)
 - Generated artifact policy: [docs/generated-artifacts.md](./docs/generated-artifacts.md)
 - Support: [SUPPORT.md](./SUPPORT.md)
@@ -24,7 +24,8 @@ Most agent tooling either hides workflow logic in an editor integration or centr
 - repo-local artifacts are explicit and inspectable
 - the CLI is the primary operational surface
 - the desktop app reflects repo state instead of inventing hidden state
-- GitHub Releases remains the source of truth for public beta binaries
+- Cloudflare hosts the public beta binaries and checksums
+- GitHub Releases keeps release notes and release history
 
 ## Install
 
@@ -32,7 +33,7 @@ Most agent tooling either hides workflow logic in an editor integration or centr
 
 For most users, the fastest path is:
 
-1. Download Kiwi Control from [GitHub Releases](https://github.com/sonishrey9/kiwi-control/releases/latest) or the [installer-first website](https://kiwi-control.kiwi-ai.in/).
+1. Download Kiwi Control from the [installer-first website](https://kiwi-control.kiwi-ai.in/) or the public [downloads page](https://kiwi-control.kiwi-ai.in/downloads/).
 2. Install the desktop app for macOS or Windows.
 3. Launch Kiwi Control once.
 4. Choose a repo and initialize it if needed.

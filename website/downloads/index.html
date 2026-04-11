@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kiwi Control Downloads</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <div class="shell">
+      <nav class="nav">
+        <div class="brand">Kiwi Control</div>
+        <div class="nav-links">
+          <a href="/">Download</a>
+          <a href="/install/">Install guide</a>
+          <a href="/beta/">Beta</a>
+          <a href="/support/">Support</a>
+        </div>
+      </nav>
+
+      <section class="hero">
+        <div class="eyebrow">All downloads</div>
+        <div class="release-chip" data-release-badge>Latest release: v0.2.0-beta.1</div>
+        <h1>Download the latest Kiwi Control desktop installers and release metadata.</h1>
+        <p>
+          Cloudflare hosts the public binaries, checksums, and release manifest. GitHub keeps release notes and release history. Start with the desktop app. Use the optional CLI bundles only if you want the shell-first path too.
+        </p>
+        <div class="release-links">
+          <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-notes>Release notes</a>
+          <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-checksums>Checksums</a>
+          <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-manifest>Release manifest</a>
+          <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-source>GitHub release history</a>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h2>Desktop installers</h2>
+          <div class="list">
+            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-download-link data-download-kind="macosDmg" data-primary-label="macOS DMG">macOS DMG</a></div>
+            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-download-link data-download-kind="windowsNsis" data-primary-label="Windows setup.exe">Windows setup.exe</a></div>
+            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-download-link data-download-kind="windowsMsi" data-primary-label="Windows MSI">Windows MSI</a></div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>Manual and secondary assets</h2>
+          <div class="list">
+            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-download-link data-download-kind="macosAppTarball" data-primary-label="macOS app tarball">macOS app tarball</a></div>
+            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-download-link data-download-kind="cliMacos" data-primary-label="CLI bundle for macOS">CLI bundle for macOS</a></div>
+            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-download-link data-download-kind="cliWindows" data-primary-label="CLI bundle for Windows">CLI bundle for Windows</a></div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>Release metadata</h2>
+          <div class="list">
+            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-checksums>Checksums</a></div>
+            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-manifest>Release manifest</a></div>
+            <div>Version: <strong data-release-version>0.2.0-beta.1</strong></div>
+            <div data-download-meta>Cloudflare hosts the current release downloads.</div>
+          </div>
+        </article>
+      </section>
+
+      <section class="details-layout">
+        <article class="panel detail-panel">
+          <div class="eyebrow">Desktop-first install</div>
+          <h2>Normal user flow</h2>
+          <div class="list">
+            <div>1. Download the desktop installer that matches your OS.</div>
+            <div>2. Install Kiwi Control normally.</div>
+            <div>3. Launch the app and choose a repo.</div>
+            <div>4. Optionally enable <code>kc</code> later if you want terminal commands too.</div>
+          </div>
+        </article>
+
+        <article class="panel detail-panel">
+          <div class="eyebrow">Optional CLI verification</div>
+          <h2>Fresh terminal commands</h2>
+          <div class="list">
+            <div>macOS: <code>command -v kc</code></div>
+            <div>macOS: <code>kc --help</code></div>
+            <div>Windows: <code>Get-Command kc</code></div>
+            <div>Windows: <code>kc --help</code></div>
+          </div>
+        </article>
+
+        <article class="panel detail-panel">
+          <div class="eyebrow">Trust notes</div>
+          <h2>Cloudflare hosting does not replace signing proof</h2>
+          <div class="list">
+            <div data-trust-platform="macos">macOS trust status is release-specific.</div>
+            <div data-trust-platform="windows">Windows trust status is release-specific.</div>
+            <div>Use the checksums and release notes for the exact current trust posture.</div>
+          </div>
+        </article>
+      </section>
+
+      <footer class="site-footer">
+        <div>
+          <strong>Created by Shrey Soni</strong>
+          <span>Public binaries live on Cloudflare while GitHub keeps the release record.</span>
+        </div>
+        <div class="footer-links">
+          <a href="/install/">Install guide</a>
+          <a href="/beta/">Beta notes</a>
+          <a href="/support/">Support</a>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

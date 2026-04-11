@@ -149,3 +149,147 @@ test("bundled CLI installer exposes machine-scope Windows scaffolding", () => {
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.match(result.stdout, /verification passed for Windows/i);
 });
+
+test("Cloudflare download publisher emits stable latest and versioned URLs", async () => {
+  const root = repoRoot();
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-cloudflare-publish-"));
+  const publishRoot = path.join(tempDir, "publish");
+  await fs.mkdir(publishRoot, { recursive: true });
+
+  const manifest = {
+    version: "0.2.0-beta.1",
+    channel: "beta",
+    artifacts: [
+      { artifactType: "desktop-dmg", platform: "macos", fileName: "kiwi-control-0.2.0-beta.1-macos-aarch64.dmg" },
+      { artifactType: "desktop-app", platform: "macos", fileName: "kiwi-control-0.2.0-beta.1-macos-aarch64.app.tar.gz" },
+      { artifactType: "desktop-nsis", platform: "windows", fileName: "kiwi-control-0.2.0-beta.1-windows-x64-setup.exe" },
+      { artifactType: "desktop-msi", platform: "windows", fileName: "kiwi-control-0.2.0-beta.1-windows-x64.msi" },
+      { artifactType: "cli", platform: "macos", fileName: "kiwi-control-cli-0.2.0-beta.1-macos-aarch64.tar.gz" },
+      { artifactType: "cli", platform: "windows", fileName: "kiwi-control-cli-0.2.0-beta.1-windows-x64.zip" }
+    ]
+  };
+  await fs.writeFile(path.join(publishRoot, "release-manifest.json"), JSON.stringify(manifest, null, 2));
+  await fs.writeFile(path.join(publishRoot, "SHA256SUMS.txt"), "hash  kiwi-control-0.2.0-beta.1-macos-aarch64.dmg\n");
+  for (const fileName of manifest.artifacts.map((entry) => entry.fileName)) {
+    await fs.writeFile(path.join(publishRoot, fileName), fileName);
+  }
+
+  const macosTrustPath = path.join(tempDir, "macos-trust.json");
+  const windowsTrustPath = path.join(tempDir, "windows-trust.json");
+  await fs.writeFile(macosTrustPath, JSON.stringify({ classification: "signed-and-notarized" }));
+  await fs.writeFile(windowsTrustPath, JSON.stringify({ classification: "signed-installers" }));
+
+  const result = spawnSync(process.execPath, [
+    path.join(root, "scripts", "publish-cloudflare-downloads.mjs"),
+    "--publish-root",
+    publishRoot,
+    "--downloads-url",
+    "https://downloads.example.com",
+    "--repo-url",
+    "https://github.com/example/kiwi-control",
+    "--macos-trust-json",
+    macosTrustPath,
+    "--windows-trust-json",
+    windowsTrustPath,
+    "--dry-run"
+  ], {
+    cwd: root,
+    encoding: "utf8"
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const payload = JSON.parse(result.stdout) as {
+    uploads: Array<{ publicUrl: string }>;
+  };
+  assert.equal(payload.uploads.some((entry) => entry.publicUrl === "https://downloads.example.com/latest/macos/kiwi-control.dmg"), true);
+  assert.equal(payload.uploads.some((entry) => entry.publicUrl === "https://downloads.example.com/releases/v0.2.0-beta.1/kiwi-control-0.2.0-beta.1-windows-x64.msi"), true);
+
+  const downloads = JSON.parse(await fs.readFile(path.join(publishRoot, "downloads.json"), "utf8")) as {
+    checksumsUrl: string;
+    manifestUrl: string;
+    trust: { macos: string; windows: string };
+    artifacts: {
+      macosDmg: { latestUrl: string; versionedUrl: string };
+      windowsNsis: { latestUrl: string };
+      cliWindows: { latestUrl: string };
+    };
+  };
+  assert.equal(downloads.checksumsUrl, "https://downloads.example.com/latest/SHA256SUMS.txt");
+  assert.equal(downloads.manifestUrl, "https://downloads.example.com/latest/release-manifest.json");
+  assert.equal(downloads.trust.macos, "signed-and-notarized");
+  assert.equal(downloads.trust.windows, "signed-installers");
+  assert.equal(downloads.artifacts.macosDmg.latestUrl, "https://downloads.example.com/latest/macos/kiwi-control.dmg");
+  assert.equal(downloads.artifacts.macosDmg.versionedUrl, "https://downloads.example.com/releases/v0.2.0-beta.1/kiwi-control-0.2.0-beta.1-macos-aarch64.dmg");
+  assert.equal(downloads.artifacts.windowsNsis.latestUrl, "https://downloads.example.com/latest/windows/kiwi-control-setup.exe");
+  assert.equal(downloads.artifacts.cliWindows.latestUrl, "https://downloads.example.com/latest/windows/kiwi-control-cli.zip");
+});
+
+test("Pages staging writes same-origin release metadata and strips AppleDouble sidecars", async () => {
+  const root = repoRoot();
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-pages-stage-"));
+  const tempSite = path.join(tempDir, "website");
+  const outputDir = path.join(tempDir, "dist-site");
+  await fs.cp(path.join(root, "website"), tempSite, { recursive: true });
+  await fs.writeFile(path.join(tempSite, "._index.html"), "sidecar");
+
+  const downloadsJsonPath = path.join(tempDir, "downloads.json");
+  await fs.writeFile(
+    downloadsJsonPath,
+    JSON.stringify({
+      tagName: "v0.2.0-beta.1",
+      version: "0.2.0-beta.1",
+      channel: "beta",
+      releaseNotesUrl: "https://github.com/example/kiwi-control/releases/tag/v0.2.0-beta.1",
+      sourceUrl: "https://github.com/example/kiwi-control/releases/tag/v0.2.0-beta.1",
+      checksumsUrl: "https://downloads.example.com/latest/SHA256SUMS.txt",
+      manifestUrl: "https://downloads.example.com/latest/release-manifest.json",
+      trust: {
+        macos: "local-beta-build-only",
+        windows: "windows-runner-required"
+      },
+      artifacts: {
+        macosDmg: {
+          filename: "kiwi-control-0.2.0-beta.1-macos-aarch64.dmg",
+          latestUrl: "https://downloads.example.com/latest/macos/kiwi-control.dmg",
+          versionedUrl: "https://downloads.example.com/releases/v0.2.0-beta.1/kiwi-control-0.2.0-beta.1-macos-aarch64.dmg"
+        },
+        windowsNsis: {
+          filename: "kiwi-control-0.2.0-beta.1-windows-x64-setup.exe",
+          latestUrl: "https://downloads.example.com/latest/windows/kiwi-control-setup.exe",
+          versionedUrl: "https://downloads.example.com/releases/v0.2.0-beta.1/kiwi-control-0.2.0-beta.1-windows-x64-setup.exe"
+        }
+      }
+    }, null, 2)
+  );
+
+  const stageResult = spawnSync(process.execPath, [
+    path.join(root, "scripts", "stage-pages-site.mjs"),
+    "--site-root",
+    tempSite,
+    "--output-dir",
+    outputDir,
+    "--downloads-json",
+    downloadsJsonPath
+  ], {
+    cwd: root,
+    encoding: "utf8"
+  });
+
+  assert.equal(stageResult.status, 0, stageResult.stderr || stageResult.stdout);
+  const verifyResult = spawnSync(process.execPath, [
+    path.join(root, "scripts", "verify-public-download-surface.mjs"),
+    "--site-dir",
+    outputDir
+  ], {
+    cwd: root,
+    encoding: "utf8"
+  });
+
+  assert.equal(verifyResult.status, 0, verifyResult.stderr || verifyResult.stdout);
+  const metadata = JSON.parse(await fs.readFile(path.join(outputDir, "data", "latest-release.json"), "utf8")) as {
+    checksumsUrl: string;
+  };
+  assert.equal(metadata.checksumsUrl, "https://downloads.example.com/latest/SHA256SUMS.txt");
+  await fs.access(path.join(outputDir, "downloads", "index.html"));
+  await assert.rejects(fs.access(path.join(outputDir, "._index.html")));
+});

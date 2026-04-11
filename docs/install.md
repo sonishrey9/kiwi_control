@@ -6,13 +6,13 @@ Kiwi Control has three supported usage tracks:
 - standalone CLI users
 - source contributors
 
-For the public beta, GitHub Releases is the source of truth for installable artifacts.
+For the public beta, Cloudflare-hosted downloads are the primary install surface. GitHub Releases remains the source for release notes and release history.
 
 ## Recommended path: desktop first
 
 For most users on macOS and Windows:
 
-1. Open the installer-first website at [kiwi-control.kiwi-ai.in](https://kiwi-control.kiwi-ai.in/) or go directly to [GitHub Releases](https://github.com/sonishrey9/kiwi-control/releases/latest).
+1. Open the installer-first website at [kiwi-control.kiwi-ai.in](https://kiwi-control.kiwi-ai.in/) or go directly to the public [downloads page](https://kiwi-control.kiwi-ai.in/downloads/).
 2. Download the desktop installer for your platform.
    - macOS: `.dmg`
    - Windows: `-setup.exe` or `.msi`
@@ -33,7 +33,7 @@ This is the default path Kiwi should optimize for:
 
 You do not need `kc` for basic desktop usage.
 
-For public downloads, trust status is release-specific. The release notes and `SHA256SUMS.txt` say whether the macOS DMG was signed/notarized and whether the Windows installer was signed on a Windows runner.
+For public downloads, trust status is release-specific. Cloudflare hosting makes the artifacts public, not trusted. The release notes, `SHA256SUMS.txt`, and release manifest say whether the macOS DMG was signed/notarized and whether the Windows installer was signed on a Windows runner.
 
 ### Desktop + CLI path
 
@@ -64,9 +64,9 @@ If verification succeeds but your current terminal is still stale, Kiwi will tel
 
 The beta CLI bundle is still Node-backed. That is an intentional beta constraint, not a hidden runtime dependency.
 
-### Install from GitHub Releases
+### Install from public downloads
 
-1. Download the matching Kiwi Control CLI bundle from [GitHub Releases](https://github.com/sonishrey9/kiwi-control/releases/latest).
+1. Download the matching Kiwi Control CLI bundle from the public [downloads page](https://kiwi-control.kiwi-ai.in/downloads/) or the corresponding GitHub release page.
 2. Extract it.
 3. Run the included installer.
 
@@ -86,6 +86,20 @@ After install, the public commands are:
 
 - `kiwi-control`
 - `kc`
+
+Fresh terminal verification:
+
+```bash
+command -v kc
+kc --help
+```
+
+On Windows PowerShell:
+
+```powershell
+Get-Command kc
+kc --help
+```
 
 ### First CLI flow
 
