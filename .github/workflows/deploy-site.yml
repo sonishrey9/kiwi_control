@@ -122,6 +122,15 @@ jobs:
           node scripts/ensure-cloudflare-r2-downloads.mjs \
             --output dist/release/cloudflare-r2-downloads.json
 
+      - name: Publish Cloudflare download metadata
+        run: |
+          node scripts/publish-cloudflare-downloads.mjs \
+            --publish-root dist/release \
+            --downloads-url "${DOWNLOADS_URL}" \
+            --bucket "${CLOUDFLARE_R2_BUCKET}" \
+            --repo-url "${REPO_URL}" \
+            --metadata-only
+
       - name: UPSERT Route 53 DNS record
         run: |
           node scripts/upsert-route53-pages-record.mjs \
@@ -131,7 +140,7 @@ jobs:
       - name: Stage website for Pages deploy
         run: |
           node scripts/stage-pages-site.mjs \
-            --require-downloads-json \
+            --downloads-json dist/release/downloads.json \
             --output-dir dist/site
 
       - name: Deploy website to Cloudflare Pages
@@ -180,4 +189,5 @@ jobs:
         run: |
           node scripts/verify-public-download-surface.mjs \
             --site-url "${SITE_URL%/}" \
-            --downloads-url "${DOWNLOADS_URL%/}"
+            --downloads-url "${DOWNLOADS_URL%/}" \
+            --metadata-only

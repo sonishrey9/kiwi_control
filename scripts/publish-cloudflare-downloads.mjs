@@ -21,6 +21,7 @@ if (!downloadsUrl) {
 
 const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
 await fs.access(checksumsPath);
+const metadataOnly = args.metadataOnly === true;
 
 const tagName = args.releaseTag ?? `v${manifest.version}`;
 const releaseUrl = args.releaseUrl ?? `${repoUrl}/releases/tag/${tagName}`;
@@ -28,45 +29,81 @@ const macosTrust = await readTrustPayload(args.macosTrustJson, "macos");
 const windowsTrust = await readTrustPayload(args.windowsTrustJson, "windows");
 
 const requiredArtifacts = {
-  macosDmg: await resolveRequiredArtifact({
-    manifest,
-    publishRoot,
-    artifactType: "desktop-dmg",
-    platform: "macos"
-  }),
-  macosAppTarball: await resolveRequiredArtifact({
-    manifest,
-    publishRoot,
-    artifactType: "desktop-app",
-    platform: "macos"
-  }),
-  windowsNsis: await resolveRequiredArtifact({
-    manifest,
-    publishRoot,
-    artifactType: "desktop-nsis",
-    platform: "windows"
-  }),
-  windowsMsi: await resolveRequiredArtifact({
-    manifest,
-    publishRoot,
-    artifactType: "desktop-msi",
-    platform: "windows"
-  })
+  macosDmg: metadataOnly
+    ? resolveManifestArtifact({
+        manifest,
+        artifactType: "desktop-dmg",
+        platform: "macos"
+      })
+    : await resolveRequiredArtifact({
+        manifest,
+        publishRoot,
+        artifactType: "desktop-dmg",
+        platform: "macos"
+      }),
+  macosAppTarball: metadataOnly
+    ? resolveManifestArtifact({
+        manifest,
+        artifactType: "desktop-app",
+        platform: "macos"
+      })
+    : await resolveRequiredArtifact({
+        manifest,
+        publishRoot,
+        artifactType: "desktop-app",
+        platform: "macos"
+      }),
+  windowsNsis: metadataOnly
+    ? resolveManifestArtifact({
+        manifest,
+        artifactType: "desktop-nsis",
+        platform: "windows"
+      })
+    : await resolveRequiredArtifact({
+        manifest,
+        publishRoot,
+        artifactType: "desktop-nsis",
+        platform: "windows"
+      }),
+  windowsMsi: metadataOnly
+    ? resolveManifestArtifact({
+        manifest,
+        artifactType: "desktop-msi",
+        platform: "windows"
+      })
+    : await resolveRequiredArtifact({
+        manifest,
+        publishRoot,
+        artifactType: "desktop-msi",
+        platform: "windows"
+      })
 };
 
 const optionalArtifacts = {
-  cliMacos: await resolveOptionalArtifact({
-    manifest,
-    publishRoot,
-    artifactType: "cli",
-    platform: "macos"
-  }),
-  cliWindows: await resolveOptionalArtifact({
-    manifest,
-    publishRoot,
-    artifactType: "cli",
-    platform: "windows"
-  })
+  cliMacos: metadataOnly
+    ? resolveOptionalManifestArtifact({
+        manifest,
+        artifactType: "cli",
+        platform: "macos"
+      })
+    : await resolveOptionalArtifact({
+        manifest,
+        publishRoot,
+        artifactType: "cli",
+        platform: "macos"
+      }),
+  cliWindows: metadataOnly
+    ? resolveOptionalManifestArtifact({
+        manifest,
+        artifactType: "cli",
+        platform: "windows"
+      })
+    : await resolveOptionalArtifact({
+        manifest,
+        publishRoot,
+        artifactType: "cli",
+        platform: "windows"
+      })
 };
 
 const downloads = buildDownloadsPayload({
@@ -88,7 +125,8 @@ const uploadPlan = await buildUploadPlan({
   downloadsUrl,
   outputPath,
   requiredArtifacts,
-  optionalArtifacts
+  optionalArtifacts,
+  metadataOnly
 });
 
 if (!args.dryRun) {
@@ -106,9 +144,10 @@ if (!args.dryRun) {
   }
 }
 
-const payload = {
-  ok: true,
-  dryRun: args.dryRun,
+  const payload = {
+    ok: true,
+    dryRun: args.dryRun,
+    metadataOnly,
   publishRoot: path.relative(repoRoot, publishRoot).replace(/\\/g, "/"),
   downloadsUrl,
   bucket: bucket || null,
@@ -137,7 +176,8 @@ function parseArgs(argv) {
     output: null,
     macosTrustJson: null,
     windowsTrustJson: null,
-    dryRun: false
+    dryRun: false,
+    metadataOnly: false
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -189,6 +229,10 @@ function parseArgs(argv) {
     }
     if (token === "--dry-run") {
       parsed.dryRun = true;
+      continue;
+    }
+    if (token === "--metadata-only") {
+      parsed.metadataOnly = true;
     }
   }
 
@@ -201,6 +245,26 @@ async function resolveRequiredArtifact({ manifest, publishRoot, artifactType, pl
     throw new Error(`Missing required publish artifact for ${platform}/${artifactType}.`);
   }
   return artifact;
+}
+
+function resolveManifestArtifact({ manifest, artifactType, platform }) {
+  const artifact = resolveOptionalManifestArtifact({ manifest, artifactType, platform });
+  if (!artifact) {
+    throw new Error(`Missing manifest artifact for ${platform}/${artifactType}.`);
+  }
+  return artifact;
+}
+
+function resolveOptionalManifestArtifact({ manifest, artifactType, platform }) {
+  return manifest.artifacts.find((entry) => {
+    if (entry.artifactType !== artifactType) {
+      return false;
+    }
+    if (platform && entry.platform !== platform) {
+      return false;
+    }
+    return true;
+  }) ?? null;
 }
 
 async function resolveOptionalArtifact({ manifest, publishRoot, artifactType, platform }) {
@@ -284,9 +348,8 @@ function surfaceArtifact(downloadsUrl, tagName, artifact, latestKey) {
   };
 }
 
-async function buildUploadPlan({ publishRoot, tagName, downloadsUrl, outputPath, requiredArtifacts, optionalArtifacts }) {
+async function buildUploadPlan({ publishRoot, tagName, downloadsUrl, outputPath, requiredArtifacts, optionalArtifacts, metadataOnly }) {
   const versionedEntries = [];
-  const versionedNames = new Set();
   const excludeNames = new Set([
     "downloads.json",
     "macos-trust.json",
@@ -295,14 +358,15 @@ async function buildUploadPlan({ publishRoot, tagName, downloadsUrl, outputPath,
     "release-update.json"
   ]);
 
-  const publishEntries = await sortedPublishFiles(publishRoot);
-  for (const entry of publishEntries) {
-    if (excludeNames.has(path.basename(entry))) {
-      continue;
+  if (!metadataOnly) {
+    const publishEntries = await sortedPublishFiles(publishRoot);
+    for (const entry of publishEntries) {
+      if (excludeNames.has(path.basename(entry))) {
+        continue;
+      }
+      const key = `releases/${tagName}/${path.basename(entry)}`;
+      versionedEntries.push(makeUploadEntry({ downloadsUrl, key, filePath: entry }));
     }
-    const key = `releases/${tagName}/${path.basename(entry)}`;
-    versionedEntries.push(makeUploadEntry({ downloadsUrl, key, filePath: entry }));
-    versionedNames.add(path.basename(entry));
   }
 
   const metadataEntries = [
@@ -310,6 +374,16 @@ async function buildUploadPlan({ publishRoot, tagName, downloadsUrl, outputPath,
       downloadsUrl,
       key: `releases/${tagName}/downloads.json`,
       filePath: outputPath
+    }),
+    makeUploadEntry({
+      downloadsUrl,
+      key: `releases/${tagName}/release-manifest.json`,
+      filePath: path.join(publishRoot, "release-manifest.json")
+    }),
+    makeUploadEntry({
+      downloadsUrl,
+      key: `releases/${tagName}/SHA256SUMS.txt`,
+      filePath: path.join(publishRoot, "SHA256SUMS.txt")
     }),
     makeUploadEntry({
       downloadsUrl,
@@ -331,14 +405,16 @@ async function buildUploadPlan({ publishRoot, tagName, downloadsUrl, outputPath,
     })
   ];
 
-  const latestEntries = [
-    makeLatestAlias(downloadsUrl, requiredArtifacts.macosDmg.filePath, "latest/macos/kiwi-control.dmg"),
-    makeLatestAlias(downloadsUrl, requiredArtifacts.macosAppTarball.filePath, "latest/macos/kiwi-control.app.tar.gz"),
-    makeLatestAlias(downloadsUrl, requiredArtifacts.windowsNsis.filePath, "latest/windows/kiwi-control-setup.exe"),
-    makeLatestAlias(downloadsUrl, requiredArtifacts.windowsMsi.filePath, "latest/windows/kiwi-control.msi"),
-    ...(optionalArtifacts.cliMacos ? [makeLatestAlias(downloadsUrl, optionalArtifacts.cliMacos.filePath, "latest/macos/kiwi-control-cli.tar.gz")] : []),
-    ...(optionalArtifacts.cliWindows ? [makeLatestAlias(downloadsUrl, optionalArtifacts.cliWindows.filePath, "latest/windows/kiwi-control-cli.zip")] : [])
-  ];
+  const latestEntries = metadataOnly
+    ? []
+    : [
+        makeLatestAlias(downloadsUrl, requiredArtifacts.macosDmg.filePath, "latest/macos/kiwi-control.dmg"),
+        makeLatestAlias(downloadsUrl, requiredArtifacts.macosAppTarball.filePath, "latest/macos/kiwi-control.app.tar.gz"),
+        makeLatestAlias(downloadsUrl, requiredArtifacts.windowsNsis.filePath, "latest/windows/kiwi-control-setup.exe"),
+        makeLatestAlias(downloadsUrl, requiredArtifacts.windowsMsi.filePath, "latest/windows/kiwi-control.msi"),
+        ...(optionalArtifacts.cliMacos ? [makeLatestAlias(downloadsUrl, optionalArtifacts.cliMacos.filePath, "latest/macos/kiwi-control-cli.tar.gz")] : []),
+        ...(optionalArtifacts.cliWindows ? [makeLatestAlias(downloadsUrl, optionalArtifacts.cliWindows.filePath, "latest/windows/kiwi-control-cli.zip")] : [])
+      ];
 
   return dedupeUploadEntries([...versionedEntries, ...metadataEntries, ...latestEntries]);
 }

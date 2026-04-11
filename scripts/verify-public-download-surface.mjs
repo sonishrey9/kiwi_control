@@ -13,7 +13,8 @@ async function main() {
     ? await verifyLocalSite(path.resolve(args.siteDir))
     : await verifyRemoteSite({
         siteUrl: stripTrailingSlash(args.siteUrl ?? process.env.SITE_URL ?? ""),
-        downloadsUrl: stripTrailingSlash(args.downloadsUrl ?? process.env.DOWNLOADS_URL ?? "")
+        downloadsUrl: stripTrailingSlash(args.downloadsUrl ?? process.env.DOWNLOADS_URL ?? ""),
+        metadataOnly: args.metadataOnly
       });
 
   console.log(JSON.stringify(payload, null, 2));
@@ -24,7 +25,8 @@ function parseArgs(argv) {
   const parsed = {
     siteUrl: null,
     downloadsUrl: null,
-    siteDir: null
+    siteDir: null,
+    metadataOnly: false
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -42,6 +44,10 @@ function parseArgs(argv) {
     if (token === "--site-dir") {
       parsed.siteDir = argv[index + 1] ?? null;
       index += 1;
+      continue;
+    }
+    if (token === "--metadata-only") {
+      parsed.metadataOnly = true;
     }
   }
 
@@ -87,7 +93,7 @@ async function verifyLocalSite(siteDir) {
   };
 }
 
-async function verifyRemoteSite({ siteUrl, downloadsUrl }) {
+async function verifyRemoteSite({ siteUrl, downloadsUrl, metadataOnly }) {
   if (!siteUrl) {
     throw new Error("Missing site URL. Pass --site-url or set SITE_URL.");
   }
@@ -103,8 +109,17 @@ async function verifyRemoteSite({ siteUrl, downloadsUrl }) {
   await downloadsJsonResponse.json();
 
   const artifactResults = [];
-  for (const url of collectArtifactUrls(metadata)) {
-    artifactResults.push(await headOrGet(url));
+  const metadataResults = [];
+  for (const url of [metadata.checksumsUrl, metadata.manifestUrl]) {
+    if (url) {
+      metadataResults.push(await headOrGet(url));
+    }
+  }
+
+  if (!metadataOnly) {
+    for (const url of collectArtifactUrls(metadata)) {
+      artifactResults.push(await headOrGet(url));
+    }
   }
 
   const siteHtml = await siteResponse.text();
@@ -117,11 +132,17 @@ async function verifyRemoteSite({ siteUrl, downloadsUrl }) {
   ];
 
   return {
-    ok: artifactResults.every((entry) => entry.ok) && missingPhrases.length === 0,
+    ok:
+      metadataResults.every((entry) => entry.ok) &&
+      artifactResults.every((entry) => entry.ok) &&
+      missingPhrases.length === 0 &&
+      validateMetadataLinks(metadata, downloadsUrl, metadataOnly),
     mode: "remote",
     siteUrl,
     downloadsUrl,
+    metadataOnly,
     missingPhrases,
+    metadataResults,
     artifactResults
   };
 }
@@ -133,6 +154,32 @@ function collectArtifactUrls(metadata) {
     ...Object.values(metadata.artifacts ?? {}).flatMap((entry) => [entry?.latestUrl, entry?.versionedUrl])
   ]);
   return [...urls].filter(Boolean);
+}
+
+function validateMetadataLinks(metadata, downloadsUrl, metadataOnly) {
+  const expectedHost = new URL(downloadsUrl).host;
+  const requiredUrls = [
+    metadata.checksumsUrl,
+    metadata.manifestUrl
+  ].filter(Boolean);
+
+  if (!metadataOnly) {
+    requiredUrls.push(
+      ...Object.values(metadata.artifacts ?? {}).flatMap((entry) => [entry?.latestUrl, entry?.versionedUrl]).filter(Boolean)
+    );
+  } else {
+    requiredUrls.push(
+      ...Object.values(metadata.artifacts ?? {}).flatMap((entry) => [entry?.latestUrl]).filter(Boolean)
+    );
+  }
+
+  return requiredUrls.every((url) => {
+    try {
+      return new URL(url).host === expectedHost;
+    } catch {
+      return false;
+    }
+  });
 }
 
 async function headOrGet(url) {
