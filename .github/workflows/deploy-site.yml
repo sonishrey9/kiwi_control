@@ -121,16 +121,8 @@ jobs:
       - name: Ensure Cloudflare R2 downloads bucket and domain
         run: |
           node scripts/ensure-cloudflare-r2-downloads.mjs \
+            --skip-domain-attach \
             --output dist/release/cloudflare-r2-downloads.json
-
-      - name: Publish Cloudflare download metadata
-        run: |
-          node scripts/publish-cloudflare-downloads.mjs \
-            --publish-root dist/release \
-            --downloads-url "${DOWNLOADS_URL}" \
-            --bucket "${CLOUDFLARE_R2_BUCKET}" \
-            --repo-url "${REPO_URL}" \
-            --metadata-only
 
       - name: UPSERT Route 53 DNS record
         run: |
@@ -141,7 +133,36 @@ jobs:
       - name: UPSERT Route 53 downloads DNS record
         run: |
           node scripts/upsert-route53-r2-downloads-record.mjs \
+            --cloudflare-json dist/release/cloudflare-r2-downloads.json \
             --output dist/release/route53-downloads-upsert.json
+
+      - name: Wait for Cloudflare downloads domain activation
+        run: |
+          for attempt in $(seq 1 20); do
+            node scripts/ensure-cloudflare-r2-downloads.mjs \
+              --output dist/release/cloudflare-r2-downloads.json >/dev/null
+            host_ready="$(jq -r '.downloadsHostReady' dist/release/cloudflare-r2-downloads.json)"
+            zone_status="$(jq -r '.zoneStatus' dist/release/cloudflare-r2-downloads.json)"
+            ownership_status="$(jq -r '.customDomainOwnershipStatus' dist/release/cloudflare-r2-downloads.json)"
+            ssl_status="$(jq -r '.customDomainSslStatus' dist/release/cloudflare-r2-downloads.json)"
+            if [ "${host_ready}" = "true" ]; then
+              exit 0
+            fi
+            echo "Waiting for downloads host activation (attempt ${attempt}/20): zone_status=${zone_status} ownership=${ownership_status} ssl=${ssl_status}"
+            sleep 15
+          done
+          echo "Timed out waiting for downloads.kiwi-control.kiwi-ai.in to become active in Cloudflare" >&2
+          cat dist/release/cloudflare-r2-downloads.json >&2
+          exit 1
+
+      - name: Publish Cloudflare download metadata
+        run: |
+          node scripts/publish-cloudflare-downloads.mjs \
+            --publish-root dist/release \
+            --downloads-url "${DOWNLOADS_URL}" \
+            --bucket "${CLOUDFLARE_R2_BUCKET}" \
+            --repo-url "${REPO_URL}" \
+            --metadata-only
 
       - name: Stage website for Pages deploy
         run: |

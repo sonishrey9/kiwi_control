@@ -16,6 +16,7 @@ const outputPath = args.output ?? null;
 const zoneName = args.zoneName ?? DEFAULT_ZONE_NAME;
 const expectedDownloadsUrl = args.expectedDownloadsUrl ?? DEFAULT_DOWNLOADS_URL;
 const downloadsHost = new URL(downloadsUrl).hostname;
+const skipDomainAttach = args.skipDomainAttach === true;
 
 if (!downloadsUrl) {
   throw new Error("Missing DOWNLOADS_URL. Pass --downloads-url or set DOWNLOADS_URL.");
@@ -26,28 +27,54 @@ if (stripTrailingSlash(downloadsUrl) !== stripTrailingSlash(expectedDownloadsUrl
 
 const client = createClient({ accountId, apiToken });
 
-const zone = await requireZone(client, zoneName);
+const zone = await ensureZone(client, accountId, zoneName);
 const bucket = await ensureBucket(client, accountId, bucketName);
-const customDomain = await ensureCustomDomain({
-  client,
-  accountId,
-  bucketName,
-  zoneId: zone.id,
-  downloadsHost
-});
+const customDomain = zone.status === "active" && !skipDomainAttach
+  ? await ensureCustomDomain({
+      client,
+      accountId,
+      bucketName,
+      zoneId: zone.id,
+      downloadsHost
+    })
+  : {
+      attached: false,
+      enabled: false,
+      current: null,
+      updated: null,
+      result: null
+    };
+
+const domainStatus = customDomain.result?.status ?? customDomain.updated?.status ?? customDomain.current?.status ?? null;
+const ownershipStatus = typeof domainStatus === "object" ? domainStatus.ownership ?? null : domainStatus;
+const sslStatus = typeof domainStatus === "object" ? domainStatus.ssl ?? null : null;
 
 const payload = {
   ok: true,
   accountId,
   bucketCreated: bucket.created,
   bucketName: bucket.name,
+  zoneCreated: zone.created,
+  zoneStatus: zone.status,
+  zoneType: zone.type,
+  verificationTxtName: zone.verificationTxtName,
+  verificationTxtValue: zone.verificationTxtValue,
+  readyForDomainAttach: zone.status === "active",
   customDomainAttached: customDomain.attached,
   customDomainEnabled: customDomain.enabled,
-  domainStatus: customDomain.result?.status ?? customDomain.updated?.status ?? customDomain.current?.status ?? null,
+  domainStatus,
+  customDomainOwnershipStatus: ownershipStatus,
+  customDomainSslStatus: sslStatus,
+  downloadsHostReady:
+    zone.status === "active" &&
+    customDomain.current?.enabled === true &&
+    ownershipStatus === "active" &&
+    sslStatus === "active",
   zoneId: zone.id,
   zoneName,
   downloadsUrl,
-  downloadsHost
+  downloadsHost,
+  skippedDomainAttach: skipDomainAttach || zone.status !== "active"
 };
 
 if (outputPath) {
@@ -83,6 +110,10 @@ function parseArgs(argv) {
     if (token === "--output") {
       parsed.output = argv[index + 1];
       index += 1;
+      continue;
+    }
+    if (token === "--skip-domain-attach") {
+      parsed.skipDomainAttach = true;
     }
   }
   return parsed;
@@ -127,13 +158,40 @@ function createClient({ accountId, apiToken }) {
   };
 }
 
-async function requireZone(client, zoneName) {
-  const zones = await client("GET", `/zones?name=${encodeURIComponent(zoneName)}&status=active`);
-  const zone = Array.isArray(zones) ? zones.find((entry) => stripTrailingDot(entry.name) === zoneName) : null;
-  if (!zone?.id) {
-    throw new Error(`Cloudflare does not know zone ${zoneName} in this account. Add the zone first or use Cloudflare partial setup for ${zoneName}.`);
+async function ensureZone(client, accountId, zoneName) {
+  const existing = await findZone(client, zoneName);
+  if (existing?.id) {
+    return {
+      created: false,
+      id: existing.id,
+      status: existing.status ?? "unknown",
+      type: existing.type ?? "unknown",
+      verificationTxtName: existing.verification_key ? `cloudflare-verify.${zoneName}` : null,
+      verificationTxtValue: existing.verification_key ?? null
+    };
   }
-  return zone;
+
+  const created = await client("POST", "/zones", {
+    name: zoneName,
+    account: {
+      id: accountId
+    },
+    type: "partial"
+  });
+
+  return {
+    created: true,
+    id: created?.id,
+    status: created?.status ?? "pending",
+    type: created?.type ?? "partial",
+    verificationTxtName: created?.verification_key ? `cloudflare-verify.${zoneName}` : null,
+    verificationTxtValue: created?.verification_key ?? null
+  };
+}
+
+async function findZone(client, zoneName) {
+  const zones = await client("GET", `/zones?name=${encodeURIComponent(zoneName)}`);
+  return Array.isArray(zones) ? zones.find((entry) => stripTrailingDot(entry.name) === zoneName) ?? null : null;
 }
 
 async function ensureBucket(client, accountId, bucketName) {

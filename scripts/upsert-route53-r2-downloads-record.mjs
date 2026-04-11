@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
+import { readFile } from "node:fs/promises";
 
 const DEFAULT_TTL = 300;
 
@@ -10,6 +11,7 @@ const recordName = stripTrailingDot(downloadsUrl.hostname);
 const zoneName = stripTrailingDot(args.zoneName ?? recordName.split(".").slice(2).join("."));
 const ttl = Number(args.ttl ?? DEFAULT_TTL);
 const outputPath = args.output ?? null;
+const cloudflarePayload = args.cloudflareJson ? JSON.parse(await readFile(args.cloudflareJson, "utf8")) : null;
 
 if (!zoneName) {
   throw new Error(`Unable to derive Route 53 zone name from DOWNLOADS_URL=${downloadsUrl.toString()}`);
@@ -21,19 +23,33 @@ const hostedZoneId = stripHostedZoneId(
   process.env.ROUTE53_HOSTED_ZONE_ID || (await discoverHostedZoneId(zoneName))
 );
 
+const changes = [
+  {
+    Action: "UPSERT",
+    ResourceRecordSet: {
+      Name: ensureTrailingDot(recordName),
+      Type: "CNAME",
+      TTL: ttl,
+      ResourceRecords: [{ Value: ensureTrailingDot(cnameTarget) }]
+    }
+  }
+];
+
+if (cloudflarePayload?.verificationTxtName && cloudflarePayload?.verificationTxtValue) {
+  changes.push({
+    Action: "UPSERT",
+    ResourceRecordSet: {
+      Name: ensureTrailingDot(stripTrailingDot(cloudflarePayload.verificationTxtName)),
+      Type: "TXT",
+      TTL: ttl,
+      ResourceRecords: [{ Value: JSON.stringify(cloudflarePayload.verificationTxtValue) }]
+    }
+  });
+}
+
 const changeBatch = {
   Comment: `Route 53 UPSERT for ${recordName} -> ${cnameTarget}`,
-  Changes: [
-    {
-      Action: "UPSERT",
-      ResourceRecordSet: {
-        Name: ensureTrailingDot(recordName),
-        Type: "CNAME",
-        TTL: ttl,
-        ResourceRecords: [{ Value: ensureTrailingDot(cnameTarget) }]
-      }
-    }
-  ]
+  Changes: changes
 };
 
 const changeResult = runAwsJson([
@@ -52,6 +68,9 @@ const payload = {
   recordName,
   cnameTarget,
   ttl,
+  verificationTxtName: cloudflarePayload?.verificationTxtName ?? null,
+  verificationTxtValue: cloudflarePayload?.verificationTxtValue ?? null,
+  changes: changes.map((entry) => entry.ResourceRecordSet),
   route53ChangeId: stripHostedZoneId(changeResult.ChangeInfo?.Id ?? ""),
   route53Status: changeResult.ChangeInfo?.Status ?? null
 };
@@ -73,6 +92,11 @@ function parseArgs(argv) {
     }
     if (token === "--output") {
       parsed.output = argv[index + 1];
+      index += 1;
+      continue;
+    }
+    if (token === "--cloudflare-json") {
+      parsed.cloudflareJson = argv[index + 1];
       index += 1;
       continue;
     }
