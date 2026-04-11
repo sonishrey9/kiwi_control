@@ -19,7 +19,8 @@ const release = await resolveReleaseMetadata({
   downloadsJsonPath: args.downloadsJson,
   downloadsUrl,
   repoUrl,
-  version: packageJson.version
+  version: packageJson.version,
+  requireDownloadsJson: args.requireDownloadsJson
 });
 
 const dataDir = path.join(outputDir, "data");
@@ -47,7 +48,8 @@ function parseArgs(argv) {
     outputDir: null,
     downloadsJson: null,
     downloadsUrl: null,
-    repoUrl: null
+    repoUrl: null,
+    requireDownloadsJson: false
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -75,13 +77,17 @@ function parseArgs(argv) {
     if (token === "--repo-url") {
       parsed.repoUrl = argv[index + 1] ?? null;
       index += 1;
+      continue;
+    }
+    if (token === "--require-downloads-json") {
+      parsed.requireDownloadsJson = true;
     }
   }
 
   return parsed;
 }
 
-async function resolveReleaseMetadata({ downloadsJsonPath, downloadsUrl, repoUrl, version }) {
+async function resolveReleaseMetadata({ downloadsJsonPath, downloadsUrl, repoUrl, version, requireDownloadsJson }) {
   if (downloadsJsonPath) {
     return JSON.parse(await fs.readFile(path.resolve(downloadsJsonPath), "utf8"));
   }
@@ -97,7 +103,13 @@ async function resolveReleaseMetadata({ downloadsJsonPath, downloadsUrl, repoUrl
       if (response.ok) {
         return await response.json();
       }
+      if (requireDownloadsJson) {
+        throw new Error(`${remoteUrl} returned ${response.status}.`);
+      }
     } catch {
+      if (requireDownloadsJson) {
+        throw new Error(`Missing required Cloudflare downloads metadata at ${remoteUrl}.`);
+      }
       // Fall back to the built-in release metadata when remote downloads metadata is unavailable.
     }
   }

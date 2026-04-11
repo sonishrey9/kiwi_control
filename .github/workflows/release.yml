@@ -246,6 +246,11 @@ jobs:
           - auto-update metadata is still disabled until signed updater inputs are configured
           EOF
 
+      - name: Ensure Cloudflare R2 downloads bucket and domain
+        run: |
+          node scripts/ensure-cloudflare-r2-downloads.mjs \
+            --output dist/release/cloudflare-r2-downloads.json
+
       - name: Publish Cloudflare download artifacts
         env:
           RELEASE_TAG: ${{ github.ref_name }}

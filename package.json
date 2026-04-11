@@ -33,6 +33,7 @@
     "release:manifest": "npm run build -w @shrey-junior/sj-core && node scripts/prepare-release-manifest.mjs",
     "release:checksums": "node scripts/generate-release-checksums.mjs",
     "release:package-assets": "node scripts/package-release-assets.mjs",
+    "cloudflare:ensure-downloads": "node scripts/ensure-cloudflare-r2-downloads.mjs",
     "release:publish:cloudflare": "node scripts/publish-cloudflare-downloads.mjs",
     "release:verify-artifacts": "node scripts/verify-release-artifacts.mjs",
     "release:verify:public-downloads": "node scripts/verify-public-download-surface.mjs",
