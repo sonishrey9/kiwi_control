@@ -131,7 +131,7 @@ function fallbackReleaseMetadata({ downloadsUrl, repoUrl, version }) {
     version,
     channel,
     releaseNotesUrl: null,
-    sourceUrl: releaseUrl,
+    sourceUrl: repoUrl,
     checksumsUrl: null,
     manifestUrl: null,
     trust: {
