@@ -10,6 +10,7 @@ on:
       - "scripts/run-ui-desktop-build.mjs"
       - "scripts/stage-pages-site.mjs"
       - "scripts/upsert-route53-pages-record.mjs"
+      - "scripts/upsert-route53-r2-downloads-record.mjs"
       - "scripts/verify-public-download-surface.mjs"
       - ".github/workflows/deploy-site.yml"
       - ".github/workflows/ci.yml"
@@ -136,6 +137,11 @@ jobs:
           node scripts/upsert-route53-pages-record.mjs \
             --cloudflare-json dist/release/cloudflare-pages.json \
             --output dist/release/route53-upsert.json
+
+      - name: UPSERT Route 53 downloads DNS record
+        run: |
+          node scripts/upsert-route53-r2-downloads-record.mjs \
+            --output dist/release/route53-downloads-upsert.json
 
       - name: Stage website for Pages deploy
         run: |
