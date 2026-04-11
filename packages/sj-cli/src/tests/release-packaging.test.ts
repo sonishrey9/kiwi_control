@@ -131,7 +131,11 @@ test("bundled CLI installer supports machine-scope macOS verification", () => {
     encoding: "utf8"
   });
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.match(result.stdout, /verification passed for macOS/i);
+  if (process.platform === "darwin") {
+    assert.match(result.stdout, /verification passed for macOS/i);
+    return;
+  }
+  assert.match(result.stdout, /requires a macOS host/i);
 });
 
 test("bundled CLI installer exposes machine-scope Windows scaffolding", () => {

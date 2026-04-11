@@ -9,10 +9,24 @@ import { bootstrapTarget } from "@shrey-junior/sj-core/core/bootstrap.js";
 import { loadCanonicalConfig } from "@shrey-junior/sj-core/core/config.js";
 import { runCheck } from "../commands/check.js";
 
-test("repo contract verifier script is executable in the source repo", () => {
+test("repo contract verifier script is executable in a bootstrapped portable repo", async () => {
   const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
+  const config = await loadCanonicalConfig(repoRoot);
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sj-contract-check-"));
+  const target = path.join(tempDir, "portable-repo");
+  await fs.mkdir(target, { recursive: true });
+  await fs.writeFile(path.join(target, "package.json"), '{\n  "name": "portable-repo"\n}\n', "utf8");
+
+  await bootstrapTarget(
+    {
+      repoRoot,
+      targetRoot: target
+    },
+    config
+  );
+
   const result = spawnSync("bash", [path.join(repoRoot, ".agent", "scripts", "verify-contract.sh")], {
-    cwd: repoRoot,
+    cwd: target,
     encoding: "utf8"
   });
 

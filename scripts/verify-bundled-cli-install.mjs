@@ -26,7 +26,11 @@ async function main() {
   await fs.access(installShPath);
   await fs.access(installPs1Path);
 
-  if (platform === "macos" || (platform === "darwin" && process.platform === "darwin")) {
+  if (platform === "macos" || platform === "darwin") {
+    if (process.platform !== "darwin") {
+      console.log("Bundled CLI install verification for macOS requires a macOS host.");
+      return;
+    }
     await verifyMacosInstall(staged, scope);
     console.log("Bundled CLI install verification passed for macOS.");
     return;
