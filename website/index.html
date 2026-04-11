@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Download Kiwi Control</title>
+    <title>Kiwi Control</title>
     <meta
       name="description"
-      content="Download Kiwi Control for macOS or Windows from Cloudflare-hosted public downloads, then optionally enable kc after install."
+      content="Kiwi Control public website. The first public desktop release is coming soon. Desktop-first install remains the intended path, with optional kc after install."
     />
     <link rel="stylesheet" href="/styles.css" />
     <script src="/app.js" defer></script>
@@ -25,18 +25,16 @@
 
       <section class="hero hero-download">
         <div class="hero-copy">
-          <div class="eyebrow">Public desktop download</div>
-          <div class="release-chip" data-release-badge>Latest release: v0.2.0-beta.1</div>
-          <h1>Download Kiwi Control and start with the desktop app.</h1>
+          <div class="eyebrow">Public website</div>
+          <div class="release-chip" data-release-badge>Public release coming soon</div>
+          <h1>Kiwi Control is live on the web. The first public desktop release is coming soon.</h1>
           <p class="hero-text">
-            Cloudflare hosts the public installers and checksums. GitHub keeps the release notes and release history. The desktop app is the main path. Terminal commands stay optional.
+            This website is the public entrypoint for Kiwi Control. Desktop remains the primary install path, and terminal commands stay optional after install. Public installers are not published yet.
           </p>
-          <p class="recommendation" data-recommended-banner>Choose the installer that matches your desktop OS.</p>
+          <p class="recommendation" data-recommended-banner>Use the downloads page for the current release status and the exact verification commands once installers are published.</p>
           <div class="release-links">
-            <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-notes>Release notes</a>
-            <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-checksums>Checksums</a>
-            <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-manifest>Release manifest</a>
-            <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-source>GitHub release history</a>
+            <a href="/beta/">Beta notes</a>
+            <a href="https://github.com/sonishrey9/kiwi-control" data-release-source>GitHub repo</a>
           </div>
         </div>
 
@@ -44,106 +42,83 @@
           <article class="download-card" data-download-card data-platform="macos">
             <div class="download-card-top">
               <span class="download-platform">macOS</span>
-              <span class="download-recommended" data-recommended-chip hidden>Recommended</span>
             </div>
-            <h2 data-download-heading>Download for macOS</h2>
-            <p>Normal desktop install for macOS. Open the app after install, then enable terminal commands only if you want the optional `kc` path.</p>
-            <a
-              class="button button-primary"
-              href="https://github.com/sonishrey9/kiwi-control/releases/latest"
-              data-download-link
-              data-download-kind="macosDmg"
-              data-primary-label="Download for macOS"
-              data-fallback-label="View macOS release"
-            >
-              Download for macOS
-            </a>
+            <h2 data-download-heading>macOS public release</h2>
+            <p>Desktop-first install is still the intended path, but the first public macOS release is not published yet.</p>
+            <a class="button button-primary" href="/downloads/">Public release coming soon</a>
           </article>
 
           <article class="download-card" data-download-card data-platform="windows">
             <div class="download-card-top">
               <span class="download-platform">Windows</span>
-              <span class="download-recommended" data-recommended-chip hidden>Recommended</span>
             </div>
-            <h2 data-download-heading>Download for Windows</h2>
-            <p>Recommended installer for most Windows users. Use MSI from the downloads page when you need the enterprise-style package.</p>
-            <a
-              class="button button-primary"
-              href="https://github.com/sonishrey9/kiwi-control/releases/latest"
-              data-download-link
-              data-download-kind="windowsNsis"
-              data-primary-label="Download for Windows"
-              data-fallback-label="View Windows release"
-            >
-              Download for Windows
-            </a>
+            <h2 data-download-heading>Windows public release</h2>
+            <p>Windows public installers are also pending. The website will link to the real installer files here once the first public release is ready.</p>
+            <a class="button button-primary" href="/downloads/">Public release coming soon</a>
           </article>
         </div>
       </section>
 
       <section class="status-strip panel panel-inline">
         <div>
-          <strong>Version</strong>
-          <span data-release-version>0.2.0-beta.1</span>
+          <strong>Status</strong>
+          <span data-release-version>Public release coming soon</span>
         </div>
         <div>
           <strong>Recommended path</strong>
-          <span data-download-meta>Cloudflare hosts the public downloads for the current release.</span>
+          <span data-download-meta>Desktop-first install remains the intended path. The public release is not published yet.</span>
         </div>
         <div>
-          <strong>Fallback</strong>
-          <span>Use the full <a href="/downloads/">downloads page</a> if you need checksums, MSI, the app tarball, or optional CLI bundles.</span>
+          <strong>Next stop</strong>
+          <span>Open the <a href="/downloads/">downloads page</a> for the current public release status and exact verification commands.</span>
         </div>
       </section>
 
       <section class="grid grid-compact">
         <article class="panel">
-          <h2>Install in four steps</h2>
+          <h2>Public release coming soon</h2>
           <div class="list">
-            <div>1. Download the desktop installer for macOS or Windows.</div>
-            <div>2. Install Kiwi Control normally for your platform.</div>
-            <div>3. Launch the app and choose a repo.</div>
-            <div>4. Optionally enable terminal commands later if you want `kc` from Terminal.</div>
+            <div>1. The public website is live now.</div>
+            <div>2. The first public desktop release has not been published yet.</div>
+            <div>3. `/downloads/` will become the public installer entrypoint once signed release artifacts are ready.</div>
           </div>
         </article>
         <article class="panel">
-          <h2>Optional CLI later</h2>
+          <h2>Desktop first, CLI later</h2>
           <p>
-            You do not need terminal setup for normal desktop use. If you want the power-user path too, use
-            <strong>Enable terminal commands (kc)</strong> after install or grab the manual CLI bundles from
-            <a href="/downloads/">all downloads</a>.
+            Kiwi Control is still designed for desktop-first install. When public installers are available, the app should be usable immediately and <code>kc</code> should remain optional after install.
           </p>
         </article>
         <article class="panel">
           <h2>Trust still matters</h2>
-          <p class="warn">Cloudflare hosting makes downloads public, not trusted. Always check the current release notes, checksums, and platform trust status before you trust an installer.</p>
+          <p class="warn">Public hosting does not equal public trust. macOS still needs signed/notarized/stapled proof and Windows still needs signed installer proof.</p>
         </article>
       </section>
 
       <section class="details-layout">
         <article class="panel detail-panel">
-          <div class="eyebrow">After install</div>
-          <h2>Verify optional terminal commands</h2>
-          <p>Desktop use works immediately. If you later enable `kc`, open a fresh terminal and verify it.</p>
+          <div class="eyebrow">What will appear here</div>
+          <h2>Planned public install flow</h2>
           <div class="list">
-            <div>macOS: <code>command -v kc</code></div>
-            <div>macOS: <code>kc --help</code></div>
-            <div>Windows: <code>Get-Command kc</code></div>
-            <div>Windows: <code>kc --help</code></div>
+            <div>1. Download the desktop installer for macOS or Windows.</div>
+            <div>2. Install Kiwi Control normally.</div>
+            <div>3. Launch the app and choose a repo.</div>
+            <div>4. Optionally enable <code>kc</code> later if you want terminal commands too.</div>
           </div>
           <p class="detail-link-row">
-            <a href="/install/">Open full install guide</a>
-            <a href="/downloads/">Open all downloads</a>
+            <a href="/downloads/">Open downloads status</a>
+            <a href="/install/">Read install guide</a>
           </p>
         </article>
 
         <article class="panel detail-panel">
-          <div class="eyebrow">Current release truth</div>
-          <h2>Public downloads, honest trust notes</h2>
+          <div class="eyebrow">Current public truth</div>
+          <h2>No public installer binaries yet</h2>
           <div class="list">
-            <div data-trust-platform="macos">macOS trust status is release-specific.</div>
-            <div data-trust-platform="windows">Windows trust status is release-specific.</div>
-            <div>GitHub keeps release notes and history even when Cloudflare hosts the installer binaries.</div>
+            <div>There is no public release on this website yet.</div>
+            <div>When installers are published, `/downloads/` will expose the release status, checksums, and verification commands.</div>
+            <div data-trust-platform="macos">macOS trust status is still release-specific.</div>
+            <div data-trust-platform="windows">Windows trust status is still release-specific.</div>
           </div>
           <p class="detail-link-row">
             <a href="/beta/">Read beta notes</a>
@@ -155,7 +130,7 @@
       <footer class="site-footer">
         <div>
           <strong>Created by Shrey Soni</strong>
-          <span>Kiwi Control stays local-first and repo-first while Cloudflare serves the public download surface.</span>
+          <span>Kiwi Control stays local-first and repo-first while the public website tracks release readiness honestly.</span>
         </div>
         <div class="footer-links">
           <a href="https://github.com/sonishrey9">GitHub</a>

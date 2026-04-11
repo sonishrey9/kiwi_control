@@ -12,9 +12,7 @@ async function main() {
   const payload = args.siteDir
     ? await verifyLocalSite(path.resolve(args.siteDir))
     : await verifyRemoteSite({
-        siteUrl: stripTrailingSlash(args.siteUrl ?? process.env.SITE_URL ?? ""),
-        downloadsUrl: stripTrailingSlash(args.downloadsUrl ?? process.env.DOWNLOADS_URL ?? ""),
-        metadataOnly: args.metadataOnly
+        siteUrl: stripTrailingSlash(args.siteUrl ?? process.env.SITE_URL ?? "")
       });
 
   console.log(JSON.stringify(payload, null, 2));
@@ -60,31 +58,28 @@ async function verifyLocalSite(siteDir) {
   const metadata = JSON.parse(await fs.readFile(path.join(siteDir, "data", "latest-release.json"), "utf8"));
   const sidecars = await findMetadataArtifacts(siteDir);
 
-  const missingPhrases = [
-    ...missingPhrase(indexHtml, "Enable terminal commands (kc)"),
-    ...missingPhrase(downloadsHtml, "Get-Command kc"),
-    ...missingPhrase(downloadsHtml, "command -v kc"),
-    ...missingPhrase(downloadsHtml, "Checksums"),
-    ...missingPhrase(downloadsHtml, "Release manifest"),
-    ...missingPhrase(downloadsHtml, "Cloudflare hosts the public")
+  const missingPhrases = metadata.publicReleaseReady === false
+    ? [
+        ...missingPhrase(indexHtml, "Public release coming soon"),
+        ...missingPhrase(downloadsHtml, "Public release coming soon")
+      ]
+    : [];
+
+  const oldWordings = [
+    ...containsPhrase(indexHtml, "GitHub Releases stays the source of truth"),
+    ...containsPhrase(downloadsHtml, "GitHub Releases is the source of truth")
   ];
 
-  const cloudflareHostedArtifacts = [
-    metadata.artifacts?.macosDmg?.latestUrl,
-    metadata.artifacts?.windowsNsis?.latestUrl,
-    metadata.checksumsUrl,
-    metadata.manifestUrl
-  ].filter(Boolean);
-
-  const nonCloudflareLinks = cloudflareHostedArtifacts.filter((entry) => entry.includes("github.com"));
-
   return {
-    ok: missingPhrases.length === 0 && sidecars.length === 0 && nonCloudflareLinks.length === 0,
+    ok:
+      missingPhrases.length === 0 &&
+      sidecars.length === 0 &&
+      oldWordings.length === 0,
     mode: "local",
     siteDir: path.relative(repoRoot, siteDir).replace(/\\/g, "/"),
     missingPhrases,
     sidecars,
-    nonCloudflareLinks,
+    oldWordings,
     metadataSummary: {
       tagName: metadata.tagName,
       checksumsUrl: metadata.checksumsUrl,
@@ -93,93 +88,45 @@ async function verifyLocalSite(siteDir) {
   };
 }
 
-async function verifyRemoteSite({ siteUrl, downloadsUrl, metadataOnly }) {
+async function verifyRemoteSite({ siteUrl }) {
   if (!siteUrl) {
     throw new Error("Missing site URL. Pass --site-url or set SITE_URL.");
-  }
-  if (!downloadsUrl) {
-    throw new Error("Missing downloads URL. Pass --downloads-url or set DOWNLOADS_URL.");
   }
 
   const siteResponse = await fetchOrThrow(siteUrl);
   const downloadsResponse = await fetchOrThrow(`${siteUrl}/downloads/`);
   const metadataResponse = await fetchOrThrow(`${siteUrl}/data/latest-release.json`);
   const metadata = await metadataResponse.json();
-  const downloadsJsonResponse = await fetchOrThrow(`${downloadsUrl}/latest/downloads.json`);
-  await downloadsJsonResponse.json();
-
   const artifactResults = [];
   const metadataResults = [];
-  for (const url of [metadata.checksumsUrl, metadata.manifestUrl]) {
-    if (url) {
-      metadataResults.push(await headOrGet(url));
-    }
-  }
-
-  if (!metadataOnly) {
-    for (const url of collectArtifactUrls(metadata)) {
-      artifactResults.push(await headOrGet(url));
-    }
-  }
 
   const siteHtml = await siteResponse.text();
   const downloadsHtml = await downloadsResponse.text();
-  const missingPhrases = [
-    ...missingPhrase(siteHtml, "Enable terminal commands (kc)"),
-    ...missingPhrase(downloadsHtml, "Get-Command kc"),
-    ...missingPhrase(downloadsHtml, "command -v kc"),
-    ...missingPhrase(downloadsHtml, "Cloudflare hosting does not replace signing proof")
+  const missingPhrases = metadata.publicReleaseReady === false
+    ? [
+        ...missingPhrase(siteHtml, "Public release coming soon"),
+        ...missingPhrase(downloadsHtml, "Public release coming soon"),
+        ...missingPhrase(downloadsHtml, "Cloudflare hosting does not replace signing proof")
+      ]
+    : [];
+  const oldWordings = [
+    ...containsPhrase(siteHtml, "GitHub Releases stays the source of truth"),
+    ...containsPhrase(downloadsHtml, "GitHub Releases is the source of truth")
   ];
 
   return {
     ok:
-      metadataResults.every((entry) => entry.ok) &&
-      artifactResults.every((entry) => entry.ok) &&
       missingPhrases.length === 0 &&
-      validateMetadataLinks(metadata, downloadsUrl, metadataOnly),
+      oldWordings.length === 0,
     mode: "remote",
     siteUrl,
-    downloadsUrl,
-    metadataOnly,
+    downloadsUrl: null,
+    metadataOnly: false,
     missingPhrases,
+    oldWordings,
     metadataResults,
     artifactResults
   };
-}
-
-function collectArtifactUrls(metadata) {
-  const urls = new Set([
-    metadata.checksumsUrl,
-    metadata.manifestUrl,
-    ...Object.values(metadata.artifacts ?? {}).flatMap((entry) => [entry?.latestUrl, entry?.versionedUrl])
-  ]);
-  return [...urls].filter(Boolean);
-}
-
-function validateMetadataLinks(metadata, downloadsUrl, metadataOnly) {
-  const expectedHost = new URL(downloadsUrl).host;
-  const requiredUrls = [
-    metadata.checksumsUrl,
-    metadata.manifestUrl
-  ].filter(Boolean);
-
-  if (!metadataOnly) {
-    requiredUrls.push(
-      ...Object.values(metadata.artifacts ?? {}).flatMap((entry) => [entry?.latestUrl, entry?.versionedUrl]).filter(Boolean)
-    );
-  } else {
-    requiredUrls.push(
-      ...Object.values(metadata.artifacts ?? {}).flatMap((entry) => [entry?.latestUrl]).filter(Boolean)
-    );
-  }
-
-  return requiredUrls.every((url) => {
-    try {
-      return new URL(url).host === expectedHost;
-    } catch {
-      return false;
-    }
-  });
 }
 
 async function headOrGet(url) {
@@ -231,6 +178,10 @@ async function fetchOrThrow(url) {
 
 function missingPhrase(content, phrase) {
   return content.includes(phrase) ? [] : [phrase];
+}
+
+function containsPhrase(content, phrase) {
+  return content.includes(phrase) ? [phrase] : [];
 }
 
 async function findMetadataArtifacts(rootDir) {

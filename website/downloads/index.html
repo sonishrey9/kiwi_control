@@ -12,7 +12,7 @@
       <nav class="nav">
         <div class="brand">Kiwi Control</div>
         <div class="nav-links">
-          <a href="/">Download</a>
+          <a href="/">Home</a>
           <a href="/install/">Install guide</a>
           <a href="/beta/">Beta</a>
           <a href="/support/">Support</a>
@@ -20,65 +20,45 @@
       </nav>
 
       <section class="hero">
-        <div class="eyebrow">All downloads</div>
-        <div class="release-chip" data-release-badge>Latest release: v0.2.0-beta.1</div>
-        <h1>Download the latest Kiwi Control desktop installers and release metadata.</h1>
+        <div class="eyebrow">Downloads</div>
+        <div class="release-chip" data-release-badge>Public release coming soon</div>
+        <h1>This will be the single public download entrypoint once Kiwi Control ships a public release.</h1>
         <p>
-          Cloudflare hosts the public binaries, checksums, and release manifest. GitHub keeps release notes and release history. Start with the desktop app. Use the optional CLI bundles only if you want the shell-first path too.
+          The public release is not published yet. When it is ready, this page will list the desktop installers, release metadata, checksums, and the exact verification commands from the same public website host.
         </p>
-        <div class="release-links">
-          <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-notes>Release notes</a>
-          <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-checksums>Checksums</a>
-          <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-manifest>Release manifest</a>
-          <a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-source>GitHub release history</a>
-        </div>
       </section>
 
       <section class="grid">
         <article class="panel">
-          <h2>Desktop installers</h2>
+          <h2>Current status</h2>
           <div class="list">
-            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-download-link data-download-kind="macosDmg" data-primary-label="macOS DMG">macOS DMG</a></div>
-            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-download-link data-download-kind="windowsNsis" data-primary-label="Windows setup.exe">Windows setup.exe</a></div>
-            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-download-link data-download-kind="windowsMsi" data-primary-label="Windows MSI">Windows MSI</a></div>
+            <div>No public macOS installer is published yet.</div>
+            <div>No public Windows installer is published yet.</div>
+            <div>No public checksums or release manifest are published yet.</div>
           </div>
         </article>
 
         <article class="panel">
-          <h2>Manual and secondary assets</h2>
+          <h2>What will appear here later</h2>
           <div class="list">
-            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-download-link data-download-kind="macosAppTarball" data-primary-label="macOS app tarball">macOS app tarball</a></div>
-            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-download-link data-download-kind="cliMacos" data-primary-label="CLI bundle for macOS">CLI bundle for macOS</a></div>
-            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-download-link data-download-kind="cliWindows" data-primary-label="CLI bundle for Windows">CLI bundle for Windows</a></div>
+            <div>Desktop installer links for macOS and Windows.</div>
+            <div>Checksums and release metadata.</div>
+            <div>Fresh-shell verification commands for optional <code>kc</code>.</div>
           </div>
         </article>
 
         <article class="panel">
-          <h2>Release metadata</h2>
-          <div class="list">
-            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-checksums>Checksums</a></div>
-            <div><a href="https://github.com/sonishrey9/kiwi-control/releases/latest" data-release-manifest>Release manifest</a></div>
-            <div>Version: <strong data-release-version>0.2.0-beta.1</strong></div>
-            <div data-download-meta>Cloudflare hosts the current release downloads.</div>
-          </div>
+          <h2>Public release coming soon</h2>
+          <p>
+            Until the first public release exists, use this page as the canonical public status page rather than expecting download links to be live already.
+          </p>
         </article>
       </section>
 
       <section class="details-layout">
         <article class="panel detail-panel">
-          <div class="eyebrow">Desktop-first install</div>
-          <h2>Normal user flow</h2>
-          <div class="list">
-            <div>1. Download the desktop installer that matches your OS.</div>
-            <div>2. Install Kiwi Control normally.</div>
-            <div>3. Launch the app and choose a repo.</div>
-            <div>4. Optionally enable <code>kc</code> later if you want terminal commands too.</div>
-          </div>
-        </article>
-
-        <article class="panel detail-panel">
-          <div class="eyebrow">Optional CLI verification</div>
-          <h2>Fresh terminal commands</h2>
+          <div class="eyebrow">Planned verification</div>
+          <h2>Fresh terminal commands once installers exist</h2>
           <div class="list">
             <div>macOS: <code>command -v kc</code></div>
             <div>macOS: <code>kc --help</code></div>
@@ -89,23 +69,35 @@
 
         <article class="panel detail-panel">
           <div class="eyebrow">Trust notes</div>
-          <h2>Cloudflare hosting does not replace signing proof</h2>
+          <h2>Hosting still does not replace trust proof</h2>
           <div class="list">
-            <div data-trust-platform="macos">macOS trust status is release-specific.</div>
-            <div data-trust-platform="windows">Windows trust status is release-specific.</div>
-            <div>Use the checksums and release notes for the exact current trust posture.</div>
+            <div>macOS still needs signed/notarized/stapled proof.</div>
+            <div>Windows still needs signed installer proof on a Windows host.</div>
+            <div>Public hosting only changes delivery, not trust.</div>
           </div>
+        </article>
+
+        <article class="panel detail-panel">
+          <div class="eyebrow">Where to look now</div>
+          <h2>Stay on the single public host</h2>
+          <p>
+            This website and <a href="/downloads/">/downloads/</a> are the public entrypoints. Beta notes and support stay here too.
+          </p>
+          <p class="detail-link-row">
+            <a href="/beta/">Beta notes</a>
+            <a href="/support/">Support</a>
+          </p>
         </article>
       </section>
 
       <footer class="site-footer">
         <div>
           <strong>Created by Shrey Soni</strong>
-          <span>Public binaries live on Cloudflare while GitHub keeps the release record.</span>
+          <span>The public website is live now; the first public release is still pending.</span>
         </div>
         <div class="footer-links">
           <a href="/install/">Install guide</a>
-          <a href="/beta/">Beta notes</a>
+          <a href="/beta/">Beta</a>
           <a href="/support/">Support</a>
         </div>
       </footer>

@@ -126,13 +126,14 @@ function fallbackReleaseMetadata({ downloadsUrl, repoUrl, version }) {
   };
 
   return {
+    publicReleaseReady: false,
     tagName: `v${version}`,
     version,
     channel,
-    releaseNotesUrl: releaseUrl,
+    releaseNotesUrl: null,
     sourceUrl: releaseUrl,
-    checksumsUrl: releaseUrl,
-    manifestUrl: releaseUrl,
+    checksumsUrl: null,
+    manifestUrl: null,
     trust: {
       macos: "local-beta-build-only",
       windows: "windows-runner-required"
@@ -140,29 +141,33 @@ function fallbackReleaseMetadata({ downloadsUrl, repoUrl, version }) {
     artifacts: {
       macosDmg: {
         filename: "kiwi-control.dmg",
-        ...artifactFallback
+        latestUrl: null,
+        versionedUrl: null
       },
       macosAppTarball: {
         filename: "kiwi-control.app.tar.gz",
-        ...artifactFallback
+        latestUrl: null,
+        versionedUrl: null
       },
       windowsNsis: {
         filename: "kiwi-control-setup.exe",
-        ...artifactFallback
+        latestUrl: null,
+        versionedUrl: null
       },
       windowsMsi: {
         filename: "kiwi-control.msi",
-        ...artifactFallback
+        latestUrl: null,
+        versionedUrl: null
       },
       cliMacos: {
         filename: "kiwi-control-cli.tar.gz",
-        latestUrl: downloadsUrl ? `${downloadsUrl}/latest/macos/kiwi-control-cli.tar.gz` : releaseUrl,
-        versionedUrl: releaseUrl
+        latestUrl: null,
+        versionedUrl: null
       },
       cliWindows: {
         filename: "kiwi-control-cli.zip",
-        latestUrl: downloadsUrl ? `${downloadsUrl}/latest/windows/kiwi-control-cli.zip` : releaseUrl,
-        versionedUrl: releaseUrl
+        latestUrl: null,
+        versionedUrl: null
       }
     }
   };

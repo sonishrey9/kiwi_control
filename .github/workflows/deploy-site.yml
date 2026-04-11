@@ -10,7 +10,6 @@ on:
       - "scripts/run-ui-desktop-build.mjs"
       - "scripts/stage-pages-site.mjs"
       - "scripts/upsert-route53-pages-record.mjs"
-      - "scripts/upsert-route53-r2-downloads-record.mjs"
       - "scripts/verify-public-download-surface.mjs"
       - ".github/workflows/deploy-site.yml"
       - ".github/workflows/ci.yml"
@@ -33,8 +32,6 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_PAGES_PROJECT_NAME: ${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }}
-      CLOUDFLARE_R2_BUCKET: ${{ vars.CLOUDFLARE_R2_BUCKET }}
-      DOWNLOADS_URL: ${{ vars.DOWNLOADS_URL }}
       REPO_URL: ${{ vars.REPO_URL }}
       ROUTE53_HOSTED_ZONE_ID: ${{ secrets.ROUTE53_HOSTED_ZONE_ID }}
       SITE_URL: ${{ vars.SITE_URL }}
@@ -73,8 +70,6 @@ jobs:
             CLOUDFLARE_ACCOUNT_ID \
             CLOUDFLARE_API_TOKEN \
             CLOUDFLARE_PAGES_PROJECT_NAME \
-            CLOUDFLARE_R2_BUCKET \
-            DOWNLOADS_URL \
             REPO_URL \
             SITE_URL \
             AWS_REGION \
@@ -113,16 +108,9 @@ jobs:
       - name: Prepare release metadata
         run: |
           npm run release:manifest
-          npm run release:checksums
 
       - name: Ensure Cloudflare Pages project and custom domain
         run: node scripts/ensure-cloudflare-pages-project.mjs --output dist/release/cloudflare-pages.json
-
-      - name: Ensure Cloudflare R2 downloads bucket and domain
-        run: |
-          node scripts/ensure-cloudflare-r2-downloads.mjs \
-            --skip-domain-attach \
-            --output dist/release/cloudflare-r2-downloads.json
 
       - name: UPSERT Route 53 DNS record
         run: |
@@ -130,45 +118,9 @@ jobs:
             --cloudflare-json dist/release/cloudflare-pages.json \
             --output dist/release/route53-upsert.json
 
-      - name: UPSERT Route 53 downloads DNS record
-        run: |
-          node scripts/upsert-route53-r2-downloads-record.mjs \
-            --cloudflare-json dist/release/cloudflare-r2-downloads.json \
-            --output dist/release/route53-downloads-upsert.json
-
-      - name: Wait for Cloudflare downloads domain activation
-        run: |
-          for attempt in $(seq 1 20); do
-            node scripts/ensure-cloudflare-r2-downloads.mjs \
-              --output dist/release/cloudflare-r2-downloads.json >/dev/null
-            host_ready="$(jq -r '.downloadsHostReady' dist/release/cloudflare-r2-downloads.json)"
-            zone_status="$(jq -r '.zoneStatus' dist/release/cloudflare-r2-downloads.json)"
-            ownership_status="$(jq -r '.customDomainOwnershipStatus' dist/release/cloudflare-r2-downloads.json)"
-            ssl_status="$(jq -r '.customDomainSslStatus' dist/release/cloudflare-r2-downloads.json)"
-            if [ "${host_ready}" = "true" ]; then
-              exit 0
-            fi
-            echo "Waiting for downloads host activation (attempt ${attempt}/20): zone_status=${zone_status} ownership=${ownership_status} ssl=${ssl_status}"
-            sleep 15
-          done
-          echo "Timed out waiting for downloads.kiwi-control.kiwi-ai.in to become active in Cloudflare" >&2
-          cat dist/release/cloudflare-r2-downloads.json >&2
-          exit 1
-
-      - name: Publish Cloudflare download metadata
-        run: |
-          node scripts/publish-cloudflare-downloads.mjs \
-            --publish-root dist/release \
-            --downloads-url "${DOWNLOADS_URL}" \
-            --bucket "${CLOUDFLARE_R2_BUCKET}" \
-            --repo-url "${REPO_URL}" \
-            --metadata-only
-
       - name: Stage website for Pages deploy
         run: |
-          node scripts/stage-pages-site.mjs \
-            --downloads-json dist/release/downloads.json \
-            --output-dir dist/site
+          node scripts/stage-pages-site.mjs --output-dir dist/site
 
       - name: Deploy website to Cloudflare Pages
         run: |
@@ -214,7 +166,4 @@ jobs:
 
       - name: Verify public site and downloads surface
         run: |
-          node scripts/verify-public-download-surface.mjs \
-            --site-url "${SITE_URL%/}" \
-            --downloads-url "${DOWNLOADS_URL%/}" \
-            --metadata-only
+          node scripts/verify-public-download-surface.mjs --site-url "${SITE_URL%/}"
