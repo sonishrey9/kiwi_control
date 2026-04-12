@@ -35,7 +35,8 @@ async function main() {
       console.log("Windows installed-app CLI enablement requires a Windows runner or Windows machine.");
       return;
     }
-    console.log("Windows installed-app CLI enablement verification should run on a Windows runner with machine PATH privileges.");
+    await verifyWindowsRealMachinePath();
+    console.log("Installed-app machine-wide CLI verification passed for Windows real-machine-path mode.");
     return;
   }
 
@@ -106,15 +107,39 @@ async function verifyMacosRealMachinePath() {
   const installPath = path.join(bundleRoot, "install.sh");
   await fs.access(installPath);
   const resultPath = path.join(os.tmpdir(), "kiwi-real-machine-cli-enable.json");
-  const result = spawnSync("/bin/bash", [installPath], {
+  const bundledNodePath = path.join(
+    repoRoot,
+    "apps",
+    "sj-ui",
+    "src-tauri",
+    "target",
+    "release",
+    "bundle",
+    "macos",
+    "Kiwi Control.app",
+    "Contents",
+    "Resources",
+    "desktop",
+    "node",
+    "node"
+  );
+
+  let commandLine = [
+    `export KIWI_CONTROL_INSTALL_SCOPE=${shellQuote("machine")}`,
+    `export KIWI_CONTROL_INSTALL_ROOT=${shellQuote("/Library/Application Support/Kiwi Control")}`,
+    `export KIWI_CONTROL_PATH_BIN=${shellQuote("/usr/local/bin")}`,
+    `export KIWI_CONTROL_RESULT_PATH=${shellQuote(resultPath)}`
+  ];
+  if (await fs.access(bundledNodePath).then(() => true).catch(() => false)) {
+    commandLine.unshift(`export KIWI_CONTROL_NODE_ABSOLUTE=${shellQuote(bundledNodePath)}`);
+  }
+  commandLine.push(`/bin/bash ${shellQuote(installPath)}`);
+
+  const result = spawnSync("osascript", [
+    "-e",
+    `do shell script ${appleScriptStringLiteral(commandLine.join("; "))} with administrator privileges`
+  ], {
     cwd: bundleRoot,
-    env: {
-      ...process.env,
-      KIWI_CONTROL_INSTALL_SCOPE: "machine",
-      KIWI_CONTROL_INSTALL_ROOT: "/Library/Application Support/Kiwi Control",
-      KIWI_CONTROL_PATH_BIN: "/usr/local/bin",
-      KIWI_CONTROL_RESULT_PATH: resultPath
-    },
     encoding: "utf8"
   });
 
@@ -124,6 +149,70 @@ async function verifyMacosRealMachinePath() {
     encoding: "utf8"
   });
   assert.equal(shellResult.status, 0, shellResult.stderr || shellResult.stdout);
+}
+
+async function verifyWindowsRealMachinePath() {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-installed-cli-flow-win-"));
+  const resourcesRoot = path.join(tempDir, "resources");
+  const resultPath = path.join(tempDir, "cli-enable-result.json");
+  const machineRoot = path.join(process.env.ProgramData ?? "C:\\ProgramData", "Kiwi Control");
+  const machineBin = path.join(machineRoot, "bin");
+
+  const staged = await stageDesktopInstallerResources({
+    repoRoot,
+    resourcesRoot,
+    nodeBinaryPath: process.execPath
+  });
+
+  const installPath = path.join(staged.cliBundlePath, "install.ps1");
+  const result = spawnSync("powershell.exe", [
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    installPath,
+    "-InstallScope",
+    "machine",
+    "-InstallRoot",
+    machineRoot,
+    "-PathBin",
+    machineBin,
+    "-ResultPath",
+    resultPath,
+    "-PreferredNodePath",
+    staged.stagedNodePath
+  ], {
+    cwd: staged.cliBundlePath,
+    encoding: "utf8"
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const payload = JSON.parse(await fs.readFile(resultPath, "utf8"));
+  assert.equal(payload.installScope, "machine");
+  assert.equal(payload.installBinDir, machineBin);
+
+  const shellResult = spawnSync("powershell.exe", [
+    "-NoProfile",
+    "-Command",
+    "$machine = [Environment]::GetEnvironmentVariable('Path', 'Machine'); " +
+      "$user = [Environment]::GetEnvironmentVariable('Path', 'User'); " +
+      "$env:Path = @($machine, $user) -join ';'; " +
+      "$command = Get-Command kc -ErrorAction Stop; " +
+      "& $command.Source --help | Out-Null; " +
+      "Write-Output $command.Source"
+  ], {
+    cwd: repoRoot,
+    encoding: "utf8"
+  });
+  assert.equal(shellResult.status, 0, shellResult.stderr || shellResult.stdout);
+}
+
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
+function appleScriptStringLiteral(value) {
+  return `"${String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 function readFlagValue(args, flag) {

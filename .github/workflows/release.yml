@@ -162,6 +162,18 @@ jobs:
             ubuntu-latest) echo "Linux trust check is not release-gated yet." ;;
           esac
 
+      - name: Verify default desktop CLI setup
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'macos-latest'
+        run: |
+          npm run test:installer:bundled-cli:macos
+          npm run test:installer:cli-enable:macos
+
+      - name: Verify default desktop CLI setup on Windows
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest'
+        run: |
+          npm run test:installer:bundled-cli:windows
+          npm run test:installer:cli-enable:windows
+
       - name: Upload release trust payloads
         if: startsWith(github.ref, 'refs/tags/v') && matrix.os != 'ubuntu-latest'
         uses: actions/upload-artifact@v4

@@ -61,6 +61,18 @@ jobs:
       - name: Build desktop bundle
         run: npm run ui:desktop:build
 
+      - name: Verify default desktop CLI setup
+        if: matrix.os == 'macos-latest'
+        run: |
+          npm run test:installer:bundled-cli:macos
+          npm run test:installer:cli-enable:macos
+
+      - name: Verify default desktop CLI setup on Windows
+        if: matrix.os == 'windows-latest'
+        run: |
+          npm run test:installer:bundled-cli:windows
+          npm run test:installer:cli-enable:windows
+
       - name: Upload CLI dist
         uses: actions/upload-artifact@v4
         with:

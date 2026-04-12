@@ -108,7 +108,7 @@ export function buildOnboardingPanelModel(params: {
       : `Installed at ${runtimeInfo.cli.installedCommandPath ?? runtimeInfo.cli.installBinDir} · ${runtimeInfo.cli.verificationDetail}`
     : runtimeInfo?.runtimeMode === "installed-user"
       ? runtimeInfo.cli.verificationStatus === "not-run"
-        ? "Kiwi enables terminal commands by default on installed desktop builds and verifies kc in a fresh shell."
+        ? "Kiwi auto-attempts terminal command setup by default on installed desktop builds and verifies kc in a fresh shell."
         : `Default terminal command setup did not complete. ${runtimeInfo.cli.verificationDetail}`
       : "Source/developer mode detected. Desktop use still works without a separate installed kc.";
   const repoStatus = !targetRoot
@@ -120,14 +120,14 @@ export function buildOnboardingPanelModel(params: {
 
   return {
     title: "Start in the app",
-    intro: "Open Kiwi Control, choose a repo, initialize it if needed, and work. Installed desktop builds enable terminal commands by default and verify kc from a fresh shell.",
+    intro: "Open Kiwi Control, choose a repo, initialize it if needed, and work. Installed desktop builds auto-attempt terminal command setup by default and verify kc from a fresh shell.",
     desktopStatus,
     cliStatus,
     repoStatus,
     nextAction,
     actions,
     note: runtimeInfo?.runtimeMode === "installed-user"
-      ? "Desktop-first is still the default path. Kiwi now enables kc by default on installed desktop builds and will tell you exactly how to fix setup if that default cannot complete."
+      ? "Desktop-first is still the default path. Kiwi now auto-attempts kc setup on installed desktop builds and will tell you exactly how to fix setup if that default cannot complete."
       : "Developer/source mode keeps the source checkout in control of desktop launching."
   };
 }

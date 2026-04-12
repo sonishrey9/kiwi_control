@@ -1696,7 +1696,7 @@ async function installBundledCli(options: { mode: "manual" | "default" } = { mod
 
   if (mode === "manual") {
     const confirmed = window.confirm(
-      "Retry terminal command setup for this machine?\n\nKiwi enables kc by default on installed desktop builds. It may ask for administrator approval to finish system-wide setup."
+      "Retry terminal command setup for this machine?\n\nKiwi auto-attempts kc setup by default on installed desktop builds. It may ask for administrator approval to finish system-wide setup."
     );
     if (!confirmed) {
       return;

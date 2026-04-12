@@ -31,7 +31,7 @@ test("onboarding shows choose-repo first and does not offer manual cli setup bef
   assert.ok(model);
   assert.equal(model?.actions.some((action) => action.id === "choose-repo"), true);
   assert.equal(model?.actions.some((action) => action.id === "install-cli"), false);
-  assert.match(model?.intro ?? "", /enable terminal commands by default/i);
+  assert.match(model?.intro ?? "", /auto-attempt terminal command setup by default/i);
   assert.equal(model?.actions[0]?.id, "choose-repo");
 });
 

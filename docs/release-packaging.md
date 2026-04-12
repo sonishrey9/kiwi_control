@@ -103,7 +103,7 @@ The intended public beta path is:
 4. deploy the staged Pages site with `/data/latest-release.json`
 5. keep release notes explicit about signing, notarization, and trust status
 
-Installed desktop builds now default to enabling terminal commands on first launch, while keeping the desktop app usable if machine PATH setup cannot complete.
+Installed desktop builds now auto-attempt terminal command setup on first launch, while keeping the desktop app usable if machine PATH setup cannot complete.
 
 ## Signing inputs
 
