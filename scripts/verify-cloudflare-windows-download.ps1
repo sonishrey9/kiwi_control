@@ -60,7 +60,7 @@ $cli = $null
 if ($RequireCli) {
   $command = Get-Command kc -ErrorAction SilentlyContinue
   if (-not $command) {
-    throw "kc was not found on PATH. Run this script after the optional in-app terminal-command enablement flow."
+    throw "kc was not found on PATH. Run this script after the default desktop CLI setup flow completes."
   }
   $help = & kc --help 2>&1 | Out-String
   $cli = [pscustomobject]@{

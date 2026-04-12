@@ -18,8 +18,8 @@ For most users on macOS and Windows:
    - Windows: `-setup.exe` or `.msi`
 3. Install Kiwi Control like a normal desktop app.
 4. Launch Kiwi Control once.
-5. Use onboarding to choose a repo and initialize it if needed.
-6. Enable terminal commands later only if you want the power-user terminal path too.
+5. Kiwi enables `kc` by default and verifies it from a fresh shell.
+6. Use onboarding to choose a repo and initialize it if needed.
 
 ### Desktop-only path
 
@@ -37,22 +37,20 @@ For public downloads, trust status is release-specific. Public hosting makes the
 
 ### Desktop + CLI path
 
-Install `kc` only if you want the same repo flow from Terminal too:
+Installed desktop builds now default to enabling `kc`:
 
 1. install the desktop app
 2. open the app once
-3. use onboarding to enable terminal commands only if you want the terminal path
+3. approve system-wide terminal command setup if Kiwi or the OS asks
 4. keep using the same repo from desktop or CLI interchangeably
 
-### Optional terminal commands
+### Default terminal commands
 
-Kiwi Control keeps the desktop app usable without any terminal setup.
+Kiwi Control keeps the desktop app usable even if terminal command setup cannot complete, but installed desktop builds now try to enable `kc` by default.
 
-If you explicitly choose `Enable terminal commands (kc)` from the app:
-
-- macOS: Kiwi installs shared command wrappers for `/usr/local/bin` after explicit approval
-- Windows: Kiwi installs shared command wrappers and updates machine PATH after explicit approval
-- Kiwi then verifies whether `kc` is callable from a fresh shell/process and reports the exact result
+- macOS: on first launch, Kiwi installs shared command wrappers into `/usr/local/bin` after explicit administrator approval
+- Windows: the desktop installer defaults to machine-wide install behavior, and Kiwi completes system-wide `kc` setup on first launch with fresh-shell verification
+- Kiwi verifies whether `kc` is callable from a fresh shell/process and reports the exact result
 
 If verification succeeds but your current terminal is still stale, Kiwi will tell you to open a new terminal window.
 

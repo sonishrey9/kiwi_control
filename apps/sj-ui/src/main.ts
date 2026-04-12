@@ -1105,6 +1105,8 @@ let machineHydrationActiveSections = new Set<MachineSectionName>();
 let hydratedMachineSections = new Set<MachineSectionName>();
 let currentLoadSource: "cli" | "manual" | "auto" | null = null;
 let desktopRuntimeInfo: DesktopRuntimeInfo | null = null;
+let defaultCliInstallAttempted = false;
+let defaultCliInstallInFlight = false;
 let lastRepoRefreshAt = 0;
 let lastRepoLoadFailure: string | null = null;
 let renderQueued = false;
@@ -1654,21 +1656,51 @@ async function loadDesktopRuntimeInfo(): Promise<void> {
       activeView = probeView;
     }
     scheduleRenderState();
+    queueDefaultCliInstallIfNeeded();
   } catch {
     desktopRuntimeInfo = null;
   }
 }
 
-async function installBundledCli(): Promise<void> {
+function shouldAutoInstallBundledCli(runtimeInfo: DesktopRuntimeInfo | null): boolean {
+  return Boolean(
+    runtimeInfo
+    && runtimeInfo.runtimeMode === "installed-user"
+    && runtimeInfo.cli.bundledInstallerAvailable
+    && !runtimeInfo.cli.installed
+    && runtimeInfo.cli.verificationStatus === "not-run"
+  );
+}
+
+function queueDefaultCliInstallIfNeeded(): void {
+  if (!shouldAutoInstallBundledCli(desktopRuntimeInfo) || defaultCliInstallAttempted || defaultCliInstallInFlight) {
+    return;
+  }
+
+  defaultCliInstallAttempted = true;
+  defaultCliInstallInFlight = true;
+  queueMicrotask(() => {
+    void installBundledCli({ mode: "default" }).finally(() => {
+      defaultCliInstallInFlight = false;
+    });
+  });
+}
+
+async function installBundledCli(options: { mode: "manual" | "default" } = { mode: "manual" }): Promise<void> {
   if (!isTauriBridgeAvailable() || commandState.loading) {
     return;
   }
 
-  const confirmed = window.confirm(
-    "Enable terminal commands (kc) for this machine?\n\nThis optional step keeps the desktop app ready to use either way. Kiwi may ask for administrator approval to enable kc system-wide."
-  );
-  if (!confirmed) {
-    return;
+  const mode = options.mode;
+  const commandLabel = mode === "default" ? "default terminal command setup" : "retry terminal command setup";
+
+  if (mode === "manual") {
+    const confirmed = window.confirm(
+      "Retry terminal command setup for this machine?\n\nKiwi enables kc by default on installed desktop builds. It may ask for administrator approval to finish system-wide setup."
+    );
+    if (!confirmed) {
+      return;
+    }
   }
 
   commandState.loading = true;
@@ -1685,10 +1717,18 @@ async function installBundledCli(): Promise<void> {
       exitCode: result.verificationStatus === "passed" ? 0 : 1,
       stdout: result.detail,
       stderr: result.verificationStatus === "passed" ? "" : result.verificationDetail,
-      commandLabel: "enable terminal commands"
+      commandLabel
     };
   } catch (error) {
-    commandState.lastError = error instanceof Error ? error.message : String(error);
+    const detail = error instanceof Error ? error.message : String(error);
+    commandState.lastError = null;
+    commandState.lastResult = {
+      ok: false,
+      exitCode: 1,
+      stdout: "",
+      stderr: detail,
+      commandLabel
+    };
   } finally {
     commandState.loading = false;
     renderState(currentState);
@@ -3149,7 +3189,7 @@ function handleInteractiveClick(event: MouseEvent, target: HTMLElement): boolean
       }
     })();
     if (action === "install-cli") {
-      void installBundledCli();
+      void installBundledCli({ mode: "manual" });
     } else if (action === "choose-repo") {
       void chooseRepoDirectory();
     } else if (action === "init-repo" && currentTargetRoot) {

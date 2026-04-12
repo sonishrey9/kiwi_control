@@ -21,7 +21,7 @@ Current Kiwi Control beta behavior:
 - repo-local initialization, status, validation, checkpoints, and handoffs
 - local desktop launch bridge for `kc ui`
 - desktop auto-load of the current repo after CLI launch acknowledgement
-- optional terminal-command enablement happens only after explicit user approval from the desktop app and is not required for desktop usage
+- installed desktop builds default to enabling terminal commands on first launch after explicit OS/admin approval where required, but desktop usage still works if that setup cannot complete
 
 ## What the product does not claim yet
 

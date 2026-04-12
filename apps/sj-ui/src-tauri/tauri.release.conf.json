@@ -19,7 +19,7 @@
         "silent": true
       },
       "nsis": {
-        "installMode": "currentUser",
+        "installMode": "perMachine",
         "displayLanguageSelector": false,
         "compression": "lzma"
       },

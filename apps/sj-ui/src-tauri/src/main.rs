@@ -43,6 +43,7 @@ const CLI_INSTALL_SCOPE_MACHINE: &str = "machine";
 const CLI_INSTALL_SCOPE_USER: &str = "user";
 const CLI_VERIFICATION_PASSED: &str = "passed";
 const CLI_VERIFICATION_FAILED: &str = "failed";
+const CLI_VERIFICATION_BLOCKED: &str = "blocked";
 const CLI_VERIFICATION_NOT_RUN: &str = "not-run";
 
 #[derive(Serialize)]
@@ -320,8 +321,14 @@ fn get_desktop_runtime_info(app: AppHandle) -> Result<DesktopRuntimeInfo, String
         .unwrap_or_else(|| {
             if installed_cli.is_some() {
                 String::from("Terminal commands are installed, but Kiwi has not verified them from a fresh shell yet.")
+            } else if infer_runtime_mode(&build_source) == DESKTOP_RUNTIME_MODE_INSTALLED
+                && resolve_bundled_cli_installer_path(&app).is_some()
+            {
+                String::from(
+                    "Kiwi enables terminal commands by default on installed desktop builds. If setup does not complete, use the retry action in the app."
+                )
             } else {
-                String::from("Terminal commands are optional and are not enabled yet.")
+                String::from("Desktop use still works without an installed kc command in this source/developer mode.")
             }
         });
     Ok(DesktopRuntimeInfo {
@@ -479,10 +486,16 @@ fn install_bundled_cli(app: AppHandle) -> Result<CliInstallResult, String> {
     )
         .map_err(|error| format!("failed to run bundled CLI installer: {error}"))?;
 
+    let installed_cli = resolve_installed_cli_command();
+    let path_changed = install_run
+        .result
+        .as_ref()
+        .map(|result| result.path_changed)
+        .unwrap_or(false);
     let stdout = String::from_utf8_lossy(&install_run.output.stdout).trim().to_string();
     let stderr = String::from_utf8_lossy(&install_run.output.stderr).trim().to_string();
     if !install_run.output.status.success() {
-        return Err(if !stderr.is_empty() {
+        let detail = if !stderr.is_empty() {
             stderr
         } else if let Some(detail) = install_run.result.as_ref().and_then(|result| result.detail.clone()) {
             detail
@@ -490,15 +503,45 @@ fn install_bundled_cli(app: AppHandle) -> Result<CliInstallResult, String> {
             stdout
         } else {
             String::from("Kiwi Control CLI installer exited without success output.")
+        };
+
+        let receipt = DesktopCliInstallReceipt {
+            install_scope: String::from(CLI_INSTALL_SCOPE_MACHINE),
+            install_root: install_target.install_root.to_string_lossy().to_string(),
+            install_bin_dir: install_target.install_bin_dir.to_string_lossy().to_string(),
+            installed_command_path: installed_cli
+                .as_ref()
+                .map(|command| command.path.to_string_lossy().to_string()),
+            verification_status: String::from(CLI_VERIFICATION_BLOCKED),
+            verification_detail: detail.clone(),
+            verification_command_path: installed_cli
+                .as_ref()
+                .map(|command| command.path.to_string_lossy().to_string()),
+            requires_new_terminal: false,
+            path_changed,
+            updated_at: timestamp_now(),
+        };
+        write_cli_install_receipt(&receipt)?;
+
+        return Ok(CliInstallResult {
+            detail: detail.clone(),
+            install_bin_dir: install_target.install_bin_dir.to_string_lossy().to_string(),
+            install_root: install_target.install_root.to_string_lossy().to_string(),
+            install_scope: String::from(CLI_INSTALL_SCOPE_MACHINE),
+            installed_command_path: installed_cli
+                .as_ref()
+                .map(|command| command.path.to_string_lossy().to_string()),
+            verification_status: String::from(CLI_VERIFICATION_BLOCKED),
+            verification_detail: detail,
+            verification_command_path: installed_cli
+                .as_ref()
+                .map(|command| command.path.to_string_lossy().to_string()),
+            requires_new_terminal: false,
+            path_changed,
+            used_bundled_node: bundled_node_path.is_some(),
         });
     }
 
-    let installed_cli = resolve_installed_cli_command();
-    let path_changed = install_run
-        .result
-        .as_ref()
-        .map(|result| result.path_changed)
-        .unwrap_or(false);
     let verification = verify_cli_command(CLI_INSTALL_SCOPE_MACHINE, installed_cli.as_ref(), path_changed)?;
     let receipt = DesktopCliInstallReceipt {
         install_scope: String::from(CLI_INSTALL_SCOPE_MACHINE),

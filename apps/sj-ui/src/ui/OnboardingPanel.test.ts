@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { buildOnboardingPanelModel } from "./OnboardingPanel.js";
 
-test("onboarding shows choose-repo first and keeps install-cli for after a repo is selected", () => {
+test("onboarding shows choose-repo first and does not offer manual cli setup before the default attempt runs", () => {
   const model = buildOnboardingPanelModel({
     runtimeInfo: {
       appVersion: "0.2.0-beta.1",
@@ -19,7 +19,7 @@ test("onboarding shows choose-repo first and keeps install-cli for after a repo 
         installed: false,
         installedCommandPath: null,
         verificationStatus: "not-run",
-        verificationDetail: "Terminal commands are optional and are not enabled yet.",
+        verificationDetail: "Kiwi enables terminal commands by default on installed desktop builds and verifies kc in a fresh shell.",
         verificationCommandPath: null,
         requiresNewTerminal: false
       }
@@ -31,7 +31,7 @@ test("onboarding shows choose-repo first and keeps install-cli for after a repo 
   assert.ok(model);
   assert.equal(model?.actions.some((action) => action.id === "choose-repo"), true);
   assert.equal(model?.actions.some((action) => action.id === "install-cli"), false);
-  assert.match(model?.intro ?? "", /Terminal commands are optional/i);
+  assert.match(model?.intro ?? "", /enable terminal commands by default/i);
   assert.equal(model?.actions[0]?.id, "choose-repo");
 });
 
@@ -155,4 +155,34 @@ test("onboarding stays hidden when CLI is installed and the repo is ready", () =
   });
 
   assert.equal(model, null);
+});
+
+test("onboarding offers a retry action when default terminal command setup failed", () => {
+  const model = buildOnboardingPanelModel({
+    runtimeInfo: {
+      appVersion: "0.2.0-beta.1",
+      buildSource: "installed-bundle",
+      runtimeMode: "installed-user",
+      cli: {
+        bundledInstallerAvailable: true,
+        bundledNodePath: "/Applications/Kiwi Control.app/Contents/Resources/desktop/node/node",
+        installBinDir: "/usr/local/bin",
+        installRoot: "/Library/Application Support/Kiwi Control",
+        installScope: "machine",
+        installed: false,
+        installedCommandPath: null,
+        verificationStatus: "blocked",
+        verificationDetail: "Administrator approval was denied before Kiwi could finish system-wide kc setup.",
+        verificationCommandPath: null,
+        requiresNewTerminal: false
+      }
+    },
+    targetRoot: "/tmp/repo",
+    repoMode: "healthy"
+  });
+
+  assert.ok(model);
+  assert.equal(model?.actions.some((action) => action.id === "install-cli"), true);
+  assert.match(model?.actions.find((action) => action.id === "install-cli")?.label ?? "", /Retry terminal command setup/);
+  assert.match(model?.cliStatus ?? "", /Default terminal command setup did not complete/i);
 });
