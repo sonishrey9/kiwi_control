@@ -18,7 +18,7 @@ For most users on macOS and Windows:
    - Windows: `-setup.exe` or `.msi`
 3. Install Kiwi Control like a normal desktop app.
 4. Launch Kiwi Control once.
-5. Kiwi auto-attempts `kc` setup by default and verifies it from a fresh shell.
+5. Kiwi auto-attempts `kc` setup by default and records whether fresh-shell verification succeeds.
 6. Use onboarding to choose a repo and initialize it if needed.
 
 ### Desktop-only path
@@ -49,7 +49,7 @@ Installed desktop builds now auto-attempt `kc` setup by default:
 Kiwi Control keeps the desktop app usable even if terminal command setup cannot complete, but installed desktop builds now auto-attempt `kc` setup by default.
 
 - macOS: on first launch, Kiwi installs shared command wrappers into `/usr/local/bin` after explicit administrator approval
-- Windows: the desktop installer defaults to machine-wide install behavior, and Kiwi completes system-wide `kc` setup on first launch with fresh-shell verification
+- Windows: the desktop installer is configured for machine-wide install behavior, and Kiwi performs fresh-shell verification when run on a real Windows host
 - Kiwi verifies whether `kc` is callable from a fresh shell/process and reports the exact result
 
 If verification succeeds but your current terminal is still stale, Kiwi will tell you to open a new terminal window.

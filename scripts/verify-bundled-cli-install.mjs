@@ -76,12 +76,11 @@ async function verifyMacosInstall(staged, installScope) {
   const resultPayload = JSON.parse(await fs.readFile(resultPath, "utf8"));
   assert.equal(resultPayload.installScope, installScope);
   assert.equal(resultPayload.pathChanged, false);
-  const helpResult = spawnSync("/bin/zsh", ["-lic", "command -v kc >/dev/null && kc --help >/dev/null"], {
+  const helpResult = spawnSync("/bin/zsh", ["-lic", `export PATH="${tempBin}:$PATH"; resolved="$(command -v kc)"; printf '%s\\n' "$resolved"; kc --help >/dev/null`], {
     cwd: repoRoot,
     env: {
       ...process.env,
       HOME: tempHome,
-      PATH: `${tempBin}:${process.env.PATH ?? "/usr/bin:/bin"}`,
       KIWI_CONTROL_HOME: path.join(tempHome, ".kiwi-control"),
       KIWI_CONTROL_PATH_BIN: tempBin
     },
@@ -89,6 +88,8 @@ async function verifyMacosInstall(staged, installScope) {
   });
 
   assert.equal(helpResult.status, 0, helpResult.stderr || helpResult.stdout);
+  const resolvedPath = helpResult.stdout.trim().split(/\r?\n/).at(-1) ?? "";
+  assert.match(resolvedPath, new RegExp(`^${escapeForRegex(tempBin)}/kc$`));
   const shellProfilePath = path.join(tempHome, ".zshrc");
   const profileExists = await fs.access(shellProfilePath).then(() => true).catch(() => false);
   assert.equal(profileExists, false);
@@ -105,4 +106,8 @@ function readFlagValue(args, flag) {
     return null;
   }
   return args[index + 1] ?? null;
+}
+
+function escapeForRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

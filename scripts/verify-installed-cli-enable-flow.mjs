@@ -75,17 +75,18 @@ async function verifyMacosDeterministic() {
   const payload = JSON.parse(await fs.readFile(resultPath, "utf8"));
   assert.equal(payload.installScope, "machine");
   assert.equal(payload.installBinDir, tempBin);
-  const shellResult = spawnSync("/bin/zsh", ["-lic", "command -v kc && kc --help >/dev/null"], {
+  const shellResult = spawnSync("/bin/zsh", ["-lic", `export PATH="${tempBin}:$PATH"; resolved="$(command -v kc)"; printf '%s\\n' "$resolved"; kc --help >/dev/null`], {
     cwd: repoRoot,
     env: {
       ...process.env,
       HOME: tempDir,
-      PATH: `${tempBin}:${process.env.PATH ?? "/usr/bin:/bin"}`,
       KIWI_CONTROL_PATH_BIN: tempBin
     },
     encoding: "utf8"
   });
   assert.equal(shellResult.status, 0, shellResult.stderr || shellResult.stdout);
+  const resolvedPath = shellResult.stdout.trim().split(/\r?\n/).at(-1) ?? "";
+  assert.match(resolvedPath, new RegExp(`^${escapeForRegex(tempBin)}/kc$`));
 }
 
 async function verifyMacosRealMachinePath() {
@@ -221,4 +222,8 @@ function readFlagValue(args, flag) {
     return null;
   }
   return args[index + 1] ?? null;
+}
+
+function escapeForRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
