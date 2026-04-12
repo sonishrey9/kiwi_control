@@ -46,6 +46,7 @@ async function main() {
   const blockedRepo = await createBlockedRepo();
   try {
     await verifyOverviewBlockedState(blockedRepo);
+    await verifyRailNavigationBehavior(blockedRepo);
     await verifyHistoryDrawerTruth();
     await verifyMachineView(blockedRepo);
     await verifyPackSelectionView();
@@ -128,6 +129,66 @@ async function verifyMachineView(repo) {
   assert.equal(snapshot.activeView, "machine");
   assert.equal(snapshot.inspectorOpen, false);
   assert.equal(snapshot.visibleSections.includes("machine-setup-readiness"), true);
+}
+
+async function verifyRailNavigationBehavior(repo) {
+  await killExistingKiwiProcesses();
+  const session = await launchProbeSession(repo.targetRoot, "overview");
+  try {
+    const initial = await session.waitForPayload((payload) =>
+      payload.activeView === "overview"
+      && payload.activeRailView === "overview"
+      && payload.activeRailAriaCurrent === true
+      && typeof payload.railButtonCount === "number"
+      && payload.railButtonCount >= 6
+    );
+
+    await session.writeRenderAction({ actionType: "set-rail-scroll", y: 48 });
+    const afterScroll = await session.waitForPayload((payload) =>
+      payload.activeView === "overview"
+      && typeof payload.railScrollTop === "number"
+      && payload.railScrollTop >= 40
+    );
+
+    await session.writeRenderAction({ actionType: "switch-mode", mode: "inspection" });
+    const afterModeSwitch = await session.waitForPayload((payload) =>
+      payload.activeMode === "inspection"
+      && payload.activeView === "overview"
+      && payload.activeRailView === "overview"
+      && typeof payload.railScrollTop === "number"
+      && payload.railScrollTop >= afterScroll.railScrollTop - 2
+    );
+
+    await session.writeRenderAction({ actionType: "click-view", view: "graph" });
+    const afterGraphClick = await session.waitForPayload((payload) =>
+      payload.activeView === "graph"
+      && payload.activeRailView === "graph"
+      && payload.activeRailAriaCurrent === true
+      && payload.graphSurfaceVisible === true
+      && typeof payload.railScrollTop === "number"
+      && payload.railScrollTop >= afterScroll.railScrollTop - 2
+    );
+
+    await session.writeRenderAction({ actionType: "click-view", view: "mcps" });
+    const afterMcpsClick = await session.waitForPayload((payload) =>
+      payload.activeView === "mcps"
+      && payload.activeRailView === "mcps"
+      && payload.activeRailAriaCurrent === true
+      && includesAll(payload.visibleSections, [
+        "mcp-selected-pack",
+        "mcp-selectable-packs",
+        "mcp-blocked-packs"
+      ])
+    );
+
+    assert.equal(initial.activeRailView, "overview");
+    assert.equal(afterModeSwitch.activeMode, "inspection");
+    assert.equal(afterGraphClick.graphSurfaceVisible, true);
+    assert.equal(afterMcpsClick.activeRailView, "mcps");
+  } finally {
+    await session.dispose();
+    await killExistingKiwiProcesses();
+  }
 }
 
 async function verifyHistoryDrawerTruth() {

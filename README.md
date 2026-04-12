@@ -36,8 +36,9 @@ For most users, the fastest path is:
 1. Download Kiwi Control from the [installer-first website](https://kiwi-control.kiwi-ai.in/) or the public [downloads page](https://kiwi-control.kiwi-ai.in/downloads/).
 2. Install the desktop app for macOS or Windows.
 3. Launch Kiwi Control once.
-4. Choose a repo and initialize it if needed.
-5. Enable terminal commands later only if you want the optional power-user CLI path.
+4. Let the installed desktop build auto-attempt terminal command setup by default and record the result.
+5. Choose a repo and initialize it if needed.
+6. Keep using the app, or use `kc` too if the desktop setup succeeded.
 
 ### CLI path
 

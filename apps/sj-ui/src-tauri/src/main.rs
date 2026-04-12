@@ -207,6 +207,9 @@ struct BundledCliInstallerRun {
 struct RenderActionPayload {
     action_type: String,
     pack_id: Option<String>,
+    view: Option<String>,
+    mode: Option<String>,
+    y: Option<f64>,
 }
 
 #[derive(Default)]

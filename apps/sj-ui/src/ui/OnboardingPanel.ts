@@ -104,11 +104,11 @@ export function buildOnboardingPanelModel(params: {
     : "Desktop shell is running, but runtime details are still loading.";
   const cliStatus = runtimeInfo?.cli.installed
     ? runtimeInfo.cli.verificationStatus === "passed"
-      ? `${runtimeInfo.cli.installScope === "machine" ? "Enabled system-wide by default" : "Enabled for this user by default"} · ${runtimeInfo.cli.requiresNewTerminal ? "open a new terminal" : "verified"}`
+      ? `${runtimeInfo.cli.installScope === "machine" ? "Enabled system-wide after desktop setup" : "Enabled for this user after desktop setup"} · ${runtimeInfo.cli.requiresNewTerminal ? "open a new terminal" : "verified"}`
       : `Installed at ${runtimeInfo.cli.installedCommandPath ?? runtimeInfo.cli.installBinDir} · ${runtimeInfo.cli.verificationDetail}`
     : runtimeInfo?.runtimeMode === "installed-user"
       ? runtimeInfo.cli.verificationStatus === "not-run"
-        ? "Kiwi auto-attempts terminal command setup by default on installed desktop builds and verifies kc in a fresh shell."
+        ? "Kiwi auto-attempts terminal command setup by default on installed desktop builds and records whether fresh-shell verification succeeds."
         : `Default terminal command setup did not complete. ${runtimeInfo.cli.verificationDetail}`
       : "Source/developer mode detected. Desktop use still works without a separate installed kc.";
   const repoStatus = !targetRoot
@@ -120,7 +120,7 @@ export function buildOnboardingPanelModel(params: {
 
   return {
     title: "Start in the app",
-    intro: "Open Kiwi Control, choose a repo, initialize it if needed, and work. Installed desktop builds auto-attempt terminal command setup by default and verify kc from a fresh shell.",
+    intro: "Open Kiwi Control, choose a repo, initialize it if needed, and work. Installed desktop builds auto-attempt terminal command setup by default and record whether fresh-shell verification succeeds.",
     desktopStatus,
     cliStatus,
     repoStatus,

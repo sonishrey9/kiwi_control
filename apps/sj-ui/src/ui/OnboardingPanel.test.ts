@@ -19,7 +19,7 @@ test("onboarding shows choose-repo first and does not offer manual cli setup bef
         installed: false,
         installedCommandPath: null,
         verificationStatus: "not-run",
-        verificationDetail: "Kiwi enables terminal commands by default on installed desktop builds and verifies kc in a fresh shell.",
+        verificationDetail: "Kiwi auto-attempts terminal command setup by default on installed desktop builds and records whether fresh-shell verification succeeds.",
         verificationCommandPath: null,
         requiresNewTerminal: false
       }
@@ -32,7 +32,38 @@ test("onboarding shows choose-repo first and does not offer manual cli setup bef
   assert.equal(model?.actions.some((action) => action.id === "choose-repo"), true);
   assert.equal(model?.actions.some((action) => action.id === "install-cli"), false);
   assert.match(model?.intro ?? "", /auto-attempt terminal command setup by default/i);
+  assert.match(model?.intro ?? "", /record whether fresh-shell verification succeeds/i);
   assert.equal(model?.actions[0]?.id, "choose-repo");
+});
+
+test("onboarding describes successful cli setup without implying trust or optional-later setup", () => {
+  const model = buildOnboardingPanelModel({
+    runtimeInfo: {
+      appVersion: "0.2.0-beta.1",
+      buildSource: "installed-bundle",
+      runtimeMode: "installed-user",
+      cli: {
+        bundledInstallerAvailable: true,
+        bundledNodePath: "/Applications/Kiwi Control.app/Contents/Resources/desktop/node/node",
+        installBinDir: "/usr/local/bin",
+        installRoot: "/Library/Application Support/Kiwi Control",
+        installScope: "machine",
+        installed: true,
+        installedCommandPath: "/usr/local/bin/kc",
+        verificationStatus: "passed",
+        verificationDetail: "Terminal commands are enabled system-wide.",
+        verificationCommandPath: "/usr/local/bin/kc",
+        requiresNewTerminal: false
+      }
+    },
+    targetRoot: "/tmp/repo",
+    repoMode: "repo-not-initialized"
+  });
+
+  assert.ok(model);
+  assert.match(model?.cliStatus ?? "", /Enabled system-wide after desktop setup · verified/i);
+  assert.doesNotMatch(model?.cliStatus ?? "", /trust/i);
+  assert.doesNotMatch(model?.cliStatus ?? "", /optional later/i);
 });
 
 test("onboarding shows init action for an uninitialized repo", () => {

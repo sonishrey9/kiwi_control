@@ -49,7 +49,7 @@ Installed desktop builds now auto-attempt `kc` setup by default:
 Kiwi Control keeps the desktop app usable even if terminal command setup cannot complete, but installed desktop builds now auto-attempt `kc` setup by default.
 
 - macOS: on first launch, Kiwi installs shared command wrappers into `/usr/local/bin` after explicit administrator approval
-- Windows: the desktop installer is configured for machine-wide install behavior, and Kiwi performs fresh-shell verification when run on a real Windows host
+- Windows: the desktop installer is wired for machine-wide install behavior, but the public beta still needs one completed real Windows host proof for the end-to-end default-CLI path
 - Kiwi verifies whether `kc` is callable from a fresh shell/process and reports the exact result
 
 If verification succeeds but your current terminal is still stale, Kiwi will tell you to open a new terminal window.

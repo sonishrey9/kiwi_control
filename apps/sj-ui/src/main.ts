@@ -1197,6 +1197,7 @@ try {
   workspaceSurfaceElement = requireElement<HTMLElement>("#workspace-surface");
 
   applyChromePreferences();
+  railNavElement.innerHTML = renderRailNav();
   renderState(currentState);
   bridgeNoteElement.textContent = buildBridgeNote(currentState, "shell");
   finalizeInitialRender();
@@ -1211,13 +1212,13 @@ try {
   const viewButton = target.closest<HTMLElement>("[data-view]");
   if (viewButton?.dataset.view) {
     const nextView = viewButton.dataset.view as NavView;
-    if (nextView !== activeView) {
-      activeView = nextView;
-      pendingCenterScrollReset = true;
-      syncInspectorOpenState();
+    if (setActiveView(nextView)) {
+      scheduleRenderState();
+      scheduleMachineHydrationForView(activeView, false);
+    } else {
+      syncRailNavState();
+      reportRenderProbe(currentState);
     }
-    scheduleRenderState();
-    scheduleMachineHydrationForView(activeView, false);
     return;
   }
 
@@ -1494,7 +1495,7 @@ function buildShellHtml(): string {
           <div class="kc-rail-brand">
             <div class="kc-logo">K</div>
           </div>
-          <nav class="kc-rail-nav" id="rail-nav"></nav>
+          <nav class="kc-rail-nav" id="rail-nav" aria-label="Primary navigation"></nav>
           <div class="kc-rail-footer" id="bridge-note"></div>
         </aside>
         <section class="kc-workspace">
@@ -3499,8 +3500,18 @@ function reportRenderProbe(state: RepoControlState): void {
     repoMode: state.repoState.mode,
     executionState: state.executionState.lifecycle,
     executionRevision: state.executionState.revision,
+    activeRailView:
+      railNavElement.querySelector<HTMLElement>(".kc-rail-button[data-view][aria-current=\"page\"]")?.dataset.view ?? null,
+    activeRailAriaCurrent: Boolean(railNavElement.querySelector(".kc-rail-button[data-view][aria-current=\"page\"]")),
+    focusedRailView:
+      document.activeElement instanceof HTMLElement && document.activeElement.matches(".kc-rail-button[data-view]")
+        ? document.activeElement.dataset.view ?? null
+        : null,
+    railButtonCount: railNavElement.querySelectorAll(".kc-rail-button[data-view]").length,
+    railScrollTop: Math.round(railNavElement?.scrollTop ?? 0),
     inspectorOpen: isInspectorOpen,
     mainScrollTop: Math.round(centerMainElement?.scrollTop ?? 0),
+    graphSurfaceVisible: Boolean(document.querySelector("[data-graph-surface]")),
     historyLineCount,
     onboardingActions: [...document.querySelectorAll<HTMLElement>("[data-onboarding-action]")]
       .map((element) => element.dataset.onboardingAction ?? "")
@@ -3525,7 +3536,7 @@ function reportRenderProbe(state: RepoControlState): void {
 }
 
 interface RenderActionPayload {
-  actionType: "click-pack" | "clear-pack" | "switch-view" | "switch-mode" | "set-main-scroll";
+  actionType: "click-pack" | "clear-pack" | "click-view" | "focus-view" | "switch-view" | "switch-mode" | "set-main-scroll" | "set-rail-scroll";
   packId?: string;
   view?: string;
   mode?: UiMode;
@@ -3552,6 +3563,23 @@ async function consumePendingRenderAction(): Promise<void> {
       summary?.click();
       return;
     }
+    if (action.actionType === "click-view" && action.view) {
+      const nextView = normalizeRenderProbeView(action.view);
+      const button = nextView
+        ? railNavElement.querySelector<HTMLElement>(`[data-view="${escapeSelectorValue(nextView)}"]`)
+        : null;
+      button?.click();
+      return;
+    }
+    if (action.actionType === "focus-view" && action.view) {
+      const nextView = normalizeRenderProbeView(action.view);
+      const button = nextView
+        ? railNavElement.querySelector<HTMLElement>(`[data-view="${escapeSelectorValue(nextView)}"]`)
+        : null;
+      button?.focus();
+      reportRenderProbe(currentState);
+      return;
+    }
     if (action.actionType === "clear-pack") {
       const clearButton = document.querySelector<HTMLElement>("[data-pack-action=\"clear\"]");
       clearButton?.click();
@@ -3559,13 +3587,10 @@ async function consumePendingRenderAction(): Promise<void> {
     }
     if (action.actionType === "switch-view" && action.view) {
       const nextView = normalizeRenderProbeView(action.view);
-      if (nextView && nextView !== activeView) {
-        activeView = nextView;
-        pendingCenterScrollReset = true;
-        syncInspectorOpenState();
+      if (nextView && setActiveView(nextView)) {
+        scheduleRenderState();
+        scheduleMachineHydrationForView(activeView, false);
       }
-      scheduleRenderState();
-      scheduleMachineHydrationForView(activeView, false);
       return;
     }
     if (action.actionType === "switch-mode" && action.mode) {
@@ -3581,6 +3606,21 @@ async function consumePendingRenderAction(): Promise<void> {
     if (action.actionType === "set-main-scroll" && typeof action.y === "number") {
       centerMainElement.scrollTop = action.y;
       reportRenderProbe(currentState);
+      return;
+    }
+    if (action.actionType === "set-rail-scroll" && typeof action.y === "number") {
+      const scrollTarget = action.y;
+      if (railNavElement.scrollHeight <= railNavElement.clientHeight) {
+        railNavElement.style.height = "108px";
+        railNavElement.style.maxHeight = "108px";
+        railNavElement.style.minHeight = "108px";
+        railNavElement.style.flex = "0 0 108px";
+      }
+      window.requestAnimationFrame(() => {
+        railNavElement.scrollTop = scrollTarget;
+        reportRenderProbe(currentState);
+      });
+      return;
     }
   } catch {
     // Render actions are test-only and must never affect normal product flow.
@@ -3593,7 +3633,7 @@ function renderState(state: RepoControlState): void {
   currentState = state;
   syncInteractiveSessionState(state);
 
-  railNavElement.innerHTML = renderRailNav();
+  syncRailNavState();
   topbarElement.innerHTML = renderTopBar(state);
   renderCenterSurface(state);
   inspectorElement.innerHTML = renderInspector(state);
@@ -3647,7 +3687,14 @@ function renderRailNav(): string {
   const primaryViews = NAV_ITEMS.filter((item) => item.id === "overview" || item.id === "context");
   const inspectViews = NAV_ITEMS.filter((item) => item.id !== "overview" && item.id !== "context");
   const renderItem = (item: typeof NAV_ITEMS[number]) => `
-    <button class="kc-rail-button ${item.id === activeView ? "is-active" : ""}" data-view="${item.id}" type="button">
+    <button
+      class="kc-rail-button ${item.id === activeView ? "is-active" : ""}"
+      data-view="${item.id}"
+      type="button"
+      title="${escapeAttribute(item.label)}"
+      aria-label="${escapeAttribute(item.label)}"
+      ${item.id === activeView ? 'aria-current="page"' : ""}
+    >
       <span class="kc-rail-icon">${item.icon}</span>
       <span class="kc-rail-label">${escapeHtml(item.label)}</span>
     </button>
@@ -3662,6 +3709,32 @@ function renderRailNav(): string {
       ${inspectViews.map(renderItem).join("")}
     </div>
   `;
+}
+
+function syncRailNavState(): void {
+  if (railNavElement.childElementCount === 0) {
+    railNavElement.innerHTML = renderRailNav();
+  }
+
+  for (const button of railNavElement.querySelectorAll<HTMLElement>(".kc-rail-button[data-view]")) {
+    const isActive = button.dataset.view === activeView;
+    button.classList.toggle("is-active", isActive);
+    if (isActive) {
+      button.setAttribute("aria-current", "page");
+    } else {
+      button.removeAttribute("aria-current");
+    }
+  }
+}
+
+function setActiveView(nextView: NavView): boolean {
+  if (nextView === activeView) {
+    return false;
+  }
+  activeView = nextView;
+  pendingCenterScrollReset = true;
+  syncInspectorOpenState();
+  return true;
 }
 
 function renderTopBar(state: RepoControlState): string {
