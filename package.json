@@ -42,6 +42,7 @@
     "oss:check": "node scripts/verify-open-source-readiness.mjs",
     "release:check": "npm run test:product:features && npm run release:manifest && npm run release:checksums",
     "site:stage": "node scripts/stage-pages-site.mjs",
+    "site:deploy:pages": "node scripts/deploy-pages-direct.mjs",
     "ui:dev": "node scripts/run-ui-dev.mjs",
     "ui:build": "npm run build -w @shrey-junior/sj-ui",
     "ui:desktop:build": "node scripts/run-ui-desktop-build.mjs",
