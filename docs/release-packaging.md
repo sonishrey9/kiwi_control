@@ -127,7 +127,7 @@ The intended public beta path is:
 5. deploy the staged site with `/data/latest-release.json` mirrored from the public host metadata
 6. keep release notes explicit about signing, notarization, and trust status
 
-Installed desktop builds now auto-attempt terminal command setup on first launch, while keeping the desktop app usable if machine PATH setup cannot complete.
+macOS pkg is the intended default beta installer path for install-time terminal command setup. The desktop app still keeps repair/remediation available if installer-owned setup does not complete, and DMG remains a secondary manual beta path.
 
 ## Signing inputs
 

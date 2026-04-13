@@ -35,10 +35,11 @@ For most users, the fastest path is:
 
 1. Download Kiwi Control from the [installer-first website](https://kiwi-control.kiwi-ai.in/) or the public [downloads page](https://kiwi-control.kiwi-ai.in/downloads/).
 2. Install the desktop app for macOS or Windows.
-3. macOS: launch Kiwi Control once so the app can finish CLI setup. This default CLI path is already proven for current wording.
+3. macOS: prefer the beta `.pkg` installer. It is the intended default path for install-time `kc` setup. The `.dmg` remains a secondary manual beta path.
 4. Windows: the setup EXE is the intended default path for installer-time `kc` setup, but public automatic-readiness claims stay gated on real Windows-host proof.
-5. Choose a repo and initialize it if needed.
-6. Keep using the app, or use `kc` too after the platform-specific setup succeeds.
+5. If the current unsigned macOS beta build is blocked by Gatekeeper, use a manual first-open override, then continue testing normally.
+6. Choose a repo and initialize it if needed.
+7. Keep using the app, or use `kc` too after the platform-specific setup succeeds.
 
 ### CLI path
 
@@ -82,6 +83,8 @@ kc ui
 
 - the public AWS-hosted site is the source of truth for installable artifacts and release metadata
 - the website is installer-first and release-aware
+- macOS `.pkg` is the primary beta installer and `.dmg` is the secondary manual fallback
+- Windows setup EXE remains the intended primary installer path; MSI stays secondary until it reaches the same proof bar
 - Windows and macOS are the primary desktop install targets
 - signing and notarization status must be checked release by release
 - internal package names such as `sj-core`, `sj-cli`, and `sj-ui` remain implementation details
