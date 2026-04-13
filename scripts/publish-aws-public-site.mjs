@@ -7,6 +7,7 @@ import {
   latestCacheControl,
   repoRoot,
   runAws,
+  runAwsJson,
   stripTrailingDot
 } from "./aws-public-common.mjs";
 
@@ -14,7 +15,7 @@ const args = parseArgs(process.argv.slice(2));
 const siteDir = path.resolve(args.siteDir ?? path.join(repoRoot, "dist", "site"));
 const siteUrl = new URL(requiredValue(args.siteUrl ?? process.env.SITE_URL, "SITE_URL"));
 const bucket = firstNonEmpty(args.bucket, process.env.AWS_PUBLIC_BUCKET, stripTrailingDot(siteUrl.hostname));
-const distributionId = args.distributionId ?? null;
+const distributionId = args.distributionId ?? resolveDistributionId(siteUrl.hostname);
 
 const siteEntries = await collectSiteEntries(siteDir);
 
@@ -85,6 +86,16 @@ function requiredValue(value, name) {
 
 function firstNonEmpty(...values) {
   return values.find((value) => typeof value === "string" ? value.length > 0 : value != null);
+}
+
+function resolveDistributionId(hostname) {
+  const payload = runAwsJson(["cloudfront", "list-distributions"]);
+  const distributions = payload.DistributionList?.Items ?? [];
+  const match = distributions.find((distribution) => {
+    const aliases = distribution.Aliases?.Items ?? [];
+    return aliases.includes(hostname);
+  });
+  return match?.Id ?? null;
 }
 
 async function collectSiteEntries(rootDir) {
