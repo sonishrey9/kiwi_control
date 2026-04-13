@@ -40,6 +40,7 @@
             <div><a href="/downloads/" data-download-link data-download-kind="windowsNsis" data-primary-label="Download Windows setup EXE" data-unavailable-label="Windows setup EXE coming soon">Windows setup EXE coming soon</a></div>
             <div><a href="/downloads/" data-download-link data-download-kind="windowsMsi" data-primary-label="Download Windows MSI" data-unavailable-label="Windows MSI coming soon">Windows MSI coming soon</a></div>
           </div>
+          <p class="warn">When Windows desktop installers are live, the setup EXE is the intended default Windows path for installer-time CLI setup. Treat MSI as secondary until it has the same proof bar.</p>
         </article>
 
         <article class="panel">
@@ -70,10 +71,10 @@
           <div class="eyebrow">Planned verification</div>
           <h2>Fresh terminal commands after install</h2>
           <div class="list">
-            <div>macOS: <code>command -v kc</code></div>
-            <div>macOS: <code>kc --help</code></div>
-            <div>Windows: <code>Get-Command kc</code></div>
-            <div>Windows: <code>kc --help</code></div>
+            <div>macOS: launch the app once, then run <code>command -v kc</code></div>
+            <div>macOS: run <code>kc --help</code>, or use the in-app enable flow if launch-time setup did not complete</div>
+            <div>Windows: use the setup EXE, then run <code>Get-Command kc</code></div>
+            <div>Windows: run <code>kc --help</code> from a fresh shell once Windows host proof is complete</div>
           </div>
         </article>
 
@@ -82,7 +83,8 @@
           <h2>Cloudflare hosting does not replace signing proof</h2>
           <div class="list">
             <div>macOS still needs signed/notarized/stapled proof.</div>
-            <div>Windows still needs signed installer proof on a Windows host.</div>
+            <div>Windows still needs signed installer proof on a Windows host, plus real Windows-host proof for installer-time CLI readiness.</div>
+            <div>Install/PATH success and release trust are separate claims.</div>
             <div>Public hosting only changes delivery, not trust.</div>
           </div>
         </article>

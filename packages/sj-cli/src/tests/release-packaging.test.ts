@@ -13,6 +13,8 @@ function repoRoot(): string {
 test("release manifest declares macOS app+dmg and Windows nsis+msi artifacts plus signing inputs", async () => {
   const root = repoRoot();
   const manifestPath = path.join(root, "dist", "release", "release-manifest.json");
+  const tauriReleaseConfigPath = path.join(root, "apps", "sj-ui", "src-tauri", "tauri.release.conf.json");
+  const nsisHooksPath = path.join(root, "apps", "sj-ui", "src-tauri", "windows", "hooks.nsh");
   const previousManifest = await fs.readFile(manifestPath, "utf8").catch(() => null);
 
   try {
@@ -38,6 +40,14 @@ test("release manifest declares macOS app+dmg and Windows nsis+msi artifacts plu
     assert.equal(manifest.artifacts.some((entry) => entry.fileName.endsWith(".msi")), true);
     assert.equal(manifest.updateMetadata.signingInputs.includes("APPLE_API_KEY_PATH"), true);
     assert.equal(manifest.updateMetadata.signingInputs.includes("WINDOWS_CERTIFICATE_PFX_B64"), true);
+
+    const tauriReleaseConfig = JSON.parse(await fs.readFile(tauriReleaseConfigPath, "utf8")) as {
+      bundle?: { windows?: { nsis?: { installerHooks?: string | null } } };
+    };
+    assert.equal(tauriReleaseConfig.bundle?.windows?.nsis?.installerHooks, "windows/hooks.nsh");
+    const nsisHooks = await fs.readFile(nsisHooksPath, "utf8");
+    assert.match(nsisHooks, /NSIS_HOOK_POSTINSTALL/);
+    assert.match(nsisHooks, /NSIS_HOOK_PREUNINSTALL/);
   } finally {
     if (previousManifest == null) {
       await fs.rm(manifestPath, { force: true });

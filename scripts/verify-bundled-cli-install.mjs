@@ -23,8 +23,10 @@ async function main() {
 
   const installShPath = path.join(staged.cliBundlePath, "install.sh");
   const installPs1Path = path.join(staged.cliBundlePath, "install.ps1");
+  const uninstallPs1Path = path.join(staged.cliBundlePath, "uninstall.ps1");
   await fs.access(installShPath);
   await fs.access(installPs1Path);
+  await fs.access(uninstallPs1Path);
 
   if (platform === "macos" || platform === "darwin") {
     if (process.platform !== "darwin") {
@@ -37,12 +39,19 @@ async function main() {
   }
 
   if (platform === "windows") {
-    const content = await fs.readFile(installPs1Path, "utf8");
-    assert.match(content, /\[string\]\$InstallScope/);
-    assert.match(content, /Join-Path \$GlobalHome "bin"/);
-    assert.match(content, /KIWI_CONTROL_NODE_ABSOLUTE/);
-    assert.match(content, /SetEnvironmentVariable\("Path", .*"Machine"\)/);
-    assert.match(content, /ResultPath/);
+    const installContent = await fs.readFile(installPs1Path, "utf8");
+    const uninstallContent = await fs.readFile(uninstallPs1Path, "utf8");
+    assert.match(installContent, /\[string\]\$InstallScope/);
+    assert.match(installContent, /Join-Path \$GlobalHome "bin"/);
+    assert.match(installContent, /KIWI_CONTROL_NODE_ABSOLUTE/);
+    assert.match(installContent, /SetEnvironmentVariable\("Path", .*"Machine"\)/);
+    assert.match(installContent, /verificationStatus/);
+    assert.match(installContent, /verificationDetail/);
+    assert.match(installContent, /desktop-cli-install\.json/);
+    assert.match(uninstallContent, /\[string\]\$InstallScope/);
+    assert.match(uninstallContent, /Remove-KiwiPathEntry/);
+    assert.match(uninstallContent, /Remove-Item -Force \$WrapperPath/);
+    assert.match(uninstallContent, /desktop-cli-install\.json/);
     console.log("Bundled CLI install verification passed for Windows installer scaffolding.");
     return;
   }

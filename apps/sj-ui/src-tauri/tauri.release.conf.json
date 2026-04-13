@@ -20,6 +20,7 @@
       },
       "nsis": {
         "installMode": "perMachine",
+        "installerHooks": "windows/hooks.nsh",
         "displayLanguageSelector": false,
         "compression": "lzma"
       },

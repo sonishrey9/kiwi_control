@@ -42,6 +42,7 @@ export interface OnboardingPanelModel {
 
 export function buildOnboardingPanelModel(params: {
   runtimeInfo: OnboardingPanelRuntimeInfo | null;
+  platform: "macos" | "windows" | "linux";
   targetRoot: string;
   repoMode: RepoControlMode;
   machineSetup?: {
@@ -50,10 +51,10 @@ export function buildOnboardingPanelModel(params: {
     detail: string;
   } | null;
 }): OnboardingPanelModel | null {
-  const { runtimeInfo, targetRoot, repoMode, machineSetup } = params;
+  const { runtimeInfo, platform, targetRoot, repoMode, machineSetup } = params;
   const shouldShow = !targetRoot
     || repoMode === "repo-not-initialized"
-    || (runtimeInfo?.runtimeMode === "installed-user" && !runtimeInfo.cli.installed)
+    || (runtimeInfo?.runtimeMode === "installed-user" && !runtimeInfo.cli.installed && (platform === "windows" || runtimeInfo.cli.verificationStatus !== "not-run"))
     || Boolean(machineSetup?.needsAttention && targetRoot);
 
   if (!shouldShow) {
@@ -90,12 +91,14 @@ export function buildOnboardingPanelModel(params: {
     runtimeInfo?.runtimeMode === "installed-user"
     && runtimeInfo.cli.bundledInstallerAvailable
     && !runtimeInfo.cli.installed
-    && runtimeInfo.cli.verificationStatus !== "not-run"
+    && (platform === "windows" || runtimeInfo.cli.verificationStatus !== "not-run")
   ) {
     actions.push({
       id: "install-cli",
-      label: "Retry terminal command setup",
-      detail: `Kiwi could not finish the default ${runtimeInfo.cli.installScope === "machine" ? "system-wide" : "user"} terminal command setup. Retry kc install via ${runtimeInfo.cli.installBinDir}.`
+      label: platform === "windows" ? "Enable terminal commands now" : "Retry terminal command setup",
+      detail: platform === "windows"
+        ? "Windows setup should normally finish terminal command setup during install. Run the built-in repair step now if a fresh terminal still cannot find kc."
+        : `Kiwi could not finish the default ${runtimeInfo.cli.installScope === "machine" ? "system-wide" : "user"} terminal command setup. Retry kc install via ${runtimeInfo.cli.installBinDir}.`
     });
   }
 
@@ -104,12 +107,16 @@ export function buildOnboardingPanelModel(params: {
     : "Desktop shell is running, but runtime details are still loading.";
   const cliStatus = runtimeInfo?.cli.installed
     ? runtimeInfo.cli.verificationStatus === "passed"
-      ? `${runtimeInfo.cli.installScope === "machine" ? "Enabled system-wide after desktop setup" : "Enabled for this user after desktop setup"} · ${runtimeInfo.cli.requiresNewTerminal ? "open a new terminal" : "verified"}`
+      ? platform === "windows"
+        ? `${runtimeInfo.cli.installScope === "machine" ? "Enabled during Windows setup" : "Enabled for this user during Windows setup"} · ${runtimeInfo.cli.requiresNewTerminal ? "open a new terminal" : "verified"}`
+        : `${runtimeInfo.cli.installScope === "machine" ? "Enabled after desktop setup" : "Enabled for this user after desktop setup"} · ${runtimeInfo.cli.requiresNewTerminal ? "open a new terminal" : "verified"}`
       : `Installed at ${runtimeInfo.cli.installedCommandPath ?? runtimeInfo.cli.installBinDir} · ${runtimeInfo.cli.verificationDetail}`
     : runtimeInfo?.runtimeMode === "installed-user"
-      ? runtimeInfo.cli.verificationStatus === "not-run"
-        ? "Kiwi auto-attempts terminal command setup by default on installed desktop builds and records whether fresh-shell verification succeeds."
-        : `Default terminal command setup did not complete. ${runtimeInfo.cli.verificationDetail}`
+      ? platform === "windows"
+        ? "Windows setup should normally finish terminal command setup before the first app launch. If a fresh terminal still cannot find kc, use the built-in repair step."
+        : runtimeInfo.cli.verificationStatus === "not-run"
+          ? "Kiwi auto-attempts terminal command setup on first launch for installed macOS desktop builds and records whether fresh-shell verification succeeds."
+          : `Default terminal command setup did not complete. ${runtimeInfo.cli.verificationDetail}`
       : "Source/developer mode detected. Desktop use still works without a separate installed kc.";
   const repoStatus = !targetRoot
     ? "No repo is open yet."
@@ -120,14 +127,18 @@ export function buildOnboardingPanelModel(params: {
 
   return {
     title: "Start in the app",
-    intro: "Open Kiwi Control, choose a repo, initialize it if needed, and work. Installed desktop builds auto-attempt terminal command setup by default and record whether fresh-shell verification succeeds.",
+    intro: platform === "windows"
+      ? "Open Kiwi Control, choose a repo, initialize it if needed, and work. Windows installs should make kc available in a fresh terminal after setup, and the app can repair terminal command setup if that install-time path did not complete."
+      : "Open Kiwi Control, choose a repo, initialize it if needed, and work. Installed macOS desktop builds auto-attempt terminal command setup on first launch and record whether fresh-shell verification succeeds.",
     desktopStatus,
     cliStatus,
     repoStatus,
     nextAction,
     actions,
     note: runtimeInfo?.runtimeMode === "installed-user"
-      ? "Desktop-first is still the default path. Kiwi now auto-attempts kc setup on installed desktop builds and will tell you exactly how to fix setup if that default cannot complete."
+      ? platform === "windows"
+        ? "Desktop-first is still the default path. Windows setup should handle kc automatically, and Kiwi will show a one-click repair step if that does not happen."
+        : "Desktop-first is still the default path. Kiwi auto-attempts kc setup on first launch for installed macOS builds and will tell you exactly how to fix setup if that step cannot complete."
       : "Developer/source mode keeps the source checkout in control of desktop launching."
   };
 }

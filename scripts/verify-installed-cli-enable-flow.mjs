@@ -153,46 +153,25 @@ async function verifyMacosRealMachinePath() {
 }
 
 async function verifyWindowsRealMachinePath() {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-installed-cli-flow-win-"));
-  const resourcesRoot = path.join(tempDir, "resources");
-  const resultPath = path.join(tempDir, "cli-enable-result.json");
-  const machineRoot = path.join(process.env.ProgramData ?? "C:\\ProgramData", "Kiwi Control");
-  const machineBin = path.join(machineRoot, "bin");
+  const bundleRoot = path.join(repoRoot, "apps", "sj-ui", "src-tauri", "target", "release", "bundle");
+  const installerPath = await findFirstMatchingFile(path.join(bundleRoot, "nsis"), (entry) => entry.toLowerCase().endsWith(".exe"));
+  assert.ok(installerPath, "Built Windows NSIS installer not found. Run npm run ui:desktop:build on a Windows host first.");
 
-  const staged = await stageDesktopInstallerResources({
-    repoRoot,
-    resourcesRoot,
-    nodeBinaryPath: process.execPath
-  });
-
-  const installPath = path.join(staged.cliBundlePath, "install.ps1");
-  const result = spawnSync("powershell.exe", [
-    "-NoProfile",
-    "-ExecutionPolicy",
-    "Bypass",
-    "-File",
-    installPath,
-    "-InstallScope",
-    "machine",
-    "-InstallRoot",
-    machineRoot,
-    "-PathBin",
-    machineBin,
-    "-ResultPath",
-    resultPath,
-    "-PreferredNodePath",
-    staged.stagedNodePath
-  ], {
-    cwd: staged.cliBundlePath,
+  const installResult = spawnSync(installerPath, ["/S"], {
+    cwd: path.dirname(installerPath),
     encoding: "utf8"
   });
+  assert.equal(installResult.status, 0, installResult.stderr || installResult.stdout);
 
-  assert.equal(result.status, 0, result.stderr || result.stdout);
-  const payload = JSON.parse(await fs.readFile(resultPath, "utf8"));
+  const machineRoot = path.join(process.env.ProgramData ?? "C:\\ProgramData", "Kiwi Control");
+  const machineBin = path.join(machineRoot, "bin");
+  const receiptPath = path.join(machineRoot, "desktop-cli-install.json");
+  const payload = JSON.parse(await fs.readFile(receiptPath, "utf8"));
   assert.equal(payload.installScope, "machine");
   assert.equal(payload.installBinDir, machineBin);
+  assert.equal(payload.verificationStatus, "passed");
 
-  const shellResult = spawnSync("powershell.exe", [
+  const powerShellResult = spawnSync("powershell.exe", [
     "-NoProfile",
     "-Command",
     "$machine = [Environment]::GetEnvironmentVariable('Path', 'Machine'); " +
@@ -205,7 +184,35 @@ async function verifyWindowsRealMachinePath() {
     cwd: repoRoot,
     encoding: "utf8"
   });
-  assert.equal(shellResult.status, 0, shellResult.stderr || shellResult.stdout);
+  assert.equal(powerShellResult.status, 0, powerShellResult.stderr || powerShellResult.stdout);
+
+  const cmdResult = spawnSync("cmd.exe", ["/d", "/c", "kc --help"], {
+    cwd: repoRoot,
+    encoding: "utf8"
+  });
+  assert.equal(cmdResult.status, 0, cmdResult.stderr || cmdResult.stdout);
+
+  const installDir = path.join(process.env.ProgramFiles ?? "C:\\Program Files", "Kiwi Control");
+  const uninstallerPath = await findFirstMatchingFile(installDir, (entry) => /uninstall.*\.exe$/i.test(entry));
+  assert.ok(uninstallerPath, "Windows uninstaller not found after NSIS install.");
+  const uninstallResult = spawnSync(uninstallerPath, ["/S"], {
+    cwd: installDir,
+    encoding: "utf8"
+  });
+  assert.equal(uninstallResult.status, 0, uninstallResult.stderr || uninstallResult.stdout);
+
+  const postUninstallPowerShell = spawnSync("powershell.exe", [
+    "-NoProfile",
+    "-Command",
+    "$machine = [Environment]::GetEnvironmentVariable('Path', 'Machine'); " +
+      "$user = [Environment]::GetEnvironmentVariable('Path', 'User'); " +
+      "$env:Path = @($machine, $user) -join ';'; " +
+      "if (Get-Command kc -ErrorAction SilentlyContinue) { exit 1 }"
+  ], {
+    cwd: repoRoot,
+    encoding: "utf8"
+  });
+  assert.equal(postUninstallPowerShell.status, 0, postUninstallPowerShell.stderr || postUninstallPowerShell.stdout);
 }
 
 function shellQuote(value) {
@@ -226,4 +233,10 @@ function readFlagValue(args, flag) {
 
 function escapeForRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function findFirstMatchingFile(directory, predicate) {
+  const entries = await fs.readdir(directory, { withFileTypes: true }).catch(() => []);
+  const match = entries.find((entry) => entry.isFile() && predicate(entry.name));
+  return match ? path.join(directory, match.name) : null;
 }

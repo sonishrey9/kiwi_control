@@ -55,30 +55,45 @@ function parseArgs(argv) {
 async function verifyLocalSite(siteDir) {
   const indexHtml = await fs.readFile(path.join(siteDir, "index.html"), "utf8");
   const downloadsHtml = await fs.readFile(path.join(siteDir, "downloads", "index.html"), "utf8");
+  const installHtml = await fs.readFile(path.join(siteDir, "install", "index.html"), "utf8");
   const metadata = JSON.parse(await fs.readFile(path.join(siteDir, "data", "latest-release.json"), "utf8"));
   const sidecars = await findMetadataArtifacts(siteDir);
   const releaseReady = metadata.publicReleaseReady === true;
   const missingPhrases = releaseReady === false
     ? missingPhrase(downloadsHtml, "Cloudflare hosting does not replace signing proof")
     : [];
+  const platformSplitMissing = [
+    ...missingPhrase(downloadsHtml, "setup EXE is the intended default Windows path"),
+    ...missingPhrase(installHtml, "macOS: launch the app once"),
+    ...missingPhrase(installHtml, "Public automatic-readiness wording on Windows stays gated")
+  ];
   const invalidReleaseReadyMetadata = releaseReady ? validateReleaseReadyMetadata(metadata) : [];
 
   const oldWordings = [
     ...containsPhrase(indexHtml, "GitHub Releases stays the source of truth"),
     ...containsPhrase(downloadsHtml, "GitHub Releases is the source of truth")
   ];
+  const overclaims = [
+    ...containsPhrase(indexHtml, "ready by default"),
+    ...containsPhrase(downloadsHtml, "ready by default"),
+    ...containsPhrase(installHtml, "ready by default")
+  ];
 
   return {
     ok:
       missingPhrases.length === 0 &&
+      platformSplitMissing.length === 0 &&
       sidecars.length === 0 &&
       oldWordings.length === 0 &&
+      overclaims.length === 0 &&
       invalidReleaseReadyMetadata.length === 0,
     mode: "local",
     siteDir: path.relative(repoRoot, siteDir).replace(/\\/g, "/"),
     missingPhrases,
+    platformSplitMissing,
     sidecars,
     oldWordings,
+    overclaims,
     invalidReleaseReadyMetadata,
     metadataSummary: {
       tagName: metadata.tagName,
@@ -95,20 +110,32 @@ async function verifyRemoteSite({ siteUrl }) {
 
   const siteResponse = await fetchOrThrow(siteUrl);
   const downloadsResponse = await fetchOrThrow(`${siteUrl}/downloads/`);
+  const installResponse = await fetchOrThrow(`${siteUrl}/install/`);
   const metadataResponse = await fetchOrThrow(`${siteUrl}/data/latest-release.json`);
   const metadataContentType = metadataResponse.headers.get("content-type") ?? "";
   const metadata = await metadataResponse.json();
 
   const siteHtml = await siteResponse.text();
   const downloadsHtml = await downloadsResponse.text();
+  const installHtml = await installResponse.text();
   const releaseReady = metadata.publicReleaseReady === true;
   const missingPhrases = releaseReady === false
     ? missingPhrase(downloadsHtml, "Cloudflare hosting does not replace signing proof")
     : [];
+  const platformSplitMissing = [
+    ...missingPhrase(downloadsHtml, "setup EXE is the intended default Windows path"),
+    ...missingPhrase(installHtml, "macOS: launch the app once"),
+    ...missingPhrase(installHtml, "Public automatic-readiness wording on Windows stays gated")
+  ];
   const invalidReleaseReadyMetadata = releaseReady ? validateReleaseReadyMetadata(metadata) : [];
   const oldWordings = [
     ...containsPhrase(siteHtml, "GitHub Releases stays the source of truth"),
     ...containsPhrase(downloadsHtml, "GitHub Releases is the source of truth")
+  ];
+  const overclaims = [
+    ...containsPhrase(siteHtml, "ready by default"),
+    ...containsPhrase(downloadsHtml, "ready by default"),
+    ...containsPhrase(installHtml, "ready by default")
   ];
   const metadataResults = releaseReady
     ? await verifyReleaseReadyUrls(collectReleaseUrls(metadata))
@@ -120,7 +147,9 @@ async function verifyRemoteSite({ siteUrl }) {
   return {
     ok:
       missingPhrases.length === 0 &&
+      platformSplitMissing.length === 0 &&
       oldWordings.length === 0 &&
+      overclaims.length === 0 &&
       invalidReleaseReadyMetadata.length === 0 &&
       invalidMetadataContentType.length === 0 &&
       metadataResults.every((entry) => entry.ok),
@@ -129,7 +158,9 @@ async function verifyRemoteSite({ siteUrl }) {
     downloadsUrl: null,
     metadataOnly: false,
     missingPhrases,
+    platformSplitMissing,
     oldWordings,
+    overclaims,
     invalidReleaseReadyMetadata,
     invalidMetadataContentType,
     metadataResults: auxiliaryResults,

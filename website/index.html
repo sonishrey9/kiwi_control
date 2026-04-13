@@ -29,7 +29,7 @@
           <div class="release-chip" data-release-badge>Public release status</div>
           <h1>Kiwi Control is live on the web. Use this site for the current desktop release and install status.</h1>
           <p class="hero-text">
-            This website is the public entrypoint for Kiwi Control. Desktop remains the primary install path, installed desktop builds auto-attempt terminal command setup by default, and the latest release status is always reflected here.
+            This website is the public entrypoint for Kiwi Control. Desktop remains the primary install path, Windows setup EXE work is moving toward installer-time CLI setup, macOS stays launch-once desktop-first, and the latest release status is always reflected here.
           </p>
           <p class="recommendation" data-recommended-banner>Use the downloads page for the current release status and the exact verification commands once installers are published.</p>
           <div class="release-links">
@@ -86,12 +86,12 @@
         <article class="panel">
           <h2>Desktop first, CLI default-on</h2>
           <p>
-            Kiwi Control is still designed for desktop-first install. When public installers are available, the app should be usable immediately, and installed desktop builds should auto-attempt <code>kc</code> setup after first launch without making terminal success a trust claim.
+            Kiwi Control is still designed for desktop-first install. Windows setup EXE is the intended default Windows path for installer-time <code>kc</code> setup, while macOS keeps a launch-once desktop flow with in-app CLI enablement if needed.
           </p>
         </article>
         <article class="panel">
           <h2>Trust still matters</h2>
-          <p class="warn">Public hosting does not equal public trust. macOS still needs signed/notarized/stapled proof, and Windows still needs signed installer proof plus the remaining real Windows host default-CLI proof.</p>
+          <p class="warn">Public hosting does not equal public trust. macOS still needs signed/notarized/stapled proof, and Windows still needs signed installer proof plus real Windows-host proof before we call installer-time CLI readiness fully automatic.</p>
         </article>
       </section>
 
@@ -101,9 +101,9 @@
           <h2>Planned public install flow</h2>
           <div class="list">
             <div>1. Download the desktop installer for macOS or Windows.</div>
-            <div>2. Install Kiwi Control normally.</div>
-            <div>3. Launch the app and choose a repo.</div>
-            <div>4. Let Kiwi auto-attempt terminal command setup by default, then use <code>kc</code> from a fresh terminal only if that setup succeeds.</div>
+            <div>2. Windows: prefer the setup EXE when you want the normal installer path.</div>
+            <div>3. macOS: launch the app once so Kiwi can finish CLI setup inside the desktop flow.</div>
+            <div>4. Use <code>kc</code> from a fresh terminal only after the platform-specific setup path succeeds.</div>
           </div>
           <p class="detail-link-row">
             <a href="/downloads/">Open downloads status</a>

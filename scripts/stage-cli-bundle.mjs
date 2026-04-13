@@ -54,6 +54,7 @@ export async function stageCliBundle(options = {}) {
   await writeFile(path.join(bundlePath, "install.sh"), renderCliBundleInstaller(version), "utf8");
   await chmod(path.join(bundlePath, "install.sh"), 0o755);
   await writeFile(path.join(bundlePath, "install.ps1"), renderCliBundleInstallerPs1(version), "utf8");
+  await writeFile(path.join(bundlePath, "uninstall.ps1"), renderCliBundleUninstallerPs1(version), "utf8");
   await removeAppleDoubleFiles(bundlePath);
 
   return bundlePath;
@@ -421,6 +422,7 @@ function renderCliBundleInstallerPs1(version) {
   [string]$PreferredNodePath = $(if ($env:KIWI_CONTROL_NODE_ABSOLUTE) { $env:KIWI_CONTROL_NODE_ABSOLUTE } elseif ($env:KIWI_CONTROL_NODE) { $env:KIWI_CONTROL_NODE } elseif ($env:SHREY_JUNIOR_NODE) { $env:SHREY_JUNIOR_NODE } else { "" })
 )
 
+$ErrorActionPreference = "Stop"
 $BundleRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $GlobalHome = if ($InstallScope -eq "machine") {
   if ([string]::IsNullOrWhiteSpace($InstallRoot)) {
@@ -437,6 +439,7 @@ $InstallRoot = if ($InstallScope -eq "machine") {
 } else {
   Join-Path $GlobalHome "releases\\${PRODUCT_METADATA.release.artifactPrefix}-${version}"
 }
+$ReceiptPath = if ([string]::IsNullOrWhiteSpace($ResultPath)) { Join-Path $GlobalHome "desktop-cli-install.json" } else { $ResultPath }
 $PreferredNode = if (-not [string]::IsNullOrWhiteSpace($PreferredNodePath)) { $PreferredNodePath } else { $null }
 
 if (-not $PreferredNode -and -not (Get-Command node -ErrorAction SilentlyContinue)) {
@@ -473,6 +476,10 @@ Set-Content -Path (Join-Path $PathBin "${PRODUCT_METADATA.cli.primaryCommand}.cm
 Set-Content -Path (Join-Path $PathBin "${PRODUCT_METADATA.cli.shortCommand}.cmd") -Value $Wrapper -NoNewline
 
 $PathChanged = $false
+$VerificationStatus = "failed"
+$VerificationDetail = ""
+$VerificationCommandPath = $null
+$RequiresNewTerminal = $false
 if ($InstallScope -eq "machine") {
   $MachinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
   $PathEntries = if ($MachinePath) { $MachinePath -split ';' | Where-Object { $_ } } else { @() }
@@ -499,11 +506,153 @@ if ($InstallScope -eq "machine") {
   $Detail = "${PRODUCT_METADATA.displayName} CLI installed."
 }
 
+$VerificationScript = "$machine = [Environment]::GetEnvironmentVariable('Path', 'Machine'); " +
+  "$user = [Environment]::GetEnvironmentVariable('Path', 'User'); " +
+  "$env:Path = @($machine, $user) -join ';'; " +
+  "$command = Get-Command kc -ErrorAction Stop; " +
+  "& $command.Source --help | Out-Null; " +
+  "Write-Output $command.Source"
+
+try {
+  $VerificationOutput = & powershell.exe -NoProfile -Command $VerificationScript 2>&1 | Out-String
+  if ($LASTEXITCODE -eq 0) {
+    $ResolvedCommandPath = ($VerificationOutput.Trim() -split "\\r?\\n" | Select-Object -Last 1)
+    $VerificationStatus = "passed"
+    $VerificationCommandPath = if ([string]::IsNullOrWhiteSpace($ResolvedCommandPath)) { Join-Path $PathBin "${PRODUCT_METADATA.cli.shortCommand}.cmd" } else { $ResolvedCommandPath }
+    $RequiresNewTerminal = $PathChanged
+    $VerificationDetail = if ($InstallScope -eq "machine") {
+      if ($PathChanged) {
+        "Terminal commands are enabled system-wide. Open a new terminal to use kc."
+      } else {
+        "Terminal commands are already enabled system-wide."
+      }
+    } elseif ($PathChanged) {
+      "Terminal commands are enabled for this user. Open a new terminal to use kc."
+    } else {
+      "Terminal commands are already enabled for this user."
+    }
+  } else {
+    $VerificationDetail = $VerificationOutput.Trim()
+  }
+} catch {
+  $VerificationDetail = $_.Exception.Message
+}
+
 Write-Host $Detail
 Write-Host "Primary command: $PathBin\\${PRODUCT_METADATA.cli.primaryCommand}.cmd"
 Write-Host "Short alias: $PathBin\\${PRODUCT_METADATA.cli.shortCommand}.cmd"
 Write-Host $PathUpdateMessage
-Write-Host "Next step: open a new terminal window."
+Write-Host $VerificationDetail
+if ($RequiresNewTerminal) {
+  Write-Host "Next step: open a new terminal window."
+}
+
+if (-not [string]::IsNullOrWhiteSpace($ReceiptPath)) {
+  $payload = @{
+    installScope = $InstallScope
+    installRoot = $InstallRoot
+    installBinDir = $PathBin
+    pathChanged = $PathChanged
+    detail = $Detail
+    installedCommandPath = Join-Path $PathBin "${PRODUCT_METADATA.cli.shortCommand}.cmd"
+    verificationStatus = $VerificationStatus
+    verificationDetail = $VerificationDetail
+    verificationCommandPath = $VerificationCommandPath
+    requiresNewTerminal = $RequiresNewTerminal
+    updatedAt = (Get-Date).ToString("o")
+  } | ConvertTo-Json -Depth 5
+  New-Item -ItemType Directory -Force -Path (Split-Path -Parent $ReceiptPath) | Out-Null
+  Set-Content -Path $ReceiptPath -Value $payload
+}
+
+if ($VerificationStatus -ne "passed") {
+  if ([string]::IsNullOrWhiteSpace($VerificationDetail)) {
+    Write-Error "Kiwi could not verify kc from a fresh shell after installation."
+  } else {
+    Write-Error $VerificationDetail
+  }
+  exit 1
+}
+`;
+}
+
+function renderCliBundleUninstallerPs1(version) {
+  return `param(
+  [string]$InstallScope = $(if ($env:KIWI_CONTROL_INSTALL_SCOPE) { $env:KIWI_CONTROL_INSTALL_SCOPE } else { "user" }),
+  [string]$InstallRoot = $(if ($env:KIWI_CONTROL_INSTALL_ROOT) { $env:KIWI_CONTROL_INSTALL_ROOT } else { "" }),
+  [string]$PathBin = $(if ($env:KIWI_CONTROL_PATH_BIN) { $env:KIWI_CONTROL_PATH_BIN } else { "" }),
+  [string]$ResultPath = $(if ($env:KIWI_CONTROL_RESULT_PATH) { $env:KIWI_CONTROL_RESULT_PATH } else { "" })
+)
+
+$ErrorActionPreference = "Stop"
+$GlobalHome = if ($InstallScope -eq "machine") {
+  if ([string]::IsNullOrWhiteSpace($InstallRoot)) {
+    Join-Path $env:ProgramData "Kiwi Control"
+  } else {
+    $InstallRoot
+  }
+} else {
+  if ($env:KIWI_CONTROL_HOME) { $env:KIWI_CONTROL_HOME } else { Join-Path $HOME ".kiwi-control" }
+}
+$PathBin = if ([string]::IsNullOrWhiteSpace($PathBin)) { Join-Path $GlobalHome "bin" } else { $PathBin }
+$InstallRoot = if ($InstallScope -eq "machine") {
+  Join-Path $GlobalHome "cli\\${PRODUCT_METADATA.release.artifactPrefix}-${version}"
+} else {
+  Join-Path $GlobalHome "releases\\${PRODUCT_METADATA.release.artifactPrefix}-${version}"
+}
+$ReceiptPath = if ([string]::IsNullOrWhiteSpace($ResultPath)) { Join-Path $GlobalHome "desktop-cli-install.json" } else { $ResultPath }
+
+function Remove-KiwiPathEntry([string]$Scope, [string]$TargetPath) {
+  $CurrentPath = [Environment]::GetEnvironmentVariable("Path", $Scope)
+  if ([string]::IsNullOrWhiteSpace($CurrentPath)) {
+    return $false
+  }
+
+  $NormalizedTarget = $TargetPath.TrimEnd('\\')
+  $ExistingEntries = @($CurrentPath -split ';' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+  $FilteredEntries = @($ExistingEntries | Where-Object { $_.TrimEnd('\\') -ne $NormalizedTarget })
+  if ($FilteredEntries.Count -eq $ExistingEntries.Count) {
+    return $false
+  }
+
+  [Environment]::SetEnvironmentVariable("Path", ($FilteredEntries -join ';'), $Scope)
+  return $true
+}
+
+$RemovedWrappers = @()
+foreach ($CommandName in @("${PRODUCT_METADATA.cli.primaryCommand}", "${PRODUCT_METADATA.cli.shortCommand}")) {
+  $WrapperPath = Join-Path $PathBin "$CommandName.cmd"
+  if (Test-Path $WrapperPath) {
+    Remove-Item -Force $WrapperPath
+    $RemovedWrappers += $WrapperPath
+  }
+}
+
+if (Test-Path $InstallRoot) {
+  Remove-Item -Recurse -Force $InstallRoot
+}
+
+$PathChanged = if ($InstallScope -eq "machine") {
+  Remove-KiwiPathEntry "Machine" $PathBin
+} else {
+  Remove-KiwiPathEntry "User" $PathBin
+}
+
+if (Test-Path $ReceiptPath) {
+  Remove-Item -Force $ReceiptPath
+}
+
+foreach ($Candidate in @($PathBin, (Split-Path -Parent $InstallRoot), $GlobalHome)) {
+  if (-not [string]::IsNullOrWhiteSpace($Candidate) -and (Test-Path $Candidate)) {
+    try {
+      if (-not (Get-ChildItem -Force $Candidate | Select-Object -First 1)) {
+        Remove-Item -Force $Candidate
+      }
+    } catch {
+      # Keep cleanup best-effort.
+    }
+  }
+}
 
 if (-not [string]::IsNullOrWhiteSpace($ResultPath)) {
   $payload = @{
@@ -511,9 +660,8 @@ if (-not [string]::IsNullOrWhiteSpace($ResultPath)) {
     installRoot = $InstallRoot
     installBinDir = $PathBin
     pathChanged = $PathChanged
-    detail = $Detail
-    primaryCommandPath = Join-Path $PathBin "${PRODUCT_METADATA.cli.primaryCommand}.cmd"
-    shortCommandPath = Join-Path $PathBin "${PRODUCT_METADATA.cli.shortCommand}.cmd"
+    removedWrappers = $RemovedWrappers
+    updatedAt = (Get-Date).ToString("o")
   } | ConvertTo-Json -Depth 5
   New-Item -ItemType Directory -Force -Path (Split-Path -Parent $ResultPath) | Out-Null
   Set-Content -Path $ResultPath -Value $payload

@@ -135,7 +135,7 @@ function bindDownloadState(release) {
 
   document.querySelectorAll(selectors.recommendedBanner).forEach((node) => {
     node.textContent = release.publicReleaseReady
-      ? "Choose the installer that matches your desktop OS. Optional kc verification commands stay on the downloads page."
+      ? "Choose the installer that matches your desktop OS. The downloads page keeps the platform-specific kc steps and the current proof status."
       : "Public release coming soon. The first installers will appear here once the desktop release is published.";
   });
 }

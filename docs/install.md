@@ -15,11 +15,12 @@ For most users on macOS and Windows:
 1. Open the installer-first website at [kiwi-control.kiwi-ai.in](https://kiwi-control.kiwi-ai.in/) or go directly to the public [downloads page](https://kiwi-control.kiwi-ai.in/downloads/).
 2. Download the desktop installer for your platform.
    - macOS: `.dmg`
-   - Windows: `-setup.exe` or `.msi`
+   - Windows: prefer `-setup.exe`; `.msi` remains secondary until it has the same CLI proof bar
 3. Install Kiwi Control like a normal desktop app.
-4. Launch Kiwi Control once.
-5. Kiwi auto-attempts `kc` setup by default and records whether fresh-shell verification succeeds.
-6. Use onboarding to choose a repo and initialize it if needed.
+4. Windows: the setup EXE is the intended default path for installer-time `kc` setup, but public automatic-readiness claims stay gated on real Windows-host proof.
+5. macOS: launch Kiwi Control once so the app can auto-attempt CLI setup and record whether fresh-shell verification succeeds.
+6. If macOS CLI setup does not complete, use the obvious in-app terminal-command enable flow instead of editing PATH manually.
+7. Use onboarding to choose a repo and initialize it if needed.
 
 ### Desktop-only path
 
@@ -37,19 +38,21 @@ For public downloads, trust status is release-specific. Public hosting makes the
 
 ### Desktop + CLI path
 
-Installed desktop builds now auto-attempt `kc` setup by default:
+Desktop installs aim to make `kc` straightforward without manual PATH editing:
 
-1. install the desktop app
-2. open the app once
-3. approve system-wide terminal command setup if Kiwi or the OS asks
-4. keep using the same repo from desktop or CLI interchangeably
+1. Windows: the setup EXE is the intended installer-time `kc` path for normal users
+2. macOS: open the app once and let Kiwi finish CLI setup inside the desktop-first flow
+3. if macOS setup does not complete, use the in-app enable action
+4. keep using the same repo from desktop or CLI interchangeably after setup succeeds
 
 ### Default terminal commands
 
-Kiwi Control keeps the desktop app usable even if terminal command setup cannot complete, but installed desktop builds now auto-attempt `kc` setup by default.
+Kiwi Control keeps the desktop app usable even if terminal command setup cannot complete, but the post-install behavior is intentionally platform-specific:
 
-- macOS: on first launch, Kiwi installs shared command wrappers into `/usr/local/bin` after explicit administrator approval
-- Windows: the desktop installer is wired for machine-wide install behavior, but the public beta still needs one completed real Windows host proof for the end-to-end default-CLI path
+- Windows: the NSIS setup EXE is the intended default Windows path and should auto-enable `kc` during install; keep the public claim gated on real Windows-host proof
+- Windows MSI: treat it as a secondary packaging path until it has the same default-CLI proof as the setup EXE
+- macOS: on first launch, Kiwi installs shared command wrappers into `/usr/local/bin` after explicit administrator approval where needed
+- macOS fallback: if automatic first-launch setup is not reliable on that machine, use the one-click enable flow in the app
 - Kiwi verifies whether `kc` is callable from a fresh shell/process and reports the exact result
 
 If verification succeeds but your current terminal is still stale, Kiwi will tell you to open a new terminal window.

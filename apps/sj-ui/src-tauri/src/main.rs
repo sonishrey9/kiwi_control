@@ -327,9 +327,15 @@ fn get_desktop_runtime_info(app: AppHandle) -> Result<DesktopRuntimeInfo, String
             } else if infer_runtime_mode(&build_source) == DESKTOP_RUNTIME_MODE_INSTALLED
                 && resolve_bundled_cli_installer_path(&app).is_some()
             {
-                String::from(
-                    "Kiwi enables terminal commands by default on installed desktop builds. If setup does not complete, use the retry action in the app."
-                )
+                if cfg!(target_os = "windows") {
+                    String::from(
+                        "Kiwi expects the Windows installer to enable terminal commands during setup. If a fresh terminal still cannot find kc, use the retry action in the app."
+                    )
+                } else {
+                    String::from(
+                        "Kiwi auto-attempts terminal commands on first launch for installed desktop builds. If setup does not complete, use the retry action in the app."
+                    )
+                }
             } else {
                 String::from("Desktop use still works without an installed kc command in this source/developer mode.")
             }
@@ -1525,12 +1531,21 @@ fn command_path_variants(root: &PathBuf, command: &str) -> Vec<PathBuf> {
     candidates
 }
 
-fn resolve_cli_install_receipt_path() -> PathBuf {
-    resolve_global_home_root().join(DESKTOP_CLI_INSTALL_RECEIPT_FILE)
+fn resolve_cli_install_receipt_paths() -> Vec<PathBuf> {
+    let mut candidates = vec![resolve_global_home_root().join(DESKTOP_CLI_INSTALL_RECEIPT_FILE)];
+
+    if cfg!(target_os = "windows") {
+        let machine_path = resolve_machine_cli_root().join(DESKTOP_CLI_INSTALL_RECEIPT_FILE);
+        if !candidates.contains(&machine_path) {
+            candidates.push(machine_path);
+        }
+    }
+
+    candidates
 }
 
 fn write_cli_install_receipt(receipt: &DesktopCliInstallReceipt) -> Result<(), String> {
-    let receipt_path = resolve_cli_install_receipt_path();
+    let receipt_path = resolve_global_home_root().join(DESKTOP_CLI_INSTALL_RECEIPT_FILE);
     if let Some(parent) = receipt_path.parent() {
         fs::create_dir_all(parent)
             .map_err(|error| format!("failed to create CLI install receipt directory: {error}"))?;
@@ -1547,16 +1562,42 @@ fn write_cli_install_receipt(receipt: &DesktopCliInstallReceipt) -> Result<(), S
 }
 
 fn read_cli_install_receipt() -> Result<Option<DesktopCliInstallReceipt>, String> {
-    let receipt_path = resolve_cli_install_receipt_path();
-    if !receipt_path.exists() {
-        return Ok(None);
+    let mut latest_receipt: Option<DesktopCliInstallReceipt> = None;
+    let mut errors = Vec::new();
+
+    for receipt_path in resolve_cli_install_receipt_paths() {
+        if !receipt_path.exists() {
+            continue;
+        }
+
+        match fs::read_to_string(&receipt_path) {
+            Ok(content) => match serde_json::from_str::<DesktopCliInstallReceipt>(&content) {
+                Ok(receipt) => {
+                    let should_replace = latest_receipt
+                        .as_ref()
+                        .map(|current| receipt.updated_at > current.updated_at)
+                        .unwrap_or(true);
+                    if should_replace {
+                        latest_receipt = Some(receipt);
+                    }
+                }
+                Err(error) => errors.push(format!(
+                    "failed to decode CLI install receipt {}: {error}",
+                    receipt_path.to_string_lossy()
+                )),
+            },
+            Err(error) => errors.push(format!(
+                "failed to read CLI install receipt {}: {error}",
+                receipt_path.to_string_lossy()
+            )),
+        }
     }
 
-    let content = fs::read_to_string(&receipt_path)
-        .map_err(|error| format!("failed to read CLI install receipt: {error}"))?;
-    serde_json::from_str::<DesktopCliInstallReceipt>(&content)
-        .map(Some)
-        .map_err(|error| format!("failed to decode CLI install receipt: {error}"))
+    if latest_receipt.is_none() && !errors.is_empty() {
+        return Err(errors.join("; "));
+    }
+
+    Ok(latest_receipt)
 }
 
 fn resolve_node_binary(preferred: Option<PathBuf>) -> Option<PathBuf> {

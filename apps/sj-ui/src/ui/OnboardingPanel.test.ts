@@ -24,6 +24,7 @@ test("onboarding shows choose-repo first and does not offer manual cli setup bef
         requiresNewTerminal: false
       }
     },
+    platform: "macos",
     targetRoot: "",
     repoMode: "bridge-unavailable"
   });
@@ -31,7 +32,7 @@ test("onboarding shows choose-repo first and does not offer manual cli setup bef
   assert.ok(model);
   assert.equal(model?.actions.some((action) => action.id === "choose-repo"), true);
   assert.equal(model?.actions.some((action) => action.id === "install-cli"), false);
-  assert.match(model?.intro ?? "", /auto-attempt terminal command setup by default/i);
+  assert.match(model?.intro ?? "", /macOS desktop builds auto-attempt terminal command setup on first launch/i);
   assert.match(model?.intro ?? "", /record whether fresh-shell verification succeeds/i);
   assert.equal(model?.actions[0]?.id, "choose-repo");
 });
@@ -56,14 +57,46 @@ test("onboarding describes successful cli setup without implying trust or option
         requiresNewTerminal: false
       }
     },
+    platform: "macos",
     targetRoot: "/tmp/repo",
     repoMode: "repo-not-initialized"
   });
 
   assert.ok(model);
-  assert.match(model?.cliStatus ?? "", /Enabled system-wide after desktop setup · verified/i);
+  assert.match(model?.cliStatus ?? "", /Enabled after desktop setup · verified/i);
   assert.doesNotMatch(model?.cliStatus ?? "", /trust/i);
   assert.doesNotMatch(model?.cliStatus ?? "", /optional later/i);
+});
+
+test("windows onboarding expects installer-time cli setup and exposes one-click repair when missing", () => {
+  const model = buildOnboardingPanelModel({
+    runtimeInfo: {
+      appVersion: "0.2.0-beta.1",
+      buildSource: "installed-bundle",
+      runtimeMode: "installed-user",
+      cli: {
+        bundledInstallerAvailable: true,
+        bundledNodePath: "/Program Files/Kiwi Control/resources/desktop/node/node.exe",
+        installBinDir: "C:\\ProgramData\\Kiwi Control\\bin",
+        installRoot: "C:\\ProgramData\\Kiwi Control",
+        installScope: "machine",
+        installed: false,
+        installedCommandPath: null,
+        verificationStatus: "not-run",
+        verificationDetail: "Installer-time verification is still pending.",
+        verificationCommandPath: null,
+        requiresNewTerminal: false
+      }
+    },
+    platform: "windows",
+    targetRoot: "/tmp/repo",
+    repoMode: "healthy"
+  });
+
+  assert.ok(model);
+  assert.match(model?.intro ?? "", /Windows installs should make kc available in a fresh terminal after setup/i);
+  assert.equal(model?.actions.some((action) => action.id === "install-cli"), true);
+  assert.match(model?.actions.find((action) => action.id === "install-cli")?.label ?? "", /Enable terminal commands now/i);
 });
 
 test("onboarding shows init action for an uninitialized repo", () => {
@@ -86,6 +119,7 @@ test("onboarding shows init action for an uninitialized repo", () => {
         requiresNewTerminal: false
       }
     },
+    platform: "macos",
     targetRoot: "/tmp/repo",
     repoMode: "repo-not-initialized"
   });
@@ -115,6 +149,7 @@ test("onboarding shows one guided setup action when machine setup needs attentio
         requiresNewTerminal: false
       }
     },
+    platform: "macos",
     targetRoot: "/tmp/repo",
     repoMode: "healthy",
     machineSetup: {
@@ -149,6 +184,7 @@ test("onboarding stays hidden when CLI, repo, and machine setup are ready", () =
         requiresNewTerminal: false
       }
     },
+    platform: "macos",
     targetRoot: "/tmp/repo",
     repoMode: "healthy",
     machineSetup: {
@@ -181,6 +217,7 @@ test("onboarding stays hidden when CLI is installed and the repo is ready", () =
         requiresNewTerminal: false
       }
     },
+    platform: "macos",
     targetRoot: "/tmp/repo",
     repoMode: "healthy"
   });
@@ -208,6 +245,7 @@ test("onboarding offers a retry action when default terminal command setup faile
         requiresNewTerminal: false
       }
     },
+    platform: "macos",
     targetRoot: "/tmp/repo",
     repoMode: "healthy"
   });

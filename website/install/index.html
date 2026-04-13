@@ -37,19 +37,19 @@
           <h2>Desktop install</h2>
           <div class="list">
             <div>1. Download the macOS or Windows desktop installer from the homepage or <a href="/downloads/">all downloads</a>.</div>
-            <div>2. Install Kiwi Control normally for your platform.</div>
-            <div>3. Launch the app once so Kiwi can auto-attempt default terminal command setup and record the result.</div>
-            <div>4. Choose a repo, initialize it if needed, and keep using desktop or <code>kc</code>.</div>
+            <div>2. Windows: prefer the setup EXE for the normal Windows install path.</div>
+            <div>3. macOS: launch the app once so Kiwi can auto-attempt CLI setup inside the desktop flow.</div>
+            <div>4. Choose a repo, initialize it if needed, and keep using desktop or <code>kc</code> after the platform-specific setup succeeds.</div>
           </div>
         </article>
 
         <article class="panel">
           <h2>Default terminal command setup</h2>
           <div class="list">
-            <div>1. Installed desktop builds auto-attempt <code>kc</code> setup by default.</div>
-            <div>2. macOS may ask for administrator approval on first launch to write command shims into <code>/usr/local/bin</code>.</div>
-            <div>3. Windows is wired for machine-wide installer behavior, but this beta still needs one completed real Windows host proof for the end-to-end default-CLI path.</div>
-            <div>4. Open a fresh terminal and verify with the commands below.</div>
+            <div>1. Windows setup EXE is the intended default Windows path for installer-time CLI setup.</div>
+            <div>2. Public automatic-readiness wording on Windows stays gated on one completed real Windows host proof.</div>
+            <div>3. macOS may ask for administrator approval on first launch to write command shims into <code>/usr/local/bin</code>.</div>
+            <div>4. If macOS launch-time setup does not complete cleanly, use the in-app terminal-command enable flow instead of editing PATH manually.</div>
           </div>
         </article>
 
@@ -96,7 +96,7 @@
       <footer class="site-footer">
         <div>
           <strong>Created by Shrey Soni</strong>
-          <span>Kiwi Control keeps the install path desktop-first while auto-attempting kc setup on installed desktop builds and keeping trust claims release-specific.</span>
+          <span>Kiwi Control keeps the install path desktop-first, splits Windows and macOS setup honestly, and keeps trust claims release-specific.</span>
         </div>
         <div class="footer-links">
           <a href="/beta/">Beta</a>

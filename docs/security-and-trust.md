@@ -21,7 +21,8 @@ Current Kiwi Control beta behavior:
 - repo-local initialization, status, validation, checkpoints, and handoffs
 - local desktop launch bridge for `kc ui`
 - desktop auto-load of the current repo after CLI launch acknowledgement
-- installed desktop builds auto-attempt terminal command setup on first launch after explicit OS/admin approval where required, but desktop usage still works if that setup cannot complete
+- Windows packaging is being upgraded so the setup EXE can handle terminal command setup during install, but public “ready by default” claims still require real Windows-host proof
+- macOS installed desktop builds auto-attempt terminal command setup on first launch after explicit OS/admin approval where required, but desktop usage still works if that setup cannot complete
 
 ## What the product does not claim yet
 
@@ -29,6 +30,7 @@ Do not claim any of the following unless the current release actually includes t
 
 - signed macOS trust if signing and notarization are incomplete
 - signed Windows trust if code signing is incomplete
+- Windows post-install `kc` readiness by default if the setup EXE path has not been proven on a real Windows host
 - updater trust if updater signing is not configured and active
 - package-manager availability if Homebrew or winget are not yet published
 
