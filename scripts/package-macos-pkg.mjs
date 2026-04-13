@@ -35,6 +35,7 @@ try {
   await fs.mkdir(path.join(payloadRoot, "Applications"), { recursive: true });
   await fs.mkdir(scriptsDir, { recursive: true });
   await fs.cp(appPath, componentAppPath, { recursive: true });
+  await normalizeMacosAppBundle(componentAppPath);
 
   const postinstallTemplate = await fs.readFile(postinstallTemplatePath, "utf8");
   const postinstall = postinstallTemplate
@@ -221,4 +222,42 @@ function run(command, args) {
   if ((result.status ?? 1) !== 0) {
     throw new Error(result.stderr || result.stdout || `${command} ${args.join(" ")} failed`);
   }
+}
+
+async function normalizeMacosAppBundle(rootPath) {
+  await walkAndNormalize(rootPath, rootPath);
+}
+
+async function walkAndNormalize(rootPath, currentPath) {
+  const stats = await fs.stat(currentPath);
+  if (stats.isDirectory()) {
+    await fs.chmod(currentPath, 0o755);
+    const entries = await fs.readdir(currentPath);
+    for (const entry of entries) {
+      await walkAndNormalize(rootPath, path.join(currentPath, entry));
+    }
+    return;
+  }
+
+  await fs.chmod(currentPath, shouldRemainExecutable(rootPath, currentPath) ? 0o755 : 0o644);
+}
+
+function shouldRemainExecutable(rootPath, currentPath) {
+  const relativePath = path.relative(rootPath, currentPath).replace(/\\/g, "/");
+  if (relativePath.startsWith("Contents/MacOS/")) {
+    return true;
+  }
+  if (relativePath.startsWith("Contents/Resources/desktop/node/")) {
+    return true;
+  }
+  if (relativePath.startsWith("Contents/Resources/desktop/cli-bundle/bin/")) {
+    return true;
+  }
+  if (relativePath.endsWith("/install.sh")) {
+    return true;
+  }
+  if (relativePath.endsWith(".dylib")) {
+    return true;
+  }
+  return false;
 }

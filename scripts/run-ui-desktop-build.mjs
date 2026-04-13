@@ -21,6 +21,10 @@ const workspacePackage = JSON.parse(await fs.readFile(path.join(repoRoot, "packa
 
 loadLocalEnv({ envPath: path.join(repoRoot, ".env") });
 
+if (process.platform === "darwin") {
+  process.umask(0o022);
+}
+
 await main();
 
 async function main() {
@@ -92,6 +96,9 @@ async function main() {
 
     if (code === 0) {
       await syncBundleArtifacts(cargoTargetDir);
+      const macosAppPath = path.join(repoBundleDir, "macos", "Kiwi Control.app");
+      await removeMacMetadataArtifacts(macosAppPath);
+      await normalizeMacosBundlePermissions(macosAppPath);
       await repairMacosBetaBundleIfNeeded();
       await packageMacosPkgIfNeeded();
       const verifyBundleSpec = requestedBundles
@@ -128,6 +135,48 @@ async function main() {
 
     process.exit(code ?? 1);
   });
+}
+
+async function normalizeMacosBundlePermissions(appPath) {
+  if (process.platform !== "darwin" || !existsSync(appPath)) {
+    return;
+  }
+
+  await walkAndNormalize(appPath, appPath);
+}
+
+async function walkAndNormalize(rootPath, currentPath) {
+  const stats = await fs.stat(currentPath);
+  if (stats.isDirectory()) {
+    await fs.chmod(currentPath, 0o755);
+    const entries = await fs.readdir(currentPath);
+    for (const entry of entries) {
+      await walkAndNormalize(rootPath, path.join(currentPath, entry));
+    }
+    return;
+  }
+
+  await fs.chmod(currentPath, shouldRemainExecutable(rootPath, currentPath) ? 0o755 : 0o644);
+}
+
+function shouldRemainExecutable(rootPath, currentPath) {
+  const relativePath = path.relative(rootPath, currentPath).replace(/\\/g, "/");
+  if (relativePath.startsWith("Contents/MacOS/")) {
+    return true;
+  }
+  if (relativePath.startsWith("Contents/Resources/desktop/node/")) {
+    return true;
+  }
+  if (relativePath.startsWith("Contents/Resources/desktop/cli-bundle/bin/")) {
+    return true;
+  }
+  if (relativePath.endsWith("/install.sh")) {
+    return true;
+  }
+  if (relativePath.endsWith(".dylib")) {
+    return true;
+  }
+  return false;
 }
 
 async function resolveCargoTargetDir() {

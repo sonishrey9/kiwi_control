@@ -34,14 +34,18 @@ try {
   const appPath = path.join(mountPoint, "Applications", "Kiwi Control.app");
   const receiptPath = path.join(mountPoint, "Library", "Application Support", "Kiwi Control", "desktop-cli-install.json");
   const commandPath = path.join(mountPoint, "usr", "local", "bin", "kc");
+  const appExecutablePath = path.join(appPath, "Contents", "MacOS", "sj-ui");
 
   await fs.access(appPath);
   await fs.access(receiptPath);
   await fs.access(commandPath);
+  await fs.access(appExecutablePath);
 
   const receipt = JSON.parse(await fs.readFile(receiptPath, "utf8"));
   assert.equal(receipt.installScope, "machine");
   assert.equal(receipt.verificationStatus, "passed");
+  await assertAccessiblePermissions(appPath, { executable: true });
+  await assertAccessiblePermissions(appExecutablePath, { executable: true });
 
   const shellResult = spawnSync("/bin/zsh", [
     "-lc",
@@ -174,4 +178,10 @@ async function runInstallerOrSimulate(pkgPath, mountPoint) {
 
 function escapeForRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function assertAccessiblePermissions(targetPath, { executable }) {
+  const stats = await fs.stat(targetPath);
+  const requiredBits = executable ? 0o055 : 0o044;
+  assert.notEqual(stats.mode & requiredBits, 0, `${targetPath} is not accessible outside the installing user context.`);
 }

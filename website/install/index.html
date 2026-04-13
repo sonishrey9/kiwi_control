@@ -54,6 +54,16 @@
         </article>
 
         <article class="panel">
+          <h2>macOS unsigned beta bypass</h2>
+          <div class="list">
+            <div>1. If Finder says Apple could not verify the pkg, locate the downloaded <code>.pkg</code> in Finder.</div>
+            <div>2. Control-click the pkg and choose <code>Open</code>.</div>
+            <div>3. If macOS still blocks it, open <code>System Settings &gt; Privacy &amp; Security</code> and click <code>Open Anyway</code>.</div>
+            <div>4. Only do this for the unsigned beta downloaded from the Kiwi Control site or after you verify its checksum.</div>
+          </div>
+        </article>
+
+        <article class="panel">
           <h2>Latest release metadata</h2>
           <div class="list">
             <div>Current version: <strong data-release-version>0.2.0-beta.1</strong></div>
@@ -77,6 +87,14 @@
           </div>
           <p data-release-fallback hidden>
             If release metadata is unavailable in your browser session, Kiwi falls back to the most recently mirrored website metadata until the downloads host refresh completes.
+          </p>
+        </article>
+
+        <article class="panel detail-panel">
+          <div class="eyebrow">Gatekeeper help</div>
+          <h2>What the macOS warning actually means</h2>
+          <p>
+            This beta warning means the pkg is unsigned or not notarized yet. It does not mean Kiwi Control proved the installer is trusted. Treat it as an unsigned technical-user beta and verify the checksum before bypassing Gatekeeper.
           </p>
         </article>
 
