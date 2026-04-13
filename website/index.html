@@ -29,7 +29,7 @@
           <div class="release-chip" data-release-badge>Public release status</div>
           <h1>Kiwi Control is live on the web. Use this site for the current desktop release and install status.</h1>
           <p class="hero-text">
-            This website is the public entrypoint for Kiwi Control. Desktop remains the primary install path, Windows setup EXE work is moving toward installer-time CLI setup, macOS stays launch-once desktop-first, and the latest release status is always reflected here.
+            This website is the public entrypoint for Kiwi Control. The macOS default CLI path is already proven, Windows setup EXE is prepared for installer-time CLI setup but still pending real Windows-host proof, and the latest release status is always reflected here.
           </p>
           <p class="recommendation" data-recommended-banner>Use the downloads page for the current release status and the exact verification commands once installers are published.</p>
           <div class="release-links">
@@ -86,7 +86,7 @@
         <article class="panel">
           <h2>Desktop first, CLI default-on</h2>
           <p>
-            Kiwi Control is still designed for desktop-first install. Windows setup EXE is the intended default Windows path for installer-time <code>kc</code> setup, while macOS keeps a launch-once desktop flow with in-app CLI enablement if needed.
+            Kiwi Control is still designed for desktop-first install. macOS has a proven launch-once CLI path. Windows setup EXE is the intended default Windows path for installer-time <code>kc</code> setup, but that path is still waiting for real Windows-host verification.
           </p>
         </article>
         <article class="panel">
@@ -101,9 +101,9 @@
           <h2>Planned public install flow</h2>
           <div class="list">
             <div>1. Download the desktop installer for macOS or Windows.</div>
-            <div>2. Windows: prefer the setup EXE when you want the normal installer path.</div>
-            <div>3. macOS: launch the app once so Kiwi can finish CLI setup inside the desktop flow.</div>
-            <div>4. Use <code>kc</code> from a fresh terminal only after the platform-specific setup path succeeds.</div>
+            <div>2. macOS: launch the app once. This default CLI path is already proven.</div>
+            <div>3. Windows: prefer the setup EXE for the normal installer path. Real Windows-host proof is still pending.</div>
+            <div>4. If Windows setup is blocked later, use the fallback manual CLI path on the downloads page. Desktop installer remains primary.</div>
           </div>
           <p class="detail-link-row">
             <a href="/downloads/">Open downloads status</a>

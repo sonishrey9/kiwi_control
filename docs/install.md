@@ -17,8 +17,8 @@ For most users on macOS and Windows:
    - macOS: `.dmg`
    - Windows: prefer `-setup.exe`; `.msi` remains secondary until it has the same CLI proof bar
 3. Install Kiwi Control like a normal desktop app.
-4. Windows: the setup EXE is the intended default path for installer-time `kc` setup, but public automatic-readiness claims stay gated on real Windows-host proof.
-5. macOS: launch Kiwi Control once so the app can auto-attempt CLI setup and record whether fresh-shell verification succeeds.
+4. macOS: launch Kiwi Control once so the app can auto-attempt CLI setup and record whether fresh-shell verification succeeds. This default CLI path is already proven for current wording.
+5. Windows: the setup EXE is the intended default path for installer-time `kc` setup, but public automatic-readiness claims stay gated on real Windows-host proof.
 6. If macOS CLI setup does not complete, use the obvious in-app terminal-command enable flow instead of editing PATH manually.
 7. Use onboarding to choose a repo and initialize it if needed.
 
@@ -40,10 +40,11 @@ For public downloads, trust status is release-specific. Public hosting makes the
 
 Desktop installs aim to make `kc` straightforward without manual PATH editing:
 
-1. Windows: the setup EXE is the intended installer-time `kc` path for normal users
-2. macOS: open the app once and let Kiwi finish CLI setup inside the desktop-first flow
+1. macOS: open the app once and let Kiwi finish CLI setup inside the desktop-first flow. This path is already proven.
+2. Windows: the setup EXE is the intended installer-time `kc` path for normal users, but proof is still pending on a real Windows host.
 3. if macOS setup does not complete, use the in-app enable action
-4. keep using the same repo from desktop or CLI interchangeably after setup succeeds
+4. if Windows setup is blocked later, use the fallback manual CLI path below
+5. keep using the same repo from desktop or CLI interchangeably after setup succeeds
 
 ### Default terminal commands
 
@@ -100,6 +101,22 @@ On Windows PowerShell:
 ```powershell
 Get-Command kc
 kc --help
+```
+
+### Windows fallback CLI path
+
+Fallback only. Keep the desktop installer as the primary path. Use this only if the Windows installer flow is blocked and only after the Windows CLI bundle is published on the public site.
+
+PowerShell metadata-driven fallback:
+
+```powershell
+$meta = Invoke-RestMethod "https://kiwi-control.kiwi-ai.in/data/latest-release.json"; if (-not $meta.publicReleaseReady -or -not $meta.artifacts.cliWindows.latestUrl) { throw "Windows CLI bundle is not published yet. Use the desktop installer path for now." }; $zip = Join-Path $env:TEMP "kiwi-control-cli.zip"; $dir = Join-Path $env:TEMP "kiwi-control-cli"; Invoke-WebRequest $meta.artifacts.cliWindows.latestUrl -OutFile $zip; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; Expand-Archive $zip -DestinationPath $dir -Force; & (Join-Path $dir "install.ps1"); Get-Command kc; kc --help
+```
+
+`curl.exe` variant:
+
+```powershell
+$meta = Invoke-RestMethod "https://kiwi-control.kiwi-ai.in/data/latest-release.json"; if (-not $meta.publicReleaseReady -or -not $meta.artifacts.cliWindows.latestUrl) { throw "Windows CLI bundle is not published yet. Use the desktop installer path for now." }; $zip = Join-Path $env:TEMP "kiwi-control-cli.zip"; $dir = Join-Path $env:TEMP "kiwi-control-cli"; curl.exe -L $meta.artifacts.cliWindows.latestUrl -o $zip; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; Expand-Archive $zip -DestinationPath $dir -Force; & (Join-Path $dir "install.ps1"); Get-Command kc; kc --help
 ```
 
 ### First CLI flow

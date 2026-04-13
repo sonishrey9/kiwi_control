@@ -32,8 +32,7 @@ test("onboarding shows choose-repo first and does not offer manual cli setup bef
   assert.ok(model);
   assert.equal(model?.actions.some((action) => action.id === "choose-repo"), true);
   assert.equal(model?.actions.some((action) => action.id === "install-cli"), false);
-  assert.match(model?.intro ?? "", /macOS desktop builds auto-attempt terminal command setup on first launch/i);
-  assert.match(model?.intro ?? "", /record whether fresh-shell verification succeeds/i);
+  assert.match(model?.intro ?? "", /default CLI path is already proven/i);
   assert.equal(model?.actions[0]?.id, "choose-repo");
 });
 
@@ -94,7 +93,7 @@ test("windows onboarding expects installer-time cli setup and exposes one-click 
   });
 
   assert.ok(model);
-  assert.match(model?.intro ?? "", /Windows installs should make kc available in a fresh terminal after setup/i);
+  assert.match(model?.intro ?? "", /real Windows-host proof is still pending/i);
   assert.equal(model?.actions.some((action) => action.id === "install-cli"), true);
   assert.match(model?.actions.find((action) => action.id === "install-cli")?.label ?? "", /Enable terminal commands now/i);
 });

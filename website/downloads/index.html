@@ -40,7 +40,7 @@
             <div><a href="/downloads/" data-download-link data-download-kind="windowsNsis" data-primary-label="Download Windows setup EXE" data-unavailable-label="Windows setup EXE coming soon">Windows setup EXE coming soon</a></div>
             <div><a href="/downloads/" data-download-link data-download-kind="windowsMsi" data-primary-label="Download Windows MSI" data-unavailable-label="Windows MSI coming soon">Windows MSI coming soon</a></div>
           </div>
-          <p class="warn">When Windows desktop installers are live, the setup EXE is the intended default Windows path for installer-time CLI setup. Treat MSI as secondary until it has the same proof bar.</p>
+          <p class="warn">macOS default CLI setup is already proven. Windows setup EXE is the intended default Windows path for installer-time CLI setup, but it still needs real Windows-host proof. Treat MSI as secondary until it has the same proof bar.</p>
         </article>
 
         <article class="panel">
@@ -72,9 +72,9 @@
           <h2>Fresh terminal commands after install</h2>
           <div class="list">
             <div>macOS: launch the app once, then run <code>command -v kc</code></div>
-            <div>macOS: run <code>kc --help</code>, or use the in-app enable flow if launch-time setup did not complete</div>
+            <div>macOS: run <code>kc --help</code>. If blocked, the app already shows retry/remediation.</div>
             <div>Windows: use the setup EXE, then run <code>Get-Command kc</code></div>
-            <div>Windows: run <code>kc --help</code> from a fresh shell once Windows host proof is complete</div>
+            <div>Windows: run <code>kc --help</code> from a fresh shell once real Windows-host proof is complete</div>
           </div>
         </article>
 
@@ -99,6 +99,22 @@
             <a href="/beta/">Beta notes</a>
             <a href="/support/">Support</a>
           </p>
+        </article>
+
+        <article class="panel detail-panel">
+          <div class="eyebrow">Windows fallback</div>
+          <h2>Manual Windows CLI path</h2>
+          <p>
+            Fallback only. The desktop installer remains the primary path. Use this only if the Windows installer path is blocked and only after the Windows CLI bundle is published on this site.
+          </p>
+          <div class="list">
+            <div>PowerShell metadata-driven fallback:</div>
+          </div>
+          <pre><code>$meta = Invoke-RestMethod "https://kiwi-control.kiwi-ai.in/data/latest-release.json"; if (-not $meta.publicReleaseReady -or -not $meta.artifacts.cliWindows.latestUrl) { throw "Windows CLI bundle is not published yet. Use the desktop installer path for now." }; $zip = Join-Path $env:TEMP "kiwi-control-cli.zip"; $dir = Join-Path $env:TEMP "kiwi-control-cli"; Invoke-WebRequest $meta.artifacts.cliWindows.latestUrl -OutFile $zip; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; Expand-Archive $zip -DestinationPath $dir -Force; &amp; (Join-Path $dir "install.ps1"); Get-Command kc; kc --help</code></pre>
+          <div class="list">
+            <div>`curl.exe` download fallback:</div>
+          </div>
+          <pre><code>$meta = Invoke-RestMethod "https://kiwi-control.kiwi-ai.in/data/latest-release.json"; if (-not $meta.publicReleaseReady -or -not $meta.artifacts.cliWindows.latestUrl) { throw "Windows CLI bundle is not published yet. Use the desktop installer path for now." }; $zip = Join-Path $env:TEMP "kiwi-control-cli.zip"; $dir = Join-Path $env:TEMP "kiwi-control-cli"; curl.exe -L $meta.artifacts.cliWindows.latestUrl -o $zip; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; Expand-Archive $zip -DestinationPath $dir -Force; &amp; (Join-Path $dir "install.ps1"); Get-Command kc; kc --help</code></pre>
         </article>
       </section>
 

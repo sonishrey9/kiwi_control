@@ -128,8 +128,8 @@ export function buildOnboardingPanelModel(params: {
   return {
     title: "Start in the app",
     intro: platform === "windows"
-      ? "Open Kiwi Control, choose a repo, initialize it if needed, and work. Windows installs should make kc available in a fresh terminal after setup, and the app can repair terminal command setup if that install-time path did not complete."
-      : "Open Kiwi Control, choose a repo, initialize it if needed, and work. Installed macOS desktop builds auto-attempt terminal command setup on first launch and record whether fresh-shell verification succeeds.",
+      ? "Open Kiwi Control, choose a repo, initialize it if needed, and work. Windows installs are prepared to make kc available in a fresh terminal after setup, but real Windows-host proof is still pending. If blocked, the app can repair terminal command setup."
+      : "Open Kiwi Control, choose a repo, initialize it if needed, and work. Installed macOS desktop builds auto-attempt terminal command setup on first launch, and that default CLI path is already proven for current wording.",
     desktopStatus,
     cliStatus,
     repoStatus,
@@ -137,8 +137,8 @@ export function buildOnboardingPanelModel(params: {
     actions,
     note: runtimeInfo?.runtimeMode === "installed-user"
       ? platform === "windows"
-        ? "Desktop-first is still the default path. Windows setup should handle kc automatically, and Kiwi will show a one-click repair step if that does not happen."
-        : "Desktop-first is still the default path. Kiwi auto-attempts kc setup on first launch for installed macOS builds and will tell you exactly how to fix setup if that step cannot complete."
+        ? "Desktop-first is still the default path. Windows setup EXE remains the primary path, and Kiwi keeps a one-click repair step visible until real Windows-host proof is complete."
+        : "Desktop-first is still the default path. Kiwi auto-attempts kc setup on first launch for installed macOS builds, and the app still shows exact retry/remediation steps if that path is blocked."
       : "Developer/source mode keeps the source checkout in control of desktop launching."
   };
 }

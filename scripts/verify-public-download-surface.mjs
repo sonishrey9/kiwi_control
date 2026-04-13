@@ -63,9 +63,10 @@ async function verifyLocalSite(siteDir) {
     ? missingPhrase(downloadsHtml, "Cloudflare hosting does not replace signing proof")
     : [];
   const platformSplitMissing = [
+    ...missingPhrase(indexHtml, "macOS default CLI path is already proven"),
     ...missingPhrase(downloadsHtml, "setup EXE is the intended default Windows path"),
-    ...missingPhrase(installHtml, "macOS: launch the app once"),
-    ...missingPhrase(installHtml, "Public automatic-readiness wording on Windows stays gated")
+    ...missingPhrase(installHtml, "proof is still pending on a real Windows host"),
+    ...missingPhrase(downloadsHtml, "Windows CLI bundle is not published yet. Use the desktop installer path for now.")
   ];
   const invalidReleaseReadyMetadata = releaseReady ? validateReleaseReadyMetadata(metadata) : [];
 
@@ -123,9 +124,10 @@ async function verifyRemoteSite({ siteUrl }) {
     ? missingPhrase(downloadsHtml, "Cloudflare hosting does not replace signing proof")
     : [];
   const platformSplitMissing = [
+    ...missingPhrase(siteHtml, "macOS default CLI path is already proven"),
     ...missingPhrase(downloadsHtml, "setup EXE is the intended default Windows path"),
-    ...missingPhrase(installHtml, "macOS: launch the app once"),
-    ...missingPhrase(installHtml, "Public automatic-readiness wording on Windows stays gated")
+    ...missingPhrase(installHtml, "proof is still pending on a real Windows host"),
+    ...missingPhrase(downloadsHtml, "Windows CLI bundle is not published yet. Use the desktop installer path for now.")
   ];
   const invalidReleaseReadyMetadata = releaseReady ? validateReleaseReadyMetadata(metadata) : [];
   const oldWordings = [

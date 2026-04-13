@@ -37,8 +37,8 @@
           <h2>Desktop install</h2>
           <div class="list">
             <div>1. Download the macOS or Windows desktop installer from the homepage or <a href="/downloads/">all downloads</a>.</div>
-            <div>2. Windows: prefer the setup EXE for the normal Windows install path.</div>
-            <div>3. macOS: launch the app once so Kiwi can auto-attempt CLI setup inside the desktop flow.</div>
+            <div>2. macOS: launch the app once. This default CLI path is already proven.</div>
+            <div>3. Windows: prefer the setup EXE for the normal Windows install path. Real Windows-host proof is still pending.</div>
             <div>4. Choose a repo, initialize it if needed, and keep using desktop or <code>kc</code> after the platform-specific setup succeeds.</div>
           </div>
         </article>
@@ -46,10 +46,10 @@
         <article class="panel">
           <h2>Default terminal command setup</h2>
           <div class="list">
-            <div>1. Windows setup EXE is the intended default Windows path for installer-time CLI setup.</div>
-            <div>2. Public automatic-readiness wording on Windows stays gated on one completed real Windows host proof.</div>
-            <div>3. macOS may ask for administrator approval on first launch to write command shims into <code>/usr/local/bin</code>.</div>
-            <div>4. If macOS launch-time setup does not complete cleanly, use the in-app terminal-command enable flow instead of editing PATH manually.</div>
+            <div>1. macOS launch-once CLI setup is already proven for the current wording.</div>
+            <div>2. Windows setup EXE is the intended default Windows path for installer-time CLI setup, but proof is still pending on a real Windows host.</div>
+            <div>3. If macOS launch-time setup does not complete cleanly, use the in-app terminal-command enable flow instead of editing PATH manually.</div>
+            <div>4. If Windows setup is blocked later, use the fallback manual CLI path below. Keep the desktop installer as the primary path.</div>
           </div>
         </article>
 
@@ -90,6 +90,15 @@
             <a href="/downloads/">Open downloads</a>
             <a href="/support/">Support</a>
           </p>
+        </article>
+
+        <article class="panel detail-panel">
+          <div class="eyebrow">Windows fallback</div>
+          <h2>Secondary manual CLI path</h2>
+          <p>
+            Fallback only. The desktop installer remains primary. Use this path only if the Windows installer flow is blocked and only after the Windows CLI bundle is published on this site.
+          </p>
+          <pre><code>$meta = Invoke-RestMethod "https://kiwi-control.kiwi-ai.in/data/latest-release.json"; if (-not $meta.publicReleaseReady -or -not $meta.artifacts.cliWindows.latestUrl) { throw "Windows CLI bundle is not published yet. Use the desktop installer path for now." }; $zip = Join-Path $env:TEMP "kiwi-control-cli.zip"; $dir = Join-Path $env:TEMP "kiwi-control-cli"; Invoke-WebRequest $meta.artifacts.cliWindows.latestUrl -OutFile $zip; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; Expand-Archive $zip -DestinationPath $dir -Force; &amp; (Join-Path $dir "install.ps1"); Get-Command kc; kc --help</code></pre>
         </article>
       </section>
 

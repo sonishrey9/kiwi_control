@@ -35,8 +35,8 @@ For most users, the fastest path is:
 
 1. Download Kiwi Control from the [installer-first website](https://kiwi-control.kiwi-ai.in/) or the public [downloads page](https://kiwi-control.kiwi-ai.in/downloads/).
 2. Install the desktop app for macOS or Windows.
-3. Windows: the setup EXE is the intended default path for installer-time `kc` setup, but public automatic-readiness claims stay gated on real Windows-host proof.
-4. macOS: launch Kiwi Control once so the app can finish CLI setup, then use the in-app enable flow if that step does not complete cleanly.
+3. macOS: launch Kiwi Control once so the app can finish CLI setup. This default CLI path is already proven for current wording.
+4. Windows: the setup EXE is the intended default path for installer-time `kc` setup, but public automatic-readiness claims stay gated on real Windows-host proof.
 5. Choose a repo and initialize it if needed.
 6. Keep using the app, or use `kc` too after the platform-specific setup succeeds.
 
