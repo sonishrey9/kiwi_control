@@ -31,6 +31,15 @@ coverage/
 .playwright-cli/
 output/playwright/
 dist/release/
+output/demo/2026-04-14-live-demo-final/
+output/demo/2026-04-14-video-final/raw/
+output/demo/2026-04-14-video-final/support/
+output/demo/2026-04-14-video-final/terminal-demo-repo/
+output/demo/2026-04-14-video-final/final/kiwi-control-demo-complete.mov
+output/demo/2026-04-14-video-final/final/kiwi-control-demo-final.mov
+scripts/build-demo-video-assets.mjs
+scripts/record-demo-video.sh
+scripts/record-terminal-demo-run.sh
 docs/._*
 .github/**/._*
 website/._*

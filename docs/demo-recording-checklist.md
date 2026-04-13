@@ -3,22 +3,22 @@
 ## Preflight
 
 - Confirm you are on `main`.
-- Confirm the only pre-existing unrelated local edit is still `scripts/package-release-assets.mjs`.
 - Run `node scripts/run-demo-proof.mjs`.
-- Keep `output/demo/2026-04-13-live-proof/README.md` open as the artifact index.
-- Use the local built site for install-path recording unless the public `/install` and `/downloads` routes are fixed.
+- Keep `output/demo/2026-04-14-live-demo-final/README.md` open as the artifact index.
+- Confirm the live public routes return `200`: `/`, `/install/`, and `/downloads/`.
 - Close distracting apps before taking desktop screenshots. Fresh automated foregrounding was unreliable during proof capture.
+- Hide `.env` and any secret-bearing windows before screen recording.
 
 ## Recording Order
 
 ### 1. Install path
 
-- Start a local static server for `dist/site`.
+- Use the live site.
 - Show:
   - home page
   - install guide
   - downloads page
-- Do not show the live public `/install` or `/downloads` routes unless you have rechecked them first.
+- Fallback to `dist/site` only if the live route check fails.
 
 ### 2. Current repo truth
 
@@ -67,7 +67,7 @@
 ### 6. Desktop sync
 
 - Run `kc ui --target "$DEMO_REPO"`.
-- If the live app is slow to foreground, use the reference screenshots plus the fresh render-probe JSON from `output/demo/2026-04-13-live-proof/cli-ui-truth`.
+- If the live app is slow to foreground, use the reference screenshots plus the fresh render-probe JSON from `output/demo/2026-04-14-live-demo-final/cli-ui-truth`.
 - Highlight:
   - queued state
   - blocked state
@@ -86,13 +86,13 @@
 
 - `docs/live-demo-guide.md`
 - `docs/demo-script.md`
-- `output/demo/2026-04-13-live-proof/README.md`
-- `output/demo/2026-04-13-live-proof/site/local-home.png`
-- `output/demo/2026-04-13-live-proof/site/local-install.png`
-- `output/demo/2026-04-13-live-proof/site/local-downloads.png`
-- `output/demo/2026-04-13-live-proof/reference-desktop/current-ready.png`
-- `output/demo/2026-04-13-live-proof/reference-desktop/external-blocked.png`
-- `output/demo/2026-04-13-live-proof/reference-desktop/external-recovered.png`
+- `output/demo/2026-04-14-live-demo-final/README.md`
+- `output/demo/2026-04-14-live-demo-final/site/live-home.png`
+- `output/demo/2026-04-14-live-demo-final/site/live-install.png`
+- `output/demo/2026-04-14-live-demo-final/site/live-downloads.png`
+- `output/demo/2026-04-14-live-demo-final/reference-desktop/current-ready.png`
+- `output/demo/2026-04-14-live-demo-final/reference-desktop/external-blocked.png`
+- `output/demo/2026-04-14-live-demo-final/reference-desktop/external-recovered.png`
 
 ## On-Screen Cleanliness
 
@@ -106,4 +106,10 @@
 - Public `/install` or `/downloads` still returns `AccessDenied` and you were planning to show the live public site.
 - The desktop app is not foregrounding reliably enough for clean capture.
 - `kc graph build` fails or reports stale output after refresh.
-- `scripts/package-release-assets.mjs` changes further during recording.
+- Any secret-bearing window is visible during recording.
+
+## Final Video Files
+
+- Use `output/demo/2026-04-14-video-final/final/kiwi-control-demo-complete-github.mov` as the main shareable demo.
+- Use `output/demo/2026-04-14-video-final/final/kiwi-control-demo-short.mov` for a short preview.
+- Raw recordings and local helper scripts are intentionally ignored and not part of the repo deliverable.
