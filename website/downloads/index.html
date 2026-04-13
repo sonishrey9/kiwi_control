@@ -58,7 +58,10 @@
         <article class="panel">
           <h2>Optional CLI bundles</h2>
           <p>
-            Desktop install stays primary. These bundles remain optional for users who explicitly want the standalone CLI path.
+            Desktop install stays primary. These bundles remain optional for users who explicitly want the standalone CLI path. They install <code>kiwi-control</code> and <code>kc</code> only. They do not install the desktop app.
+          </p>
+          <p>
+            If Kiwi Control Desktop is already installed, <code>kc ui</code> can launch or attach to it. Homebrew and winget are not published for this beta.
           </p>
           <div class="list">
             <div><a href="/downloads/" data-download-link data-download-kind="cliMacos" data-primary-label="Download macOS CLI bundle" data-unavailable-label="macOS CLI bundle coming soon">macOS CLI bundle coming soon</a></div>
@@ -91,6 +94,19 @@
         </article>
 
         <article class="panel detail-panel">
+          <div class="eyebrow">macOS CLI fallback</div>
+          <h2>Published curl install for the standalone CLI</h2>
+          <p>
+            This installs the standalone CLI bundle only. It does not install the desktop app.
+          </p>
+          <pre><code>tmpdir="$(mktemp -d)"
+archive_url="$(curl -fsSL https://kiwi-control.kiwi-ai.in/data/latest-release.json | node -e 'let json=\"\"; process.stdin.on(\"data\", (chunk) => json += chunk); process.stdin.on(\"end\", () => { const meta = JSON.parse(json); const url = meta.artifacts?.cliMacos?.latestUrl; if (!url) { console.error(\"macOS CLI bundle is not published yet. Use the desktop installer path for now.\"); process.exit(1); } process.stdout.write(url); });')"
+curl -fsSL "$archive_url" -o "$tmpdir/kiwi-control-cli.tar.gz"
+tar -xzf "$tmpdir/kiwi-control-cli.tar.gz" -C "$tmpdir"
+"$tmpdir/install.sh"</code></pre>
+        </article>
+
+        <article class="panel detail-panel">
           <div class="eyebrow">Where to look now</div>
           <h2>Stay on the single public host</h2>
           <p>
@@ -111,11 +127,11 @@
           <div class="list">
             <div>PowerShell metadata-driven fallback:</div>
           </div>
-          <pre><code>$meta = Invoke-RestMethod "https://kiwi-control.kiwi-ai.in/data/latest-release.json"; if (-not $meta.publicReleaseReady -or -not $meta.artifacts.cliWindows.latestUrl) { throw "Windows CLI bundle is not published yet. Use the desktop installer path for now." }; $zip = Join-Path $env:TEMP "kiwi-control-cli.zip"; $dir = Join-Path $env:TEMP "kiwi-control-cli"; Invoke-WebRequest $meta.artifacts.cliWindows.latestUrl -OutFile $zip; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; Expand-Archive $zip -DestinationPath $dir -Force; &amp; (Join-Path $dir "install.ps1"); Get-Command kc; kc --help</code></pre>
+          <pre><code>$meta = Invoke-RestMethod "https://kiwi-control.kiwi-ai.in/data/latest-release.json"; if (-not $meta.artifacts.cliWindows.latestUrl) { throw "Windows CLI bundle is not published yet. Use the desktop installer path for now." }; $zip = Join-Path $env:TEMP "kiwi-control-cli.zip"; $dir = Join-Path $env:TEMP "kiwi-control-cli"; Invoke-WebRequest $meta.artifacts.cliWindows.latestUrl -OutFile $zip; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; Expand-Archive $zip -DestinationPath $dir -Force; &amp; (Join-Path $dir "install.ps1"); Get-Command kc; kc --help</code></pre>
           <div class="list">
             <div>`curl.exe` download fallback:</div>
           </div>
-          <pre><code>$meta = Invoke-RestMethod "https://kiwi-control.kiwi-ai.in/data/latest-release.json"; if (-not $meta.publicReleaseReady -or -not $meta.artifacts.cliWindows.latestUrl) { throw "Windows CLI bundle is not published yet. Use the desktop installer path for now." }; $zip = Join-Path $env:TEMP "kiwi-control-cli.zip"; $dir = Join-Path $env:TEMP "kiwi-control-cli"; curl.exe -L $meta.artifacts.cliWindows.latestUrl -o $zip; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; Expand-Archive $zip -DestinationPath $dir -Force; &amp; (Join-Path $dir "install.ps1"); Get-Command kc; kc --help</code></pre>
+          <pre><code>$meta = Invoke-RestMethod "https://kiwi-control.kiwi-ai.in/data/latest-release.json"; if (-not $meta.artifacts.cliWindows.latestUrl) { throw "Windows CLI bundle is not published yet. Use the desktop installer path for now." }; $zip = Join-Path $env:TEMP "kiwi-control-cli.zip"; $dir = Join-Path $env:TEMP "kiwi-control-cli"; curl.exe -L $meta.artifacts.cliWindows.latestUrl -o $zip; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; Expand-Archive $zip -DestinationPath $dir -Force; &amp; (Join-Path $dir "install.ps1"); Get-Command kc; kc --help</code></pre>
         </article>
       </section>
 

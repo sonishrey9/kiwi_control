@@ -1,6 +1,6 @@
 # Kiwi Control Security & Trust
 
-Last updated: April 4, 2026
+Last updated: April 13, 2026
 
 ## Security model summary
 
@@ -23,6 +23,7 @@ Current Kiwi Control beta behavior:
 - desktop auto-load of the current repo after CLI launch acknowledgement
 - Windows packaging is being upgraded so the setup EXE can handle terminal command setup during install, but public “ready by default” claims still require real Windows-host proof
 - macOS pkg is the intended default path for install-time terminal command setup, while the in-app repair step remains fallback only
+- the standalone CLI bundle installs `kiwi-control` and `kc` only; it does not install the desktop app
 
 ## What the product does not claim yet
 
@@ -45,6 +46,8 @@ This bridge is intentionally local and minimal:
 - it hands the current repo path from CLI to desktop
 - it waits for the desktop app to acknowledge readiness
 - it avoids moving repo truth into app-owned storage
+
+`kc ui` is a local launch or attach path. It only works when Kiwi Control Desktop is already installed on the same machine.
 
 ## Secrets and repo data
 

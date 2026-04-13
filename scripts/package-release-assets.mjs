@@ -18,16 +18,14 @@ await mkdir(assetsDir, { recursive: true });
 
 const createdAssets = [];
 
-const cliArtifact = requireArtifact(manifest, {
-  artifactType: "cli",
-  platform,
-  arch
-});
-await packageDirectory({
-  sourceDir: path.join(releaseDir, "cli-bundle"),
-  outputPath: path.join(assetsDir, cliArtifact.fileName)
-});
-createdAssets.push(cliArtifact.fileName);
+const cliArtifacts = collectCliArtifacts(manifest, { platform, arch });
+for (const cliArtifact of cliArtifacts) {
+  await packageDirectory({
+    sourceDir: path.join(releaseDir, "cli-bundle"),
+    outputPath: path.join(assetsDir, cliArtifact.fileName)
+  });
+  createdAssets.push(cliArtifact.fileName);
+}
 
 for (const artifactType of ["runtime", "ui-web"]) {
   const artifact = requireArtifact(manifest, { artifactType });
@@ -106,6 +104,21 @@ function requireArtifact(manifestPayload, criteria) {
   }
 
   return artifact;
+}
+
+function collectCliArtifacts(manifestPayload, criteria) {
+  const currentCliArtifact = requireArtifact(manifestPayload, {
+    artifactType: "cli",
+    platform: criteria.platform,
+    arch: criteria.arch
+  });
+  const additionalCliArtifacts = criteria.platform === "macos"
+    ? manifestPayload.artifacts.filter(
+        (candidate) => candidate.artifactType === "cli" && candidate.platform === "windows"
+      )
+    : [];
+
+  return [...new Map([currentCliArtifact, ...additionalCliArtifacts].map((artifact) => [artifact.fileName, artifact])).values()];
 }
 
 function findDesktopArtifacts(manifestPayload, criteria) {

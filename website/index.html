@@ -88,6 +88,9 @@
           <p>
             Kiwi Control is still designed for desktop-first install. On macOS the pkg installer is now the intended default path for install-time <code>kc</code> setup, with DMG kept as a secondary beta path. Windows setup EXE remains the intended default Windows path, but that path is still waiting for real Windows-host verification.
           </p>
+          <p>
+            The standalone CLI bundle installs <code>kiwi-control</code> and <code>kc</code> only. It does not install the desktop app. If Kiwi Control Desktop is already installed, <code>kc ui</code> can launch or attach to it.
+          </p>
         </article>
         <article class="panel">
           <h2>Trust still matters</h2>
@@ -103,7 +106,8 @@
             <div>1. Download the desktop installer for macOS or Windows.</div>
             <div>2. macOS: prefer the pkg installer for install-time CLI setup. DMG remains the secondary manual beta path.</div>
             <div>3. Windows: prefer the setup EXE for the normal installer path. Real Windows-host proof is still pending.</div>
-            <div>4. If Windows setup is blocked later, use the fallback manual CLI path on the downloads page. Desktop installer remains primary.</div>
+            <div>4. If you only want the CLI, use the published CLI bundle or the macOS curl path on the install guide. That CLI path does not install the desktop app.</div>
+            <div>5. If Windows setup is blocked later, use the fallback manual CLI path on the downloads page. Desktop installer remains primary.</div>
           </div>
           <p class="detail-link-row">
             <a href="/downloads/">Open downloads status</a>

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 function repoRoot(): string {
@@ -560,7 +560,12 @@ test("Pages staging rejects fallback metadata when downloads metadata is require
     "--require-downloads-json"
   ], {
     cwd: root,
-    encoding: "utf8"
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      SITE_URL: "http://127.0.0.1:1",
+      DOWNLOADS_URL: ""
+    }
   });
 
   assert.notEqual(stageResult.status, 0);
@@ -594,3 +599,255 @@ test("public download verifier fails when a not-ready site is treated as release
 
   assert.notEqual(verifyResult.status, 0);
 });
+
+test("Pages staging falls back to SITE_URL when DOWNLOADS_URL is unset", async () => {
+  const root = repoRoot();
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-pages-stage-site-url-"));
+  const outputDir = path.join(tempDir, "dist-site");
+  const downloadsPayload = {
+    tagName: "v0.2.0-beta.1",
+    version: "0.2.0-beta.1",
+    channel: "beta",
+    publicReleaseReady: false,
+    releaseNotesUrl: null,
+    sourceUrl: null,
+    checksumsUrl: "https://downloads.example.com/latest/SHA256SUMS.txt",
+    manifestUrl: "https://downloads.example.com/latest/release-manifest.json",
+    trust: {
+      macos: "local-beta-build-only",
+      windows: "windows-runner-required"
+    },
+    artifacts: {
+      macosPkg: {
+        filename: "kiwi-control-0.2.0-beta.1-macos-aarch64.pkg",
+        latestUrl: "https://downloads.example.com/latest/macos/kiwi-control.pkg",
+        versionedUrl: "https://downloads.example.com/releases/v0.2.0-beta.1/kiwi-control-0.2.0-beta.1-macos-aarch64.pkg"
+      },
+      macosDmg: {
+        filename: "kiwi-control-0.2.0-beta.1-macos-aarch64.dmg",
+        latestUrl: "https://downloads.example.com/latest/macos/kiwi-control.dmg",
+        versionedUrl: "https://downloads.example.com/releases/v0.2.0-beta.1/kiwi-control-0.2.0-beta.1-macos-aarch64.dmg"
+      },
+      macosAppTarball: {
+        filename: "kiwi-control-0.2.0-beta.1-macos-aarch64.app.tar.gz",
+        latestUrl: "https://downloads.example.com/latest/macos/kiwi-control.app.tar.gz",
+        versionedUrl: "https://downloads.example.com/releases/v0.2.0-beta.1/kiwi-control-0.2.0-beta.1-macos-aarch64.app.tar.gz"
+      },
+      windowsNsis: {
+        filename: "kiwi-control-setup.exe",
+        latestUrl: null,
+        versionedUrl: null
+      },
+      windowsMsi: {
+        filename: "kiwi-control.msi",
+        latestUrl: null,
+        versionedUrl: null
+      },
+      cliMacos: {
+        filename: "kiwi-control-cli-0.2.0-beta.1-macos-aarch64.tar.gz",
+        latestUrl: "https://downloads.example.com/latest/macos/kiwi-control-cli.tar.gz",
+        versionedUrl: "https://downloads.example.com/releases/v0.2.0-beta.1/kiwi-control-cli-0.2.0-beta.1-macos-aarch64.tar.gz"
+      },
+      cliWindows: {
+        filename: "kiwi-control-cli.zip",
+        latestUrl: null,
+        versionedUrl: null
+      }
+    }
+  };
+
+  const { child, siteUrl } = await startDownloadsMetadataServer(root, downloadsPayload);
+
+  try {
+    const stageResult = spawnSync(process.execPath, [
+      path.join(root, "scripts", "stage-pages-site.mjs"),
+      "--output-dir",
+      outputDir
+    ], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        SITE_URL: siteUrl,
+        DOWNLOADS_URL: ""
+      }
+    });
+
+    assert.equal(stageResult.status, 0, stageResult.stderr || stageResult.stdout);
+    const payload = JSON.parse(stageResult.stdout) as {
+      downloadsSource: string;
+      checksumsUrl: string | null;
+    };
+    assert.equal(payload.downloadsSource, "remote-json");
+    assert.equal(payload.checksumsUrl, downloadsPayload.checksumsUrl);
+
+    const metadata = JSON.parse(await fs.readFile(path.join(outputDir, "data", "latest-release.json"), "utf8"));
+    assert.deepEqual(metadata, downloadsPayload);
+  } finally {
+    await stopChildProcess(child);
+  }
+});
+
+test("release asset packager includes the Windows CLI zip on macOS builders", async (t) => {
+  if (process.platform !== "darwin") {
+    t.skip("macOS-only cross-packaging verification");
+    return;
+  }
+
+  const root = repoRoot();
+  const releaseDir = path.join(root, "dist", "release");
+  const manifestPath = path.join(releaseDir, "release-manifest.json");
+  const assetsDir = path.join(releaseDir, "assets");
+  const cliBundleDir = path.join(releaseDir, "cli-bundle");
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-package-assets-"));
+  const manifestBackupPath = path.join(tempDir, "release-manifest.json");
+  const assetsBackupPath = path.join(tempDir, "assets");
+  const cliBundleBackupPath = path.join(tempDir, "cli-bundle");
+  const previousManifest = await fs.readFile(manifestPath, "utf8");
+  const hadAssetsDir = await fs.stat(assetsDir).then(() => true).catch(() => false);
+  const hadCliBundleDir = await fs.stat(cliBundleDir).then(() => true).catch(() => false);
+
+  if (hadAssetsDir) {
+    await fs.cp(assetsDir, assetsBackupPath, { recursive: true });
+  }
+  if (hadCliBundleDir) {
+    await fs.cp(cliBundleDir, cliBundleBackupPath, { recursive: true });
+  }
+  await fs.writeFile(manifestBackupPath, previousManifest, "utf8");
+
+  try {
+    await fs.rm(assetsDir, { recursive: true, force: true });
+    await fs.rm(cliBundleDir, { recursive: true, force: true });
+    await fs.mkdir(cliBundleDir, { recursive: true });
+    await fs.writeFile(path.join(cliBundleDir, "README.md"), "cli bundle", "utf8");
+    await fs.writeFile(path.join(cliBundleDir, "install.sh"), "#!/usr/bin/env bash\necho install\n", "utf8");
+    await fs.writeFile(path.join(cliBundleDir, "install.ps1"), "Write-Host install\n", "utf8");
+
+    const manifest = {
+      version: "0.2.0-beta.1",
+      channel: "beta",
+      artifacts: [
+        { artifactType: "cli", platform: "macos", arch: "aarch64", fileName: "kiwi-control-cli-0.2.0-beta.1-macos-aarch64.tar.gz" },
+        { artifactType: "cli", platform: "windows", arch: "x64", fileName: "kiwi-control-cli-0.2.0-beta.1-windows-x64.zip" },
+        { artifactType: "runtime", sourcePath: "packages/sj-core/dist/runtime", fileName: "kiwi-control-runtime-0.2.0-beta.1-${os}-${arch}.tar.gz" },
+        { artifactType: "ui-web", sourcePath: "apps/sj-ui/dist", fileName: "kiwi-control-ui-web-0.2.0-beta.1-${os}-${arch}.tar.gz" }
+      ]
+    };
+    await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), "utf8");
+
+    const result = spawnSync(process.execPath, [path.join(root, "scripts", "package-release-assets.mjs")], {
+      cwd: root,
+      encoding: "utf8"
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const payload = JSON.parse(result.stdout) as { createdAssets: string[] };
+    assert.equal(payload.createdAssets.includes("kiwi-control-cli-0.2.0-beta.1-macos-aarch64.tar.gz"), true);
+    assert.equal(payload.createdAssets.includes("kiwi-control-cli-0.2.0-beta.1-windows-x64.zip"), true);
+    await fs.access(path.join(assetsDir, "kiwi-control-cli-0.2.0-beta.1-windows-x64.zip"));
+  } finally {
+    await fs.rm(assetsDir, { recursive: true, force: true });
+    if (hadAssetsDir) {
+      await fs.cp(assetsBackupPath, assetsDir, { recursive: true });
+    }
+
+    await fs.rm(cliBundleDir, { recursive: true, force: true });
+    if (hadCliBundleDir) {
+      await fs.cp(cliBundleBackupPath, cliBundleDir, { recursive: true });
+    }
+
+    await fs.writeFile(manifestPath, await fs.readFile(manifestBackupPath, "utf8"), "utf8");
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+async function startDownloadsMetadataServer(root: string, downloadsPayload: object) {
+  const server = spawn(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      `import http from "node:http";
+const payload = JSON.parse(process.env.DOWNLOADS_PAYLOAD ?? "{}");
+const server = http.createServer((request, response) => {
+  if (request.url === "/latest/downloads.json") {
+    response.setHeader("content-type", "application/json");
+    response.end(JSON.stringify(payload));
+    return;
+  }
+  response.statusCode = 404;
+  response.end("not found");
+});
+server.listen(0, "127.0.0.1", () => {
+  const address = server.address();
+  if (!address || typeof address === "string") {
+    console.error("invalid-address");
+    process.exit(1);
+    return;
+  }
+  console.log(address.port);
+});`
+    ],
+    {
+      cwd: root,
+      env: {
+        ...process.env,
+        DOWNLOADS_PAYLOAD: JSON.stringify(downloadsPayload)
+      },
+      stdio: ["ignore", "pipe", "pipe"]
+    }
+  );
+
+  const port = await new Promise<number>((resolve, reject) => {
+    let stderr = "";
+    let settled = false;
+
+    server.stderr?.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    server.stdout?.on("data", (chunk) => {
+      if (settled) {
+        return;
+      }
+      const value = Number(chunk.toString().trim().split(/\r?\n/)[0]);
+      if (!Number.isFinite(value)) {
+        return;
+      }
+      settled = true;
+      resolve(value);
+    });
+
+    server.on("error", (error) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      reject(error);
+    });
+
+    server.on("exit", (code) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      reject(new Error(stderr || `downloads metadata server exited with code ${code ?? "unknown"}`));
+    });
+  });
+
+  return {
+    child: server,
+    siteUrl: `http://127.0.0.1:${port}`
+  };
+}
+
+async function stopChildProcess(child: ReturnType<typeof spawn>) {
+  if (child.killed) {
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    child.once("exit", () => resolve());
+    child.kill();
+  });
+}

@@ -22,6 +22,7 @@ bash scripts/smoke-test.sh
 npm run release:manifest
 npm run release:checksums
 npm run release:trust -- --platform macos --json
+export SITE_URL="https://kiwi-control.kiwi-ai.in"
 node scripts/stage-pages-site.mjs --output-dir dist/site
 ```
 
@@ -128,6 +129,7 @@ The intended public beta path is:
 6. keep release notes explicit about signing, notarization, and trust status
 
 macOS pkg is the intended default beta installer path for install-time terminal command setup. The desktop app still keeps repair/remediation available if installer-owned setup does not complete, and DMG remains a secondary manual beta path.
+Partial publication is allowed. If only the macOS installer set and the macOS CLI bundle are live, keep `publicReleaseReady=false` and leave Windows asset URLs null.
 
 ## Signing inputs
 
@@ -164,6 +166,7 @@ Official Tauri signing and notarization inputs used by this repo:
   - optional source or release-history links only when they are public and reachable
 - `/downloads/` should be a real public route backed by `/data/latest-release.json`
 - `/data/latest-release.json` must mirror `SITE_URL/latest/downloads.json`
+- when `DOWNLOADS_URL` is unset, `stage-pages-site` should mirror `${SITE_URL}/latest/downloads.json`
 - do not set `publicReleaseReady=true` until the four core desktop latest URLs, checksums URL, and manifest URL are all live on the public AWS host
 - macOS primary installer should be `.pkg`
 - macOS DMG should remain secondary/manual unless it reaches the same default-ready proof bar
@@ -177,6 +180,7 @@ Official Tauri signing and notarization inputs used by this repo:
 - use `npm run release:trust -- --platform windows --json` on a Windows runner to verify installer signatures; macOS hosts can only report that the Windows path is wired, not prove installer trust
 - do not claim Homebrew or winget availability unless those channels are actually published
 - do not hide the Node 22+ requirement for the standalone beta CLI bundle
+- the standalone CLI bundle installs `kiwi-control` and `kc` only; it does not install the desktop app
 
 ## Platform caveats
 

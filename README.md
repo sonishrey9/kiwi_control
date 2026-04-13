@@ -44,6 +44,7 @@ For most users, the fastest path is:
 ### CLI path
 
 The standalone CLI bundle remains available from the public downloads page when it is actually published.
+It installs `kiwi-control` and `kc` only. It does not install the desktop app. If Kiwi Control Desktop is already installed on the machine, `kc ui` can launch or attach to it.
 
 After install:
 
@@ -52,7 +53,7 @@ kiwi-control --help
 kc status
 ```
 
-See [docs/install.md](./docs/install.md) for the detailed desktop, CLI, and contributor paths.
+See [docs/install.md](./docs/install.md) for the detailed desktop, CLI, macOS curl-install, and contributor paths.
 
 ## First repo flow
 

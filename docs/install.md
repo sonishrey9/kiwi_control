@@ -65,6 +65,7 @@ If verification succeeds but your current terminal is still stale, Kiwi will tel
 - Node.js 22 or newer when you are installing the standalone beta CLI bundle yourself
 
 The beta CLI bundle is still Node-backed. That is an intentional beta constraint, not a hidden runtime dependency.
+Homebrew and winget are not published for this beta yet. Use the published installer or CLI bundle links on the public site instead.
 
 ### Install from public downloads
 
@@ -89,6 +90,8 @@ After install, the public commands are:
 - `kiwi-control`
 - `kc`
 
+The standalone CLI bundle installs only those terminal commands. It does not install Kiwi Control Desktop. If Kiwi Control Desktop is already installed, `kc ui` can launch or attach to it.
+
 Fresh terminal verification:
 
 ```bash
@@ -103,6 +106,18 @@ Get-Command kc
 kc --help
 ```
 
+### macOS curl install path
+
+This path installs the standalone CLI bundle only. It does not install the desktop app.
+
+```bash
+tmpdir="$(mktemp -d)"
+archive_url="$(curl -fsSL https://kiwi-control.kiwi-ai.in/data/latest-release.json | node -e 'let json=\"\"; process.stdin.on(\"data\", (chunk) => json += chunk); process.stdin.on(\"end\", () => { const meta = JSON.parse(json); const url = meta.artifacts?.cliMacos?.latestUrl; if (!url) { console.error(\"macOS CLI bundle is not published yet. Use the desktop installer path for now.\"); process.exit(1); } process.stdout.write(url); });')"
+curl -fsSL "$archive_url" -o "$tmpdir/kiwi-control-cli.tar.gz"
+tar -xzf "$tmpdir/kiwi-control-cli.tar.gz" -C "$tmpdir"
+"$tmpdir/install.sh"
+```
+
 ### Windows fallback CLI path
 
 Fallback only. Keep the desktop installer as the primary path. Use this only if the Windows installer flow is blocked and only after the Windows CLI bundle is published on the public site.
@@ -110,13 +125,13 @@ Fallback only. Keep the desktop installer as the primary path. Use this only if 
 PowerShell metadata-driven fallback:
 
 ```powershell
-$meta = Invoke-RestMethod "https://kiwi-control.kiwi-ai.in/data/latest-release.json"; if (-not $meta.publicReleaseReady -or -not $meta.artifacts.cliWindows.latestUrl) { throw "Windows CLI bundle is not published yet. Use the desktop installer path for now." }; $zip = Join-Path $env:TEMP "kiwi-control-cli.zip"; $dir = Join-Path $env:TEMP "kiwi-control-cli"; Invoke-WebRequest $meta.artifacts.cliWindows.latestUrl -OutFile $zip; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; Expand-Archive $zip -DestinationPath $dir -Force; & (Join-Path $dir "install.ps1"); Get-Command kc; kc --help
+$meta = Invoke-RestMethod "https://kiwi-control.kiwi-ai.in/data/latest-release.json"; if (-not $meta.artifacts.cliWindows.latestUrl) { throw "Windows CLI bundle is not published yet. Use the desktop installer path for now." }; $zip = Join-Path $env:TEMP "kiwi-control-cli.zip"; $dir = Join-Path $env:TEMP "kiwi-control-cli"; Invoke-WebRequest $meta.artifacts.cliWindows.latestUrl -OutFile $zip; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; Expand-Archive $zip -DestinationPath $dir -Force; & (Join-Path $dir "install.ps1"); Get-Command kc; kc --help
 ```
 
 `curl.exe` variant:
 
 ```powershell
-$meta = Invoke-RestMethod "https://kiwi-control.kiwi-ai.in/data/latest-release.json"; if (-not $meta.publicReleaseReady -or -not $meta.artifacts.cliWindows.latestUrl) { throw "Windows CLI bundle is not published yet. Use the desktop installer path for now." }; $zip = Join-Path $env:TEMP "kiwi-control-cli.zip"; $dir = Join-Path $env:TEMP "kiwi-control-cli"; curl.exe -L $meta.artifacts.cliWindows.latestUrl -o $zip; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; Expand-Archive $zip -DestinationPath $dir -Force; & (Join-Path $dir "install.ps1"); Get-Command kc; kc --help
+$meta = Invoke-RestMethod "https://kiwi-control.kiwi-ai.in/data/latest-release.json"; if (-not $meta.artifacts.cliWindows.latestUrl) { throw "Windows CLI bundle is not published yet. Use the desktop installer path for now." }; $zip = Join-Path $env:TEMP "kiwi-control-cli.zip"; $dir = Join-Path $env:TEMP "kiwi-control-cli"; curl.exe -L $meta.artifacts.cliWindows.latestUrl -o $zip; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; Expand-Archive $zip -DestinationPath $dir -Force; & (Join-Path $dir "install.ps1"); Get-Command kc; kc --help
 ```
 
 ### First CLI flow

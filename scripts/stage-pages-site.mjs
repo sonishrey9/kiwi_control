@@ -9,7 +9,7 @@ loadLocalEnv();
 const args = parseArgs(process.argv.slice(2));
 const siteRoot = path.resolve(args.siteRoot ?? path.join(repoRoot, "website"));
 const outputDir = path.resolve(args.outputDir ?? path.join(repoRoot, "dist", "site"));
-const downloadsUrl = stripTrailingSlash(args.downloadsUrl ?? process.env.DOWNLOADS_URL ?? "");
+const downloadsUrl = stripTrailingSlash(firstNonEmpty(args.downloadsUrl, process.env.DOWNLOADS_URL, process.env.SITE_URL, ""));
 const repoUrl = stripTrailingSlash(args.repoUrl ?? process.env.REPO_URL ?? "https://github.com/sonishrey9/kiwi-control-backup");
 const packageJson = JSON.parse(await fs.readFile(path.join(repoRoot, "package.json"), "utf8"));
 
@@ -122,7 +122,7 @@ async function resolveReleaseMetadata({ downloadsJsonPath, downloadsUrl, repoUrl
       // Fall back to the built-in release metadata when remote downloads metadata is unavailable.
     }
   } else if (requireDownloadsJson) {
-    throw new Error("Missing required downloads metadata source. Pass --downloads-json or set DOWNLOADS_URL / --downloads-url.");
+    throw new Error("Missing required downloads metadata source. Pass --downloads-json or set DOWNLOADS_URL, SITE_URL, or --downloads-url.");
   }
 
   return {
@@ -203,6 +203,10 @@ async function removeMetadataArtifacts(rootDir) {
 
 function stripTrailingSlash(value) {
   return value.replace(/\/+$/, "");
+}
+
+function firstNonEmpty(...values) {
+  return values.find((value) => typeof value === "string" ? value.length > 0 : value != null) ?? "";
 }
 
 async function hydrateStaticSite(rootDir, release) {
