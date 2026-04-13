@@ -1,10 +1,19 @@
 #!/usr/bin/env node
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { promises as fs } from "node:fs";
 import { spawnSync } from "node:child_process";
+import {
+  buildAwsEnv,
+  headOrGet,
+  immutableCacheControl,
+  inferContentType,
+  joinUrl,
+  latestCacheControl,
+  repoRoot,
+  runAws,
+  stripTrailingSlash
+} from "./aws-public-common.mjs";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const URL_CHECK_ATTEMPTS = 5;
 const URL_CHECK_DELAY_MS = 3000;
 const CORE_ARTIFACT_KEYS = ["macosDmg", "macosAppTarball", "windowsNsis", "windowsMsi"];
@@ -53,11 +62,14 @@ const publishRoot = path.resolve(args.publishRoot ?? path.join(repoRoot, "dist",
 const manifestPath = path.join(publishRoot, "release-manifest.json");
 const checksumsPath = path.join(publishRoot, "SHA256SUMS.txt");
 const outputPath = path.resolve(args.output ?? path.join(publishRoot, "downloads.json"));
-const downloadsUrl = stripTrailingSlash(args.downloadsUrl ?? process.env.DOWNLOADS_URL ?? "");
-const bucket = args.bucket ?? process.env.CLOUDFLARE_R2_BUCKET ?? "";
+const siteUrl = stripTrailingSlash(firstNonEmpty(args.siteUrl, process.env.SITE_URL, ""));
+const bucket = firstNonEmpty(args.bucket, process.env.AWS_PUBLIC_BUCKET, siteUrl ? new URL(siteUrl).hostname : "");
 
-if (!downloadsUrl) {
-  throw new Error("Missing downloads base URL. Pass --downloads-url or set DOWNLOADS_URL.");
+if (!siteUrl) {
+  throw new Error("Missing site base URL. Pass --site-url or set SITE_URL.");
+}
+if (!bucket) {
+  throw new Error("Missing AWS public bucket. Pass --bucket or set AWS_PUBLIC_BUCKET.");
 }
 
 const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
@@ -91,7 +103,7 @@ const artifacts = Object.fromEntries(
 const provisionalDownloads = buildDownloadsPayload({
   manifest,
   tagName,
-  downloadsUrl,
+  siteUrl,
   artifacts,
   macosTrust,
   windowsTrust,
@@ -99,18 +111,15 @@ const provisionalDownloads = buildDownloadsPayload({
   sourceUrl
 });
 
-const artifactUploadPlan = await buildUploadPlan({
+const artifactUploadPlan = await buildArtifactUploadPlan({
   publishRoot,
   tagName,
-  downloadsUrl,
+  siteUrl,
   artifacts,
   metadataOnly
 });
 
 if (!args.dryRun) {
-  if (!bucket) {
-    throw new Error("Missing R2 bucket name. Pass --bucket or set CLOUDFLARE_R2_BUCKET.");
-  }
   for (const entry of artifactUploadPlan) {
     await putObject({
       bucket,
@@ -129,16 +138,16 @@ const { downloads, urlResults } = shouldCheckPublicUrls
 const finalDownloads = {
   ...downloads,
   publicReleaseReady: shouldCheckPublicUrls
-    ? isFullyReachableRelease(downloads)
-    : isStructurallyReadyRelease(downloads)
+    ? isReady(downloads)
+    : isStructurallyReady(downloads)
 };
 
 await fs.writeFile(outputPath, `${JSON.stringify(finalDownloads, null, 2)}\n`, "utf8");
 
-const metadataUploadPlan = buildMetadataUploadEntries({
+const metadataUploadPlan = buildMetadataUploadPlan({
   publishRoot,
   tagName,
-  downloadsUrl,
+  siteUrl,
   outputPath
 });
 
@@ -163,8 +172,8 @@ const payload = {
   dryRun: args.dryRun,
   metadataOnly,
   publishRoot: path.relative(repoRoot, publishRoot).replace(/\\/g, "/"),
-  downloadsUrl,
-  bucket: bucket || null,
+  siteUrl,
+  bucket,
   tagName,
   output: path.relative(repoRoot, outputPath).replace(/\\/g, "/"),
   publicReleaseReady: finalDownloads.publicReleaseReady,
@@ -186,7 +195,7 @@ process.exitCode = payload.ok ? 0 : 1;
 function parseArgs(argv) {
   const parsed = {
     publishRoot: null,
-    downloadsUrl: null,
+    siteUrl: null,
     bucket: null,
     releaseTag: null,
     output: null,
@@ -208,8 +217,8 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
-    if (token === "--downloads-url") {
-      parsed.downloadsUrl = argv[index + 1] ?? null;
+    if (token === "--site-url") {
+      parsed.siteUrl = argv[index + 1] ?? null;
       index += 1;
       continue;
     }
@@ -272,6 +281,10 @@ function parseArgs(argv) {
   return parsed;
 }
 
+function firstNonEmpty(...values) {
+  return values.find((value) => typeof value === "string" ? value.length > 0 : value != null);
+}
+
 async function resolveArtifact({ manifest, publishRoot, descriptor, metadataOnly, required }) {
   const manifestArtifact = resolveOptionalManifestArtifact({
     manifest,
@@ -303,7 +316,7 @@ async function resolveArtifact({ manifest, publishRoot, descriptor, metadataOnly
       };
     }
   } catch {
-    // Fall through to optional handling below.
+    // Fall through.
   }
 
   if (required) {
@@ -330,7 +343,7 @@ function resolveOptionalManifestArtifact({ manifest, artifactType, platform }) {
 function buildDownloadsPayload({
   manifest,
   tagName,
-  downloadsUrl,
+  siteUrl,
   artifacts,
   macosTrust,
   windowsTrust,
@@ -344,8 +357,8 @@ function buildDownloadsPayload({
     channel: manifest.channel ?? inferChannel(manifest.version),
     releaseNotesUrl,
     sourceUrl,
-    checksumsUrl: joinUrl(downloadsUrl, "latest/SHA256SUMS.txt"),
-    manifestUrl: joinUrl(downloadsUrl, "latest/release-manifest.json"),
+    checksumsUrl: joinUrl(siteUrl, "latest/SHA256SUMS.txt"),
+    manifestUrl: joinUrl(siteUrl, "latest/release-manifest.json"),
     trust: {
       macos: macosTrust.classification,
       windows: windowsTrust.classification
@@ -353,21 +366,21 @@ function buildDownloadsPayload({
     artifacts: Object.fromEntries(
       Object.entries(ARTIFACT_DESCRIPTORS).map(([key, descriptor]) => [
         key,
-        surfaceArtifact(downloadsUrl, tagName, descriptor, artifacts[key] ?? null)
+        surfaceArtifact(siteUrl, tagName, descriptor, artifacts[key] ?? null)
       ])
     )
   };
 }
 
-function surfaceArtifact(downloadsUrl, tagName, descriptor, artifact) {
+function surfaceArtifact(siteUrl, tagName, descriptor, artifact) {
   return {
     filename: artifact?.fileName ?? descriptor.fallbackFilename,
-    latestUrl: artifact ? joinUrl(downloadsUrl, descriptor.latestKey) : null,
-    versionedUrl: artifact ? joinUrl(downloadsUrl, `releases/${tagName}/${artifact.fileName}`) : null
+    latestUrl: artifact ? joinUrl(siteUrl, descriptor.latestKey) : null,
+    versionedUrl: artifact ? joinUrl(siteUrl, `releases/${tagName}/${artifact.fileName}`) : null
   };
 }
 
-async function buildUploadPlan({ publishRoot, tagName, downloadsUrl, artifacts, metadataOnly }) {
+async function buildArtifactUploadPlan({ publishRoot, tagName, siteUrl, artifacts, metadataOnly }) {
   const versionedEntries = [];
   const excludeNames = new Set([
     "downloads.json",
@@ -386,75 +399,71 @@ async function buildUploadPlan({ publishRoot, tagName, downloadsUrl, artifacts, 
         continue;
       }
       versionedEntries.push(makeUploadEntry({
-        downloadsUrl,
+        siteUrl,
         key: `releases/${tagName}/${path.basename(entry)}`,
-        filePath: entry
+        filePath: entry,
+        cacheControl: immutableCacheControl()
       }));
     }
   }
 
   const latestEntries = metadataOnly
     ? []
-    : Object.entries(ARTIFACT_DESCRIPTORS)
-      .flatMap(([key, descriptor]) => {
-        const artifact = artifacts[key];
-        if (!artifact?.filePath) {
-          return [];
-        }
-        return [makeUploadEntry({
-          downloadsUrl,
-          key: descriptor.latestKey,
-          filePath: artifact.filePath,
-          cacheControl: latestCacheControl()
-        })];
-      });
+    : Object.entries(ARTIFACT_DESCRIPTORS).flatMap(([key, descriptor]) => {
+      const artifact = artifacts[key];
+      if (!artifact?.filePath) {
+        return [];
+      }
+      return [makeUploadEntry({
+        siteUrl,
+        key: descriptor.latestKey,
+        filePath: artifact.filePath,
+        cacheControl: latestCacheControl()
+      })];
+    });
 
   return dedupeUploadEntries([...versionedEntries, ...latestEntries]);
 }
 
-function buildMetadataUploadEntries({ publishRoot, tagName, downloadsUrl, outputPath, includeDownloadsJson = true }) {
-  const entries = [
+function buildMetadataUploadPlan({ publishRoot, tagName, siteUrl, outputPath }) {
+  return [
     makeUploadEntry({
-      downloadsUrl,
+      siteUrl,
       key: `releases/${tagName}/release-manifest.json`,
-      filePath: path.join(publishRoot, "release-manifest.json")
+      filePath: path.join(publishRoot, "release-manifest.json"),
+      cacheControl: immutableCacheControl()
     }),
     makeUploadEntry({
-      downloadsUrl,
+      siteUrl,
       key: `releases/${tagName}/SHA256SUMS.txt`,
-      filePath: path.join(publishRoot, "SHA256SUMS.txt")
+      filePath: path.join(publishRoot, "SHA256SUMS.txt"),
+      cacheControl: immutableCacheControl()
     }),
     makeUploadEntry({
-      downloadsUrl,
+      siteUrl,
+      key: `releases/${tagName}/downloads.json`,
+      filePath: outputPath,
+      cacheControl: immutableCacheControl()
+    }),
+    makeUploadEntry({
+      siteUrl,
       key: "latest/release-manifest.json",
       filePath: path.join(publishRoot, "release-manifest.json"),
       cacheControl: latestCacheControl()
     }),
     makeUploadEntry({
-      downloadsUrl,
+      siteUrl,
       key: "latest/SHA256SUMS.txt",
       filePath: path.join(publishRoot, "SHA256SUMS.txt"),
       cacheControl: latestCacheControl()
+    }),
+    makeUploadEntry({
+      siteUrl,
+      key: "latest/downloads.json",
+      filePath: outputPath,
+      cacheControl: latestCacheControl()
     })
   ];
-
-  if (includeDownloadsJson) {
-    entries.push(
-      makeUploadEntry({
-        downloadsUrl,
-        key: `releases/${tagName}/downloads.json`,
-        filePath: outputPath
-      }),
-      makeUploadEntry({
-        downloadsUrl,
-        key: "latest/downloads.json",
-        filePath: outputPath,
-        cacheControl: latestCacheControl()
-      })
-    );
-  }
-
-  return entries;
 }
 
 async function pruneUnreachableUrls(downloads) {
@@ -462,22 +471,22 @@ async function pruneUnreachableUrls(downloads) {
     attempts: URL_CHECK_ATTEMPTS,
     delayMs: URL_CHECK_DELAY_MS
   });
-  const statusByLabel = new Map(urlResults.map((entry) => [entry.label, entry.ok]));
+  const okByLabel = new Map(urlResults.map((entry) => [entry.label, entry.ok]));
 
   return {
     downloads: {
       ...downloads,
-      releaseNotesUrl: statusByLabel.get("releaseNotesUrl") ? downloads.releaseNotesUrl : null,
-      sourceUrl: statusByLabel.get("sourceUrl") ? downloads.sourceUrl : null,
-      checksumsUrl: statusByLabel.get("checksumsUrl") ? downloads.checksumsUrl : null,
-      manifestUrl: statusByLabel.get("manifestUrl") ? downloads.manifestUrl : null,
+      releaseNotesUrl: okByLabel.get("releaseNotesUrl") ? downloads.releaseNotesUrl : null,
+      sourceUrl: okByLabel.get("sourceUrl") ? downloads.sourceUrl : null,
+      checksumsUrl: okByLabel.get("checksumsUrl") ? downloads.checksumsUrl : null,
+      manifestUrl: okByLabel.get("manifestUrl") ? downloads.manifestUrl : null,
       artifacts: Object.fromEntries(
         Object.entries(downloads.artifacts).map(([key, artifact]) => [
           key,
           {
             ...artifact,
-            latestUrl: statusByLabel.get(`${key}.latestUrl`) ? artifact.latestUrl : null,
-            versionedUrl: statusByLabel.get(`${key}.versionedUrl`) ? artifact.versionedUrl : null
+            latestUrl: okByLabel.get(`${key}.latestUrl`) ? artifact.latestUrl : null,
+            versionedUrl: okByLabel.get(`${key}.versionedUrl`) ? artifact.versionedUrl : null
           }
         ])
       )
@@ -509,88 +518,32 @@ function collectUrlTargets(downloads) {
 async function verifyUrlTargets(entries, { attempts, delayMs }) {
   const results = [];
   for (const entry of entries) {
-    results.push(await verifyUrlTarget(entry, { attempts, delayMs }));
+    let last = { ok: false, status: null, method: "GET", error: "URL check did not run" };
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      last = await headOrGet(entry.url);
+      if (last.ok) {
+        results.push({ ...entry, ...last, attemptsUsed: attempt });
+        last = null;
+        break;
+      }
+      if (attempt < attempts) {
+        await delay(delayMs);
+      }
+    }
+    if (last) {
+      results.push({ ...entry, ...last, attemptsUsed: attempts });
+    }
   }
   return results;
 }
 
-async function verifyUrlTarget(entry, { attempts, delayMs }) {
-  let lastResult = {
-    ok: false,
-    status: null,
-    method: "GET",
-    error: "URL check did not run"
-  };
-
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    lastResult = await headOrGet(entry.url);
-    if (lastResult.ok) {
-      return {
-        ...entry,
-        ...lastResult,
-        attemptsUsed: attempt
-      };
-    }
-    if (attempt < attempts) {
-      await delay(delayMs);
-    }
-  }
-
-  return {
-    ...entry,
-    ...lastResult,
-    attemptsUsed: attempts
-  };
-}
-
-async function headOrGet(url) {
-  try {
-    const head = await fetch(url, { method: "HEAD" });
-    if (head.ok) {
-      return {
-        url,
-        ok: true,
-        status: head.status,
-        method: "HEAD",
-        error: null
-      };
-    }
-  } catch {
-    // Fall through to GET.
-  }
-
-  try {
-    const get = await fetch(url, {
-      method: "GET",
-      headers: {
-        Range: "bytes=0-0"
-      }
-    });
-    return {
-      url,
-      ok: get.ok,
-      status: get.status,
-      method: "GET",
-      error: null
-    };
-  } catch (error) {
-    return {
-      url,
-      ok: false,
-      status: null,
-      method: "GET",
-      error: error instanceof Error ? error.message : String(error)
-    };
-  }
-}
-
-function isStructurallyReadyRelease(downloads) {
+function isStructurallyReady(downloads) {
   return CORE_ARTIFACT_KEYS.every((key) => Boolean(downloads.artifacts?.[key]?.latestUrl))
     && Boolean(downloads.checksumsUrl)
     && Boolean(downloads.manifestUrl);
 }
 
-function isFullyReachableRelease(downloads) {
+function isReady(downloads) {
   return CORE_ARTIFACT_KEYS.every((key) => Boolean(downloads.artifacts?.[key]?.latestUrl))
     && Boolean(downloads.checksumsUrl)
     && Boolean(downloads.manifestUrl);
@@ -600,10 +553,9 @@ function buildBlockingReasons(downloads, requireReady) {
   if (!requireReady) {
     return [];
   }
-
   const reasons = [];
   if (!downloads.publicReleaseReady) {
-    reasons.push("publicReleaseReady remained false after publication.");
+    reasons.push("publicReleaseReady remained false after AWS publication.");
   }
   for (const key of CORE_ARTIFACT_KEYS) {
     if (!downloads.artifacts?.[key]?.latestUrl) {
@@ -617,14 +569,6 @@ function buildBlockingReasons(downloads, requireReady) {
     reasons.push("Missing live manifestUrl.");
   }
   return reasons;
-}
-
-function dedupeUploadEntries(entries) {
-  const deduped = new Map();
-  for (const entry of entries) {
-    deduped.set(entry.key, entry);
-  }
-  return [...deduped.values()];
 }
 
 async function sortedPublishFiles(publishRoot) {
@@ -644,91 +588,63 @@ async function readTrustPayload(filePath, platform) {
     return JSON.parse(await fs.readFile(path.resolve(filePath), "utf8"));
   }
 
-  const result = spawnSync(
-    process.execPath,
-    [path.join(repoRoot, "scripts", "verify-release-trust.mjs"), "--platform", platform, "--json"],
-    {
-      cwd: repoRoot,
-      encoding: "utf8"
-    }
-  );
-
+  const env = buildAwsEnv();
+  const result = spawnSync(process.execPath, [
+    path.join(repoRoot, "scripts", "verify-release-trust.mjs"),
+    "--platform",
+    platform,
+    "--json"
+  ], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env
+  });
   if ((result.status ?? 1) !== 0) {
     throw new Error(result.stderr || result.stdout || `Unable to determine ${platform} trust.`);
   }
-
   return JSON.parse(result.stdout);
 }
 
 async function putObject({ bucket, key, filePath, contentType, cacheControl }) {
-  const args = [
-    "--yes",
-    "wrangler",
-    "r2",
-    "object",
-    "put",
-    `${bucket}/${key}`,
-    "--remote",
-    "--file",
+  runAws([
+    "s3api",
+    "put-object",
+    "--bucket",
+    bucket,
+    "--key",
+    key,
+    "--body",
     filePath,
     "--content-type",
     contentType,
     "--cache-control",
     cacheControl
-  ];
-  const result = spawnSync("npx", args, {
-    cwd: repoRoot,
-    encoding: "utf8",
-    env: process.env
-  });
-
-  if ((result.status ?? 1) !== 0) {
-    throw new Error(result.stderr || result.stdout || `npx ${args.join(" ")} failed`);
-  }
+  ]);
 }
 
-function makeUploadEntry({ downloadsUrl, key, filePath, cacheControl }) {
+function makeUploadEntry({ siteUrl, key, filePath, cacheControl }) {
   return {
     key,
     filePath,
-    publicUrl: joinUrl(downloadsUrl, key),
+    publicUrl: joinUrl(siteUrl, key),
     contentType: inferContentType(filePath),
-    cacheControl: cacheControl ?? versionedCacheControl(key)
+    cacheControl
   };
 }
 
-function inferContentType(filePath) {
-  const fileName = path.basename(filePath).toLowerCase();
-  if (fileName.endsWith(".json")) {
-    return "application/json; charset=utf-8";
+function stripOptionalUrl(value) {
+  if (!value) {
+    return null;
   }
-  if (fileName.endsWith(".txt")) {
-    return "text/plain; charset=utf-8";
-  }
-  if (fileName.endsWith(".dmg")) {
-    return "application/x-apple-diskimage";
-  }
-  if (fileName.endsWith(".msi")) {
-    return "application/x-msi";
-  }
-  if (fileName.endsWith(".exe")) {
-    return "application/vnd.microsoft.portable-executable";
-  }
-  if (fileName.endsWith(".zip")) {
-    return "application/zip";
-  }
-  if (fileName.endsWith(".tar.gz")) {
-    return "application/gzip";
-  }
-  return "application/octet-stream";
+  return stripTrailingSlash(value);
 }
 
-function latestCacheControl() {
-  return "public, max-age=300";
-}
-
-function versionedCacheControl(key) {
-  return key.startsWith("latest/") ? latestCacheControl() : "public, max-age=31536000, immutable";
+function dedupeUploadEntries(entries) {
+  const deduped = new Map();
+  for (const entry of entries) {
+    deduped.set(entry.key, entry);
+  }
+  return [...deduped.values()];
 }
 
 function inferChannel(version) {
@@ -744,21 +660,6 @@ function archPriority(arch) {
     default:
       return 2;
   }
-}
-
-function stripTrailingSlash(value) {
-  return value.replace(/\/+$/, "");
-}
-
-function stripOptionalUrl(value) {
-  if (!value) {
-    return null;
-  }
-  return stripTrailingSlash(value);
-}
-
-function joinUrl(baseUrl, pathname) {
-  return `${stripTrailingSlash(baseUrl)}/${pathname.replace(/^\/+/, "")}`;
 }
 
 function delay(ms) {

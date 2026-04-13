@@ -6,7 +6,7 @@ The public beta release surface should look like a coherent Kiwi Control product
 
 - website is installer-first
 - the public website is the source of truth for release status
-- GitHub Release assets are the current public binary, checksum, and manifest host
+- the public AWS host is the current public binary, checksum, and manifest host
 - release notes and checksums are public and easy to find
 - beta wording stays honest about trust and signing status
 
@@ -38,6 +38,20 @@ npm run ui:desktop:build:release
 npm run release:verify-artifacts
 npm run release:trust -- --platform macos --json
 node scripts/generate-github-release-downloads.mjs --publish-root dist/release/publish --repo owner/repo --release-tag v0.2.0-beta.1 --release-json /path/to/release.json
+```
+
+AWS publication:
+
+```bash
+export SITE_URL="https://kiwi-control.kiwi-ai.in"
+export AWS_PUBLIC_BUCKET="kiwi-control.kiwi-ai.in"
+node scripts/publish-aws-public-downloads.mjs \
+  --publish-root dist/release/publish \
+  --site-url "$SITE_URL" \
+  --bucket "$AWS_PUBLIC_BUCKET" \
+  --release-tag v0.2.0-beta.1 \
+  --macos-trust-json dist/release/publish/release-trust-macos.json \
+  --windows-trust-json dist/release/publish/release-trust-windows.json
 ```
 
 macOS release build on a Mac:
@@ -98,10 +112,11 @@ Current source bundle output roots:
 The intended public beta path is:
 
 1. consolidate release artifacts into `dist/release/publish`
-2. create or update the public GitHub Release for the current tag
-3. upload the public binaries, checksums, manifest, and `downloads.json` to that GitHub Release
-4. deploy the staged Pages site with `/data/latest-release.json`
-5. keep release notes explicit about signing, notarization, and trust status
+2. ensure the public AWS host exists and resolves
+3. publish the public binaries, checksums, manifest, and `downloads.json` to the AWS host
+4. optionally upload the same artifacts to GitHub Release for archival visibility
+5. deploy the staged site with `/data/latest-release.json` mirrored from the public host metadata
+6. keep release notes explicit about signing, notarization, and trust status
 
 Installed desktop builds now auto-attempt terminal command setup on first launch, while keeping the desktop app usable if machine PATH setup cannot complete.
 
@@ -136,9 +151,10 @@ Official Tauri signing and notarization inputs used by this repo:
   - release notes
   - checksums
   - release manifest
-  - GitHub release history
-- `/downloads/` should be a real Cloudflare Pages route backed by `/data/latest-release.json`
-- the first public release links may point to GitHub Release assets even though the public website stays single-host
+  - optional source or release-history links only when they are public and reachable
+- `/downloads/` should be a real public route backed by `/data/latest-release.json`
+- `/data/latest-release.json` must mirror `SITE_URL/latest/downloads.json`
+- do not set `publicReleaseReady=true` until the four core desktop latest URLs, checksums URL, and manifest URL are all live on the public AWS host
 
 ## Trust rules
 
@@ -164,8 +180,9 @@ Official Tauri signing and notarization inputs used by this repo:
 Current public-beta hosting split:
 
 - Route 53 remains authoritative for `kiwi-ai.in`
-- Cloudflare Pages hosts the public site
-- GitHub Releases currently hosts the public binaries, checksums, manifest, release notes, and release history
+- one S3 bucket stores the public site, metadata, and published release artifacts
+- one CloudFront distribution provides HTTPS for `kiwi-control.kiwi-ai.in`
+- release notes and source links stay null unless they are truly public and reachable
 
 ## Related docs
 

@@ -93,14 +93,17 @@ function normalizeRelease(payload) {
 }
 
 function updateReleaseMetadata(release) {
+  const state = getReleaseState(release);
   document.querySelectorAll(selectors.version).forEach((node) => {
-    node.textContent = release.publicReleaseReady ? release.version : "Public release coming soon";
+    node.textContent = state === "unpublished" ? "Public release coming soon" : release.version;
   });
 
   document.querySelectorAll(selectors.releaseBadge).forEach((node) => {
-    node.textContent = release.publicReleaseReady && release.tagName
-      ? `Latest release: ${release.tagName}`
-      : "Public release coming soon";
+    node.textContent = state === "ready"
+      ? `Latest release: ${release.tagName ?? release.version}`
+      : state === "partial"
+        ? `Published assets: ${release.tagName ?? release.version} (verification pending)`
+        : "Public release coming soon";
   });
 
   updateOptionalLink(selectors.releaseNotes, release.releaseNotesUrl);
@@ -111,15 +114,13 @@ function updateReleaseMetadata(release) {
 
 function bindDownloadState(release) {
   document.querySelectorAll(selectors.downloadAnchor).forEach((node) => {
-    if (release.publicReleaseReady) {
-      const kind = node.getAttribute("data-download-kind");
-      const artifact = kind ? release.artifacts[kind] : null;
-      if (artifact?.latestUrl) {
-        node.href = artifact.latestUrl;
-        node.textContent = node.getAttribute("data-primary-label") ?? node.textContent;
-        node.removeAttribute("aria-disabled");
-        return;
-      }
+    const kind = node.getAttribute("data-download-kind");
+    const artifact = kind ? release.artifacts[kind] : null;
+    if (artifact?.latestUrl) {
+      node.href = artifact.latestUrl;
+      node.textContent = node.getAttribute("data-primary-label") ?? node.textContent;
+      node.removeAttribute("aria-disabled");
+      return;
     }
 
     node.href = "/downloads/";
@@ -127,16 +128,21 @@ function bindDownloadState(release) {
     node.setAttribute("aria-disabled", "true");
   });
 
+  const state = getReleaseState(release);
   document.querySelectorAll(selectors.downloadMeta).forEach((node) => {
-    node.textContent = release.publicReleaseReady
+    node.textContent = state === "ready"
       ? `Latest public release: ${release.version}. Download links, checksums, and the release manifest below all point to the current published release artifacts.`
-      : "No public release is published yet. This page will list installers, checksums, and verification steps when the first release is ready.";
+      : state === "partial"
+        ? `Some public assets for ${release.version} are already live. Only the linked artifacts are published now; overall release readiness is still pending until the full desktop set, checksums, and manifest are all confirmed on the public host.`
+        : "No public release is published yet. This page will list installers, checksums, and verification steps when the first release is ready.";
   });
 
   document.querySelectorAll(selectors.recommendedBanner).forEach((node) => {
-    node.textContent = release.publicReleaseReady
+    node.textContent = state === "ready"
       ? "Choose the installer that matches your desktop OS. The downloads page keeps the platform-specific kc steps and the current proof status."
-      : "Public release coming soon. The first installers will appear here once the desktop release is published.";
+      : state === "partial"
+        ? "Some installer assets are live now. Use the downloads page for the current published set, checksums, and the platform-specific proof caveats."
+        : "Public release coming soon. The first installers will appear here once the desktop release is published.";
   });
 }
 
@@ -163,4 +169,15 @@ function updateOptionalLink(selector, url) {
     node.hidden = false;
     node.href = url;
   });
+}
+
+function getReleaseState(release) {
+  if (release.publicReleaseReady) {
+    return "ready";
+  }
+  const hasPublishedArtifacts = Object.values(release.artifacts ?? {}).some((artifact) => Boolean(artifact?.latestUrl));
+  if (hasPublishedArtifacts || release.checksumsUrl || release.manifestUrl) {
+    return "partial";
+  }
+  return "unpublished";
 }

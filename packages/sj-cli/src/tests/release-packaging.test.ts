@@ -219,6 +219,7 @@ test("Cloudflare download publisher emits stable latest and versioned URLs", asy
   assert.equal(payload.uploads.some((entry) => entry.publicUrl === "https://downloads.example.com/releases/v0.2.0-beta.1/kiwi-control-0.2.0-beta.1-windows-x64.msi"), true);
 
   const downloads = JSON.parse(await fs.readFile(path.join(publishRoot, "downloads.json"), "utf8")) as {
+    publicReleaseReady: boolean;
     checksumsUrl: string;
     manifestUrl: string;
     trust: { macos: string; windows: string };
@@ -228,6 +229,7 @@ test("Cloudflare download publisher emits stable latest and versioned URLs", asy
       cliWindows: { latestUrl: string };
     };
   };
+  assert.equal(downloads.publicReleaseReady, true);
   assert.equal(downloads.checksumsUrl, "https://downloads.example.com/latest/SHA256SUMS.txt");
   assert.equal(downloads.manifestUrl, "https://downloads.example.com/latest/release-manifest.json");
   assert.equal(downloads.trust.macos, "signed-and-notarized");
@@ -283,13 +285,62 @@ test("Cloudflare download publisher supports metadata-only mode for site deploys
   assert.equal(payload.uploads.some((entry) => entry.publicUrl === "https://downloads.example.com/latest/SHA256SUMS.txt"), true);
 
   const downloads = JSON.parse(await fs.readFile(path.join(publishRoot, "downloads.json"), "utf8")) as {
+    publicReleaseReady: boolean;
     artifacts: {
       macosDmg: { latestUrl: string };
       windowsNsis: { latestUrl: string };
     };
   };
+  assert.equal(downloads.publicReleaseReady, true);
   assert.equal(downloads.artifacts.macosDmg.latestUrl, "https://downloads.example.com/latest/macos/kiwi-control.dmg");
   assert.equal(downloads.artifacts.windowsNsis.latestUrl, "https://downloads.example.com/latest/windows/kiwi-control-setup.exe");
+});
+
+test("Cloudflare download publisher keeps readiness false until the full desktop set exists", async () => {
+  const root = repoRoot();
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-cloudflare-partial-"));
+  const publishRoot = path.join(tempDir, "publish");
+  await fs.mkdir(publishRoot, { recursive: true });
+
+  const manifest = {
+    version: "0.2.0-beta.1",
+    channel: "beta",
+    artifacts: [
+      { artifactType: "desktop-dmg", platform: "macos", fileName: "kiwi-control-0.2.0-beta.1-macos-aarch64.dmg" },
+      { artifactType: "desktop-app", platform: "macos", fileName: "kiwi-control-0.2.0-beta.1-macos-aarch64.app.tar.gz" }
+    ]
+  };
+  await fs.writeFile(path.join(publishRoot, "release-manifest.json"), JSON.stringify(manifest, null, 2));
+  await fs.writeFile(path.join(publishRoot, "SHA256SUMS.txt"), "hash  kiwi-control-0.2.0-beta.1-macos-aarch64.dmg\n");
+  await fs.writeFile(path.join(publishRoot, "kiwi-control-0.2.0-beta.1-macos-aarch64.dmg"), "dmg");
+  await fs.writeFile(path.join(publishRoot, "kiwi-control-0.2.0-beta.1-macos-aarch64.app.tar.gz"), "app");
+
+  const result = spawnSync(process.execPath, [
+    path.join(root, "scripts", "publish-cloudflare-downloads.mjs"),
+    "--publish-root",
+    publishRoot,
+    "--downloads-url",
+    "https://downloads.example.com",
+    "--dry-run"
+  ], {
+    cwd: root,
+    encoding: "utf8"
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const downloads = JSON.parse(await fs.readFile(path.join(publishRoot, "downloads.json"), "utf8")) as {
+    publicReleaseReady: boolean;
+    artifacts: {
+      macosDmg: { latestUrl: string };
+      windowsNsis: { latestUrl: string | null };
+      windowsMsi: { latestUrl: string | null };
+    };
+  };
+
+  assert.equal(downloads.publicReleaseReady, false);
+  assert.equal(downloads.artifacts.macosDmg.latestUrl, "https://downloads.example.com/latest/macos/kiwi-control.dmg");
+  assert.equal(downloads.artifacts.windowsNsis.latestUrl, null);
+  assert.equal(downloads.artifacts.windowsMsi.latestUrl, null);
 });
 
 test("GitHub release metadata generator publishes only truthfully available assets", async () => {
@@ -408,6 +459,7 @@ test("Pages staging writes same-origin release metadata and strips AppleDouble s
       tagName: "v0.2.0-beta.1",
       version: "0.2.0-beta.1",
       channel: "beta",
+      publicReleaseReady: true,
       releaseNotesUrl: "https://github.com/example/kiwi-control/releases/tag/v0.2.0-beta.1",
       sourceUrl: "https://github.com/example/kiwi-control/releases/tag/v0.2.0-beta.1",
       checksumsUrl: "https://downloads.example.com/latest/SHA256SUMS.txt",
@@ -422,10 +474,20 @@ test("Pages staging writes same-origin release metadata and strips AppleDouble s
           latestUrl: "https://downloads.example.com/latest/macos/kiwi-control.dmg",
           versionedUrl: "https://downloads.example.com/releases/v0.2.0-beta.1/kiwi-control-0.2.0-beta.1-macos-aarch64.dmg"
         },
+        macosAppTarball: {
+          filename: "kiwi-control-0.2.0-beta.1-macos-aarch64.app.tar.gz",
+          latestUrl: "https://downloads.example.com/latest/macos/kiwi-control.app.tar.gz",
+          versionedUrl: "https://downloads.example.com/releases/v0.2.0-beta.1/kiwi-control-0.2.0-beta.1-macos-aarch64.app.tar.gz"
+        },
         windowsNsis: {
           filename: "kiwi-control-0.2.0-beta.1-windows-x64-setup.exe",
           latestUrl: "https://downloads.example.com/latest/windows/kiwi-control-setup.exe",
           versionedUrl: "https://downloads.example.com/releases/v0.2.0-beta.1/kiwi-control-0.2.0-beta.1-windows-x64-setup.exe"
+        },
+        windowsMsi: {
+          filename: "kiwi-control-0.2.0-beta.1-windows-x64.msi",
+          latestUrl: "https://downloads.example.com/latest/windows/kiwi-control.msi",
+          versionedUrl: "https://downloads.example.com/releases/v0.2.0-beta.1/kiwi-control-0.2.0-beta.1-windows-x64.msi"
         }
       }
     }, null, 2)
@@ -455,10 +517,60 @@ test("Pages staging writes same-origin release metadata and strips AppleDouble s
   });
 
   assert.equal(verifyResult.status, 0, verifyResult.stderr || verifyResult.stdout);
-  const metadata = JSON.parse(await fs.readFile(path.join(outputDir, "data", "latest-release.json"), "utf8")) as {
-    checksumsUrl: string;
-  };
-  assert.equal(metadata.checksumsUrl, "https://downloads.example.com/latest/SHA256SUMS.txt");
+  const metadata = JSON.parse(await fs.readFile(path.join(outputDir, "data", "latest-release.json"), "utf8"));
+  const expectedMetadata = JSON.parse(await fs.readFile(downloadsJsonPath, "utf8"));
+  assert.deepEqual(metadata, expectedMetadata);
+  const downloadsHtml = await fs.readFile(path.join(outputDir, "downloads", "index.html"), "utf8");
+  assert.match(downloadsHtml, /https:\/\/downloads\.example\.com\/latest\/macos\/kiwi-control\.dmg/);
+  assert.match(downloadsHtml, /https:\/\/downloads\.example\.com\/latest\/windows\/kiwi-control-setup\.exe/);
+  assert.match(downloadsHtml, />Download macOS DMG</);
   await fs.access(path.join(outputDir, "downloads", "index.html"));
   await assert.rejects(fs.access(path.join(outputDir, "._index.html")));
+});
+
+test("Pages staging rejects fallback metadata when downloads metadata is required", async () => {
+  const root = repoRoot();
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-pages-stage-required-"));
+  const outputDir = path.join(tempDir, "dist-site");
+
+  const stageResult = spawnSync(process.execPath, [
+    path.join(root, "scripts", "stage-pages-site.mjs"),
+    "--output-dir",
+    outputDir,
+    "--require-downloads-json"
+  ], {
+    cwd: root,
+    encoding: "utf8"
+  });
+
+  assert.notEqual(stageResult.status, 0);
+  assert.match(stageResult.stderr || stageResult.stdout, /required Cloudflare downloads metadata|require-downloads-json|Missing required/i);
+});
+
+test("public download verifier fails when a not-ready site is treated as release-ready", async () => {
+  const root = repoRoot();
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-pages-verify-required-"));
+  const outputDir = path.join(tempDir, "dist-site");
+
+  const stageResult = spawnSync(process.execPath, [
+    path.join(root, "scripts", "stage-pages-site.mjs"),
+    "--output-dir",
+    outputDir
+  ], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  assert.equal(stageResult.status, 0, stageResult.stderr || stageResult.stdout);
+
+  const verifyResult = spawnSync(process.execPath, [
+    path.join(root, "scripts", "verify-public-download-surface.mjs"),
+    "--site-dir",
+    outputDir,
+    "--require-ready"
+  ], {
+    cwd: root,
+    encoding: "utf8"
+  });
+
+  assert.notEqual(verifyResult.status, 0);
 });

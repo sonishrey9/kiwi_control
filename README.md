@@ -24,8 +24,8 @@ Most agent tooling either hides workflow logic in an editor integration or centr
 - repo-local artifacts are explicit and inspectable
 - the CLI is the primary operational surface
 - the desktop app reflects repo state instead of inventing hidden state
-- Cloudflare hosts the public beta binaries and checksums
-- GitHub Releases keeps release notes and release history
+- AWS hosts the public beta website, metadata, and published binaries
+- GitHub Releases is optional archival history, not the public install source of truth
 
 ## Install
 
@@ -42,7 +42,7 @@ For most users, the fastest path is:
 
 ### CLI path
 
-The standalone CLI bundle remains available from GitHub Releases.
+The standalone CLI bundle remains available from the public downloads page when it is actually published.
 
 After install:
 
@@ -80,7 +80,7 @@ kc ui
 
 ## Current public beta shape
 
-- GitHub Releases is the source of truth for installable artifacts
+- the public AWS-hosted site is the source of truth for installable artifacts and release metadata
 - the website is installer-first and release-aware
 - Windows and macOS are the primary desktop install targets
 - signing and notarization status must be checked release by release

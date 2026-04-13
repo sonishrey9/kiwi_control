@@ -10,6 +10,7 @@ const args = parseArgs(process.argv.slice(2));
 
 const outputDir = path.resolve(args.outputDir ?? path.join(repoRoot, "dist", "site"));
 const projectName = args.projectName ?? process.env.CLOUDFLARE_PAGES_PROJECT_NAME ?? "kiwi-control";
+const downloadsUrl = args.downloadsUrl ?? process.env.DOWNLOADS_URL ?? "";
 const siteUrl = args.siteUrl ?? process.env.SITE_URL ?? "https://kiwi-control.kiwi-ai.in/";
 const branch = args.branch ?? "main";
 const commitHash = args.commitHash ?? resolveGit("rev-parse", "HEAD") ?? "local-direct-deploy";
@@ -32,6 +33,9 @@ if (args.ensureProject !== false && auth.ensureWithApi) {
 
 if (args.stage !== false) {
   runNodeScript("scripts/stage-pages-site.mjs", [
+    "--downloads-url",
+    downloadsUrl,
+    "--require-downloads-json",
     "--output-dir",
     path.relative(repoRoot, outputDir)
   ]);
@@ -69,6 +73,7 @@ console.log(
       projectName,
       siteUrl,
       outputDir: path.relative(repoRoot, outputDir).replace(/\\/g, "/"),
+      downloadsUrl,
       branch,
       commitHash,
       commitDirty
@@ -82,6 +87,7 @@ function parseArgs(argv) {
   const parsed = {
     outputDir: null,
     projectName: null,
+    downloadsUrl: null,
     siteUrl: null,
     branch: null,
     commitHash: null,
@@ -100,6 +106,11 @@ function parseArgs(argv) {
     }
     if (token === "--project-name") {
       parsed.projectName = argv[index + 1] ?? null;
+      index += 1;
+      continue;
+    }
+    if (token === "--downloads-url") {
+      parsed.downloadsUrl = argv[index + 1] ?? null;
       index += 1;
       continue;
     }
