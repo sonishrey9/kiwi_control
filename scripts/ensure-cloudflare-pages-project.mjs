@@ -1,8 +1,10 @@
 import { writeFile } from "node:fs/promises";
+import { loadLocalEnv } from "./load-local-env.mjs";
 
 const CLOUDFLARE_API_BASE = "https://api.cloudflare.com/client/v4";
 const DEFAULT_PRODUCTION_BRANCH = "main";
 
+loadLocalEnv();
 const args = parseArgs(process.argv.slice(2));
 const accountId = requiredEnv("CLOUDFLARE_ACCOUNT_ID");
 const apiToken = requiredEnv("CLOUDFLARE_API_TOKEN");

@@ -2,8 +2,10 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promises as fs } from "node:fs";
+import { loadLocalEnv } from "./load-local-env.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+loadLocalEnv();
 const args = parseArgs(process.argv.slice(2));
 
 await main();
