@@ -1,0 +1,15 @@
+{
+  "artifactType": "kiwi-control/execution-state",
+  "version": 1,
+  "revision": 0,
+  "operationId": null,
+  "task": null,
+  "sourceCommand": null,
+  "lifecycle": "idle",
+  "reason": null,
+  "nextCommand": null,
+  "blockedBy": [],
+  "lastUpdatedAt": "2026-04-13T18:09:25Z",
+  "artifacts": {},
+  "lastEvent": null
+}

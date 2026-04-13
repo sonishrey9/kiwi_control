@@ -1,0 +1,13 @@
+{
+  "artifactType": "kiwi-control/context-authority",
+  "version": 1,
+  "updatedAt": "2026-04-13T18:09:25.130Z",
+  "projectType": "node",
+  "languages": [
+    "docs"
+  ],
+  "criticalFiles": [
+    "package.json"
+  ],
+  "moduleRelationships": []
+}

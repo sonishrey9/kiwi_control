@@ -1,0 +1,18 @@
+{
+  "artifactType": "shrey-junior/repo-facts",
+  "version": 1,
+  "updatedAt": "2026-04-13T18:09:25.181Z",
+  "projectName": "blocked-repo",
+  "projectType": "node",
+  "profile": "product-build",
+  "authoritySource": "global-accelerator",
+  "activeRole": "fullstack-specialist",
+  "recommendedMcpPack": "core-pack",
+  "languages": [
+    "docs"
+  ],
+  "entryPoints": [
+    "package.json"
+  ],
+  "keyModules": []
+}

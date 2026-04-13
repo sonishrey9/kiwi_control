@@ -1,0 +1,8 @@
+{
+  "label": "kc-help",
+  "command": "kc",
+  "args": [
+    "--help"
+  ],
+  "exitCode": 0
+}

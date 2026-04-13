@@ -1,0 +1,155 @@
+{
+  "artifactType": "kiwi-control/workflow",
+  "currentStepId": "generate-run-packets",
+  "status": "failed",
+  "steps": [
+    {
+      "action": "Prepare context",
+      "attemptCount": 0,
+      "expectedOutput": "Prepared scope and generated instructions are ready.",
+      "failureReason": null,
+      "files": [],
+      "input": null,
+      "output": null,
+      "result": {
+        "failureReason": null,
+        "ok": null,
+        "retryCommand": null,
+        "suggestedFix": null,
+        "summary": null,
+        "validation": null
+      },
+      "retryCount": 0,
+      "skillsApplied": [],
+      "status": "pending",
+      "stepId": "prepare-context",
+      "tokenUsage": {
+        "estimatedTokens": null,
+        "measuredTokens": null,
+        "note": "No token usage has been recorded for this step yet.",
+        "source": "none"
+      },
+      "updatedAt": null,
+      "validation": "Prepared scope exists and selected files are bounded."
+    },
+    {
+      "action": "Generate run packets",
+      "attemptCount": 0,
+      "expectedOutput": "One or more run packets are written for execution.",
+      "failureReason": "Run packets could not be generated for the current repo guidance state.",
+      "files": [],
+      "input": null,
+      "output": null,
+      "result": {
+        "failureReason": "Run packets could not be generated for the current repo guidance state.",
+        "ok": false,
+        "retryCommand": "kiwi-control run \"stabilize product surface launch semantics\"",
+        "suggestedFix": "Fix the blocking condition or prepared scope, then rerun kiwi-control run \"stabilize product surface launch semantics\". Run packets could not be generated for the current repo guidance state.",
+        "summary": null,
+        "validation": "Generate run packets before execution can continue."
+      },
+      "retryCount": 0,
+      "skillsApplied": [],
+      "status": "failed",
+      "stepId": "generate-run-packets",
+      "tokenUsage": {
+        "estimatedTokens": null,
+        "measuredTokens": null,
+        "note": "No token usage was recorded for this step.",
+        "source": "none"
+      },
+      "updatedAt": "2026-04-13T18:09:25.186Z",
+      "validation": "Generate run packets before execution can continue."
+    },
+    {
+      "action": "Validate outcome",
+      "attemptCount": 0,
+      "expectedOutput": "The prepared scope, touched files, and task outcome have been validated.",
+      "failureReason": null,
+      "files": [],
+      "input": null,
+      "output": null,
+      "result": {
+        "failureReason": null,
+        "ok": null,
+        "retryCommand": null,
+        "suggestedFix": null,
+        "summary": null,
+        "validation": null
+      },
+      "retryCount": 0,
+      "skillsApplied": [],
+      "status": "pending",
+      "stepId": "validate-outcome",
+      "tokenUsage": {
+        "estimatedTokens": null,
+        "measuredTokens": null,
+        "note": "No token usage has been recorded for this step yet.",
+        "source": "none"
+      },
+      "updatedAt": null,
+      "validation": "Validation confirms expected files changed, scope stayed bounded, and the task goal was met."
+    },
+    {
+      "action": "Checkpoint progress",
+      "attemptCount": 0,
+      "expectedOutput": "Checkpoint artifacts are written and continuity is updated.",
+      "failureReason": null,
+      "files": [],
+      "input": null,
+      "output": null,
+      "result": {
+        "failureReason": null,
+        "ok": null,
+        "retryCommand": null,
+        "suggestedFix": null,
+        "summary": null,
+        "validation": null
+      },
+      "retryCount": 0,
+      "skillsApplied": [],
+      "status": "pending",
+      "stepId": "checkpoint-progress",
+      "tokenUsage": {
+        "estimatedTokens": null,
+        "measuredTokens": null,
+        "note": "No token usage has been recorded for this step yet.",
+        "source": "none"
+      },
+      "updatedAt": null,
+      "validation": "Checkpoint JSON exists and prepared scope remains valid."
+    },
+    {
+      "action": "Handoff work",
+      "attemptCount": 0,
+      "expectedOutput": "Handoff artifacts are written for the next specialist/tool.",
+      "failureReason": null,
+      "files": [],
+      "input": null,
+      "output": null,
+      "result": {
+        "failureReason": null,
+        "ok": null,
+        "retryCommand": null,
+        "suggestedFix": null,
+        "summary": null,
+        "validation": null
+      },
+      "retryCount": 0,
+      "skillsApplied": [],
+      "status": "pending",
+      "stepId": "handoff-work",
+      "tokenUsage": {
+        "estimatedTokens": null,
+        "measuredTokens": null,
+        "note": "No token usage has been recorded for this step yet.",
+        "source": "none"
+      },
+      "updatedAt": null,
+      "validation": "Handoff JSON exists and target specialist/tool is recorded."
+    }
+  ],
+  "task": "stabilize product surface launch semantics",
+  "timestamp": "2026-04-13T18:09:25.186Z",
+  "version": 3
+}

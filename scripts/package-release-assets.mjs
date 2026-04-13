@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { cp, mkdir, readFile, readdir, rm, stat } from "node:fs/promises";
+import os from "node:os";
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, stat, chmod } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -49,10 +50,10 @@ for (const desktopArtifact of desktopArtifacts) {
       }
       continue;
     }
-    await packageDirectory({
+    await packageArchiveDirectory({
       sourceDir,
       outputPath: desktopTargetFile,
-      preserveRootDirectory: true
+      artifact: desktopArtifact
     });
     createdAssets.push(desktopArtifact.fileName);
     continue;
@@ -160,6 +161,31 @@ async function packageDirectory({ sourceDir, outputPath, preserveRootDirectory =
   throw new Error(`Unsupported archive format for ${outputPath}`);
 }
 
+async function packageArchiveDirectory({ sourceDir, outputPath, artifact }) {
+  if (artifact.platform === "macos" && artifact.artifactType === "desktop-app") {
+    const tempRoot = await mkdtemp(path.join(os.tmpdir(), "kiwi-desktop-archive-"));
+    try {
+      const stagedSourceDir = path.join(tempRoot, path.basename(sourceDir));
+      await cp(sourceDir, stagedSourceDir, { recursive: true });
+      await normalizeMacosAppBundle(stagedSourceDir);
+      await packageDirectory({
+        sourceDir: stagedSourceDir,
+        outputPath,
+        preserveRootDirectory: true
+      });
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true });
+    }
+    return;
+  }
+
+  await packageDirectory({
+    sourceDir,
+    outputPath,
+    preserveRootDirectory: true
+  });
+}
+
 function runArchiveCommand(command, args) {
   const result = spawnSync(command, args, {
     cwd: repoRoot,
@@ -226,6 +252,44 @@ async function removeMacMetadataArtifacts(rootDir) {
       await rm(fullPath, { force: true });
     }
   }
+}
+
+async function normalizeMacosAppBundle(rootPath) {
+  await walkAndNormalize(rootPath, rootPath);
+}
+
+async function walkAndNormalize(rootPath, currentPath) {
+  const stats = await stat(currentPath);
+  if (stats.isDirectory()) {
+    await chmod(currentPath, 0o755);
+    const entries = await readdir(currentPath);
+    for (const entry of entries) {
+      await walkAndNormalize(rootPath, path.join(currentPath, entry));
+    }
+    return;
+  }
+
+  await chmod(currentPath, shouldRemainExecutable(rootPath, currentPath) ? 0o755 : 0o644);
+}
+
+function shouldRemainExecutable(rootPath, currentPath) {
+  const relativePath = path.relative(rootPath, currentPath).replace(/\\/g, "/");
+  if (relativePath.startsWith("Contents/MacOS/")) {
+    return true;
+  }
+  if (relativePath.startsWith("Contents/Resources/desktop/node/")) {
+    return true;
+  }
+  if (relativePath.startsWith("Contents/Resources/desktop/cli-bundle/bin/")) {
+    return true;
+  }
+  if (relativePath.endsWith("/install.sh")) {
+    return true;
+  }
+  if (relativePath.endsWith(".dylib")) {
+    return true;
+  }
+  return false;
 }
 
 function mapPlatform(value) {

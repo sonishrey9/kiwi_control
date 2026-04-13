@@ -1,0 +1,72 @@
+Kiwi Control
+
+Primary commands:
+  kiwi-control
+  kc
+
+Commands default to the current working directory. Use --target only when you need to operate on a different repo or folder.
+
+Core commands:
+  kiwi-control plan "task" [--expand] [--json] [--target /path/to/repo]
+  kiwi-control next [--json] [--target /path/to/repo]
+  kiwi-control retry [--target /path/to/repo]
+  kiwi-control resume [--target /path/to/repo]
+  kiwi-control guide [--json] [--target /path/to/repo]
+  kiwi-control prepare "task" [--expand] [--json] [--target /path/to/repo]
+  kiwi-control validate ["task"] [--json] [--target /path/to/repo]
+  kiwi-control explain [--json] [--target /path/to/repo]
+  kiwi-control trace [--json] [--target /path/to/repo]
+  kiwi-control doctor [--machine] [--json] [--target /path/to/repo]
+  kiwi-control parity [--refresh] [--json]
+  kiwi-control runtime [--refresh-derived] [--json] [--target /path/to/repo]
+  kiwi-control repo-map [--task "goal"] [--focus path/to/file.ts|module|dir] [--changed] [--limit 12] [--json] [--target /path/to/repo]
+  kiwi-control toolchain [--refresh] [--json]
+  kiwi-control usage [--refresh] [--json]
+  kiwi-control eval [--json] [--target /path/to/repo]
+  kiwi-control init [--profile profile-name] [--target /path/to/repo]
+  kiwi-control status [--profile profile-name] [--json] [--target /path/to/repo]
+  kiwi-control pack status|set <pack-id>|clear [--json] [--target /path/to/repo]
+  kiwi-control setup [status|verify|doctor|repair <surface>|install <surface>|init] [--profile desktop-only|desktop-plus-cli|repo-only|repair|full-dev-machine] [--dry-run] [--json] [--target /path/to/repo]
+  kiwi-control check [--profile profile-name] [--json] [--target /path/to/repo]
+  kiwi-control specialists [--profile profile-name] [--json]
+  kiwi-control agent-pack [--task "goal"] [--review] [--json] [--target /path/to/repo]
+  kiwi-control graph status|build [--json] [--target /path/to/repo]
+  kiwi-control graph-query --file <path> | --symbol <name> | --neighbors <file|module> | --impact <file|module> | --module <id> [--json] [--target /path/to/repo]
+  kiwi-control review [--base <ref>] [--json] [--target /path/to/repo]
+  kiwi-control checkpoint "label" [--goal text] [--tool codex|claude|copilot] [--profile profile-name] [--mode assisted|guarded|inline] [--status in-progress|complete|blocked] [--validations a,b] [--warnings a,b] [--open-issues a,b] [--next text] [--target /path/to/repo]
+  kiwi-control handoff --to qa-specialist [--tool codex|claude|copilot] [--profile profile-name] [--target /path/to/repo]
+  kiwi-control ui [--profile profile-name] [--json] [--target /path/to/repo]
+
+Advanced commands:
+  kiwi-control bootstrap --target /path/to/folder [--profile profile-name] [--project-type python|node|docs|data-platform|generic] [--dry-run] [--json]
+  kiwi-control standardize --target /path/to/repo [--profile profile-name] [--project-type python|node|docs|data-platform|generic] [--dry-run] [--backup] [--json]
+  kiwi-control audit --target /path/to/repo [--report /path/to/report.md]
+  kiwi-control sync --target /path/to/repo [--dry-run] [--diff-summary] [--backup]
+  kiwi-control run "goal" --target /path/to/repo [--profile profile-name] [--mode assisted|guarded|inline] [--tool codex|claude|copilot]
+  kiwi-control run --auto ["goal"] [--target /path/to/repo]
+  kiwi-control fanout "goal" --target /path/to/repo [--profile profile-name] [--mode assisted|guarded|inline]
+  kiwi-control dispatch "goal" --target /path/to/repo [--profile profile-name] [--mode assisted|guarded|inline]
+  kiwi-control collect [--target /path/to/repo]
+  kiwi-control reconcile [--profile profile-name] [--target /path/to/repo]
+  kiwi-control push-check [--profile profile-name] [--target /path/to/repo]
+
+Inside-folder usage:
+  cd /path/to/repo
+  kiwi-control init
+  kiwi-control plan "describe your task"
+  kiwi-control next
+  kiwi-control status
+  kiwi-control check
+  kiwi-control validate
+  kiwi-control checkpoint "beta handoff ready"
+  kiwi-control handoff --to qa-specialist
+  kiwi-control ui
+
+kiwi-control ui launches the Kiwi Control desktop app, foregrounds it on macOS, and loads the current repo automatically. Use --target only when you want the desktop app to open a different folder.
+
+Contributor source usage:
+  npm install
+  npm run build
+  npm run cli -- status
+  npm run ui:dev
+

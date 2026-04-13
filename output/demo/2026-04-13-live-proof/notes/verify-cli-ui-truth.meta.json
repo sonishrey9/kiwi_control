@@ -1,0 +1,9 @@
+{
+  "label": "verify-cli-ui-truth",
+  "command": "zsh",
+  "args": [
+    "-lc",
+    "node scripts/verify-cli-ui-truth.mjs --external-temp-repo"
+  ],
+  "exitCode": 1
+}

@@ -1,0 +1,75 @@
+{
+  "artifactType": "kiwi-control/agent-pack",
+  "version": 1,
+  "generatedAt": "2026-04-13T18:09:25.180Z",
+  "summary": "Discovered 14 files across 0 module groups. Entry points: package.json. Start with runtime truth, then use the task or review pack instead of the full graph when you do not need global repo exploration.",
+  "readFirst": [
+    ".agent/context/agent-pack.json",
+    ".agent/state/ready-substrate.json",
+    ".agent/state/execution-state.json",
+    ".agent/state/execution-events.ndjson",
+    ".agent/context/task-pack.json",
+    ".agent/context/review-context-pack.json",
+    ".agent/context/repo-map.json"
+  ],
+  "sourceOfTruthNote": "Canonical workflow truth remains runtime-backed execution state and execution events. Agent packs are compact read aids, not authority.",
+  "repo": {
+    "summary": "Discovered 14 files across 0 module groups. Entry points: package.json.",
+    "entryPoints": [
+      "package.json"
+    ],
+    "keyModules": [],
+    "topReverseDependencyHubs": []
+  },
+  "decisions": [
+    {
+      "id": "phase:bootstrap-initialized",
+      "kind": "phase",
+      "label": "bootstrap initialized",
+      "summary": "Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+      "status": "complete",
+      "task": "Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+      "relatedFiles": [],
+      "relatedModules": [],
+      "nextCommand": null
+    },
+    {
+      "id": "checkpoint:bootstrap-initialized",
+      "kind": "checkpoint",
+      "label": "bootstrap initialized",
+      "summary": "Bootstrap seed only. Fill in the repo context, then replace this with a real checkpoint after meaningful work.",
+      "status": "recorded",
+      "task": "Establish the repo-local Shrey Junior contract and initial context.",
+      "relatedFiles": [],
+      "relatedModules": [],
+      "nextCommand": "kiwi-control checkpoint \"context seeded\""
+    },
+    {
+      "id": "focus:current",
+      "kind": "focus",
+      "label": "fullstack-specialist",
+      "summary": "Review .agent/context/context-tree.json, then record a checkpoint before non-trivial implementation or handoff.",
+      "status": "active",
+      "task": "context seeded",
+      "relatedFiles": [
+        ".agent/context/context-tree.json"
+      ],
+      "relatedModules": [
+        ".agent/context"
+      ],
+      "nextCommand": "kiwi-control checkpoint \"context seeded\""
+    }
+  ],
+  "hotspots": [],
+  "reviewAttention": [],
+  "packPointers": {
+    "readySubstrate": ".agent/state/ready-substrate.json",
+    "repoMap": ".agent/context/repo-map.json",
+    "taskPack": ".agent/context/task-pack.json",
+    "reviewContextPack": ".agent/context/review-context-pack.json",
+    "compactContextPack": ".agent/context/compact-context-pack.json",
+    "decisionGraph": ".agent/state/decision-graph.json",
+    "historyGraph": ".agent/state/history-graph.json",
+    "reviewGraph": ".agent/state/review-graph.json"
+  }
+}

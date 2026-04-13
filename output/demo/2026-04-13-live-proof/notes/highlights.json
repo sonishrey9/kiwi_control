@@ -1,0 +1,45 @@
+{
+  "repoState": {
+    "mode": "initialized-with-warnings",
+    "title": "Repo is usable with warnings",
+    "detail": "1 warning remain, but the repo-local control surfaces are present and readable.",
+    "sourceOfTruthNote": "Repo-local artifacts under .agent/ and promoted repo instruction files remain the source of truth. The desktop app only reads and reports that state."
+  },
+  "executionState": {
+    "lifecycle": "blocked",
+    "nextCommand": "kiwi-control prepare \"update README docs\"",
+    "blockedBy": [
+      "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+    ]
+  },
+  "parity": {
+    "overallStatus": "ready",
+    "boundaryNote": "Repo-local Kiwi capability is built into the product. Machine-global parity measures optional external setup that Kiwi can benefit from, but does not treat as canonical repo truth."
+  },
+  "graph": {
+    "freshness": "fresh",
+    "ready": true,
+    "graphAuthorityPath": "/Volumes/shrey ssd/shrey-junior/.agent/state/runtime.sqlite3",
+    "nodeCount": 3263,
+    "edgeCount": 4069
+  },
+  "review": {
+    "summary": "Review scripts first across 7 changed file(s), 4 ranked file target(s), and 1 ranked module target(s).",
+    "likelyMissingValidation": [
+      "No changed test detected alongside scripts/package-release-assets.mjs.",
+      "No changed test detected alongside output/demo/.",
+      "No changed test detected alongside scripts/demo-replay.sh.",
+      "No changed test detected alongside scripts/run-demo-proof.mjs."
+    ],
+    "reviewerHandoff": {
+      "summary": "Review scripts/stage-pages-site.mjs first, then the highest-risk changed modules.",
+      "readFirst": [
+        ".agent/context/review-pack.json",
+        ".agent/state/review-graph.json",
+        ".agent/state/impact-map.json",
+        ".agent/state/history-graph.json",
+        ".agent/state/decision-graph.json"
+      ]
+    }
+  }
+}

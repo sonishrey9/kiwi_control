@@ -1,0 +1,9 @@
+{
+  "label": "smoke-test",
+  "command": "zsh",
+  "args": [
+    "-lc",
+    "bash scripts/smoke-test.sh"
+  ],
+  "exitCode": 0
+}

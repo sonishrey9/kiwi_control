@@ -1,0 +1,80 @@
+{
+  "activeMode": "execution",
+  "activeRailAriaCurrent": true,
+  "activeRailView": "overview",
+  "activeView": "overview",
+  "aiSetupDetected": true,
+  "bootVisible": false,
+  "currentStep": "validate",
+  "executionRevision": 5,
+  "executionState": "blocked",
+  "focusedRailView": null,
+  "graphSurfaceVisible": false,
+  "historyLineCount": 5,
+  "inspectorOpen": false,
+  "loadDetail": "Prepared scope violated by touched files: .github/",
+  "loadLabel": "Workflow blocked",
+  "loadPhase": "ready",
+  "machineSetupStatus": "stale",
+  "mainScrollTop": 0,
+  "mounted": true,
+  "onboardingActions": [
+    "setup-machine"
+  ],
+  "packCatalog": [
+    {
+      "executable": true,
+      "id": "core-pack",
+      "unavailablePackReason": null
+    },
+    {
+      "executable": true,
+      "id": "research-pack",
+      "unavailablePackReason": null
+    },
+    {
+      "executable": true,
+      "id": "web-qa-pack",
+      "unavailablePackReason": null
+    },
+    {
+      "executable": false,
+      "id": "aws-pack",
+      "unavailablePackReason": "AWS Pack is blocked because this repo does not register any AWS-specific MCP or tool integrations in the current registry/inventory."
+    },
+    {
+      "executable": false,
+      "id": "ios-pack",
+      "unavailablePackReason": "iOS Pack is blocked because this repo does not register any Xcode or simulator integrations in the current registry/inventory."
+    },
+    {
+      "executable": false,
+      "id": "android-pack",
+      "unavailablePackReason": "Android Pack is blocked because this repo does not register any Android-specific MCP or emulator integrations in the current registry/inventory."
+    }
+  ],
+  "railButtonCount": 10,
+  "railScrollTop": 0,
+  "repoMode": "healthy",
+  "selectablePackIds": [],
+  "selectedPack": "research-pack",
+  "selectedPackSource": "heuristic-default",
+  "settledOnTarget": true,
+  "targetRoot": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo",
+  "visibleCommands": [
+    "guide",
+    "next",
+    "review",
+    "validate",
+    "retry",
+    "run-auto",
+    "checkpoint",
+    "handoff"
+  ],
+  "visibleSections": [
+    "overview-primary-hero",
+    "onboarding",
+    "blocked-workflow-fix",
+    "explain-selection"
+  ]
+}

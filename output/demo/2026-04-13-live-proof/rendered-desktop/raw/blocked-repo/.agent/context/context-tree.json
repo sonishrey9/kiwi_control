@@ -1,0 +1,128 @@
+{
+  "artifactType": "kiwi-control/context-tree-view",
+  "version": 1,
+  "timestamp": "2026-04-13T18:09:25.130Z",
+  "summary": "Discovered 14 files across 0 module groups. Entry points: package.json.",
+  "languages": [
+    "docs"
+  ],
+  "entryPoints": [
+    "package.json"
+  ],
+  "keyModules": [],
+  "topReverseDependencyHubs": [],
+  "tree": [
+    {
+      "name": ".github",
+      "path": ".github",
+      "kind": "directory",
+      "children": [
+        {
+          "name": "agents",
+          "path": ".github/agents",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "architecture-specialist.md",
+              "path": ".github/agents/architecture-specialist.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "backend-specialist.md",
+              "path": ".github/agents/backend-specialist.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "frontend-specialist.md",
+              "path": ".github/agents/frontend-specialist.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "fullstack-specialist.md",
+              "path": ".github/agents/fullstack-specialist.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "qa-specialist.md",
+              "path": ".github/agents/qa-specialist.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "review-specialist.md",
+              "path": ".github/agents/review-specialist.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "shrey-junior.md",
+              "path": ".github/agents/shrey-junior.md",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "instructions",
+          "path": ".github/instructions",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "backend.instructions.md",
+              "path": ".github/instructions/backend.instructions.md",
+              "kind": "file",
+              "children": []
+            },
+            {
+              "name": "frontend.instructions.md",
+              "path": ".github/instructions/frontend.instructions.md",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "workflows",
+          "path": ".github/workflows",
+          "kind": "directory",
+          "children": [
+            {
+              "name": "shrey-junior-contract.yml",
+              "path": ".github/workflows/shrey-junior-contract.yml",
+              "kind": "file",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "copilot-instructions.md",
+          "path": ".github/copilot-instructions.md",
+          "kind": "file",
+          "children": []
+        }
+      ]
+    },
+    {
+      "name": "AGENTS.md",
+      "path": "AGENTS.md",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "CLAUDE.md",
+      "path": "CLAUDE.md",
+      "kind": "file",
+      "children": []
+    },
+    {
+      "name": "package.json",
+      "path": "package.json",
+      "kind": "file",
+      "children": []
+    }
+  ]
+}

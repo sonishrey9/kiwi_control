@@ -1,0 +1,12 @@
+{
+  "label": "pack-status",
+  "command": "kc",
+  "args": [
+    "pack",
+    "status",
+    "--json",
+    "--target",
+    "/Volumes/shrey ssd/shrey-junior"
+  ],
+  "exitCode": 0
+}

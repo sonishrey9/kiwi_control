@@ -1,0 +1,9 @@
+{
+  "label": "verify-rendered-desktop",
+  "command": "zsh",
+  "args": [
+    "-lc",
+    "node scripts/verify-rendered-desktop.mjs"
+  ],
+  "exitCode": 1
+}

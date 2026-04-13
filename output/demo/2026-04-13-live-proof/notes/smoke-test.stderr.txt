@@ -1,0 +1,5 @@
+    Finished `release` profile [optimized] target(s) in 0.41s
+pre-run policy: review-required
+- specialist python-specialist expects unavailable MCP references: github
+pre-fanout policy: review-required
+- overlay profile product-build differs from selected profile strict-production

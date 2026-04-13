@@ -1,0 +1,87 @@
+{
+  "ok": true,
+  "targetRoot": "/Volumes/shrey ssd/shrey-junior",
+  "profile": "full-dev-machine",
+  "actionableRequiredCount": 0,
+  "blockedRequiredCount": 0,
+  "aiSetup": {
+    "detected": true,
+    "path": "/Users/shreysoni/.local/bin/ai-setup",
+    "status": "available-for-reuse",
+    "note": "Local ai-setup is available as a compatibility helper, but Kiwi setup remains the primary machine setup surface."
+  },
+  "steps": [
+    {
+      "id": "global-cli",
+      "title": "Install Kiwi CLI globally",
+      "scope": "machine",
+      "required": true,
+      "status": "ready",
+      "detail": "Global Kiwi CLI wrappers, aliases, and bootstrap defaults are already installed.",
+      "recommendedCommand": "kiwi-control setup install global-cli"
+    },
+    {
+      "id": "global-preferences",
+      "title": "Apply global AI preferences",
+      "scope": "machine",
+      "required": true,
+      "status": "ready",
+      "detail": "Global Codex and Claude preference surfaces look healthy.",
+      "recommendedCommand": "kiwi-control setup repair global-preferences"
+    },
+    {
+      "id": "repo-contract",
+      "title": "Sync repo contract",
+      "scope": "repo",
+      "required": true,
+      "status": "ready",
+      "detail": "Repo-local contract and primary instruction files are already present.",
+      "recommendedCommand": "kiwi-control setup init"
+    },
+    {
+      "id": "repo-assistant-wiring",
+      "title": "Wire repo assistant compatibility files",
+      "scope": "repo",
+      "required": true,
+      "status": "ready",
+      "detail": "Compatibility assistant wiring is already present for this repo.",
+      "recommendedCommand": "kiwi-control setup repair repo-assistant-wiring"
+    },
+    {
+      "id": "repo-graph",
+      "title": "Refresh runtime-backed repo graph",
+      "scope": "repo",
+      "required": true,
+      "status": "ready",
+      "detail": "Runtime-backed graph authority is already ready.",
+      "recommendedCommand": "kiwi-control setup repair repo-graph"
+    },
+    {
+      "id": "repo-hygiene",
+      "title": "Align repo hygiene outputs",
+      "scope": "repo",
+      "required": true,
+      "status": "ready",
+      "detail": "Supported setup artifacts are already covered by .gitignore.",
+      "recommendedCommand": "kiwi-control setup repair repo-hygiene"
+    },
+    {
+      "id": "lean-ctx",
+      "title": "Initialize lean-ctx",
+      "scope": "machine",
+      "required": false,
+      "status": "ready",
+      "detail": "lean-ctx already has active compression signals.",
+      "recommendedCommand": "kiwi-control setup repair lean-ctx"
+    },
+    {
+      "id": "repomix",
+      "title": "Generate repomix output",
+      "scope": "repo",
+      "required": false,
+      "status": "ready",
+      "detail": "repomix output already exists for this repo.",
+      "recommendedCommand": "kiwi-control setup repair repomix"
+    }
+  ]
+}

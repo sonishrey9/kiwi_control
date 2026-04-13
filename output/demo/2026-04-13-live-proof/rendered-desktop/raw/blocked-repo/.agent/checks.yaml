@@ -1,0 +1,38 @@
+# SHREY-JUNIOR:FILE-START .agent/checks.yaml
+version: 2
+profile: "product-build"
+checks:
+  - name: config-load
+    description: canonical config files parse successfully
+  - name: managed-markers
+    description: generated files contain valid start and end markers
+  - name: portable-surfaces
+    description: AGENTS.md, CLAUDE.md, Copilot instructions, and repo-local instruction/agent surfaces route to the Shrey Junior contract
+  - name: specialist-role-surfaces
+    description: specialist role specs and Copilot-friendly agent docs exist for the repo-local contract
+  - name: artifact-contracts
+    description: current phase, handoff, dispatch, reconcile, and latest packet artifacts follow stable file-based contracts
+  - name: secret-safety
+    description: no risky files are directly ingested by shrey-junior
+  - name: routing-resolution
+    description: routing resolves clearly for the selected profile and task type
+  - name: profile-resolution
+    description: the repo profile resolves cleanly from CLI or .agent/project.yaml
+  - name: packet-health
+    description: run and fanout packets compile with usable instructions
+  - name: context-conflicts
+    description: authority files do not disagree about safety or ownership rules
+  - name: workflow-awareness
+    description: tool-facing repo instructions explain trivial vs non-trivial thresholds and escalation to run, fanout, dispatch, checkpoint, handoff, and push-check
+  - name: continuity-readiness
+    description: current phase, handoff, and reconcile artifacts are consulted before restarting non-trivial work
+  - name: specialist-and-mcp-awareness
+    description: specialists and MCPs are treated as policy-driven aids rather than generic freeform tools
+  - name: ci-contract-backstop
+    description: repo-local CI or equivalent verification exists to enforce the contract when prompts are not enough
+  - name: bootstrap-profile-selection
+    description: bootstrap selected a starter profile from repo authority, repo-local state, CLI, global defaults, or safe metadata without overwriting repo truth
+  - name: bootstrap-global-defaults
+    description: any global defaults are reference-only starter hints and never outrank existing repo authority
+repo_specific_commands: []
+# SHREY-JUNIOR:FILE-END .agent/checks.yaml

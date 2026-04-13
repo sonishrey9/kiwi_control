@@ -1,0 +1,12 @@
+{
+  "label": "graph-status",
+  "command": "kc",
+  "args": [
+    "graph",
+    "status",
+    "--json",
+    "--target",
+    "/Volumes/shrey ssd/shrey-junior"
+  ],
+  "exitCode": 0
+}

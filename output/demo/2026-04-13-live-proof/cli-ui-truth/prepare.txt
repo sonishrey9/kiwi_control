@@ -1,0 +1,81 @@
+Preparing context for: "update README docs"
+Context selected: 5 files [confidence=medium]
+Instructions written to: /var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo/.agent/context/generated-instructions.md
+
+╔══════════════════════════════════════════════╗
+║          Kiwi Control — prepare              ║
+╚═══════════════════════════════════════════��══╝
+
+  Task:            update README docs
+  Confidence:      MEDIUM
+  Files selected:  5
+  Files excluded:  85 patterns
+
+  Measured Scope:
+    Selected files:         5  (measured)
+    Exclusions:            85  patterns
+
+  Token Usage:
+    Measured:      unavailable
+    Selected:      ~2.1K tokens
+    Full repo:     ~2.9K tokens
+    Savings:       ~27%
+    Method:        rough estimate (chars/4 heuristic)
+    Note:          Estimated token counts use a chars/4 heuristic. File counts are measured directly; token counts and savings percentages are approximate, and pricing is intentionally not shown.
+
+  Skills:
+    Active:        none
+    Suggested:     none
+
+  How It Works:
+    Total files:            8
+    Scanned files:          5
+    Skipped files:          3
+    Selected files:         5
+    Excluded files:         0
+    Honesty:       heuristic, partial scan
+
+  File Analysis:
+    selected  AGENTS.md — changed file, recent file, task fit
+    selected  CLAUDE.md — changed file, recent file, task fit
+    selected  package.json — repo context, proximity, recent file, task fit
+    selected  src/app.ts — repo context, recent file, task fit
+    skipped   .agent — hidden directory rule
+    skipped   .git — hidden directory rule
+    skipped   .github — hidden directory rule
+
+  Context Trace:
+    initial signals: Seeded selection from 2 changed, 0 import, 1 keyword, 2 proximity, and 6 repo-context signals.
+    expansion: Expanded the working set to 5 candidate files using weighted signals and task-fit heuristics while reusing an incremental import index (0 updated, 1 reused).
+    budget selection: Selected 5 files within the bounded context budget before task-specific precision trimming.
+
+  Indexing:
+    Visited dirs:           2
+    Depth reached:          1
+    Files found:            5
+    Files analyzed:         5
+    Index reused:           1
+    Index updated:          0
+    Impact files:           0
+    Ignore rules:  hidden directory
+
+  Token Hotspots:
+    .                                         2.1K tokens  (4 files)
+    .agent/state/checkpoints                   429 tokens  (1 files)
+    .agent/memory                              353 tokens  (3 files)
+    src                                          7 tokens  (1 files)
+
+  Token Breakdown:
+    selection filter ~  782 tokens  [measured] Measured reduction from selecting a bounded working set instead of every scanned file.
+    node_modules     ~    0 tokens  [heuristic] No matching skipped directories were observed in the current repo scan.
+    dist             ~    0 tokens  [heuristic] No matching skipped directories were observed in the current repo scan.
+    skipped dirs     ~33.3K tokens  [heuristic] Heuristic estimate from 53 source-like file(s) under skipped directories.
+
+  Instructions:
+    Path:          /var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo/.agent/context/generated-instructions.md
+    Constraints:   9
+    Validations:   5
+    Stop guards:   5
+
+  Reason:          Selected 5 files based on working tree changes. Signals: 2 changed, 0 import neighbors, 1 keyword matches, 6 repo context files, 2 proximity, 5 recent, 0 active skills. Coverage: 56% of candidate signal files. Diversity: 4 signal types. Discovery depth: 1. Budget: ~2117 tokens. Confidence: medium.
+

@@ -1,0 +1,12 @@
+{
+  "label": "setup-verify",
+  "command": "kc",
+  "args": [
+    "setup",
+    "verify",
+    "--json",
+    "--target",
+    "/Volumes/shrey ssd/shrey-junior"
+  ],
+  "exitCode": 0
+}

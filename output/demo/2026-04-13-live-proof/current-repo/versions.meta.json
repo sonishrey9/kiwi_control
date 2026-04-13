@@ -1,0 +1,8 @@
+{
+  "label": "versions",
+  "command": "node",
+  "args": [
+    "--version"
+  ],
+  "exitCode": 0
+}

@@ -1,0 +1,162 @@
+{
+  "artifactType": "kiwi-control/review-pack",
+  "version": 1,
+  "generatedAt": "2026-04-13T18:08:31.065Z",
+  "summary": "Review scripts first across 7 changed file(s), 4 ranked file target(s), and 1 ranked module target(s).",
+  "source": "working-tree",
+  "baseRef": null,
+  "task": null,
+  "changedFiles": [
+    "scripts/package-release-assets.mjs",
+    "docs/demo-recording-checklist.md",
+    "docs/demo-script.md",
+    "docs/live-demo-guide.md",
+    "output/demo/",
+    "scripts/demo-replay.sh",
+    "scripts/run-demo-proof.mjs"
+  ],
+  "rankedFiles": [
+    {
+      "file": "scripts/stage-pages-site.mjs",
+      "moduleGroup": "scripts",
+      "score": 72,
+      "reasons": [
+        "history hotspot",
+        "repeated touches"
+      ],
+      "touches": 9,
+      "failures": 0
+    },
+    {
+      "file": "scripts/verify-public-download-surface.mjs",
+      "moduleGroup": "scripts",
+      "score": 72,
+      "reasons": [
+        "history hotspot",
+        "repeated touches"
+      ],
+      "touches": 9,
+      "failures": 0
+    },
+    {
+      "file": "scripts/package-release-assets.mjs",
+      "moduleGroup": "scripts",
+      "score": 60,
+      "reasons": [
+        "changed file",
+        "changed-area cluster"
+      ],
+      "touches": 0,
+      "failures": 0
+    },
+    {
+      "file": "scripts/run-demo-proof.mjs",
+      "moduleGroup": "scripts",
+      "score": 60,
+      "reasons": [
+        "changed file",
+        "changed-area cluster"
+      ],
+      "touches": 0,
+      "failures": 0
+    }
+  ],
+  "rankedModules": [
+    {
+      "id": "scripts",
+      "score": 1200,
+      "reasons": [
+        "active change cluster",
+        "repeated touches"
+      ],
+      "files": [
+        "scripts/aws-public-common.mjs",
+        "scripts/copy-runtime-assets.mjs",
+        "scripts/deploy-pages-direct.mjs",
+        "scripts/ensure-aws-public-site.mjs",
+        "scripts/ensure-cloudflare-pages-project.mjs",
+        "scripts/ensure-cloudflare-r2-downloads.mjs",
+        "scripts/generate-github-release-downloads.mjs",
+        "scripts/generate-product-media.mjs"
+      ]
+    }
+  ],
+  "impactChains": [],
+  "repeatedTouchAreas": [
+    {
+      "kind": "module",
+      "target": "scripts",
+      "touches": 82,
+      "commits": 30
+    }
+  ],
+  "failureLinkedAreas": [],
+  "likelyMissingValidation": [
+    "No changed test detected alongside scripts/package-release-assets.mjs.",
+    "No changed test detected alongside output/demo/.",
+    "No changed test detected alongside scripts/demo-replay.sh.",
+    "No changed test detected alongside scripts/run-demo-proof.mjs."
+  ],
+  "reviewOrder": [
+    {
+      "kind": "module",
+      "target": "scripts",
+      "reason": "active change cluster"
+    },
+    {
+      "kind": "file",
+      "target": "scripts/stage-pages-site.mjs",
+      "reason": "history hotspot"
+    },
+    {
+      "kind": "file",
+      "target": "scripts/verify-public-download-surface.mjs",
+      "reason": "history hotspot"
+    },
+    {
+      "kind": "file",
+      "target": "scripts/package-release-assets.mjs",
+      "reason": "changed file"
+    },
+    {
+      "kind": "file",
+      "target": "scripts/run-demo-proof.mjs",
+      "reason": "changed file"
+    },
+    {
+      "kind": "decision",
+      "target": "blocked",
+      "reason": "Prepared scope violated by touched files: apps/sj-ui/src/ui/TopBar.ts, apps/sj-ui/src/ui/command-help.ts, packages/sj-cli/src/cli.ts, packages/sj-cli/src/tests/cli-ux.test.ts, packages/sj-core/src/core/repo-intelligence.ts"
+    },
+    {
+      "kind": "decision",
+      "target": "run-auto-blocked",
+      "reason": "Touched files do not satisfy the task-category goal heuristic."
+    },
+    {
+      "kind": "decision",
+      "target": "validation-failed",
+      "reason": "Touched files do not satisfy the task-category goal heuristic."
+    }
+  ],
+  "reviewerHandoff": {
+    "summary": "Review scripts/stage-pages-site.mjs first, then the highest-risk changed modules.",
+    "readFirst": [
+      ".agent/context/review-pack.json",
+      ".agent/state/review-graph.json",
+      ".agent/state/impact-map.json",
+      ".agent/state/history-graph.json",
+      ".agent/state/decision-graph.json"
+    ]
+  },
+  "codingToolHandoff": {
+    "summary": "Use the review pack with the runtime state and task pack before modifying risky areas.",
+    "readFirst": [
+      ".agent/context/review-pack.json",
+      ".agent/context/task-pack.json",
+      ".agent/state/execution-state.json",
+      ".agent/state/execution-events.ndjson",
+      ".agent/context/review-context-pack.json"
+    ]
+  }
+}

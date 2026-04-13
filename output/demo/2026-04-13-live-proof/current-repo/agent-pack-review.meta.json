@@ -1,0 +1,12 @@
+{
+  "label": "agent-pack-review",
+  "command": "kc",
+  "args": [
+    "agent-pack",
+    "--review",
+    "--json",
+    "--target",
+    "/Volumes/shrey ssd/shrey-junior"
+  ],
+  "exitCode": 0
+}

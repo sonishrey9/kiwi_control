@@ -1,0 +1,13 @@
+{
+  "artifactType": "kiwi-control/history-graph",
+  "version": 1,
+  "generatedAt": "2026-04-13T18:09:25.130Z",
+  "commitWindow": 40,
+  "gitHistoryAvailable": false,
+  "commitsAnalyzed": 0,
+  "recentCommits": [],
+  "hotspotFiles": [],
+  "hotspotModules": [],
+  "repeatedTouchModules": [],
+  "changeClusters": []
+}

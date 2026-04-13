@@ -1,0 +1,136 @@
+{
+  "targetRoot": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo",
+  "outputRoot": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV",
+  "externalTempRepo": true,
+  "steps": [
+    {
+      "label": "init",
+      "args": [
+        "init",
+        "--target",
+        "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo"
+      ],
+      "exitCode": 0,
+      "stdoutPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/init.stdout.txt",
+      "stderrPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/init.stderr.txt"
+    },
+    {
+      "label": "sync",
+      "args": [
+        "sync",
+        "--target",
+        "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo",
+        "--dry-run",
+        "--diff-summary"
+      ],
+      "exitCode": 0,
+      "stdoutPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/sync.stdout.txt",
+      "stderrPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/sync.stderr.txt"
+    },
+    {
+      "label": "doctor",
+      "args": [
+        "doctor",
+        "--target",
+        "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo"
+      ],
+      "exitCode": 0,
+      "stdoutPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/doctor.stdout.txt",
+      "stderrPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/doctor.stderr.txt"
+    },
+    {
+      "label": "prepare",
+      "args": [
+        "prepare",
+        "update README docs",
+        "--target",
+        "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo"
+      ],
+      "exitCode": 0,
+      "stdoutPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/prepare.stdout.txt",
+      "stderrPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/prepare.stderr.txt"
+    },
+    {
+      "label": "run",
+      "args": [
+        "run",
+        "update README docs",
+        "--target",
+        "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo"
+      ],
+      "exitCode": 0,
+      "stdoutPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/run.stdout.txt",
+      "stderrPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/run.stderr.txt"
+    },
+    {
+      "label": "ui-queued",
+      "args": [
+        "ui",
+        "--target",
+        "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo"
+      ],
+      "exitCode": 0,
+      "stdoutPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/ui-queued.stdout.txt",
+      "stderrPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/ui-queued.stderr.txt",
+      "probePath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/bridge-shared/render-probe.json",
+      "screenshotPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/ui-queued.png"
+    },
+    {
+      "label": "run-auto",
+      "args": [
+        "run",
+        "update README docs",
+        "--auto",
+        "--target",
+        "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo"
+      ],
+      "exitCode": 1,
+      "stdoutPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/run-auto.stdout.txt",
+      "stderrPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/run-auto.stderr.txt"
+    },
+    {
+      "label": "ui-blocked",
+      "args": [
+        "render-probe",
+        "blocked"
+      ],
+      "exitCode": 0,
+      "stdoutPath": null,
+      "stderrPath": null,
+      "probePath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/render-probe-blocked.json",
+      "screenshotPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/ui-blocked.png"
+    },
+    {
+      "label": "prepare-recovery",
+      "args": [
+        "prepare",
+        "update README docs",
+        "--target",
+        "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo"
+      ],
+      "exitCode": 0,
+      "stdoutPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/prepare-recovery.stdout.txt",
+      "stderrPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/prepare-recovery.stderr.txt"
+    },
+    {
+      "label": "ui-recovered",
+      "args": [
+        "render-probe",
+        "packet-created"
+      ],
+      "exitCode": 0,
+      "stdoutPath": null,
+      "stderrPath": null,
+      "probePath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/render-probe-recovered.json",
+      "screenshotPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/ui-recovered.png"
+    }
+  ],
+  "queuedUi": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/bridge-shared/render-probe.json",
+  "blockedUi": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/render-probe-blocked.json",
+  "recoveredUi": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/render-probe-recovered.json",
+  "screenshots": [
+    "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/ui-queued.png",
+    "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/ui-blocked.png",
+    "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/ui-recovered.png"
+  ]
+}

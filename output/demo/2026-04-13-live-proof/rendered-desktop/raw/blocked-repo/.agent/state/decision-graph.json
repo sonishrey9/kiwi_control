@@ -1,0 +1,146 @@
+{
+  "artifactType": "kiwi-control/decision-graph",
+  "version": 1,
+  "generatedAt": "2026-04-13T18:09:25.130Z",
+  "currentTask": null,
+  "nodes": [
+    {
+      "id": "checkpoint:bootstrap-initialized",
+      "kind": "checkpoint",
+      "label": "bootstrap initialized",
+      "summary": "Bootstrap seed only. Fill in the repo context, then replace this with a real checkpoint after meaningful work.",
+      "timestamp": "2026-04-13T18:09:25.107Z",
+      "status": "recorded",
+      "task": "Establish the repo-local Shrey Junior contract and initial context."
+    },
+    {
+      "id": "file:.agent/context/context-tree.json",
+      "kind": "file",
+      "label": ".agent/context/context-tree.json",
+      "summary": ".agent/context/context-tree.json",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "focus:current",
+      "kind": "focus",
+      "label": "fullstack-specialist",
+      "summary": "Review .agent/context/context-tree.json, then record a checkpoint before non-trivial implementation or handoff.",
+      "timestamp": "2026-04-13T18:09:25.107Z",
+      "status": "active",
+      "task": "context seeded"
+    },
+    {
+      "id": "module:.agent/context",
+      "kind": "module",
+      "label": ".agent/context",
+      "summary": ".agent/context",
+      "timestamp": null,
+      "status": null,
+      "task": null
+    },
+    {
+      "id": "phase:bootstrap-initialized",
+      "kind": "phase",
+      "label": "bootstrap initialized",
+      "summary": "Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+      "timestamp": "2026-04-13T18:09:25.107Z",
+      "status": "complete",
+      "task": "Establish the repo-local Shrey Junior contract and start from repo-aware state."
+    },
+    {
+      "id": "task:context seeded",
+      "kind": "task",
+      "label": "context seeded",
+      "summary": "context seeded",
+      "timestamp": null,
+      "status": null,
+      "task": "context seeded"
+    },
+    {
+      "id": "task:Establish the repo-local Shrey Junior contract and initial context.",
+      "kind": "task",
+      "label": "Establish the repo-local Shrey Junior contract and initial context.",
+      "summary": "Establish the repo-local Shrey Junior contract and initial context.",
+      "timestamp": null,
+      "status": null,
+      "task": "Establish the repo-local Shrey Junior contract and initial context."
+    },
+    {
+      "id": "task:Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+      "kind": "task",
+      "label": "Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+      "summary": "Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+      "timestamp": null,
+      "status": null,
+      "task": "Establish the repo-local Shrey Junior contract and start from repo-aware state."
+    }
+  ],
+  "edges": [
+    {
+      "from": "checkpoint:bootstrap-initialized",
+      "to": "task:Establish the repo-local Shrey Junior contract and initial context.",
+      "kind": "references-task"
+    },
+    {
+      "from": "focus:current",
+      "to": "file:.agent/context/context-tree.json",
+      "kind": "touches-file"
+    },
+    {
+      "from": "focus:current",
+      "to": "module:.agent/context",
+      "kind": "touches-module"
+    },
+    {
+      "from": "focus:current",
+      "to": "task:context seeded",
+      "kind": "references-task"
+    },
+    {
+      "from": "phase:bootstrap-initialized",
+      "to": "task:Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+      "kind": "references-task"
+    }
+  ],
+  "importantDecisions": [
+    {
+      "id": "phase:bootstrap-initialized",
+      "kind": "phase",
+      "label": "bootstrap initialized",
+      "summary": "Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+      "status": "complete",
+      "task": "Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+      "relatedFiles": [],
+      "relatedModules": [],
+      "nextCommand": null
+    },
+    {
+      "id": "checkpoint:bootstrap-initialized",
+      "kind": "checkpoint",
+      "label": "bootstrap initialized",
+      "summary": "Bootstrap seed only. Fill in the repo context, then replace this with a real checkpoint after meaningful work.",
+      "status": "recorded",
+      "task": "Establish the repo-local Shrey Junior contract and initial context.",
+      "relatedFiles": [],
+      "relatedModules": [],
+      "nextCommand": "kiwi-control checkpoint \"context seeded\""
+    },
+    {
+      "id": "focus:current",
+      "kind": "focus",
+      "label": "fullstack-specialist",
+      "summary": "Review .agent/context/context-tree.json, then record a checkpoint before non-trivial implementation or handoff.",
+      "status": "active",
+      "task": "context seeded",
+      "relatedFiles": [
+        ".agent/context/context-tree.json"
+      ],
+      "relatedModules": [
+        ".agent/context"
+      ],
+      "nextCommand": "kiwi-control checkpoint \"context seeded\""
+    }
+  ]
+}

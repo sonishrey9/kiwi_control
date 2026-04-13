@@ -1,0 +1,15 @@
+HTTP/2 200 
+content-type: text/html; charset=utf-8
+content-length: 8454
+date: Mon, 13 Apr 2026 18:06:52 GMT
+last-modified: Mon, 13 Apr 2026 17:40:13 GMT
+etag: "0dac8f2edfee2cbf46305f940521d518"
+x-amz-server-side-encryption: AES256
+cache-control: public, max-age=300
+accept-ranges: bytes
+server: AmazonS3
+x-cache: Hit from cloudfront
+via: 1.1 af09e2fad70f0089517e8c3ed33c1334.cloudfront.net (CloudFront)
+x-amz-cf-pop: MXP63-P2
+x-amz-cf-id: e2q1TO7Et4eZfAa1hoZqyRZm1sUZoz7nYP93RnWARQetEqTvmku_-Q==
+age: 222

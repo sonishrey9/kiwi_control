@@ -1,0 +1,9 @@
+{
+  "label": "parity",
+  "command": "kc",
+  "args": [
+    "parity",
+    "--json"
+  ],
+  "exitCode": 0
+}

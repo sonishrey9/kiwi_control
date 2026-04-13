@@ -1,0 +1,58 @@
+{
+  "artifactType": "kiwi-control/review-context-pack",
+  "version": 1,
+  "generatedAt": "2026-04-13T18:09:25.180Z",
+  "summary": "No elevated review targets are currently ranked.",
+  "currentTask": null,
+  "readFirst": [
+    ".agent/state/decision-graph.json",
+    ".agent/state/history-graph.json",
+    ".agent/state/review-graph.json",
+    ".agent/state/checkpoints/latest.json",
+    ".agent/memory/current-focus.json",
+    ".agent/state/execution-state.json",
+    ".agent/state/execution-events.ndjson"
+  ],
+  "decisions": [
+    {
+      "id": "phase:bootstrap-initialized",
+      "kind": "phase",
+      "label": "bootstrap initialized",
+      "summary": "Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+      "status": "complete",
+      "task": "Establish the repo-local Shrey Junior contract and start from repo-aware state.",
+      "relatedFiles": [],
+      "relatedModules": [],
+      "nextCommand": null
+    },
+    {
+      "id": "checkpoint:bootstrap-initialized",
+      "kind": "checkpoint",
+      "label": "bootstrap initialized",
+      "summary": "Bootstrap seed only. Fill in the repo context, then replace this with a real checkpoint after meaningful work.",
+      "status": "recorded",
+      "task": "Establish the repo-local Shrey Junior contract and initial context.",
+      "relatedFiles": [],
+      "relatedModules": [],
+      "nextCommand": "kiwi-control checkpoint \"context seeded\""
+    },
+    {
+      "id": "focus:current",
+      "kind": "focus",
+      "label": "fullstack-specialist",
+      "summary": "Review .agent/context/context-tree.json, then record a checkpoint before non-trivial implementation or handoff.",
+      "status": "active",
+      "task": "context seeded",
+      "relatedFiles": [
+        ".agent/context/context-tree.json"
+      ],
+      "relatedModules": [
+        ".agent/context"
+      ],
+      "nextCommand": "kiwi-control checkpoint \"context seeded\""
+    }
+  ],
+  "hotspots": [],
+  "reviewAttention": [],
+  "globalSignals": []
+}

@@ -1,0 +1,262 @@
+{
+  "artifactType": "kiwi-control/machine-parity",
+  "version": 1,
+  "updatedAt": "2026-04-13T18:08:10.974Z",
+  "overallStatus": "ready",
+  "boundaryNote": "Repo-local Kiwi capability is built into the product. Machine-global parity measures optional external setup that Kiwi can benefit from, but does not treat as canonical repo truth.",
+  "summary": {
+    "covered": 16,
+    "partial": 0,
+    "missing": 0,
+    "optional": 0,
+    "total": 16
+  },
+  "repoLocalCapabilities": [
+    {
+      "id": "runtime-authority",
+      "label": "Runtime-backed canonical truth",
+      "scope": "repo-local",
+      "category": "runtime",
+      "status": "covered",
+      "detail": "Runtime-backed canonical state, identity proof, and CLI↔desktop parity are built into Kiwi Control.",
+      "evidence": [
+        "runtime authority",
+        "runtime identity proof",
+        "cli-desktop parity"
+      ]
+    },
+    {
+      "id": "repo-graph",
+      "label": "Repo graph and impact analysis",
+      "scope": "repo-local",
+      "category": "repo-intelligence",
+      "status": "covered",
+      "detail": "Repo map, symbol index, dependency graph, impact map, and compact context packs are available repo-locally.",
+      "evidence": [
+        "repo-map",
+        "symbol-index",
+        "dependency-graph",
+        "impact-map",
+        "compact-context-pack"
+      ]
+    },
+    {
+      "id": "decision-history-review",
+      "label": "Decision, history, and review intelligence",
+      "scope": "repo-local",
+      "category": "repo-intelligence",
+      "status": "covered",
+      "detail": "Decision graph, history graph, review graph, and review context packs are produced from repo-local continuity and runtime artifacts.",
+      "evidence": [
+        "decision-graph",
+        "history-graph",
+        "review-graph",
+        "review-context-pack"
+      ]
+    }
+  ],
+  "machineGlobalCapabilities": [
+    {
+      "id": "ai-setup",
+      "label": "ai-setup bootstrap helper",
+      "scope": "machine-global",
+      "category": "workflow",
+      "status": "covered",
+      "detail": "The repo initializer exists on this machine.",
+      "evidence": [
+        "ai-setup installed"
+      ],
+      "helperCommand": null
+    },
+    {
+      "id": "code-review-graph",
+      "label": "Structural code graph tooling",
+      "scope": "machine-global",
+      "category": "toolchain",
+      "status": "covered",
+      "detail": "Graph-backed structural search and impact queries across Claude Code, Codex, and Copilot runtimes.",
+      "evidence": [
+        "code-review-graph on Claude Code: yes",
+        "code-review-graph on Codex: yes",
+        "code-review-graph on Copilot: yes"
+      ],
+      "helperCommand": "kiwi-control setup repair global-preferences"
+    },
+    {
+      "id": "lean-ctx",
+      "label": "Shell/token compression",
+      "scope": "machine-global",
+      "category": "optimization",
+      "status": "covered",
+      "detail": "Machine-global shell compression and token reduction for supported harnesses.",
+      "evidence": [
+        "lean-ctx on Claude Code: yes",
+        "lean-ctx on Codex: yes",
+        "lean-ctx on Copilot: yes"
+      ],
+      "helperCommand": "kiwi-control setup repair lean-ctx"
+    },
+    {
+      "id": "repomix",
+      "label": "Codebase summary tooling",
+      "scope": "machine-global",
+      "category": "optimization",
+      "status": "covered",
+      "detail": "Compressed codebase summaries used as optional planning accelerators.",
+      "evidence": [
+        "repomix installed"
+      ],
+      "helperCommand": "kiwi-control setup repair repomix"
+    },
+    {
+      "id": "context-mode",
+      "label": "Output sandboxing",
+      "scope": "machine-global",
+      "category": "optimization",
+      "status": "covered",
+      "detail": "Useful but optional containment for verbose tool output.",
+      "evidence": [
+        "context-mode on Claude Code: yes",
+        "context-mode on Codex: no",
+        "context-mode on Copilot: no"
+      ],
+      "helperCommand": "kiwi-control setup verify --json"
+    },
+    {
+      "id": "omc",
+      "label": "Planning orchestration layer",
+      "scope": "machine-global",
+      "category": "workflow",
+      "status": "covered",
+      "detail": "Optional machine-global planning orchestration beyond Kiwi’s repo-local control plane.",
+      "evidence": [
+        "omc installed"
+      ],
+      "helperCommand": null
+    },
+    {
+      "id": "omx",
+      "label": "Execution orchestration layer",
+      "scope": "machine-global",
+      "category": "workflow",
+      "status": "covered",
+      "detail": "Optional execution orchestration layer for tmux/team workflows.",
+      "evidence": [
+        "omx installed"
+      ],
+      "helperCommand": null
+    },
+    {
+      "id": "claude-global-config",
+      "label": "Claude Code global config",
+      "scope": "machine-global",
+      "category": "config",
+      "status": "covered",
+      "detail": "Claude Code instructions and MCP wiring.",
+      "evidence": [
+        "Claude config: healthy",
+        "Claude instructions: healthy"
+      ],
+      "helperCommand": "kiwi-control setup repair global-preferences"
+    },
+    {
+      "id": "codex-global-config",
+      "label": "Codex global config",
+      "scope": "machine-global",
+      "category": "config",
+      "status": "covered",
+      "detail": "Codex MCP wiring and global instructions.",
+      "evidence": [
+        "Codex config: healthy",
+        "Codex instructions: healthy"
+      ],
+      "helperCommand": "kiwi-control setup repair global-preferences"
+    },
+    {
+      "id": "copilot-global-config",
+      "label": "Copilot global config",
+      "scope": "machine-global",
+      "category": "config",
+      "status": "covered",
+      "detail": "Copilot MCP config and plugin registry.",
+      "evidence": [
+        "Copilot config: healthy",
+        "Copilot instructions: healthy"
+      ],
+      "helperCommand": "kiwi-control setup repair global-preferences"
+    },
+    {
+      "id": "claude-telemetry",
+      "label": "Claude usage telemetry",
+      "scope": "machine-global",
+      "category": "telemetry",
+      "status": "covered",
+      "detail": "Claude token telemetry through ccusage when available.",
+      "evidence": [
+        "Measured Claude usage came from ccusage daily output."
+      ],
+      "helperCommand": null
+    },
+    {
+      "id": "codex-telemetry",
+      "label": "Codex session telemetry",
+      "scope": "machine-global",
+      "category": "telemetry",
+      "status": "covered",
+      "detail": "Codex local session-log telemetry. Partial means the runtime is present but no recent measurable sessions were found.",
+      "evidence": [
+        "Measured Codex usage came from local session logs."
+      ],
+      "helperCommand": null
+    },
+    {
+      "id": "copilot-plugins",
+      "label": "Copilot plugin expansion",
+      "scope": "machine-global",
+      "category": "assistant-runtime",
+      "status": "covered",
+      "detail": "Optional Copilot assistant expansion through installed plugins.",
+      "evidence": [
+        "plugins: database-data-management, frontend-web-dev, openapi-to-application-python-fastapi, project-planning, polyglot-test-agent"
+      ],
+      "helperCommand": null
+    },
+    {
+      "id": "planning-runtime",
+      "label": "Planning runtime readiness",
+      "scope": "machine-global",
+      "category": "assistant-runtime",
+      "status": "covered",
+      "detail": "Machine-global planning readiness from optimization/runtime signals.",
+      "evidence": [
+        "planning heuristic 100%"
+      ],
+      "helperCommand": "kiwi-control toolchain --refresh"
+    },
+    {
+      "id": "execution-runtime",
+      "label": "Execution runtime readiness",
+      "scope": "machine-global",
+      "category": "assistant-runtime",
+      "status": "covered",
+      "detail": "Machine-global execution readiness from optimization/runtime signals.",
+      "evidence": [
+        "execution heuristic 85%"
+      ],
+      "helperCommand": "kiwi-control toolchain --refresh"
+    },
+    {
+      "id": "assistant-runtime",
+      "label": "Assistant runtime readiness",
+      "scope": "machine-global",
+      "category": "assistant-runtime",
+      "status": "covered",
+      "detail": "Machine-global assistant readiness from Copilot-oriented signals.",
+      "evidence": [
+        "assistant heuristic 75%"
+      ],
+      "helperCommand": "kiwi-control toolchain --refresh"
+    }
+  ],
+  "helpers": []
+}

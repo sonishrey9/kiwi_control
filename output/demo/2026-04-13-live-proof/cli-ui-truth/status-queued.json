@@ -1,0 +1,3084 @@
+{
+  "targetRoot": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo",
+  "loadState": {
+    "source": "fresh",
+    "freshness": "fresh",
+    "generatedAt": "2026-04-13T17:47:28.755Z",
+    "snapshotSavedAt": null,
+    "snapshotAgeMs": null,
+    "detail": "Repo-local state is current."
+  },
+  "profileName": "product-build",
+  "executionMode": "assisted",
+  "projectType": "node",
+  "repoState": {
+    "mode": "healthy",
+    "title": "Repo state is healthy",
+    "detail": "The repo-local control surfaces are present, validation is clean, and the desktop app can safely mirror the CLI view of repo state.",
+    "sourceOfTruthNote": "Repo-local artifacts under .agent/ and promoted repo instruction files remain the source of truth. The desktop app only reads and reports that state."
+  },
+  "executionState": {
+    "revision": 3,
+    "operationId": "ec992169-7d17-4e54-bfe8-99df4cad56b1",
+    "task": "update README docs",
+    "sourceCommand": "kiwi-control run \"update README docs\"",
+    "lifecycle": "queued",
+    "reason": "Generated 3 task packets for \"update README docs\".",
+    "nextCommand": "kiwi-control validate \"update README docs\"",
+    "blockedBy": [],
+    "lastUpdatedAt": "2026-04-13T17:47:28Z",
+    "artifacts": {
+      "packets": [
+        ".agent/state/latest-task-packets.json",
+        ".agent/tasks/run-20260413-174728-update-readme-docs/codex.md",
+        ".agent/tasks/run-20260413-174728-update-readme-docs/claude.md",
+        ".agent/tasks/run-20260413-174728-update-readme-docs/copilot.md"
+      ]
+    },
+    "lastEvent": {
+      "revision": 3,
+      "operationId": "ec992169-7d17-4e54-bfe8-99df4cad56b1",
+      "type": "run-packetized",
+      "lifecycle": "queued",
+      "task": "update README docs",
+      "sourceCommand": "kiwi-control run \"update README docs\"",
+      "reason": "Generated 3 task packets for \"update README docs\".",
+      "nextCommand": "kiwi-control validate \"update README docs\"",
+      "blockedBy": [],
+      "artifacts": {
+        "packets": [
+          ".agent/state/latest-task-packets.json",
+          ".agent/tasks/run-20260413-174728-update-readme-docs/codex.md",
+          ".agent/tasks/run-20260413-174728-update-readme-docs/claude.md",
+          ".agent/tasks/run-20260413-174728-update-readme-docs/copilot.md"
+        ]
+      },
+      "recordedAt": "2026-04-13T17:47:28Z"
+    }
+  },
+  "readiness": {
+    "label": "Queued",
+    "tone": "ready",
+    "detail": "Generated 3 task packets for \"update README docs\".",
+    "nextCommand": "kiwi-control validate \"update README docs\""
+  },
+  "runtimeIdentity": {
+    "launchMode": "direct-binary",
+    "callerSurface": "cli",
+    "packagingSourceCategory": "local-staged",
+    "binaryPath": "/Volumes/shrey ssd/shrey-junior/apps/sj-ui/src-tauri/binaries/kiwi-control-runtime-aarch64-apple-darwin",
+    "binarySha256": "ea41f35e405fa1a1b2240a66deff97b792873faa68fc8198ccbec39f565f844e",
+    "runtimeVersion": "0.1.0",
+    "targetTriple": "aarch64-apple-darwin",
+    "startedAt": "1776070234",
+    "metadataPath": "/Users/shreysoni/.kiwi-control/runtime/daemon.json"
+  },
+  "derivedFreshness": [
+    {
+      "freshness": "fresh",
+      "generatedAt": "2026-04-13T17:47:28Z",
+      "invalidatedAt": null,
+      "lastError": null,
+      "outputName": "execution-events",
+      "path": "/private/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo/.agent/state/execution-events.ndjson",
+      "sourceRevision": 3
+    },
+    {
+      "freshness": "fresh",
+      "generatedAt": "2026-04-13T17:47:28Z",
+      "invalidatedAt": null,
+      "lastError": null,
+      "outputName": "execution-state",
+      "path": "/private/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo/.agent/state/execution-state.json",
+      "sourceRevision": 3
+    }
+  ],
+  "runtimeDecision": {
+    "currentStepId": "execute_packet",
+    "currentStepLabel": "Execute packet",
+    "currentStepStatus": "pending",
+    "decisionSource": "run-command",
+    "nextAction": {
+      "action": "Open latest task packet and execute it",
+      "command": null,
+      "priority": "high",
+      "reason": "Generated 3 task packets for \"update README docs\"."
+    },
+    "nextCommand": "kiwi-control validate \"update README docs\"",
+    "readinessDetail": "Generated 3 task packets for \"update README docs\".",
+    "readinessLabel": "Queued",
+    "readinessTone": "ready",
+    "recovery": null,
+    "updatedAt": "2026-04-13T17:47:28.619Z"
+  },
+  "repoOverview": [
+    {
+      "label": "Project type",
+      "value": "node (detected)"
+    },
+    {
+      "label": "Active role",
+      "value": "frontend-specialist"
+    },
+    {
+      "label": "Next file",
+      "value": ".agent/tasks/run-20260413-174728-update-readme-docs/codex.md"
+    },
+    {
+      "label": "Next command",
+      "value": "kiwi-control validate \"update README docs\""
+    },
+    {
+      "label": "Execution lifecycle",
+      "value": "queued"
+    },
+    {
+      "label": "Validation state",
+      "value": "passing"
+    },
+    {
+      "label": "Current phase",
+      "value": "bootstrap initialized [complete]"
+    }
+  ],
+  "continuity": [
+    {
+      "label": "Latest checkpoint",
+      "value": "bootstrap initialized [2026-04-13T17:47:19.037Z]"
+    },
+    {
+      "label": "Latest handoff",
+      "value": "none recorded"
+    },
+    {
+      "label": "Latest reconcile",
+      "value": "none recorded"
+    },
+    {
+      "label": "Current focus",
+      "value": "Open .agent/state/latest-task-packets.json and execute the claude run packet before validating the outcome."
+    },
+    {
+      "label": "Open risks",
+      "value": "none recorded"
+    }
+  ],
+  "memoryBank": [
+    {
+      "label": "Repo Facts",
+      "path": ".agent/memory/repo-facts.json",
+      "present": true
+    },
+    {
+      "label": "Current Focus",
+      "path": ".agent/memory/current-focus.json",
+      "present": true
+    },
+    {
+      "label": "Open Risks",
+      "path": ".agent/memory/open-risks.json",
+      "present": true
+    },
+    {
+      "label": "Context Tree",
+      "path": ".agent/context/context-tree.json",
+      "present": true
+    }
+  ],
+  "specialists": {
+    "activeSpecialist": "frontend-specialist",
+    "recommendedSpecialist": "fullstack-specialist",
+    "available": [
+      {
+        "specialistId": "android-specialist",
+        "name": "Android Specialist",
+        "purpose": "Kotlin, Gradle, and Android app implementation or review with repo-local build and test discipline.",
+        "aliases": [],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "prototype"
+        ],
+        "preferredTools": [
+          "codex",
+          "claude"
+        ],
+        "riskPosture": "medium"
+      },
+      {
+        "specialistId": "architecture-specialist",
+        "name": "Architecture Specialist",
+        "purpose": "Planning, decomposition, boundary analysis, and guarded change sequencing.",
+        "aliases": [
+          "dispatcher"
+        ],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "prototype",
+          "data-platform",
+          "documentation-heavy"
+        ],
+        "preferredTools": [
+          "claude",
+          "codex"
+        ],
+        "riskPosture": "conservative"
+      },
+      {
+        "specialistId": "backend-specialist",
+        "name": "Backend Specialist",
+        "purpose": "API, service, persistence, and contract-safe backend delivery across Python, Node, and general server-side repos.",
+        "aliases": [],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "prototype",
+          "data-platform"
+        ],
+        "preferredTools": [
+          "codex",
+          "claude"
+        ],
+        "riskPosture": "medium"
+      },
+      {
+        "specialistId": "data-platform-specialist",
+        "name": "Data Platform Specialist",
+        "purpose": "Safe work on pipelines, transforms, schemas, warehouse logic, and migration-sensitive data-platform repos.",
+        "aliases": [
+          "sql-specialist"
+        ],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "data-platform"
+        ],
+        "preferredTools": [
+          "claude",
+          "codex"
+        ],
+        "riskPosture": "conservative"
+      },
+      {
+        "specialistId": "docs-specialist",
+        "name": "Docs Specialist",
+        "purpose": "Improve docs, onboarding, summaries, and repo knowledge flow without drifting from authority.",
+        "aliases": [
+          "handoff-editor"
+        ],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "prototype",
+          "documentation-heavy"
+        ],
+        "preferredTools": [
+          "claude",
+          "copilot"
+        ],
+        "riskPosture": "low"
+      },
+      {
+        "specialistId": "frontend-specialist",
+        "name": "Frontend Specialist",
+        "purpose": "UI and interaction work with emphasis on safe boundaries, browser evidence, and repo-aware frontend guidance.",
+        "aliases": [],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "prototype",
+          "documentation-heavy"
+        ],
+        "preferredTools": [
+          "codex",
+          "copilot",
+          "claude"
+        ],
+        "riskPosture": "medium"
+      },
+      {
+        "specialistId": "fullstack-specialist",
+        "name": "Fullstack Specialist",
+        "purpose": "Balanced implementation specialist for app and web repos that cross frontend, backend, routing, and validation boundaries.",
+        "aliases": [
+          "typescript-implementer"
+        ],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "prototype",
+          "documentation-heavy"
+        ],
+        "preferredTools": [
+          "codex",
+          "claude",
+          "copilot"
+        ],
+        "riskPosture": "medium"
+      },
+      {
+        "specialistId": "ios-specialist",
+        "name": "iOS Specialist",
+        "purpose": "Swift, SwiftUI, Xcode, and Apple-platform implementation or review with honest tool-availability boundaries.",
+        "aliases": [],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "prototype"
+        ],
+        "preferredTools": [
+          "codex",
+          "claude"
+        ],
+        "riskPosture": "medium"
+      },
+      {
+        "specialistId": "mcp-specialist",
+        "name": "MCP Specialist",
+        "purpose": "Safe capability selection for MCP-aware workflows without assuming live secrets or machine-local authority.",
+        "aliases": [],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "prototype",
+          "data-platform",
+          "documentation-heavy"
+        ],
+        "preferredTools": [
+          "claude",
+          "codex"
+        ],
+        "riskPosture": "medium"
+      },
+      {
+        "specialistId": "push-specialist",
+        "name": "Push Specialist",
+        "purpose": "Conservative push-readiness and review gating before commit or push decisions.",
+        "aliases": [],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "prototype",
+          "data-platform",
+          "documentation-heavy"
+        ],
+        "preferredTools": [
+          "claude",
+          "codex"
+        ],
+        "riskPosture": "conservative"
+      },
+      {
+        "specialistId": "python-specialist",
+        "name": "Python Specialist",
+        "purpose": "Safe Python and backend implementation follow-through with explicit boundaries and validation.",
+        "aliases": [
+          "python-implementer"
+        ],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "prototype",
+          "data-platform"
+        ],
+        "preferredTools": [
+          "codex",
+          "claude"
+        ],
+        "riskPosture": "medium"
+      },
+      {
+        "specialistId": "qa-specialist",
+        "name": "QA Specialist",
+        "purpose": "Validation, edge-case coverage, and acceptance confidence for repo-local changes.",
+        "aliases": [],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "prototype",
+          "data-platform",
+          "documentation-heavy"
+        ],
+        "preferredTools": [
+          "claude",
+          "codex"
+        ],
+        "riskPosture": "conservative"
+      },
+      {
+        "specialistId": "refactor-specialist",
+        "name": "Refactor Specialist",
+        "purpose": "Keep larger restructures bounded, contract-safe, and reviewable.",
+        "aliases": [
+          "performance-reviewer"
+        ],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "prototype",
+          "data-platform"
+        ],
+        "preferredTools": [
+          "codex",
+          "claude"
+        ],
+        "riskPosture": "medium"
+      },
+      {
+        "specialistId": "release-specialist",
+        "name": "Release Specialist",
+        "purpose": "Release readiness, checkpoint health, and phase-close discipline before commit or push decisions.",
+        "aliases": [
+          "release-readiness"
+        ],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "data-platform",
+          "documentation-heavy"
+        ],
+        "preferredTools": [
+          "claude",
+          "codex"
+        ],
+        "riskPosture": "conservative"
+      },
+      {
+        "specialistId": "review-specialist",
+        "name": "Review Specialist",
+        "purpose": "General software engineering review for correctness, regression risk, contract safety, and change quality.",
+        "aliases": [
+          "reconciler"
+        ],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "prototype",
+          "data-platform",
+          "documentation-heavy"
+        ],
+        "preferredTools": [
+          "claude",
+          "codex"
+        ],
+        "riskPosture": "conservative"
+      },
+      {
+        "specialistId": "security-specialist",
+        "name": "Security Specialist",
+        "purpose": "Review auth, permissions, data exposure, and unsafe assumptions without weakening guardrails.",
+        "aliases": [
+          "security-reviewer"
+        ],
+        "allowedProfiles": [
+          "strict-production",
+          "product-build",
+          "data-platform"
+        ],
+        "preferredTools": [
+          "claude",
+          "codex"
+        ],
+        "riskPosture": "high"
+      }
+    ],
+    "activeProfile": {
+      "specialistId": "frontend-specialist",
+      "name": "Frontend Specialist",
+      "purpose": "UI and interaction work with emphasis on safe boundaries, browser evidence, and repo-aware frontend guidance.",
+      "aliases": [],
+      "allowedProfiles": [
+        "strict-production",
+        "product-build",
+        "prototype",
+        "documentation-heavy"
+      ],
+      "preferredTools": [
+        "codex",
+        "copilot",
+        "claude"
+      ],
+      "riskPosture": "medium"
+    },
+    "recommendedProfile": {
+      "specialistId": "fullstack-specialist",
+      "name": "Fullstack Specialist",
+      "purpose": "Balanced implementation specialist for app and web repos that cross frontend, backend, routing, and validation boundaries.",
+      "aliases": [
+        "typescript-implementer"
+      ],
+      "allowedProfiles": [
+        "strict-production",
+        "product-build",
+        "prototype",
+        "documentation-heavy"
+      ],
+      "preferredTools": [
+        "codex",
+        "claude",
+        "copilot"
+      ],
+      "riskPosture": "medium"
+    },
+    "handoffTargets": [
+      "android-specialist",
+      "architecture-specialist",
+      "backend-specialist",
+      "data-platform-specialist",
+      "docs-specialist",
+      "frontend-specialist",
+      "fullstack-specialist",
+      "ios-specialist"
+    ],
+    "safeParallelHint": "Parallel work is safest when each specialist owns disjoint files and reconcile is already planned."
+  },
+  "mcpPacks": {
+    "selectedPack": {
+      "id": "research-pack",
+      "name": "Research Pack",
+      "description": "Planning and documentation pack for discovery, migration research, and architecture work.",
+      "guidance": [
+        "Use for planning, docs, migration prep, and cross-repo research tasks.",
+        "Prefer read-heavy tools and keep repo-local outputs compact and inspectable."
+      ],
+      "realismNotes": [
+        "This pack is runtime-selectable and prefers research-oriented integrations when they are registered.",
+        "Search availability still depends on the active repo profile and installed integrations."
+      ],
+      "suggestedProjectTypes": [
+        "docs",
+        "generic",
+        "data-platform"
+      ]
+    },
+    "selectedPackSource": "heuristic-default",
+    "explicitSelection": null,
+    "suggestedPack": {
+      "id": "research-pack",
+      "name": "Research Pack",
+      "description": "Planning and documentation pack for discovery, migration research, and architecture work.",
+      "guidance": [
+        "Use for planning, docs, migration prep, and cross-repo research tasks.",
+        "Prefer read-heavy tools and keep repo-local outputs compact and inspectable."
+      ],
+      "realismNotes": [
+        "This pack is runtime-selectable and prefers research-oriented integrations when they are registered.",
+        "Search availability still depends on the active repo profile and installed integrations."
+      ],
+      "suggestedProjectTypes": [
+        "docs",
+        "generic",
+        "data-platform"
+      ]
+    },
+    "available": [
+      {
+        "id": "core-pack",
+        "name": "Core Pack",
+        "description": "Default repo-first pack for filesystem, git-aware reasoning, and contract inspection.",
+        "guidance": [
+          "Use for any repo that only needs baseline repo-state reading, routing, and contract maintenance.",
+          "Prefer this pack when the repo is generic and should stay quiet by default."
+        ],
+        "realismNotes": [
+          "This pack is runtime-selectable and narrows Kiwi to a baseline repo-first integration lane.",
+          "Actual capability availability still depends on the active repo profile and installed integrations."
+        ],
+        "suggestedProjectTypes": [
+          "generic",
+          "node",
+          "python",
+          "docs",
+          "data-platform"
+        ],
+        "executable": true,
+        "unavailablePackReason": null,
+        "allowedCapabilityIds": [
+          "filesystem",
+          "context7",
+          "github",
+          "sequential-thinking"
+        ],
+        "preferredCapabilityIds": [
+          "filesystem",
+          "context7",
+          "github"
+        ],
+        "unavailableCapabilityIds": []
+      },
+      {
+        "id": "research-pack",
+        "name": "Research Pack",
+        "description": "Planning and documentation pack for discovery, migration research, and architecture work.",
+        "guidance": [
+          "Use for planning, docs, migration prep, and cross-repo research tasks.",
+          "Prefer read-heavy tools and keep repo-local outputs compact and inspectable."
+        ],
+        "realismNotes": [
+          "This pack is runtime-selectable and prefers research-oriented integrations when they are registered.",
+          "Search availability still depends on the active repo profile and installed integrations."
+        ],
+        "suggestedProjectTypes": [
+          "docs",
+          "generic",
+          "data-platform"
+        ],
+        "executable": true,
+        "unavailablePackReason": null,
+        "allowedCapabilityIds": [
+          "exa",
+          "firecrawl",
+          "brave-search",
+          "context7",
+          "sequential-thinking",
+          "github"
+        ],
+        "preferredCapabilityIds": [
+          "exa",
+          "firecrawl",
+          "brave-search",
+          "context7",
+          "sequential-thinking"
+        ],
+        "unavailableCapabilityIds": []
+      },
+      {
+        "id": "web-qa-pack",
+        "name": "Web QA Pack",
+        "description": "Browser and verification guidance for web apps, UI review, and smoke testing.",
+        "guidance": [
+          "Use when Playwright or browser automation helps validate UI, routing, and regressions.",
+          "Keep browser verification additive. Never imply that UI automation is universally available."
+        ],
+        "realismNotes": [
+          "This pack is runtime-selectable and prefers browser and design validation integrations when they are registered.",
+          "Playwright-style automation still depends on the active repo profile and installed integrations."
+        ],
+        "suggestedProjectTypes": [
+          "node",
+          "generic"
+        ],
+        "executable": true,
+        "unavailablePackReason": null,
+        "allowedCapabilityIds": [
+          "playwright",
+          "figma",
+          "cloudflare-docs",
+          "github",
+          "context7"
+        ],
+        "preferredCapabilityIds": [
+          "playwright",
+          "figma",
+          "cloudflare-docs"
+        ],
+        "unavailableCapabilityIds": []
+      },
+      {
+        "id": "aws-pack",
+        "name": "AWS Pack",
+        "description": "AWS-specific routing and safety guidance for repos that genuinely target AWS.",
+        "guidance": [
+          "Only recommend this pack for AWS repos or tasks that clearly require AWS services.",
+          "Prefer repo-local guidance and existing SSO/account conventions over ad hoc credential handling."
+        ],
+        "realismNotes": [
+          "This pack stays blocked until AWS-specific integrations are registered in Kiwi's repo registry and machine inventory.",
+          "Do not imply AWS tooling exists here until the pack reports executable."
+        ],
+        "suggestedProjectTypes": [
+          "infra",
+          "node",
+          "python"
+        ],
+        "executable": false,
+        "unavailablePackReason": "AWS Pack is blocked because this repo does not register any AWS-specific MCP or tool integrations in the current registry/inventory.",
+        "allowedCapabilityIds": [
+          "aws-docs",
+          "aws-cdk",
+          "aws-cli"
+        ],
+        "preferredCapabilityIds": [
+          "aws-cdk",
+          "aws-docs",
+          "aws-cli"
+        ],
+        "unavailableCapabilityIds": [
+          "aws-cdk",
+          "aws-cli",
+          "aws-docs"
+        ]
+      },
+      {
+        "id": "ios-pack",
+        "name": "iOS Pack",
+        "description": "Apple-platform guidance for Xcode-aware workflows, simulator checks, and UI validation.",
+        "guidance": [
+          "Recommend for iOS and macOS repos when Xcode or simulator tooling is available.",
+          "Keep repo-local runbooks authoritative and treat bridge tooling as optional acceleration."
+        ],
+        "realismNotes": [
+          "This pack stays blocked until Xcode or simulator integrations are registered in Kiwi's repo registry and machine inventory.",
+          "Do not imply Apple-platform bridge support exists here until the pack reports executable."
+        ],
+        "suggestedProjectTypes": [
+          "ios",
+          "macos"
+        ],
+        "executable": false,
+        "unavailablePackReason": "iOS Pack is blocked because this repo does not register any Xcode or simulator integrations in the current registry/inventory.",
+        "allowedCapabilityIds": [
+          "xcode",
+          "simulator",
+          "apple-docs"
+        ],
+        "preferredCapabilityIds": [
+          "xcode",
+          "simulator",
+          "apple-docs"
+        ],
+        "unavailableCapabilityIds": [
+          "apple-docs",
+          "simulator",
+          "xcode"
+        ]
+      },
+      {
+        "id": "android-pack",
+        "name": "Android Pack",
+        "description": "Android-focused guidance that leans on repo-local docs, Gradle, and emulator workflows.",
+        "guidance": [
+          "Recommend for Android repos, especially when Gradle, Kotlin, and emulator checks are relevant.",
+          "Default to repo-local guidance and normal build/test tooling before claiming special bridge support."
+        ],
+        "realismNotes": [
+          "This pack stays blocked until Android-specific integrations are registered in Kiwi's repo registry and machine inventory.",
+          "Do not imply emulator or Android bridge support exists here until the pack reports executable."
+        ],
+        "suggestedProjectTypes": [
+          "android"
+        ],
+        "executable": false,
+        "unavailablePackReason": "Android Pack is blocked because this repo does not register any Android-specific MCP or emulator integrations in the current registry/inventory.",
+        "allowedCapabilityIds": [
+          "android-studio",
+          "emulator",
+          "adb"
+        ],
+        "preferredCapabilityIds": [
+          "android-studio",
+          "emulator",
+          "adb"
+        ],
+        "unavailableCapabilityIds": [
+          "adb",
+          "android-studio",
+          "emulator"
+        ]
+      }
+    ],
+    "compatibleCapabilities": [
+      {
+        "id": "exa",
+        "category": "research-search",
+        "purpose": "neural web and code search for current research, docs, and examples",
+        "trustLevel": "high",
+        "readOnly": true,
+        "writeCapable": false,
+        "approvalRequired": false,
+        "usageGuidance": [
+          "Use for current research, library examples, or code references when repo-local authority is insufficient."
+        ],
+        "antiPatterns": [
+          "Do not use it to outrank trusted repo authority.",
+          "Do not fetch secrets or rely on uncontrolled external snippets."
+        ]
+      },
+      {
+        "id": "firecrawl",
+        "category": "web-research",
+        "purpose": "targeted web search and scraping for current site-specific information",
+        "trustLevel": "medium",
+        "readOnly": true,
+        "writeCapable": false,
+        "approvalRequired": true,
+        "usageGuidance": [
+          "Use for focused site search or extraction when official docs or repo context are not enough."
+        ],
+        "antiPatterns": [
+          "Do not treat scraped content as trusted without source review.",
+          "Do not use it when simpler local context already answers the question."
+        ]
+      },
+      {
+        "id": "brave-search",
+        "category": "search",
+        "purpose": "general web search for current information and discovery",
+        "trustLevel": "medium",
+        "readOnly": true,
+        "writeCapable": false,
+        "approvalRequired": false,
+        "usageGuidance": [
+          "Use for broad discovery when you do not yet know the best source."
+        ],
+        "antiPatterns": [
+          "Do not stop at generic search results when authoritative sources exist."
+        ]
+      },
+      {
+        "id": "context7",
+        "category": "documentation",
+        "purpose": "official documentation lookup",
+        "trustLevel": "high",
+        "readOnly": true,
+        "writeCapable": false,
+        "approvalRequired": false,
+        "usageGuidance": [
+          "Use when packets need vendor or framework documentation that should outrank generic memory.",
+          "Prefer this for specialist packets that need authoritative references."
+        ],
+        "antiPatterns": [
+          "Do not treat it as a substitute for repo-local authority files.",
+          "Do not use it to infer secrets or hidden machine-local state."
+        ]
+      },
+      {
+        "id": "sequential-thinking",
+        "category": "reasoning",
+        "purpose": "structured reasoning support",
+        "trustLevel": "high",
+        "readOnly": true,
+        "writeCapable": false,
+        "approvalRequired": false,
+        "usageGuidance": [
+          "Prefer for planner, reviewer, and release-check reasoning where a traceable chain is helpful."
+        ],
+        "antiPatterns": [
+          "Do not overuse it for trivial inline edits.",
+          "Do not let reasoning traces replace concrete validation evidence."
+        ]
+      },
+      {
+        "id": "github",
+        "category": "code-hosting",
+        "purpose": "GitHub repository metadata and automation",
+        "trustLevel": "high",
+        "readOnly": true,
+        "writeCapable": true,
+        "approvalRequired": true,
+        "usageGuidance": [
+          "Use for PR, CI, and repository metadata when repo-local context alone is insufficient."
+        ],
+        "antiPatterns": [
+          "Do not assume PR state replaces local diff review.",
+          "Do not trigger write-capable operations without an explicit user request."
+        ]
+      }
+    ],
+    "effectiveCapabilityIds": [
+      "exa",
+      "firecrawl",
+      "brave-search",
+      "context7",
+      "sequential-thinking",
+      "github"
+    ],
+    "preferredCapabilityIds": [
+      "exa",
+      "firecrawl",
+      "brave-search",
+      "context7",
+      "sequential-thinking"
+    ],
+    "executable": true,
+    "unavailablePackReason": null,
+    "capabilityStatus": "compatible",
+    "note": "Research Pack is active via heuristic default. 6 MCP integration(s) match this pack policy."
+  },
+  "validation": {
+    "ok": true,
+    "errors": 0,
+    "warnings": 0,
+    "issues": []
+  },
+  "ecosystem": {
+    "artifactType": "kiwi-control/ecosystem-catalog",
+    "version": 1,
+    "timestamp": "2026-04-13T17:47:28.842Z",
+    "tools": [
+      {
+        "id": "github-mcp",
+        "name": "GitHub MCP",
+        "category": "mcp",
+        "description": "Repository, issue, pull request, and workflow access through a structured MCP surface.",
+        "source": "awesome-claude-code",
+        "readOnly": true
+      },
+      {
+        "id": "notion-mcp",
+        "name": "Notion MCP",
+        "category": "mcp",
+        "description": "Structured access to Notion workspaces and knowledge pages.",
+        "source": "awesome-claude-code",
+        "readOnly": true
+      },
+      {
+        "id": "supabase-mcp",
+        "name": "Supabase MCP",
+        "category": "mcp",
+        "description": "Project-aware MCP access for Supabase resources and operational context.",
+        "source": "awesome-claude-code",
+        "readOnly": true
+      },
+      {
+        "id": "awesome-agent-skills",
+        "name": "Awesome Agent Skills",
+        "category": "skill-library",
+        "description": "Curated catalog of reusable `SKILL.md`-style capability packages across platforms.",
+        "source": "awesome-agent-skills",
+        "readOnly": true
+      },
+      {
+        "id": "awesome-copilot-skills",
+        "name": "Awesome Copilot Skills",
+        "category": "skill-library",
+        "description": "Collection of skills, hooks, plugins, and workflows for Copilot-style agent experiences.",
+        "source": "awesome-copilot",
+        "readOnly": true
+      }
+    ],
+    "workflows": [
+      {
+        "id": "copilot-agentic-workflows",
+        "name": "Agentic Workflows",
+        "description": "Markdown-defined AI workflows and automations from the Awesome Copilot ecosystem.",
+        "source": "awesome-copilot"
+      },
+      {
+        "id": "claude-plugin-marketplace",
+        "name": "Plugin Marketplace Flow",
+        "description": "Marketplace-driven plugin and MCP discovery model from the Claude Code ecosystem.",
+        "source": "awesome-claude-code"
+      },
+      {
+        "id": "skill-progressive-disclosure",
+        "name": "Progressive Disclosure Skills",
+        "description": "Skill discovery model that loads lightweight metadata before full instructions.",
+        "source": "awesome-agent-skills"
+      }
+    ],
+    "capabilities": [
+      {
+        "id": "repos-issues-prs",
+        "name": "Repos / Issues / PRs",
+        "surface": "mcp",
+        "description": "Structured repo and pull request context for decision support.",
+        "source": "awesome-claude-code"
+      },
+      {
+        "id": "jira-confluence",
+        "name": "Jira / Confluence",
+        "surface": "mcp",
+        "description": "Linked planning and documentation surfaces through external MCP integrations.",
+        "source": "awesome-claude-code"
+      },
+      {
+        "id": "skills-triggering",
+        "name": "Task-triggered skills",
+        "surface": "skills",
+        "description": "Intent-based skill discovery with metadata-first loading and optional deeper instructions.",
+        "source": "awesome-agent-skills"
+      },
+      {
+        "id": "copilot-hooks",
+        "name": "Hook-style lifecycle actions",
+        "surface": "workflow",
+        "description": "Event-driven workflow hooks that inform execution and verification without replacing the runtime.",
+        "source": "awesome-copilot"
+      }
+    ],
+    "notes": [
+      "This catalog is advisory only. Kiwi Control does not execute these tools directly.",
+      "The catalog is sourced from permissively licensed, read-only ecosystem lists and is intended to inform decisions, not drive runtime behavior automatically."
+    ]
+  },
+  "machineAdvisory": {
+    "artifactType": "kiwi-control/machine-advisory",
+    "version": 3,
+    "generatedBy": "kiwi-control machine-advisory",
+    "windowDays": 7,
+    "updatedAt": "2026-04-13T17:45:57.892Z",
+    "stale": true,
+    "sections": {
+      "inventory": {
+        "status": "fresh",
+        "updatedAt": "2026-04-13T17:45:57.892Z"
+      },
+      "mcpInventory": {
+        "status": "fresh",
+        "updatedAt": "2026-04-13T17:45:57.892Z"
+      },
+      "optimizationLayers": {
+        "status": "fresh",
+        "updatedAt": "2026-04-13T17:45:57.892Z"
+      },
+      "setupPhases": {
+        "status": "fresh",
+        "updatedAt": "2026-04-13T17:45:57.892Z"
+      },
+      "configHealth": {
+        "status": "fresh",
+        "updatedAt": "2026-04-13T17:45:57.892Z"
+      },
+      "usage": {
+        "status": "fresh",
+        "updatedAt": "2026-04-13T17:45:57.892Z"
+      },
+      "guidance": {
+        "status": "fresh",
+        "updatedAt": "2026-04-13T17:45:57.892Z"
+      }
+    },
+    "inventory": [
+      {
+        "name": "ai-setup",
+        "description": "Local one-command AI bootstrap helper",
+        "phase": "Compatibility",
+        "installed": true,
+        "version": "2.1",
+        "path": "/Users/shreysoni/.local/bin/ai-setup",
+        "source": "path"
+      },
+      {
+        "name": "code-review-graph",
+        "description": "Graph-based code search",
+        "phase": "Phase 1",
+        "installed": true,
+        "version": "2.1.0",
+        "path": "/Users/shreysoni/.local/bin/code-review-graph",
+        "source": "path"
+      },
+      {
+        "name": "omc",
+        "description": "Planning orchestration layer",
+        "phase": "Phase 1",
+        "installed": true,
+        "version": "4.10.2",
+        "path": "/opt/homebrew/bin/omc",
+        "source": "path"
+      },
+      {
+        "name": "omx",
+        "description": "Execution orchestration layer",
+        "phase": "Phase 1",
+        "installed": true,
+        "version": "0.11.13",
+        "path": "/opt/homebrew/bin/omx",
+        "source": "path"
+      },
+      {
+        "name": "lean-ctx",
+        "description": "Shell output compression",
+        "phase": "Phase 2",
+        "installed": true,
+        "version": "2.16.6",
+        "path": "/Users/shreysoni/.cargo/bin/lean-ctx",
+        "source": "path"
+      },
+      {
+        "name": "repomix",
+        "description": "Codebase summarizer",
+        "phase": "Phase 2",
+        "installed": true,
+        "version": "1.13.1",
+        "path": "/opt/homebrew/bin/repomix",
+        "source": "path"
+      },
+      {
+        "name": "context-mode",
+        "description": "Tool output sandboxing",
+        "phase": "Phase 2",
+        "installed": true,
+        "version": "1.0.68",
+        "path": "/opt/homebrew/bin/context-mode",
+        "source": "path"
+      },
+      {
+        "name": "copilot",
+        "description": "GitHub Copilot CLI",
+        "phase": "Phase 2",
+        "installed": true,
+        "version": "1.0.18.",
+        "path": "/opt/homebrew/bin/copilot",
+        "source": "path"
+      },
+      {
+        "name": "tmux",
+        "description": "Terminal multiplexer",
+        "phase": "Existing",
+        "versionArgs": [
+          "-V"
+        ],
+        "installed": true,
+        "version": "3.6a",
+        "path": "/opt/homebrew/bin/tmux",
+        "source": "path"
+      }
+    ],
+    "mcpInventory": {
+      "claudeTotal": 58,
+      "codexTotal": 57,
+      "copilotTotal": 2,
+      "tokenServers": [
+        {
+          "name": "code-review-graph",
+          "claude": true,
+          "codex": true,
+          "copilot": true
+        },
+        {
+          "name": "lean-ctx",
+          "claude": true,
+          "codex": true,
+          "copilot": true
+        },
+        {
+          "name": "context-mode",
+          "claude": true,
+          "codex": true,
+          "copilot": false
+        },
+        {
+          "name": "ccusage",
+          "claude": true,
+          "codex": false,
+          "copilot": false
+        }
+      ]
+    },
+    "optimizationLayers": [
+      {
+        "name": "code-review-graph",
+        "savings": "8x on structural queries",
+        "claude": true,
+        "codex": true,
+        "copilot": true
+      },
+      {
+        "name": "lean-ctx",
+        "savings": "89-99% shell compression",
+        "claude": true,
+        "codex": true,
+        "copilot": true
+      },
+      {
+        "name": "context-mode",
+        "savings": "98% tool output sandbox",
+        "claude": true,
+        "codex": false,
+        "copilot": false
+      },
+      {
+        "name": "token-efficient rules",
+        "savings": "10-20% output reduction",
+        "claude": true,
+        "codex": true,
+        "copilot": false
+      },
+      {
+        "name": "ccusage",
+        "savings": "visibility (monitoring)",
+        "claude": true,
+        "codex": false,
+        "copilot": false
+      }
+    ],
+    "setupPhases": [
+      {
+        "phase": "Phase 1 — Core",
+        "items": [
+          {
+            "name": "code-review-graph",
+            "description": "Graph-based structural code search (22 MCP tools)",
+            "location": "MCP server + per-project graph",
+            "active": true
+          },
+          {
+            "name": "planning orchestration layer",
+            "description": "Multi-agent planning and review coordination",
+            "location": "Planner instructions + skill inventory",
+            "active": true
+          },
+          {
+            "name": "execution orchestration layer",
+            "description": "Multi-agent execution coordination",
+            "location": "Execution config + instruction contract",
+            "active": true
+          },
+          {
+            "name": "ai-setup script",
+            "description": "One-command per-project setup",
+            "location": "~/.local/bin/ai-setup",
+            "active": true
+          }
+        ]
+      },
+      {
+        "phase": "Phase 2 — Token Optimization",
+        "items": [
+          {
+            "name": "lean-ctx",
+            "description": "Shell output compression (89-99% savings)",
+            "location": "~/.zshrc aliases + Codex hook + Copilot MCP",
+            "active": true
+          },
+          {
+            "name": "repomix",
+            "description": "Codebase-to-summary (70% reduction)",
+            "location": "Per-project .repomix-output.xml",
+            "active": true
+          },
+          {
+            "name": "context-mode",
+            "description": "Tool output sandboxing (98% savings)",
+            "location": "Claude Code MCP server",
+            "active": true
+          },
+          {
+            "name": "Copilot CLI",
+            "description": "Terminal AI agent with MCP support",
+            "location": "~/.copilot/mcp-config.json",
+            "active": true
+          }
+        ]
+      },
+      {
+        "phase": "Phase 3 — Capability Expansion",
+        "items": [
+          {
+            "name": "ccusage",
+            "description": "Token usage visibility",
+            "location": "Claude Code MCP server",
+            "active": true
+          },
+          {
+            "name": "Token-efficient rules",
+            "description": "5 output verbosity rules",
+            "location": "CLAUDE.md + AGENTS.md",
+            "active": true
+          },
+          {
+            "name": "Agent skills (154 total)",
+            "description": "Skill inventory under ~/.agents/skills/",
+            "location": "~/.agents/skills/",
+            "active": true
+          },
+          {
+            "name": "Copilot plugins (5)",
+            "description": "Installed Copilot plugin registry",
+            "location": "~/.copilot/installed-plugins/",
+            "active": true
+          }
+        ]
+      }
+    ],
+    "configHealth": [
+      {
+        "path": "~/.claude.json",
+        "healthy": true,
+        "description": "Claude Code global config"
+      },
+      {
+        "path": "~/.claude/CLAUDE.md",
+        "healthy": true,
+        "description": "Claude Code instructions"
+      },
+      {
+        "path": "~/.claude/settings.json",
+        "healthy": true,
+        "description": "Claude Code settings"
+      },
+      {
+        "path": "~/.codex/config.toml",
+        "healthy": true,
+        "description": "Codex global config (valid TOML)"
+      },
+      {
+        "path": "~/.codex/AGENTS.md",
+        "healthy": true,
+        "description": "Codex global instructions"
+      },
+      {
+        "path": "~/.codex/hooks/lean-ctx-*",
+        "healthy": true,
+        "description": "Codex lean-ctx compression hook"
+      },
+      {
+        "path": "~/.copilot/mcp-config.json",
+        "healthy": true,
+        "description": "Copilot global MCP config"
+      },
+      {
+        "path": "~/.copilot/config.json",
+        "healthy": true,
+        "description": "Copilot plugin registry"
+      },
+      {
+        "path": "~/Library/Application Support/Code/User/prompts/shrey-junior.instructions.md",
+        "healthy": true,
+        "description": "VS Code prompt overlay"
+      },
+      {
+        "path": "~/Library/Application Support/Code/User/mcp.json",
+        "healthy": true,
+        "description": "VS Code MCP registry"
+      },
+      {
+        "path": "~/AGENTS.md, ~/CLAUDE.md",
+        "healthy": true,
+        "description": "No junk files in home directory"
+      }
+    ],
+    "skillsCount": 154,
+    "copilotPlugins": [
+      "database-data-management",
+      "frontend-web-dev",
+      "openapi-to-application-python-fastapi",
+      "project-planning",
+      "polyglot-test-agent"
+    ],
+    "usage": {
+      "days": 7,
+      "claude": {
+        "available": true,
+        "days": [
+          {
+            "date": "2026-04-06",
+            "inputTokens": 96807,
+            "outputTokens": 66038,
+            "cacheCreationTokens": 1018967,
+            "cacheReadTokens": 30577607,
+            "totalTokens": 31759419,
+            "totalCost": 11.292022150000001,
+            "modelsUsed": [
+              "claude-sonnet-4-6",
+              "claude-opus-4-6",
+              "claude-haiku-4-5-20251001"
+            ]
+          },
+          {
+            "date": "2026-04-07",
+            "inputTokens": 7702,
+            "outputTokens": 79574,
+            "cacheCreationTokens": 1856740,
+            "cacheReadTokens": 54727103,
+            "totalTokens": 56671119,
+            "totalCost": 23.35032119999997,
+            "modelsUsed": [
+              "claude-sonnet-4-6",
+              "claude-haiku-4-5-20251001"
+            ]
+          },
+          {
+            "date": "2026-04-08",
+            "inputTokens": 13,
+            "outputTokens": 13,
+            "cacheCreationTokens": 192125,
+            "cacheReadTokens": 0,
+            "totalTokens": 192151,
+            "totalCost": 0.40438775,
+            "modelsUsed": [
+              "claude-sonnet-4-6",
+              "claude-haiku-4-5-20251001"
+            ]
+          },
+          {
+            "date": "2026-04-09",
+            "inputTokens": 2796,
+            "outputTokens": 90991,
+            "cacheCreationTokens": 883469,
+            "cacheReadTokens": 7267765,
+            "totalTokens": 8245021,
+            "totalCost": 6.86659125,
+            "modelsUsed": [
+              "claude-sonnet-4-6"
+            ]
+          },
+          {
+            "date": "2026-04-11",
+            "inputTokens": 1773,
+            "outputTokens": 31610,
+            "cacheCreationTokens": 186247,
+            "cacheReadTokens": 6152427,
+            "totalTokens": 6372057,
+            "totalCost": 3.02362335,
+            "modelsUsed": [
+              "claude-sonnet-4-6"
+            ]
+          }
+        ],
+        "totals": {
+          "inputTokens": 109091,
+          "outputTokens": 268226,
+          "cacheCreationTokens": 4137548,
+          "cacheReadTokens": 98724902,
+          "totalTokens": 103239767,
+          "totalCost": 44.936945699999974,
+          "cacheHitRatio": 99.89
+        },
+        "note": "Measured Claude usage came from ccusage daily output."
+      },
+      "codex": {
+        "available": true,
+        "days": [
+          {
+            "date": "2026-04-07",
+            "inputTokens": 151998835,
+            "outputTokens": 263632,
+            "cachedInputTokens": 145459840,
+            "reasoningOutputTokens": 141128,
+            "sessions": 1
+          },
+          {
+            "date": "2026-04-08",
+            "inputTokens": 1889308546,
+            "outputTokens": 2528047,
+            "cachedInputTokens": 1816254336,
+            "reasoningOutputTokens": 1138444,
+            "sessions": 3
+          },
+          {
+            "date": "2026-04-10",
+            "inputTokens": 3283638561,
+            "outputTokens": 4134138,
+            "cachedInputTokens": 3157228672,
+            "reasoningOutputTokens": 1807641,
+            "sessions": 3
+          },
+          {
+            "date": "2026-04-11",
+            "inputTokens": 30004614,
+            "outputTokens": 120228,
+            "cachedInputTokens": 29203328,
+            "reasoningOutputTokens": 56426,
+            "sessions": 1
+          },
+          {
+            "date": "2026-04-12",
+            "inputTokens": 124327710,
+            "outputTokens": 174326,
+            "cachedInputTokens": 119547904,
+            "reasoningOutputTokens": 93668,
+            "sessions": 1
+          },
+          {
+            "date": "2026-04-13",
+            "inputTokens": 281694164,
+            "outputTokens": 411568,
+            "cachedInputTokens": 273113984,
+            "reasoningOutputTokens": 204868,
+            "sessions": 3
+          }
+        ],
+        "totals": {
+          "inputTokens": 5760972430,
+          "outputTokens": 7631939,
+          "cachedInputTokens": 5540808064,
+          "reasoningOutputTokens": 3442175,
+          "sessions": 12,
+          "totalTokens": 5768604369,
+          "cacheHitRatio": 96.18
+        },
+        "note": "Measured Codex usage came from local session logs."
+      },
+      "copilot": {
+        "available": false,
+        "note": "No real local Copilot usage telemetry source was found."
+      }
+    },
+    "systemHealth": {
+      "criticalCount": 0,
+      "warningCount": 0,
+      "okCount": 25
+    },
+    "optimizationScore": {
+      "planning": {
+        "label": "planning",
+        "score": 100,
+        "earnedPoints": 100,
+        "maxPoints": 100,
+        "activeSignals": [
+          "code-review-graph",
+          "lean-ctx",
+          "repomix",
+          "context-mode",
+          "token-efficient rules",
+          "ccusage",
+          "planning orchestration",
+          "Claude config health"
+        ],
+        "missingSignals": []
+      },
+      "execution": {
+        "label": "execution",
+        "score": 85,
+        "earnedPoints": 85,
+        "maxPoints": 100,
+        "activeSignals": [
+          "code-review-graph",
+          "lean-ctx",
+          "repomix",
+          "token-efficient rules",
+          "session telemetry",
+          "execution orchestration",
+          "Codex config health"
+        ],
+        "missingSignals": [
+          "context-mode"
+        ]
+      },
+      "assistant": {
+        "label": "assistant",
+        "score": 75,
+        "earnedPoints": 75,
+        "maxPoints": 100,
+        "activeSignals": [
+          "code-review-graph",
+          "lean-ctx",
+          "repomix",
+          "assistant runtime",
+          "Copilot config health",
+          "Copilot plugins"
+        ],
+        "missingSignals": [
+          "token-efficient rules",
+          "usage telemetry"
+        ]
+      }
+    },
+    "setupSummary": {
+      "installedTools": {
+        "readyCount": 9,
+        "totalCount": 9
+      },
+      "healthyConfigs": {
+        "readyCount": 11,
+        "totalCount": 11
+      },
+      "activeTokenLayers": [
+        "code-review-graph",
+        "lean-ctx",
+        "context-mode",
+        "token-efficient rules",
+        "ccusage"
+      ],
+      "readyRuntimes": {
+        "planning": true,
+        "execution": true,
+        "assistant": true
+      }
+    },
+    "guidance": [],
+    "note": "Machine-local advisory only. Optimization scores are heuristic completeness estimates calculated from inspected machine signals and never override repo-local Kiwi state. Machine-local advisory fast mode is active for desktop repo loading."
+  },
+  "machineParity": {
+    "available": true,
+    "updatedAt": "2026-04-13T17:45:57.892Z",
+    "overallStatus": "ready",
+    "boundaryNote": "Repo-local Kiwi capability is built into the product. Machine-global parity measures optional external setup that Kiwi can benefit from, but does not treat as canonical repo truth.",
+    "repoLocalCovered": 3,
+    "repoLocalTotal": 3,
+    "machineGlobal": {
+      "covered": 16,
+      "partial": 0,
+      "missing": 0,
+      "optional": 0,
+      "total": 16
+    },
+    "topMissing": [],
+    "topPartial": []
+  },
+  "kiwiControl": {
+    "contextView": {
+      "task": "update README docs",
+      "selectedFiles": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "package.json",
+        "src/app.ts",
+        "README.md"
+      ],
+      "excludedPatterns": [
+        "**/node_modules/**",
+        "**/.pnpm/**",
+        "**/bower_components/**",
+        "**/jspm_packages/**",
+        "**/.git/**",
+        "**/.svn/**",
+        "**/.hg/**",
+        "**/dist/**",
+        "**/dist-types/**",
+        "**/build/**",
+        "**/out/**",
+        "**/.output/**",
+        "**/_build/**",
+        "**/lib-esm/**",
+        "**/lib-cjs/**",
+        "**/.next/**",
+        "**/.nuxt/**",
+        "**/.svelte-kit/**",
+        "**/.vercel/**",
+        "**/.netlify/**",
+        "**/.turbo/**",
+        "**/.parcel-cache/**",
+        "**/.webpack/**",
+        "**/.rollup.cache/**",
+        "**/.vite/**",
+        "**/__pycache__/**",
+        "**/.venv/**",
+        "**/venv/**",
+        "**/env/**",
+        "**/.eggs/**",
+        "**/*.egg-info/**",
+        "**/.mypy_cache/**",
+        "**/.pytest_cache/**",
+        "**/.ruff_cache/**",
+        "**/.tox/**",
+        "**/target/**",
+        "**/cmake-build-debug/**",
+        "**/cmake-build-release/**",
+        "**/.gradle/**",
+        "**/.idea/**",
+        "**/coverage/**",
+        "**/.nyc_output/**",
+        "**/htmlcov/**",
+        "**/lcov-report/**",
+        "**/.cache/**",
+        "**/.tmp/**",
+        "**/tmp/**",
+        "**/temp/**",
+        "**/.temp/**",
+        "**/.playwright-cli/**",
+        "**/.playwright-mcp/**",
+        "**/.vscode/**",
+        "**/.vs/**",
+        "**/.env/**",
+        "**/.envrc/**",
+        "**/Pods/**",
+        "**/.expo/**",
+        "**/vendor/**",
+        "**/storybook-static/**",
+        "**/.docusaurus/**",
+        "**/*.lock",
+        "**/*.min.js",
+        "**/*.min.css",
+        "**/*.bundle.js",
+        "**/*.chunk.js",
+        "**/*.map",
+        "**/*.d.ts",
+        "**/*.d.mts",
+        "**/*.d.cts",
+        "**/tsconfig*.tsbuildinfo",
+        "**/package-lock.json",
+        "**/yarn.lock",
+        "**/pnpm-lock.yaml",
+        "**/Cargo.lock",
+        "**/go.sum",
+        "**/.DS_Store",
+        "**/*.pyc",
+        "**/*.pyo",
+        "**/*.wasm",
+        "**/*.sqlite*",
+        "**/.env*",
+        "**/.agent/tasks/**",
+        "**/.agent/state/history/**",
+        "**/.agent/state/handoff/**",
+        "**/.agent/state/dispatch/**"
+      ],
+      "reason": "Selected 5 files based on working tree changes. Signals: 2 changed, 0 import neighbors, 1 keyword matches, 6 repo context files, 2 proximity, 5 recent, 0 active skills. Coverage: 56% of candidate signal files. Diversity: 4 signal types. Discovery depth: 1. Budget: ~2117 tokens. Confidence: medium.",
+      "confidence": "medium",
+      "confidenceDetail": "Useful evidence was found, but the file set should still be treated as partial.",
+      "keywordMatches": [
+        "README.md"
+      ],
+      "tree": {
+        "nodes": [
+          {
+            "name": "AGENTS.md",
+            "path": "AGENTS.md",
+            "kind": "file",
+            "status": "selected",
+            "expanded": false,
+            "children": []
+          },
+          {
+            "name": "CLAUDE.md",
+            "path": "CLAUDE.md",
+            "kind": "file",
+            "status": "selected",
+            "expanded": false,
+            "children": []
+          },
+          {
+            "name": "package.json",
+            "path": "package.json",
+            "kind": "file",
+            "status": "selected",
+            "expanded": false,
+            "children": []
+          },
+          {
+            "name": "README.md",
+            "path": "README.md",
+            "kind": "file",
+            "status": "selected",
+            "expanded": false,
+            "children": []
+          },
+          {
+            "name": "src",
+            "path": "src",
+            "kind": "directory",
+            "status": "selected",
+            "expanded": false,
+            "children": [
+              {
+                "name": "app.ts",
+                "path": "src/app.ts",
+                "kind": "file",
+                "status": "selected",
+                "expanded": false,
+                "children": []
+              }
+            ]
+          }
+        ],
+        "selectedCount": 5,
+        "candidateCount": 0,
+        "excludedCount": 0
+      },
+      "timestamp": "2026-04-13T17:47:19.841Z"
+    },
+    "tokenAnalytics": {
+      "selectedTokens": 2117,
+      "fullRepoTokens": 2899,
+      "savingsPercent": 27,
+      "fileCountSelected": 5,
+      "fileCountTotal": 9,
+      "estimationMethod": "rough estimate (chars/4 heuristic)",
+      "estimateNote": "Estimated token counts use a chars/4 heuristic. File counts are measured directly; token counts and savings percentages are approximate, and pricing is intentionally not shown.",
+      "topDirectories": [
+        {
+          "directory": ".",
+          "tokens": 2110,
+          "fileCount": 4
+        },
+        {
+          "directory": ".agent/state/checkpoints",
+          "tokens": 429,
+          "fileCount": 1
+        },
+        {
+          "directory": ".agent/memory",
+          "tokens": 353,
+          "fileCount": 3
+        },
+        {
+          "directory": "src",
+          "tokens": 7,
+          "fileCount": 1
+        }
+      ],
+      "task": "update README docs",
+      "timestamp": "2026-04-13T17:47:27.844Z"
+    },
+    "efficiency": {
+      "instructionsGenerated": true,
+      "instructionsPath": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo/.agent/context/generated-instructions.md"
+    },
+    "nextActions": {
+      "actions": [
+        {
+          "action": "Open latest task packet and execute it",
+          "command": null,
+          "priority": "high",
+          "reason": "Generated 3 task packets for \"update README docs\".",
+          "file": null
+        }
+      ],
+      "summary": "Open latest task packet and execute it: Generated 3 task packets for \"update README docs\"."
+    },
+    "feedback": {
+      "totalRuns": 0,
+      "successRate": 0,
+      "adaptationLevel": "limited",
+      "note": "Adaptive feedback is idle. Kiwi Control learns only from successful checkpoints and handoffs.",
+      "basedOnPastRuns": false,
+      "reusedPattern": null,
+      "similarTasks": [],
+      "recentEntries": [],
+      "topBoostedFiles": [],
+      "topPenalizedFiles": []
+    },
+    "execution": {
+      "totalExecutions": 0,
+      "totalTokensUsed": 0,
+      "averageTokensPerRun": 0,
+      "successRate": 0,
+      "recentExecutions": [],
+      "tokenTrend": "insufficient-data"
+    },
+    "wastedFiles": {
+      "files": [],
+      "totalWastedTokens": 0,
+      "removalSavingsPercent": 0
+    },
+    "heavyDirectories": {
+      "directories": [
+        {
+          "directory": ".",
+          "tokens": 2110,
+          "fileCount": 4,
+          "percentOfRepo": 73,
+          "suggestion": "Contains 73% of repo tokens — consider adding to exclude patterns"
+        },
+        {
+          "directory": ".agent/state/checkpoints",
+          "tokens": 429,
+          "fileCount": 1,
+          "percentOfRepo": 15,
+          "suggestion": "Generated directory — exclude from context selection"
+        }
+      ]
+    },
+    "indexing": {
+      "totalFiles": 5,
+      "observedFiles": 5,
+      "selectedFiles": 5,
+      "candidateFiles": 0,
+      "excludedFiles": 0,
+      "discoveredFiles": 5,
+      "analyzedFiles": 5,
+      "skippedFiles": 0,
+      "skippedDirectories": 3,
+      "visitedDirectories": 2,
+      "maxDepthExplored": 1,
+      "fileBudgetReached": false,
+      "directoryBudgetReached": false,
+      "partialScan": true,
+      "ignoreRulesApplied": [
+        "hidden directory"
+      ],
+      "skipped": [
+        {
+          "path": ".agent",
+          "reason": "hidden directory rule"
+        },
+        {
+          "path": ".git",
+          "reason": "hidden directory rule"
+        },
+        {
+          "path": ".github",
+          "reason": "hidden directory rule"
+        }
+      ],
+      "indexedFiles": 1,
+      "indexUpdatedFiles": 0,
+      "indexReusedFiles": 1,
+      "impactFiles": 0,
+      "changedSignals": 2,
+      "keywordSignals": 1,
+      "importSignals": 0,
+      "repoContextSignals": 6,
+      "scopeArea": "docs",
+      "coverageNote": "Discovery stayed shallow at depth 1, which usually means strong early signals narrowed the scope quickly. The incremental import index reused 1 files and refreshed 0.",
+      "selectionReason": "Selected 5 files based on working tree changes. Signals: 2 changed, 0 import neighbors, 1 keyword matches, 6 repo context files, 2 proximity, 5 recent, 0 active skills. Coverage: 56% of candidate signal files. Diversity: 4 signal types. Discovery depth: 1. Budget: ~2117 tokens. Confidence: medium."
+    },
+    "fileAnalysis": {
+      "totalFiles": 8,
+      "scannedFiles": 5,
+      "skippedFiles": 3,
+      "selectedFiles": 5,
+      "excludedFiles": 0,
+      "selected": [
+        {
+          "file": "AGENTS.md",
+          "reasons": [
+            "changed file",
+            "recent file",
+            "task fit"
+          ],
+          "score": 22,
+          "selectionWhy": "Selected because of changed file, recent file, task fit."
+        },
+        {
+          "file": "CLAUDE.md",
+          "reasons": [
+            "changed file",
+            "recent file",
+            "task fit"
+          ],
+          "score": 22,
+          "selectionWhy": "Selected because of changed file, recent file, task fit."
+        },
+        {
+          "file": "package.json",
+          "reasons": [
+            "repo context",
+            "proximity",
+            "recent file",
+            "task fit"
+          ],
+          "score": 13,
+          "selectionWhy": "Selected because of repo context, proximity, recent file."
+        },
+        {
+          "file": "src/app.ts",
+          "reasons": [
+            "repo context",
+            "recent file",
+            "task fit"
+          ],
+          "score": 10,
+          "selectionWhy": "Selected because of repo context, recent file, task fit."
+        },
+        {
+          "file": "README.md",
+          "reasons": [
+            "proximity",
+            "recent file",
+            "keyword match",
+            "task fit"
+          ],
+          "score": 25,
+          "selectionWhy": "Selected because of proximity, recent file, keyword match."
+        }
+      ],
+      "excluded": [],
+      "skipped": [
+        {
+          "path": ".agent",
+          "reason": "hidden directory rule"
+        },
+        {
+          "path": ".git",
+          "reason": "hidden directory rule"
+        },
+        {
+          "path": ".github",
+          "reason": "hidden directory rule"
+        }
+      ]
+    },
+    "contextTrace": {
+      "initialSignals": {
+        "changedFiles": [
+          "AGENTS.md",
+          "CLAUDE.md"
+        ],
+        "recentFiles": [
+          "CLAUDE.md",
+          "AGENTS.md",
+          "src/app.ts",
+          "README.md",
+          "package.json"
+        ],
+        "importNeighbors": [],
+        "proximityFiles": [
+          "README.md",
+          "package.json"
+        ],
+        "keywordMatches": [
+          "README.md"
+        ],
+        "repoContextFiles": [
+          "package.json",
+          "src/app.ts",
+          ".agent/memory/current-focus.json",
+          ".agent/state/checkpoints/latest.json",
+          ".agent/memory/open-risks.json",
+          ".agent/memory/repo-facts.json"
+        ],
+        "dependencyDistances": {},
+        "dependencyChains": {}
+      },
+      "expansionSteps": [
+        {
+          "step": "initial signals",
+          "summary": "Seeded selection from 2 changed, 0 import, 1 keyword, 2 proximity, and 6 repo-context signals.",
+          "filesAdded": [
+            "AGENTS.md",
+            "CLAUDE.md",
+            "README.md",
+            "package.json",
+            "src/app.ts",
+            ".agent/memory/current-focus.json",
+            ".agent/state/checkpoints/latest.json",
+            ".agent/memory/open-risks.json",
+            ".agent/memory/repo-facts.json"
+          ]
+        },
+        {
+          "step": "expansion",
+          "summary": "Expanded the working set to 5 candidate files using weighted signals and task-fit heuristics while reusing an incremental import index (0 updated, 1 reused).",
+          "filesAdded": [
+            "README.md",
+            "AGENTS.md",
+            "CLAUDE.md",
+            "package.json",
+            "src/app.ts"
+          ]
+        },
+        {
+          "step": "budget selection",
+          "summary": "Selected 5 files within the bounded context budget before task-specific precision trimming.",
+          "filesAdded": [
+            "AGENTS.md",
+            "CLAUDE.md",
+            "package.json",
+            "src/app.ts",
+            "README.md"
+          ]
+        }
+      ],
+      "honesty": {
+        "heuristic": true,
+        "lowConfidence": false,
+        "partialScan": true
+      }
+    },
+    "tokenBreakdown": {
+      "partialScan": false,
+      "categories": [
+        {
+          "category": "selection filter",
+          "estimated_tokens_avoided": 782,
+          "file_count": 0,
+          "basis": "measured",
+          "note": "Measured reduction from selecting a bounded working set instead of every scanned file."
+        },
+        {
+          "category": "node_modules",
+          "estimated_tokens_avoided": 0,
+          "file_count": 0,
+          "basis": "heuristic",
+          "note": "No matching skipped directories were observed in the current repo scan."
+        },
+        {
+          "category": "dist",
+          "estimated_tokens_avoided": 0,
+          "file_count": 0,
+          "basis": "heuristic",
+          "note": "No matching skipped directories were observed in the current repo scan."
+        },
+        {
+          "category": "skipped dirs",
+          "estimated_tokens_avoided": 33282,
+          "file_count": 53,
+          "basis": "heuristic",
+          "note": "Heuristic estimate from 53 source-like file(s) under skipped directories."
+        }
+      ]
+    },
+    "decisionLogic": {
+      "summary": "Open latest task packet and execute it: Generated 3 task packets for \"update README docs\".",
+      "decisionPriority": "high",
+      "inputSignals": [
+        "execution lifecycle: queued",
+        "current step: execute_packet",
+        "decision source: run-command",
+        "0 validation issue(s)"
+      ],
+      "reasoningChain": [
+        "Runtime decision state is the canonical source of truth for next-step decisions.",
+        "The active runtime step is execute_packet."
+      ],
+      "ignoredSignals": []
+    },
+    "runtimeLifecycle": {
+      "currentTask": "update README docs",
+      "currentStage": "packetized",
+      "validationStatus": "ok",
+      "nextSuggestedCommand": "kiwi-control validate \"update README docs\"",
+      "nextRecommendedAction": "Execute the generated claude packet and validate the outcome before checkpointing.",
+      "recentEvents": [
+        {
+          "command": "kiwi-control validate \"update README docs\"",
+          "failureReason": null,
+          "files": [
+            ".agent/tasks/run-20260413-174728-update-readme-docs/codex.md",
+            ".agent/tasks/run-20260413-174728-update-readme-docs/claude.md",
+            ".agent/tasks/run-20260413-174728-update-readme-docs/copilot.md"
+          ],
+          "skillsApplied": [],
+          "stage": "packetized",
+          "status": "ok",
+          "summary": "Generated 3 task packets for \"update README docs\".",
+          "task": "update README docs",
+          "timestamp": "2026-04-13T17:47:28.573Z",
+          "tokenUsage": {
+            "estimatedTokens": null,
+            "measuredTokens": null,
+            "source": "none"
+          },
+          "type": "packets_generated",
+          "validation": "Run packet generation completed and packet artifacts were written."
+        },
+        {
+          "command": null,
+          "failureReason": null,
+          "files": [
+            "AGENTS.md",
+            "CLAUDE.md",
+            "package.json",
+            "src/app.ts",
+            "README.md"
+          ],
+          "skillsApplied": [],
+          "stage": "prepared",
+          "status": "ok",
+          "summary": "Prepared 5 selected files for \"update README docs\".",
+          "task": "update README docs",
+          "timestamp": "2026-04-13T17:47:27.860Z",
+          "tokenUsage": {
+            "estimatedTokens": 2117,
+            "measuredTokens": null,
+            "source": "estimated"
+          },
+          "type": "prepare_completed",
+          "validation": "Prepared scope exists, instructions were written, and token state was recorded."
+        },
+        {
+          "command": "kiwi-control status",
+          "failureReason": null,
+          "files": [],
+          "skillsApplied": [],
+          "stage": "idle",
+          "status": "ok",
+          "summary": "Repo-local control surfaces were initialized.",
+          "task": null,
+          "timestamp": "2026-04-13T17:47:19Z",
+          "tokenUsage": {
+            "estimatedTokens": null,
+            "measuredTokens": null,
+            "source": "none"
+          },
+          "type": "repo-init",
+          "validation": "Repo-local control surfaces were initialized."
+        }
+      ]
+    },
+    "executionEvents": {
+      "source": "runtime",
+      "latestRevision": 3,
+      "recentEvents": [
+        {
+          "actor": "cli",
+          "artifacts": {},
+          "blockedBy": [],
+          "eventId": 1,
+          "eventType": "repo-init",
+          "lifecycle": "idle",
+          "nextCommand": "kiwi-control status",
+          "operationId": null,
+          "reason": "Repo-local control surfaces were initialized.",
+          "recordedAt": "2026-04-13T17:47:19Z",
+          "revision": 1,
+          "sourceCommand": "kiwi-control init",
+          "task": null
+        },
+        {
+          "actor": "cli",
+          "artifacts": {
+            "contextSelection": [
+              ".agent/state/context-selection.json"
+            ],
+            "instructions": [
+              ".agent/context/generated-instructions.md"
+            ],
+            "tokenUsage": [
+              ".agent/state/token-usage.json"
+            ]
+          },
+          "blockedBy": [],
+          "eventId": 2,
+          "eventType": "prepare-completed",
+          "lifecycle": "packet_created",
+          "nextCommand": "kiwi-control run \"update README docs\"",
+          "operationId": "dbeed3b1-724a-492c-a00e-485e34e0059b",
+          "reason": "Prepared 5 selected files for \"update README docs\".",
+          "recordedAt": "2026-04-13T17:47:27Z",
+          "revision": 2,
+          "sourceCommand": "kiwi-control prepare \"update README docs\"",
+          "task": "update README docs"
+        },
+        {
+          "actor": "cli",
+          "artifacts": {
+            "packets": [
+              ".agent/state/latest-task-packets.json",
+              ".agent/tasks/run-20260413-174728-update-readme-docs/codex.md",
+              ".agent/tasks/run-20260413-174728-update-readme-docs/claude.md",
+              ".agent/tasks/run-20260413-174728-update-readme-docs/copilot.md"
+            ]
+          },
+          "blockedBy": [],
+          "eventId": 3,
+          "eventType": "run-packetized",
+          "lifecycle": "queued",
+          "nextCommand": "kiwi-control validate \"update README docs\"",
+          "operationId": "ec992169-7d17-4e54-bfe8-99df4cad56b1",
+          "reason": "Generated 3 task packets for \"update README docs\".",
+          "recordedAt": "2026-04-13T17:47:28Z",
+          "revision": 3,
+          "sourceCommand": "kiwi-control run \"update README docs\"",
+          "task": "update README docs"
+        }
+      ]
+    },
+    "measuredUsage": {
+      "available": false,
+      "source": "none",
+      "totalTokens": 0,
+      "totalRuns": 0,
+      "runs": [],
+      "workflows": [],
+      "files": [],
+      "note": "No measured token usage was found for this repo. Falling back to heuristic estimates is expected."
+    },
+    "skills": {
+      "activeSkills": [],
+      "suggestedSkills": [],
+      "totalSkills": 0
+    },
+    "workflow": {
+      "task": "update README docs",
+      "status": "running",
+      "currentStepId": "validate-outcome",
+      "steps": [
+        {
+          "action": "Prepare context",
+          "attemptCount": 1,
+          "expectedOutput": "Prepared scope and generated instructions are ready.",
+          "failureReason": null,
+          "files": [
+            "AGENTS.md",
+            "CLAUDE.md",
+            "package.json",
+            "src/app.ts",
+            "README.md"
+          ],
+          "input": "update README docs",
+          "output": "Prepared 5 selected files for \"update README docs\".",
+          "result": {
+            "failureReason": null,
+            "ok": true,
+            "retryCommand": "kiwi-control prepare \"update README docs\"",
+            "suggestedFix": null,
+            "summary": "Prepared 5 selected files for \"update README docs\".",
+            "validation": "Prepared scope exists, instructions were written, and token state was recorded."
+          },
+          "retryCount": 0,
+          "skillsApplied": [],
+          "status": "success",
+          "stepId": "prepare-context",
+          "tokenUsage": {
+            "estimatedTokens": 2117,
+            "measuredTokens": null,
+            "note": "This step only has an estimated token total.",
+            "source": "estimated"
+          },
+          "updatedAt": "2026-04-13T17:47:27.865Z",
+          "validation": "Prepared scope exists, instructions were written, and token state was recorded."
+        },
+        {
+          "action": "Generate run packets",
+          "attemptCount": 1,
+          "expectedOutput": "One or more run packets are written for execution.",
+          "failureReason": null,
+          "files": [
+            ".agent/tasks/run-20260413-174728-update-readme-docs/codex.md",
+            ".agent/tasks/run-20260413-174728-update-readme-docs/claude.md",
+            ".agent/tasks/run-20260413-174728-update-readme-docs/copilot.md"
+          ],
+          "input": "update README docs",
+          "output": "Generated 3 task packets for \"update README docs\".",
+          "result": {
+            "failureReason": null,
+            "ok": true,
+            "retryCommand": "kiwi-control run \"update README docs\"",
+            "suggestedFix": null,
+            "summary": "Generated 3 task packets for \"update README docs\".",
+            "validation": "Run packet generation completed and packet artifacts were written."
+          },
+          "retryCount": 0,
+          "skillsApplied": [],
+          "status": "success",
+          "stepId": "generate-run-packets",
+          "tokenUsage": {
+            "estimatedTokens": null,
+            "measuredTokens": null,
+            "note": "No token usage was recorded for this step.",
+            "source": "none"
+          },
+          "updatedAt": "2026-04-13T17:47:28.578Z",
+          "validation": "Run packet generation completed and packet artifacts were written."
+        },
+        {
+          "action": "Validate outcome",
+          "attemptCount": 0,
+          "expectedOutput": "The prepared scope, touched files, and task outcome have been validated.",
+          "failureReason": null,
+          "files": [],
+          "input": null,
+          "output": null,
+          "result": {
+            "failureReason": null,
+            "ok": null,
+            "retryCommand": null,
+            "suggestedFix": null,
+            "summary": null,
+            "validation": null
+          },
+          "retryCount": 0,
+          "skillsApplied": [],
+          "status": "pending",
+          "stepId": "validate-outcome",
+          "tokenUsage": {
+            "estimatedTokens": null,
+            "measuredTokens": null,
+            "note": "No token usage has been recorded for this step yet.",
+            "source": "none"
+          },
+          "updatedAt": null,
+          "validation": "Validation confirms expected files changed, scope stayed bounded, and the task goal was met."
+        },
+        {
+          "action": "Checkpoint progress",
+          "attemptCount": 0,
+          "expectedOutput": "Checkpoint artifacts are written and continuity is updated.",
+          "failureReason": null,
+          "files": [],
+          "input": null,
+          "output": null,
+          "result": {
+            "failureReason": null,
+            "ok": null,
+            "retryCommand": null,
+            "suggestedFix": null,
+            "summary": null,
+            "validation": null
+          },
+          "retryCount": 0,
+          "skillsApplied": [],
+          "status": "pending",
+          "stepId": "checkpoint-progress",
+          "tokenUsage": {
+            "estimatedTokens": null,
+            "measuredTokens": null,
+            "note": "No token usage has been recorded for this step yet.",
+            "source": "none"
+          },
+          "updatedAt": null,
+          "validation": "Checkpoint JSON exists and prepared scope remains valid."
+        },
+        {
+          "action": "Handoff work",
+          "attemptCount": 0,
+          "expectedOutput": "Handoff artifacts are written for the next specialist/tool.",
+          "failureReason": null,
+          "files": [],
+          "input": null,
+          "output": null,
+          "result": {
+            "failureReason": null,
+            "ok": null,
+            "retryCommand": null,
+            "suggestedFix": null,
+            "summary": null,
+            "validation": null
+          },
+          "retryCount": 0,
+          "skillsApplied": [],
+          "status": "pending",
+          "stepId": "handoff-work",
+          "tokenUsage": {
+            "estimatedTokens": null,
+            "measuredTokens": null,
+            "note": "No token usage has been recorded for this step yet.",
+            "source": "none"
+          },
+          "updatedAt": null,
+          "validation": "Handoff JSON exists and target specialist/tool is recorded."
+        }
+      ]
+    },
+    "executionTrace": {
+      "steps": [
+        {
+          "stepId": "prepare-context",
+          "action": "Prepare context",
+          "status": "success",
+          "expectedOutput": "Prepared scope and generated instructions are ready.",
+          "files": [
+            "AGENTS.md",
+            "CLAUDE.md",
+            "package.json",
+            "src/app.ts",
+            "README.md"
+          ],
+          "skillsApplied": [],
+          "attemptCount": 1,
+          "retryCount": 0,
+          "tokenUsage": {
+            "source": "estimated",
+            "measuredTokens": null,
+            "estimatedTokens": 2117,
+            "note": "This step only has an estimated token total."
+          },
+          "result": {
+            "failureReason": null,
+            "ok": true,
+            "retryCommand": "kiwi-control prepare \"update README docs\"",
+            "suggestedFix": null,
+            "summary": "Prepared 5 selected files for \"update README docs\".",
+            "validation": "Prepared scope exists, instructions were written, and token state was recorded."
+          },
+          "output": "Prepared 5 selected files for \"update README docs\".",
+          "validation": "Prepared scope exists, instructions were written, and token state was recorded.",
+          "failureReason": null,
+          "updatedAt": "2026-04-13T17:47:27.865Z"
+        },
+        {
+          "stepId": "generate-run-packets",
+          "action": "Generate run packets",
+          "status": "success",
+          "expectedOutput": "One or more run packets are written for execution.",
+          "files": [
+            ".agent/tasks/run-20260413-174728-update-readme-docs/codex.md",
+            ".agent/tasks/run-20260413-174728-update-readme-docs/claude.md",
+            ".agent/tasks/run-20260413-174728-update-readme-docs/copilot.md"
+          ],
+          "skillsApplied": [],
+          "attemptCount": 1,
+          "retryCount": 0,
+          "tokenUsage": {
+            "source": "none",
+            "measuredTokens": null,
+            "estimatedTokens": null,
+            "note": "No token usage was recorded for this step."
+          },
+          "result": {
+            "failureReason": null,
+            "ok": true,
+            "retryCommand": "kiwi-control run \"update README docs\"",
+            "suggestedFix": null,
+            "summary": "Generated 3 task packets for \"update README docs\".",
+            "validation": "Run packet generation completed and packet artifacts were written."
+          },
+          "output": "Generated 3 task packets for \"update README docs\".",
+          "validation": "Run packet generation completed and packet artifacts were written.",
+          "failureReason": null,
+          "updatedAt": "2026-04-13T17:47:28.578Z"
+        },
+        {
+          "stepId": "validate-outcome",
+          "action": "Validate outcome",
+          "status": "pending",
+          "expectedOutput": "The prepared scope, touched files, and task outcome have been validated.",
+          "files": [],
+          "skillsApplied": [],
+          "attemptCount": 0,
+          "retryCount": 0,
+          "tokenUsage": {
+            "source": "none",
+            "measuredTokens": null,
+            "estimatedTokens": null,
+            "note": "No token usage has been recorded for this step yet."
+          },
+          "result": {
+            "failureReason": null,
+            "ok": null,
+            "retryCommand": null,
+            "suggestedFix": null,
+            "summary": null,
+            "validation": null
+          },
+          "output": null,
+          "validation": "Validation confirms expected files changed, scope stayed bounded, and the task goal was met.",
+          "failureReason": null,
+          "updatedAt": null
+        },
+        {
+          "stepId": "checkpoint-progress",
+          "action": "Checkpoint progress",
+          "status": "pending",
+          "expectedOutput": "Checkpoint artifacts are written and continuity is updated.",
+          "files": [],
+          "skillsApplied": [],
+          "attemptCount": 0,
+          "retryCount": 0,
+          "tokenUsage": {
+            "source": "none",
+            "measuredTokens": null,
+            "estimatedTokens": null,
+            "note": "No token usage has been recorded for this step yet."
+          },
+          "result": {
+            "failureReason": null,
+            "ok": null,
+            "retryCommand": null,
+            "suggestedFix": null,
+            "summary": null,
+            "validation": null
+          },
+          "output": null,
+          "validation": "Checkpoint JSON exists and prepared scope remains valid.",
+          "failureReason": null,
+          "updatedAt": null
+        },
+        {
+          "stepId": "handoff-work",
+          "action": "Handoff work",
+          "status": "pending",
+          "expectedOutput": "Handoff artifacts are written for the next specialist/tool.",
+          "files": [],
+          "skillsApplied": [],
+          "attemptCount": 0,
+          "retryCount": 0,
+          "tokenUsage": {
+            "source": "none",
+            "measuredTokens": null,
+            "estimatedTokens": null,
+            "note": "No token usage has been recorded for this step yet."
+          },
+          "result": {
+            "failureReason": null,
+            "ok": null,
+            "retryCommand": null,
+            "suggestedFix": null,
+            "summary": null,
+            "validation": null
+          },
+          "output": null,
+          "validation": "Handoff JSON exists and target specialist/tool is recorded.",
+          "failureReason": null,
+          "updatedAt": null
+        }
+      ],
+      "whyThisHappened": "Open latest task packet and execute it: Generated 3 task packets for \"update README docs\"."
+    },
+    "executionPlan": {
+      "summary": "logic_error: Prepared scope violated by touched files: .github/",
+      "intent": {
+        "type": "docs",
+        "scope": "docs",
+        "expectedOutcome": "Documentation in the selected scope is updated and consistent.",
+        "confidenceAction": "guarded"
+      },
+      "hierarchy": {
+        "goal": "update README docs",
+        "subtasks": [
+          {
+            "id": "scope",
+            "title": "Scope the work",
+            "stepIds": [
+              "prepare"
+            ]
+          },
+          {
+            "id": "change",
+            "title": "Make the change",
+            "stepIds": [
+              "execute"
+            ]
+          },
+          {
+            "id": "verify",
+            "title": "Verify and checkpoint",
+            "stepIds": [
+              "validate",
+              "checkpoint",
+              "handoff"
+            ]
+          }
+        ]
+      },
+      "state": "blocked",
+      "currentStepIndex": 2,
+      "confidence": "medium",
+      "risk": "low",
+      "blocked": true,
+      "steps": [
+        {
+          "id": "prepare",
+          "description": "Prepare bounded context",
+          "command": "kiwi-control prepare \"update README docs\"",
+          "expectedOutput": "Prepared scope, instructions, token state, and context snapshot are ready.",
+          "expectedOutcome": {
+            "expectedFiles": [
+              "AGENTS.md",
+              "CLAUDE.md",
+              "package.json",
+              "src/app.ts",
+              "README.md"
+            ],
+            "expectedChanges": [
+              "Prepared scope is written",
+              "Instructions are generated",
+              "Token state is recorded"
+            ]
+          },
+          "validation": "Context selection and prepared scope must be recorded before execution.",
+          "status": "success",
+          "workflowStepId": "prepare-context",
+          "result": {
+            "failureReason": null,
+            "ok": true,
+            "retryCommand": "kiwi-control prepare \"update README docs\"",
+            "suggestedFix": null,
+            "summary": "Prepared 5 selected files for \"update README docs\".",
+            "validation": "Prepared scope exists, instructions were written, and token state was recorded."
+          },
+          "fixCommand": null,
+          "retryCommand": "kiwi-control prepare \"update README docs\""
+        },
+        {
+          "id": "execute",
+          "description": "Modify the selected files",
+          "command": "kiwi-control run \"update README docs\"",
+          "expectedOutput": "Run packets or equivalent execution artifacts are ready.",
+          "expectedOutcome": {
+            "expectedFiles": [
+              "AGENTS.md",
+              "CLAUDE.md",
+              "package.json",
+              "src/app.ts",
+              "README.md"
+            ],
+            "expectedChanges": [
+              "Documentation changes land in selected docs files.",
+              "Expected files: AGENTS.md, CLAUDE.md, package.json, src/app.ts, README.md"
+            ]
+          },
+          "validation": "Execution must produce packet/output artifacts inside the prepared scope.",
+          "status": "success",
+          "workflowStepId": "generate-run-packets",
+          "result": {
+            "failureReason": null,
+            "ok": true,
+            "retryCommand": "kiwi-control run \"update README docs\"",
+            "suggestedFix": null,
+            "summary": "Generated 3 task packets for \"update README docs\".",
+            "validation": "Run packet generation completed and packet artifacts were written."
+          },
+          "fixCommand": null,
+          "retryCommand": "kiwi-control run \"update README docs\""
+        },
+        {
+          "id": "validate",
+          "description": "Validate the task outcome",
+          "command": "kiwi-control validate \"update README docs\"",
+          "expectedOutput": "Final validation confirms scope and outcome correctness.",
+          "expectedOutcome": {
+            "expectedFiles": [
+              "AGENTS.md",
+              "CLAUDE.md",
+              "package.json",
+              "src/app.ts",
+              "README.md"
+            ],
+            "expectedChanges": [
+              "Selected files remain bounded to: AGENTS.md, CLAUDE.md, package.json, src/app.ts, README.md",
+              "Documentation changes land in selected docs files.",
+              "Expected files: AGENTS.md, CLAUDE.md, package.json, src/app.ts, README.md"
+            ]
+          },
+          "validation": "Validation must confirm expected files changed, scope remained bounded, and the task goal was achieved.",
+          "status": "pending",
+          "workflowStepId": "validate-outcome",
+          "result": {
+            "failureReason": null,
+            "ok": null,
+            "retryCommand": null,
+            "suggestedFix": null,
+            "summary": null,
+            "validation": null
+          },
+          "fixCommand": null,
+          "retryCommand": "kiwi-control validate \"update README docs\""
+        },
+        {
+          "id": "checkpoint",
+          "description": "Checkpoint the validated work",
+          "command": "kiwi-control checkpoint \"validated-progress\"",
+          "expectedOutput": "Checkpoint artifacts record validated progress.",
+          "expectedOutcome": {
+            "expectedFiles": [
+              "AGENTS.md",
+              "CLAUDE.md",
+              "package.json",
+              "src/app.ts",
+              "README.md"
+            ],
+            "expectedChanges": [
+              "Documentation in the selected scope is updated and consistent."
+            ]
+          },
+          "validation": "Checkpointing is allowed only after validation passes.",
+          "status": "pending",
+          "workflowStepId": "checkpoint-progress",
+          "result": {
+            "failureReason": null,
+            "ok": null,
+            "retryCommand": null,
+            "suggestedFix": null,
+            "summary": null,
+            "validation": null
+          },
+          "fixCommand": null,
+          "retryCommand": "kiwi-control checkpoint \"validated-progress\""
+        },
+        {
+          "id": "handoff",
+          "description": "Handoff the work",
+          "command": "kiwi-control handoff --to fullstack-specialist",
+          "expectedOutput": "Handoff artifacts are written for the next specialist/tool.",
+          "expectedOutcome": {
+            "expectedFiles": [
+              "AGENTS.md",
+              "CLAUDE.md",
+              "package.json",
+              "src/app.ts",
+              "README.md"
+            ],
+            "expectedChanges": [
+              "Documentation in the selected scope is updated and consistent."
+            ]
+          },
+          "validation": "Handoff should happen after checkpoint captures validated progress.",
+          "status": "pending",
+          "workflowStepId": "handoff-work",
+          "result": {
+            "failureReason": null,
+            "ok": null,
+            "retryCommand": null,
+            "suggestedFix": null,
+            "summary": null,
+            "validation": null
+          },
+          "fixCommand": null,
+          "retryCommand": "kiwi-control handoff"
+        }
+      ],
+      "nextCommands": [
+        "kiwi-control validate \"update README docs\"",
+        "kiwi-control checkpoint \"validated-progress\"",
+        "kiwi-control handoff --to fullstack-specialist"
+      ],
+      "lastError": {
+        "errorType": "logic_error",
+        "retryStrategy": "narrow",
+        "reason": "Prepared scope violated by touched files: .github/",
+        "fixCommand": "kiwi-control prepare \"update README docs\"",
+        "retryCommand": "kiwi-control validate \"update README docs\""
+      },
+      "impactPreview": {
+        "likelyFiles": [
+          "AGENTS.md",
+          "CLAUDE.md",
+          "package.json",
+          "src/app.ts",
+          "README.md"
+        ],
+        "moduleGroups": [
+          "AGENTS.md",
+          "CLAUDE.md",
+          "package.json",
+          "README.md",
+          "src/app.ts"
+        ]
+      },
+      "verificationLayers": [
+        {
+          "id": "syntax",
+          "description": "Syntax and shape validation for the selected scope."
+        }
+      ],
+      "partialResults": [
+        {
+          "stepId": "prepare",
+          "summary": "Prepared 5 selected files for \"update README docs\"."
+        },
+        {
+          "stepId": "execute",
+          "summary": "Generated 3 task packets for \"update README docs\"."
+        }
+      ]
+    },
+    "repoIntelligence": {
+      "available": true,
+      "generatedAt": "2026-04-13T17:47:19.072Z",
+      "summary": "Discovered 16 files across 1 module groups. Entry points: package.json, src/app.ts.",
+      "repoMapPath": ".agent/context/repo-map.json",
+      "symbolIndexPath": ".agent/state/symbol-index.json",
+      "dependencyGraphPath": ".agent/state/dependency-graph.json",
+      "impactMapPath": ".agent/state/impact-map.json",
+      "decisionGraphPath": ".agent/state/decision-graph.json",
+      "historyGraphPath": ".agent/state/history-graph.json",
+      "reviewGraphPath": ".agent/state/review-graph.json",
+      "entryPoints": [
+        "package.json",
+        "src/app.ts"
+      ],
+      "keyModules": [
+        {
+          "id": "src/app.ts",
+          "fileCount": 1,
+          "entryPoints": [
+            "src/app.ts"
+          ]
+        }
+      ],
+      "topReverseDependencyHubs": [],
+      "changedFiles": [],
+      "impactedFiles": [],
+      "importantDecisions": 3,
+      "hotspotFiles": 3,
+      "reviewRiskTargets": 6,
+      "agentPackAvailable": true,
+      "agentPackPath": ".agent/context/agent-pack.json",
+      "agentPackSummary": "Discovered 16 files across 1 module groups. Entry points: package.json, src/app.ts. Start with runtime truth, then use the task or review pack instead of the full graph when you do not need global repo exploration.",
+      "taskPackAvailable": true,
+      "taskPackPath": ".agent/context/task-pack.json",
+      "taskPackTask": null,
+      "taskPackSummary": "Overview repo pack with 1 high-signal files across 1 module groups. Read this first when you are implementing or editing code for the current task.",
+      "taskPackFiles": 1,
+      "compactContextPackAvailable": true,
+      "compactContextPackPath": ".agent/context/compact-context-pack.json",
+      "compactContextPackMode": "overview",
+      "compactContextPackTask": null,
+      "compactContextPackSummary": "Overview repo pack with 1 high-signal files across 1 module groups.",
+      "compactContextPackFiles": 1,
+      "reviewContextPackAvailable": true,
+      "reviewContextPackPath": ".agent/context/review-context-pack.json",
+      "reviewContextPackTask": null,
+      "reviewContextPackSummary": "Review attention is concentrated in package.json with 6 ranked targets.",
+      "reviewPackAvailable": false,
+      "reviewPackPath": null,
+      "reviewPackSummary": null
+    },
+    "readySubstrate": {
+      "artifactType": "kiwi-control/ready-substrate",
+      "version": 1,
+      "generatedAt": "2026-04-13T17:47:28.847Z",
+      "targetRoot": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo",
+      "status": "partial",
+      "ready": false,
+      "summary": "Repo substrate is partial; missing graphAuthority.",
+      "runtimeAuthority": {
+        "valid": true,
+        "revision": 3,
+        "lifecycle": "queued",
+        "sourceCommand": "kiwi-control run \"update README docs\"",
+        "nextCommand": "kiwi-control validate \"update README docs\"",
+        "lastUpdatedAt": "2026-04-13T17:47:28Z",
+        "sqlitePath": ".agent/state/runtime.sqlite3",
+        "compatibilityStatePath": ".agent/state/execution-state.json",
+        "compatibilityEventsPath": ".agent/state/execution-events.ndjson",
+        "note": "Runtime SQLite and runtime events are canonical. JSON execution files are compatibility outputs."
+      },
+      "graphAuthority": {
+        "valid": true,
+        "ready": false,
+        "status": "ready",
+        "freshness": "stale",
+        "graphRevision": 1,
+        "sourceRevision": 0,
+        "sourceRuntimeRevision": 0,
+        "generatedAt": "2026-04-13T17:47:19Z",
+        "graphAuthorityPath": "/private/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-9wxzyV/external-repo/.agent/state/runtime.sqlite3",
+        "kind": "runtime-sqlite-normalized",
+        "nodeCount": 6,
+        "edgeCount": 6,
+        "moduleCount": 1,
+        "symbolCount": 1,
+        "aliasKind": "runtime-sqlite-normalized-aliases",
+        "aliasCount": 14,
+        "aliasAmbiguityCount": 3,
+        "explicitAliasSourcePath": ".agent/context/graph-aliases.json",
+        "explicitAliasSourceAvailable": false,
+        "artifactPath": ".agent/context/repo-map.json",
+        "compatibilityExportReady": true,
+        "compatibilityInSync": true,
+        "compatibilityArtifacts": null,
+        "note": "Canonical repo graph lives in runtime SQLite. JSON graph files are compatibility/export views."
+      },
+      "packSelection": {
+        "selectedPack": "research-pack",
+        "selectedPackSource": "heuristic-default",
+        "explicitSelection": null,
+        "executable": true,
+        "unavailablePackReason": null,
+        "effectiveCapabilityIds": [
+          "exa",
+          "firecrawl",
+          "brave-search",
+          "context7",
+          "sequential-thinking",
+          "github"
+        ],
+        "preferredCapabilityIds": [
+          "exa",
+          "firecrawl",
+          "brave-search",
+          "context7",
+          "sequential-thinking"
+        ],
+        "availablePacks": [
+          {
+            "id": "core-pack",
+            "executable": true,
+            "unavailablePackReason": null
+          },
+          {
+            "id": "research-pack",
+            "executable": true,
+            "unavailablePackReason": null
+          },
+          {
+            "id": "web-qa-pack",
+            "executable": true,
+            "unavailablePackReason": null
+          },
+          {
+            "id": "aws-pack",
+            "executable": false,
+            "unavailablePackReason": "AWS Pack is blocked because this repo does not register any AWS-specific MCP or tool integrations in the current registry/inventory."
+          },
+          {
+            "id": "ios-pack",
+            "executable": false,
+            "unavailablePackReason": "iOS Pack is blocked because this repo does not register any Xcode or simulator integrations in the current registry/inventory."
+          },
+          {
+            "id": "android-pack",
+            "executable": false,
+            "unavailablePackReason": "Android Pack is blocked because this repo does not register any Android-specific MCP or emulator integrations in the current registry/inventory."
+          }
+        ]
+      },
+      "artifacts": {
+        "repoMap": {
+          "path": ".agent/context/repo-map.json",
+          "valid": true,
+          "required": true,
+          "role": "repo-map"
+        },
+        "symbolIndex": {
+          "path": ".agent/state/symbol-index.json",
+          "valid": true,
+          "required": true,
+          "role": "graph"
+        },
+        "dependencyGraph": {
+          "path": ".agent/state/dependency-graph.json",
+          "valid": true,
+          "required": true,
+          "role": "graph"
+        },
+        "impactMap": {
+          "path": ".agent/state/impact-map.json",
+          "valid": true,
+          "required": true,
+          "role": "impact"
+        },
+        "decisionGraph": {
+          "path": ".agent/state/decision-graph.json",
+          "valid": true,
+          "required": true,
+          "role": "graph"
+        },
+        "historyGraph": {
+          "path": ".agent/state/history-graph.json",
+          "valid": true,
+          "required": true,
+          "role": "graph"
+        },
+        "reviewGraph": {
+          "path": ".agent/state/review-graph.json",
+          "valid": true,
+          "required": true,
+          "role": "review"
+        },
+        "compactContextPack": {
+          "path": ".agent/context/compact-context-pack.json",
+          "valid": true,
+          "required": true,
+          "role": "pack"
+        },
+        "reviewContextPack": {
+          "path": ".agent/context/review-context-pack.json",
+          "valid": true,
+          "required": true,
+          "role": "review"
+        },
+        "taskPack": {
+          "path": ".agent/context/task-pack.json",
+          "valid": true,
+          "required": true,
+          "role": "pack"
+        },
+        "agentPack": {
+          "path": ".agent/context/agent-pack.json",
+          "valid": true,
+          "required": true,
+          "role": "tool-entry"
+        },
+        "selectedPack": {
+          "path": ".agent/state/selected-pack.json",
+          "valid": true,
+          "required": false,
+          "role": "pack"
+        },
+        "reviewPack": {
+          "path": ".agent/context/review-pack.json",
+          "valid": false,
+          "required": false,
+          "role": "review"
+        },
+        "executionStateCompat": {
+          "path": ".agent/state/execution-state.json",
+          "valid": true,
+          "required": false,
+          "role": "runtime-compat"
+        },
+        "executionEventsCompat": {
+          "path": ".agent/state/execution-events.ndjson",
+          "valid": true,
+          "required": false,
+          "role": "runtime-compat"
+        }
+      },
+      "readFirst": [
+        ".agent/state/ready-substrate.json",
+        ".agent/state/selected-pack.json",
+        ".agent/context/agent-pack.json",
+        ".agent/state/execution-state.json",
+        ".agent/state/execution-events.ndjson",
+        ".agent/context/task-pack.json",
+        ".agent/context/review-context-pack.json",
+        ".agent/context/repo-map.json"
+      ],
+      "toolEntry": {
+        "path": ".agent/context/agent-pack.json",
+        "note": "External coding tools should start with agent-pack.json, then follow readFirst and packPointers."
+      },
+      "missingRequired": [
+        "graphAuthority"
+      ]
+    }
+  }
+}

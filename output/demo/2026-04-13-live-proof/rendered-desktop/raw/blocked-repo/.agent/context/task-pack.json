@@ -1,0 +1,27 @@
+{
+  "artifactType": "kiwi-control/task-pack",
+  "version": 1,
+  "generatedAt": "2026-04-13T18:09:25.180Z",
+  "task": null,
+  "summary": "Overview repo pack with 0 high-signal files across 0 module groups. Read this first when you are implementing or editing code for the current task.",
+  "readFirst": [
+    ".agent/context/task-pack.json",
+    ".agent/state/execution-state.json",
+    ".agent/state/execution-events.ndjson",
+    ".agent/memory/current-focus.json",
+    ".agent/context/generated-instructions.md",
+    ".agent/state/impact-map.json"
+  ],
+  "sourceOfTruthNote": "Runtime-backed execution state remains canonical. The task pack narrows context for implementation and should be treated as a compact working set.",
+  "focus": {
+    "mode": "overview",
+    "focusFiles": [],
+    "missingFocusFiles": [],
+    "files": [],
+    "modules": [],
+    "dependencyChains": [],
+    "clusters": []
+  },
+  "decisions": [],
+  "reviewAttention": []
+}

@@ -1,0 +1,221 @@
+- updated: .agent/project.yaml (updated managed file)
+- updated: .agent/checks.yaml (updated managed file)
+- created: .agent/context/commands.md (created managed file)
+- created: .agent/context/specialists.md (created managed file)
+- created: .agent/context/tool-capabilities.md (created managed file)
+- created: .agent/context/mcp-capabilities.md (created managed file)
+- created: .agent/memory/repo-facts.json (created seed file)
+- created: .agent/memory/current-focus.json (created seed file)
+- created: .agent/memory/open-risks.json (created seed file)
+- created: .agent/roles/README.md (created managed file)
+- created: .agent/templates/role-result.md (created managed file)
+- created: .agent/state/current-phase.json (created seed file)
+- created: .agent/state/active-role-hints.json (created seed file)
+- created: .agent/state/checkpoints/latest.json (created seed file)
+- created: .agent/state/checkpoints/latest.md (created seed file)
+- created: .agent/state/handoff/README.md (created managed file)
+- created: .agent/state/dispatch/README.md (created managed file)
+- created: .agent/state/reconcile/README.md (created managed file)
+- created: .agent/scripts/verify-contract.sh (created managed file)
+- created: .github/agents/shrey-junior.md (created managed file)
+- created: .github/workflows/shrey-junior-contract.yml (created managed file)
+- created: .github/instructions/docs.instructions.md (created managed file)
+- created: .agent/roles/architecture-specialist.md (created managed file)
+- created: .github/agents/architecture-specialist.md (created managed file)
+- created: .agent/roles/review-specialist.md (created managed file)
+- created: .github/agents/review-specialist.md (created managed file)
+- created: .agent/roles/qa-specialist.md (created managed file)
+- created: .github/agents/qa-specialist.md (created managed file)
+- created: .agent/roles/docs-specialist.md (created managed file)
+- created: .github/agents/docs-specialist.md (created managed file)
+- updated: AGENTS.md (updated managed block)
+- updated: CLAUDE.md (updated managed file)
+- updated: .github/copilot-instructions.md (updated managed block)
+- created: .agent/state/context-tree.json (created repo-aware artifact)
+- created: .agent/context/context-tree.json (created repo-aware artifact)
+- created: .agent/context-authority.json (created repo-aware artifact)
+- created: .agent/context/repo-map.json (created repo intelligence artifact)
+- created: .agent/state/symbol-index.json (created repo intelligence artifact)
+- created: .agent/state/dependency-graph.json (created repo intelligence artifact)
+- created: .agent/state/impact-map.json (created repo intelligence artifact)
+- created: .agent/state/decision-graph.json (created repo intelligence artifact)
+- created: .agent/state/history-graph.json (created repo intelligence artifact)
+- created: .agent/state/review-graph.json (created repo intelligence artifact)
+- created: .agent/context/compact-context-pack.json (created repo intelligence artifact)
+- created: .agent/context/review-context-pack.json (created repo intelligence artifact)
+- created: .agent/context/task-pack.json (created repo intelligence artifact)
+- created: .agent/context/agent-pack.json (created repo intelligence artifact)
+- updated: .agent/memory/repo-facts.json (updated repo-aware artifact)
+- updated: .agent/memory/current-focus.json (updated repo-aware artifact)
+- updated: .agent/memory/open-risks.json (updated repo-aware artifact)
+- unchanged: .agent/project.yaml (dry-run already up to date, +0/-0)
+- unchanged: .agent/checks.yaml (dry-run already up to date, +0/-0)
+- unchanged: .agent/context/commands.md (dry-run already up to date, +0/-0)
+- unchanged: .agent/context/specialists.md (dry-run already up to date, +0/-0)
+- unchanged: .agent/context/tool-capabilities.md (dry-run already up to date, +0/-0)
+- unchanged: .agent/context/mcp-capabilities.md (dry-run already up to date, +0/-0)
+- unchanged: .agent/memory/repo-facts.json (dry-run preserved existing seed file, +0/-0)
+- unchanged: .agent/memory/current-focus.json (dry-run preserved existing seed file, +0/-0)
+- unchanged: .agent/memory/open-risks.json (dry-run preserved existing seed file, +0/-0)
+- unchanged: .agent/roles/README.md (dry-run already up to date, +0/-0)
+- unchanged: .agent/templates/role-result.md (dry-run already up to date, +0/-0)
+- unchanged: .agent/state/current-phase.json (dry-run preserved existing seed file, +0/-0)
+- unchanged: .agent/state/active-role-hints.json (dry-run preserved existing seed file, +0/-0)
+- unchanged: .agent/state/checkpoints/latest.json (dry-run preserved existing seed file, +0/-0)
+- unchanged: .agent/state/checkpoints/latest.md (dry-run preserved existing seed file, +0/-0)
+- unchanged: .agent/state/handoff/README.md (dry-run already up to date, +0/-0)
+- unchanged: .agent/state/dispatch/README.md (dry-run already up to date, +0/-0)
+- unchanged: .agent/state/reconcile/README.md (dry-run already up to date, +0/-0)
+- unchanged: .agent/scripts/verify-contract.sh (dry-run already up to date, +0/-0)
+- unchanged: .github/agents/shrey-junior.md (dry-run already up to date, +0/-0)
+- unchanged: .github/workflows/shrey-junior-contract.yml (dry-run already up to date, +0/-0)
+- unchanged: .github/instructions/docs.instructions.md (dry-run already up to date, +0/-0)
+- unchanged: .agent/roles/architecture-specialist.md (dry-run already up to date, +0/-0)
+- unchanged: .github/agents/architecture-specialist.md (dry-run already up to date, +0/-0)
+- unchanged: .agent/roles/review-specialist.md (dry-run already up to date, +0/-0)
+- unchanged: .github/agents/review-specialist.md (dry-run already up to date, +0/-0)
+- unchanged: .agent/roles/qa-specialist.md (dry-run already up to date, +0/-0)
+- unchanged: .github/agents/qa-specialist.md (dry-run already up to date, +0/-0)
+- unchanged: .agent/roles/docs-specialist.md (dry-run already up to date, +0/-0)
+- unchanged: .github/agents/docs-specialist.md (dry-run already up to date, +0/-0)
+- unchanged: AGENTS.md (dry-run managed block already up to date, +0/-0)
+- unchanged: CLAUDE.md (dry-run already up to date, +0/-0)
+- unchanged: .github/copilot-instructions.md (dry-run managed block already up to date, +0/-0)
+- unchanged: .agent/project.yaml (already up to date)
+- unchanged: .agent/checks.yaml (already up to date)
+- unchanged: .agent/context/commands.md (already up to date)
+- unchanged: .agent/context/specialists.md (already up to date)
+- unchanged: .agent/context/tool-capabilities.md (already up to date)
+- unchanged: .agent/context/mcp-capabilities.md (already up to date)
+- unchanged: .agent/memory/repo-facts.json (preserved existing seed file)
+- unchanged: .agent/memory/current-focus.json (preserved existing seed file)
+- unchanged: .agent/memory/open-risks.json (preserved existing seed file)
+- unchanged: .agent/roles/README.md (already up to date)
+- unchanged: .agent/templates/role-result.md (already up to date)
+- unchanged: .agent/state/current-phase.json (preserved existing seed file)
+- unchanged: .agent/state/active-role-hints.json (preserved existing seed file)
+- unchanged: .agent/state/checkpoints/latest.json (preserved existing seed file)
+- unchanged: .agent/state/checkpoints/latest.md (preserved existing seed file)
+- unchanged: .agent/state/handoff/README.md (already up to date)
+- unchanged: .agent/state/dispatch/README.md (already up to date)
+- unchanged: .agent/state/reconcile/README.md (already up to date)
+- unchanged: .agent/scripts/verify-contract.sh (already up to date)
+- unchanged: .github/agents/shrey-junior.md (already up to date)
+- unchanged: .github/workflows/shrey-junior-contract.yml (already up to date)
+- unchanged: .github/instructions/docs.instructions.md (already up to date)
+- unchanged: .agent/roles/architecture-specialist.md (already up to date)
+- unchanged: .github/agents/architecture-specialist.md (already up to date)
+- unchanged: .agent/roles/review-specialist.md (already up to date)
+- unchanged: .github/agents/review-specialist.md (already up to date)
+- unchanged: .agent/roles/qa-specialist.md (already up to date)
+- unchanged: .github/agents/qa-specialist.md (already up to date)
+- unchanged: .agent/roles/docs-specialist.md (already up to date)
+- unchanged: .github/agents/docs-specialist.md (already up to date)
+- unchanged: AGENTS.md (managed block already up to date)
+- unchanged: CLAUDE.md (already up to date)
+- unchanged: .github/copilot-instructions.md (managed block already up to date)
+- updated: .agent/state/context-tree.json (updated repo-aware artifact)
+- updated: .agent/context/context-tree.json (updated repo-aware artifact)
+- updated: .agent/context-authority.json (updated repo-aware artifact)
+- updated: .agent/context/repo-map.json (updated repo intelligence artifact)
+- updated: .agent/state/symbol-index.json (updated repo intelligence artifact)
+- updated: .agent/state/dependency-graph.json (updated repo intelligence artifact)
+- updated: .agent/state/impact-map.json (updated repo intelligence artifact)
+- updated: .agent/state/decision-graph.json (updated repo intelligence artifact)
+- updated: .agent/state/history-graph.json (updated repo intelligence artifact)
+- updated: .agent/state/review-graph.json (updated repo intelligence artifact)
+- updated: .agent/context/compact-context-pack.json (updated repo intelligence artifact)
+- updated: .agent/context/review-context-pack.json (updated repo intelligence artifact)
+- updated: .agent/context/task-pack.json (updated repo intelligence artifact)
+- updated: .agent/context/agent-pack.json (updated repo intelligence artifact)
+- updated: .agent/memory/repo-facts.json (updated repo-aware artifact)
+- updated: .agent/memory/current-focus.json (updated repo-aware artifact)
+- updated: .agent/memory/open-risks.json (updated repo-aware artifact)
+Preparing context for: "update README docs"
+Context selected: 1 files [confidence=low]
+Instructions written to: /var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/tmp.Dvn3p8uBUA/sample-project/.agent/context/generated-instructions.md
+
+╔══════════════════════════════════════════════╗
+║          Kiwi Control — prepare              ║
+╚═══════════════════════════════════════════��══╝
+
+  Task:            update README docs
+  Confidence:      LOW
+  Files selected:  1
+  Files excluded:  85 patterns
+
+  Measured Scope:
+    Selected files:         1  (measured)
+    Exclusions:            85  patterns
+
+  Token Usage:
+    Measured:      unavailable
+    Selected:      ~37 tokens
+    Full repo:     ~2.9K tokens
+    Savings:       ~99%
+    Method:        rough estimate (chars/4 heuristic)
+    Note:          Estimated token counts use a chars/4 heuristic. File counts are measured directly; token counts and savings percentages are approximate, and pricing is intentionally not shown.
+
+  Skills:
+    Active:        none
+    Suggested:     none
+
+  How It Works:
+    Total files:            5
+    Scanned files:          3
+    Skipped files:          2
+    Selected files:         1
+    Excluded files:         2
+    Honesty:       heuristic, low confidence, partial scan
+
+  File Analysis:
+    selected  README.md — recent file, keyword match, task fit
+    excluded  CLAUDE.md — Authority guidance existed, but a stronger task-aligned signal already covered this area.
+    excluded  AGENTS.md — Authority guidance existed, but a stronger task-aligned signal already covered this area.
+    skipped   .agent — hidden directory rule
+    skipped   .github — hidden directory rule
+
+  Context Trace:
+    initial signals: Seeded selection from 0 changed, 0 import, 1 keyword, 0 proximity, and 4 repo-context signals.
+    expansion: Expanded the working set to 3 candidate files using weighted signals and task-fit heuristics.
+    budget selection: Selected 3 files within the bounded context budget before task-specific precision trimming.
+    precision trim: Precision trim removed 2 low-relevance files for this docs task (2 passive authority files).
+
+  Indexing:
+    Visited dirs:           1
+    Depth reached:          0
+    Files found:            3
+    Files analyzed:         3
+    Index reused:           0
+    Index updated:          0
+    Impact files:           0
+    Ignore rules:  hidden directory
+
+  Token Hotspots:
+    .                                         2.2K tokens  (3 files)
+    .agent/state/checkpoints                   415 tokens  (1 files)
+    .agent/memory                              321 tokens  (3 files)
+
+  Token Breakdown:
+    selection filter ~ 2.9K tokens  [measured] Measured reduction from selecting a bounded working set instead of every scanned file.
+    node_modules     ~    0 tokens  [heuristic] No matching skipped directories were observed in the current repo scan.
+    dist             ~    0 tokens  [heuristic] No matching skipped directories were observed in the current repo scan.
+    skipped dirs     ~32.6K tokens  [heuristic] Heuristic estimate from 57 source-like file(s) under skipped directories.
+
+  Instructions:
+    Path:          /var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/tmp.Dvn3p8uBUA/sample-project/.agent/context/generated-instructions.md
+    Constraints:   9
+    Validations:   4
+    Stop guards:   5
+
+  Reason:          Selected 1 files based on task keyword matching. Signals: 0 changed, 0 import neighbors, 1 keyword matches, 4 repo context files, 0 proximity, 3 recent, 0 active skills. Precision trim removed 2 low-relevance files for this docs task (2 passive authority files). Coverage: 20% of candidate signal files. Diversity: 2 signal types. Discovery depth: 0. Budget: ~37 tokens. Confidence: low.
+
+- created: .agent/tasks/run-20260413-180841-stabilize-repo-local-instructions/codex.md (created managed file)
+- created: .agent/tasks/run-20260413-180841-stabilize-repo-local-instructions/claude.md (created managed file)
+- created: .agent/tasks/run-20260413-180841-stabilize-repo-local-instructions/copilot.md (created managed file)
+- created: .agent/tasks/fanout-20260413-180841-stabilize-repo-local-instructions/planner.md (created managed file)
+- created: .agent/tasks/fanout-20260413-180841-stabilize-repo-local-instructions/implementer.md (created managed file)
+- created: .agent/tasks/fanout-20260413-180841-stabilize-repo-local-instructions/reviewer.md (created managed file)
+- created: .agent/tasks/fanout-20260413-180841-stabilize-repo-local-instructions/tester.md (created managed file)
+check passed
+Smoke test passed in /var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/tmp.Dvn3p8uBUA/sample-project

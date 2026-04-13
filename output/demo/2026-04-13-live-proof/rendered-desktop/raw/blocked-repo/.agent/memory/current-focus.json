@@ -1,0 +1,20 @@
+{
+  "artifactType": "shrey-junior/current-focus",
+  "version": 1,
+  "updatedAt": "2026-04-13T18:09:25.182Z",
+  "currentFocus": "Review .agent/context/context-tree.json, then record a checkpoint before non-trivial implementation or handoff.",
+  "focusOwnerRole": "fullstack-specialist",
+  "nextRecommendedSpecialist": "fullstack-specialist",
+  "nextSuggestedMcpPack": "core-pack",
+  "nextFileToRead": ".agent/context/context-tree.json",
+  "nextSuggestedCommand": "kiwi-control checkpoint \"context seeded\"",
+  "latestCheckpoint": ".agent/state/checkpoints/latest.json",
+  "latestTaskPacket": null,
+  "latestHandoff": null,
+  "latestDispatchManifest": null,
+  "latestReconcile": null,
+  "entryPoints": [
+    "package.json"
+  ],
+  "keyModules": []
+}

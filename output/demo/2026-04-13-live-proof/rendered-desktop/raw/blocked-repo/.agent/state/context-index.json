@@ -1,0 +1,20 @@
+{
+  "artifactType": "kiwi-control/context-index",
+  "version": 2,
+  "timestamp": "2026-04-13T18:09:25.129Z",
+  "indexedFiles": 0,
+  "updatedFiles": [],
+  "removedFiles": [],
+  "reusedFiles": 0,
+  "files": [],
+  "reverseDependencies": {},
+  "lastChangedFiles": [],
+  "lastImpact": {
+    "changedFiles": [],
+    "forwardDependencies": [],
+    "reverseDependencies": [],
+    "impactedFiles": [],
+    "dependencyDistances": {},
+    "dependencyChains": {}
+  }
+}

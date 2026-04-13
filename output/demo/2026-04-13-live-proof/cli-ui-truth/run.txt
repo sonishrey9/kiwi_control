@@ -1,0 +1,3 @@
+- created: .agent/tasks/run-20260413-174728-update-readme-docs/codex.md (created managed file)
+- created: .agent/tasks/run-20260413-174728-update-readme-docs/claude.md (created managed file)
+- created: .agent/tasks/run-20260413-174728-update-readme-docs/copilot.md (created managed file)

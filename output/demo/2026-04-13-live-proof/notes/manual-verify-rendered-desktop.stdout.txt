@@ -1,0 +1,1 @@
+Rendered desktop verification passed.

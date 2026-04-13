@@ -1,0 +1,12 @@
+{
+  "label": "setup-status",
+  "command": "kc",
+  "args": [
+    "setup",
+    "status",
+    "--json",
+    "--target",
+    "/Volumes/shrey ssd/shrey-junior"
+  ],
+  "exitCode": 0
+}

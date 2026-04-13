@@ -1,0 +1,36 @@
+Demo repo prepared at:
+  /var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/tmp.gkYiXfixZF/kiwi-demo-repo
+
+Recommended live sequence:
+
+1. Current repo truth
+  cd "/Volumes/shrey ssd/shrey-junior"
+  kc setup status --json --target "/Volumes/shrey ssd/shrey-junior"
+  kc setup verify --json --target "/Volumes/shrey ssd/shrey-junior"
+  kc parity --json
+  kc status --json --target "/Volumes/shrey ssd/shrey-junior"
+  kc graph build --json --target "/Volumes/shrey ssd/shrey-junior"
+  kc graph status --json --target "/Volumes/shrey ssd/shrey-junior"
+  kc pack status --json --target "/Volumes/shrey ssd/shrey-junior"
+  kc review --json --target "/Volumes/shrey ssd/shrey-junior"
+
+2. Clean repo init and bounded task
+  cd "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/tmp.gkYiXfixZF/kiwi-demo-repo"
+  kc init
+  kc status
+  kc guide
+  kc prepare "update README docs"
+  kc status --json
+  kc run "update README docs"
+  kc status --json
+
+3. Packet and desktop sync
+  cat .agent/state/latest-task-packets.json
+  kc ui --target "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/tmp.gkYiXfixZF/kiwi-demo-repo"
+
+4. Optional evidence refresh
+  cd "/Volumes/shrey ssd/shrey-junior"
+  node scripts/run-demo-proof.mjs
+
+The proof bundle lands at:
+  /Volumes/shrey ssd/shrey-junior/output/demo/2026-04-13-live-proof

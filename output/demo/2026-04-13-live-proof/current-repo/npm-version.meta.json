@@ -1,0 +1,8 @@
+{
+  "label": "npm-version",
+  "command": "npm",
+  "args": [
+    "--version"
+  ],
+  "exitCode": 0
+}

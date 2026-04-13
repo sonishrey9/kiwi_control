@@ -1,0 +1,115 @@
+Error: Rendered desktop probe timed out for /var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo view=overview.
+Child stdout: Kiwi Control launched via the local source bundle (source-bundle), but repo hydration is still in progress for /var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo. Watch the desktop app for the final ready state.
+
+Child stderr: <empty>
+Last payload: {
+  "activeMode": "execution",
+  "activeRailAriaCurrent": true,
+  "activeRailView": "overview",
+  "activeView": "overview",
+  "aiSetupDetected": true,
+  "bootVisible": true,
+  "currentStep": "idle",
+  "executionRevision": 0,
+  "executionState": "idle",
+  "focusedRailView": null,
+  "graphSurfaceVisible": false,
+  "historyLineCount": 0,
+  "inspectorOpen": false,
+  "loadDetail": "Desktop launched. Kiwi is loading repo-local state now.",
+  "loadLabel": "Opening repo",
+  "loadPhase": "opening",
+  "machineSetupStatus": "stale",
+  "mainScrollTop": 0,
+  "mounted": false,
+  "onboardingActions": [
+    "setup-machine"
+  ],
+  "packCatalog": [
+    {
+      "executable": true,
+      "id": "core-pack",
+      "unavailablePackReason": null
+    },
+    {
+      "executable": true,
+      "id": "research-pack",
+      "unavailablePackReason": null
+    },
+    {
+      "executable": true,
+      "id": "web-qa-pack",
+      "unavailablePackReason": null
+    },
+    {
+      "executable": false,
+      "id": "aws-pack",
+      "unavailablePackReason": "AWS Pack is blocked because this repo does not register any AWS-specific MCP or tool integrations in the current registry/inventory."
+    },
+    {
+      "executable": false,
+      "id": "ios-pack",
+      "unavailablePackReason": "iOS Pack is blocked because this repo does not register any Xcode or simulator integrations in the current registry/inventory."
+    },
+    {
+      "executable": false,
+      "id": "android-pack",
+      "unavailablePackReason": "Android Pack is blocked because this repo does not register any Android-specific MCP or emulator integrations in the current registry/inventory."
+    }
+  ],
+  "railButtonCount": 10,
+  "railScrollTop": 0,
+  "repoMode": "healthy",
+  "selectablePackIds": [],
+  "selectedPack": "research-pack",
+  "selectedPackSource": "heuristic-default",
+  "settledOnTarget": false,
+  "targetRoot": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo",
+  "visibleCommands": [
+    "guide",
+    "guide",
+    "next",
+    "review",
+    "validate",
+    "retry",
+    "checkpoint",
+    "handoff"
+  ],
+  "visibleSections": [
+    "overview-primary-hero",
+    "onboarding",
+    "blocked-workflow-fix",
+    "explain-selection"
+  ]
+}
+Launch status: {
+  "requestId": "42bdc1d0-6da7-48a8-8c5d-b304d35e2d96",
+  "targetRoot": "/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo",
+  "state": "ready",
+  "detail": "Loaded repo-local state for /var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo.",
+  "reportedAt": "1776103770725",
+  "revision": 0,
+  "launchSource": "source-bundle"
+}
+Launch log: {"event":"attach-requested","requestId":"42bdc1d0-6da7-48a8-8c5d-b304d35e2d96","targetRoot":"/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo","launchSource":"existing-session","detail":"probing for an existing desktop session","reportedAt":"2026-04-13T18:09:28.464Z"}
+{"event":"attach-timeout","requestId":"42bdc1d0-6da7-48a8-8c5d-b304d35e2d96","targetRoot":"/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo","launchSource":"existing-session","detail":"no existing session acknowledged within 1500ms","reportedAt":"2026-04-13T18:09:30.007Z"}
+{"event":"launch-requested","requestId":"42bdc1d0-6da7-48a8-8c5d-b304d35e2d96","targetRoot":"/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo","launchSource":"source-bundle","detail":"the local source bundle","reportedAt":"2026-04-13T18:09:30.009Z"}
+{"event":"launch-attempt","requestId":"42bdc1d0-6da7-48a8-8c5d-b304d35e2d96","targetRoot":"/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo","launchSource":"source-bundle","command":"/Volumes/shrey ssd/shrey-junior/apps/sj-ui/src-tauri/target/release/bundle/macos/Kiwi Control.app/Contents/MacOS/sj-ui","args":[],"reportedAt":"2026-04-13T18:09:30.009Z"}
+{"event":"launch-spawned","requestId":"42bdc1d0-6da7-48a8-8c5d-b304d35e2d96","targetRoot":"/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo","launchSource":"source-bundle","command":"/Volumes/shrey ssd/shrey-junior/apps/sj-ui/src-tauri/target/release/bundle/macos/Kiwi Control.app/Contents/MacOS/sj-ui","args":[],"reportedAt":"2026-04-13T18:09:30.013Z"}
+{"event":"desktop-startup","reportedAt":"1776103770190","requestId":null,"targetRoot":null,"detail":null,"launchSource":null}
+{"event":"desktop-request-observed","reportedAt":"1776103770190","requestId":"42bdc1d0-6da7-48a8-8c5d-b304d35e2d96","targetRoot":"/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo","detail":"origin=startup","launchSource":"source-bundle"}
+{"event":"ui-initial-launch-request-consumed","reportedAt":"1776103770305","requestId":"42bdc1d0-6da7-48a8-8c5d-b304d35e2d96","targetRoot":"/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo","detail":null,"launchSource":null}
+{"event":"ui-launch-request-received","reportedAt":"1776103770305","requestId":"42bdc1d0-6da7-48a8-8c5d-b304d35e2d96","targetRoot":"/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo","detail":null,"launchSource":null}
+{"event":"desktop-repo-state-requested","reportedAt":"1776103770312","requestId":null,"targetRoot":"/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo","detail":null,"launchSource":null}
+{"event":"desktop-repo-state-ready","reportedAt":"1776103770489","requestId":null,"targetRoot":"/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo","detail":null,"launchSource":null}
+{"event":"ui-repo-state-rendered","reportedAt":"1776103770499","requestId":"42bdc1d0-6da7-48a8-8c5d-b304d35e2d96","targetRoot":"/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo","detail":"healthy:fresh","launchSource":null}
+{"event":"ui-ack-attempt","reportedAt":"1776103770723","requestId":"42bdc1d0-6da7-48a8-8c5d-b304d35e2d96","targetRoot":"/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo","detail":"ready","launchSource":null}
+{"event":"desktop-ready-acknowledged","reportedAt":"1776103770725","requestId":"42bdc1d0-6da7-48a8-8c5d-b304d35e2d96","targetRoot":"/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo","detail":"Loaded repo-local state for /var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo.","launchSource":"source-bundle"}
+{"event":"ui-ack-succeeded","reportedAt":"1776103770727","requestId":"42bdc1d0-6da7-48a8-8c5d-b304d35e2d96","targetRoot":"/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo","detail":"ready","launchSource":null}
+{"event":"launch-dispatched","requestId":"42bdc1d0-6da7-48a8-8c5d-b304d35e2d96","targetRoot":"/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo","launchSource":"source-bundle","detail":"the local source bundle","command":"/Volumes/shrey ssd/shrey-junior/apps/sj-ui/src-tauri/target/release/bundle/macos/Kiwi Control.app/Contents/MacOS/sj-ui","args":[],"reportedAt":"2026-04-13T18:09:31.016Z"}
+{"event":"launch-pending","requestId":"42bdc1d0-6da7-48a8-8c5d-b304d35e2d96","targetRoot":"/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo","detail":"No matching desktop launch status arrived within 8000ms","launchSource":"source-bundle","reportedAt":"2026-04-13T18:09:31.016Z"}
+{"event":"desktop-ready-focus-complete","reportedAt":"1776103772809","requestId":"42bdc1d0-6da7-48a8-8c5d-b304d35e2d96","targetRoot":"/var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-rendered-desktop-RXWYIB/blocked-repo","detail":null,"launchSource":null}
+
+    at Object.waitForPayload (file:///Volumes/shrey%20ssd/shrey-junior/scripts/verify-rendered-desktop.mjs:315:13)
+    at async verifyRailNavigationBehavior (file:///Volumes/shrey%20ssd/shrey-junior/scripts/verify-rendered-desktop.mjs:147:25)
+    at async main (file:///Volumes/shrey%20ssd/shrey-junior/scripts/verify-rendered-desktop.mjs:49:5)

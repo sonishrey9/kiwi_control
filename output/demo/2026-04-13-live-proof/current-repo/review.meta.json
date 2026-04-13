@@ -1,0 +1,11 @@
+{
+  "label": "review",
+  "command": "kc",
+  "args": [
+    "review",
+    "--json",
+    "--target",
+    "/Volumes/shrey ssd/shrey-junior"
+  ],
+  "exitCode": 0
+}

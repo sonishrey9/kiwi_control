@@ -1,0 +1,11 @@
+file:///Volumes/shrey%20ssd/shrey-junior/scripts/verify-cli-ui-truth.mjs:323
+  throw new Error(`Timed out waiting for render probe at ${probePath}`);
+        ^
+
+Error: Timed out waiting for render probe at /var/folders/0g/7qwpp54x6f5cy55qrcp7cl080000gn/T/kiwi-cli-ui-truth-ZnFGe4/bridge-shared/render-probe.json
+    at waitForProbe (file:///Volumes/shrey%20ssd/shrey-junior/scripts/verify-cli-ui-truth.mjs:323:9)
+    at async verifyUiLaunch (file:///Volumes/shrey%20ssd/shrey-junior/scripts/verify-cli-ui-truth.mjs:215:17)
+    at async main (file:///Volumes/shrey%20ssd/shrey-junior/scripts/verify-cli-ui-truth.mjs:64:20)
+    at async file:///Volumes/shrey%20ssd/shrey-junior/scripts/verify-cli-ui-truth.mjs:26:1
+
+Node.js v25.9.0

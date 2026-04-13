@@ -1,0 +1,8 @@
+HTTP/2 403 
+content-type: application/xml
+server: AmazonS3
+date: Mon, 13 Apr 2026 18:10:34 GMT
+x-cache: Error from cloudfront
+via: 1.1 468a26e83787e0c68005b09431f5baa4.cloudfront.net (CloudFront)
+x-amz-cf-pop: MXP63-P2
+x-amz-cf-id: CPDX7CBI4eKkGC1cFrh8WMHAmVmUYcRYU06lo70hv7j_dN6oL_EVBQ==

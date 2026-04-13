@@ -1,0 +1,15 @@
+{
+  "artifactType": "kiwi-control/impact-map",
+  "version": 1,
+  "generatedAt": "2026-04-13T18:09:25.130Z",
+  "changedFiles": [],
+  "forwardDependencies": [],
+  "reverseDependencies": [],
+  "impactedFiles": [],
+  "dependencyDistances": {},
+  "dependencyChains": {},
+  "impactedModules": [],
+  "rankedFiles": [],
+  "rankedModules": [],
+  "clusters": []
+}

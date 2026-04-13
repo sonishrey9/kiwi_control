@@ -1,0 +1,11 @@
+{
+  "artifactType": "shrey-junior/latest-task-packets",
+  "version": 1,
+  "createdAt": "2026-04-13T17:47:28.565Z",
+  "packetSet": ".agent/tasks/run-20260413-174728-update-readme-docs",
+  "files": [
+    ".agent/tasks/run-20260413-174728-update-readme-docs/codex.md",
+    ".agent/tasks/run-20260413-174728-update-readme-docs/claude.md",
+    ".agent/tasks/run-20260413-174728-update-readme-docs/copilot.md"
+  ]
+}

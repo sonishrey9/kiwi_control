@@ -1,0 +1,18 @@
+{
+  "artifactType": "kiwi-control/repo-map",
+  "version": 1,
+  "generatedAt": "2026-04-13T18:09:25.130Z",
+  "projectType": "node",
+  "summary": "Discovered 14 files across 0 module groups. Entry points: package.json.",
+  "languages": [
+    "docs"
+  ],
+  "entryPoints": [
+    "package.json"
+  ],
+  "keyModules": [],
+  "topReverseDependencyHubs": [],
+  "filesDiscovered": 14,
+  "importableFiles": 0,
+  "indexedFiles": 0
+}

@@ -1,0 +1,14 @@
+{
+  "label": "repo-map",
+  "command": "kc",
+  "args": [
+    "repo-map",
+    "--changed",
+    "--limit",
+    "8",
+    "--json",
+    "--target",
+    "/Volumes/shrey ssd/shrey-junior"
+  ],
+  "exitCode": 0
+}

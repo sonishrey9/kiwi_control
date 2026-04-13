@@ -1,0 +1,504 @@
+{
+  "artifactType": "kiwi-control/machine-setup",
+  "version": 1,
+  "updatedAt": "2026-04-13T18:08:21.842Z",
+  "targetRoot": "/Volumes/shrey ssd/shrey-junior",
+  "profile": "full-dev-machine",
+  "homeRoot": "/Users/shreysoni",
+  "globalHomeRoot": "/Users/shreysoni/.kiwi-control",
+  "pathBinRoot": "/Users/shreysoni/.local/bin",
+  "shellProfilePath": "/Users/shreysoni/.zshrc",
+  "aiSetup": {
+    "detected": true,
+    "path": "/Users/shreysoni/.local/bin/ai-setup",
+    "status": "available-for-reuse",
+    "note": "Local ai-setup is available as a compatibility helper, but Kiwi setup remains the primary machine setup surface."
+  },
+  "tools": [
+    {
+      "name": "ai-setup",
+      "description": "Local one-command AI bootstrap helper",
+      "phase": "Compatibility",
+      "installed": true,
+      "version": "2.1",
+      "path": "/Users/shreysoni/.local/bin/ai-setup",
+      "source": "path"
+    },
+    {
+      "name": "code-review-graph",
+      "description": "Graph-based code search",
+      "phase": "Phase 1",
+      "installed": true,
+      "version": "2.1.0",
+      "path": "/Users/shreysoni/.local/bin/code-review-graph",
+      "source": "path"
+    },
+    {
+      "name": "omc",
+      "description": "Planning orchestration layer",
+      "phase": "Phase 1",
+      "installed": true,
+      "version": "4.10.2",
+      "path": "/opt/homebrew/bin/omc",
+      "source": "path"
+    },
+    {
+      "name": "omx",
+      "description": "Execution orchestration layer",
+      "phase": "Phase 1",
+      "installed": true,
+      "version": "0.11.13",
+      "path": "/opt/homebrew/bin/omx",
+      "source": "path"
+    },
+    {
+      "name": "lean-ctx",
+      "description": "Shell output compression",
+      "phase": "Phase 2",
+      "installed": true,
+      "version": "2.16.6",
+      "path": "/Users/shreysoni/.cargo/bin/lean-ctx",
+      "source": "path"
+    },
+    {
+      "name": "repomix",
+      "description": "Codebase summarizer",
+      "phase": "Phase 2",
+      "installed": true,
+      "version": "1.13.1",
+      "path": "/opt/homebrew/bin/repomix",
+      "source": "path"
+    },
+    {
+      "name": "context-mode",
+      "description": "Tool output sandboxing",
+      "phase": "Phase 2",
+      "installed": true,
+      "version": "1.0.68",
+      "path": "/opt/homebrew/bin/context-mode",
+      "source": "path"
+    },
+    {
+      "name": "copilot",
+      "description": "GitHub Copilot CLI",
+      "phase": "Phase 2",
+      "installed": true,
+      "version": "1.0.18.",
+      "path": "/opt/homebrew/bin/copilot",
+      "source": "path"
+    },
+    {
+      "name": "tmux",
+      "description": "Terminal multiplexer",
+      "phase": "Existing",
+      "versionArgs": [
+        "-V"
+      ],
+      "installed": true,
+      "version": "3.6a",
+      "path": "/opt/homebrew/bin/tmux",
+      "source": "path"
+    }
+  ],
+  "advisory": {
+    "updatedAt": "2026-04-13T18:08:10.974Z",
+    "stale": false,
+    "inventory": [
+      {
+        "name": "ai-setup",
+        "description": "Local one-command AI bootstrap helper",
+        "phase": "Compatibility",
+        "installed": true,
+        "version": "2.1",
+        "path": "/Users/shreysoni/.local/bin/ai-setup",
+        "source": "path"
+      },
+      {
+        "name": "code-review-graph",
+        "description": "Graph-based code search",
+        "phase": "Phase 1",
+        "installed": true,
+        "version": "2.1.0",
+        "path": "/Users/shreysoni/.local/bin/code-review-graph",
+        "source": "path"
+      },
+      {
+        "name": "omc",
+        "description": "Planning orchestration layer",
+        "phase": "Phase 1",
+        "installed": true,
+        "version": "4.10.2",
+        "path": "/opt/homebrew/bin/omc",
+        "source": "path"
+      },
+      {
+        "name": "omx",
+        "description": "Execution orchestration layer",
+        "phase": "Phase 1",
+        "installed": true,
+        "version": "0.11.13",
+        "path": "/opt/homebrew/bin/omx",
+        "source": "path"
+      },
+      {
+        "name": "lean-ctx",
+        "description": "Shell output compression",
+        "phase": "Phase 2",
+        "installed": true,
+        "version": "2.16.6",
+        "path": "/Users/shreysoni/.cargo/bin/lean-ctx",
+        "source": "path"
+      },
+      {
+        "name": "repomix",
+        "description": "Codebase summarizer",
+        "phase": "Phase 2",
+        "installed": true,
+        "version": "1.13.1",
+        "path": "/opt/homebrew/bin/repomix",
+        "source": "path"
+      },
+      {
+        "name": "context-mode",
+        "description": "Tool output sandboxing",
+        "phase": "Phase 2",
+        "installed": true,
+        "version": "1.0.68",
+        "path": "/opt/homebrew/bin/context-mode",
+        "source": "path"
+      },
+      {
+        "name": "copilot",
+        "description": "GitHub Copilot CLI",
+        "phase": "Phase 2",
+        "installed": true,
+        "version": "1.0.18.",
+        "path": "/opt/homebrew/bin/copilot",
+        "source": "path"
+      },
+      {
+        "name": "tmux",
+        "description": "Terminal multiplexer",
+        "phase": "Existing",
+        "versionArgs": [
+          "-V"
+        ],
+        "installed": true,
+        "version": "3.6a",
+        "path": "/opt/homebrew/bin/tmux",
+        "source": "path"
+      }
+    ],
+    "configHealth": [
+      {
+        "path": "~/.claude.json",
+        "healthy": true,
+        "description": "Claude Code global config"
+      },
+      {
+        "path": "~/.claude/CLAUDE.md",
+        "healthy": true,
+        "description": "Claude Code instructions"
+      },
+      {
+        "path": "~/.claude/settings.json",
+        "healthy": true,
+        "description": "Claude Code settings"
+      },
+      {
+        "path": "~/.codex/config.toml",
+        "healthy": true,
+        "description": "Codex global config (valid TOML)"
+      },
+      {
+        "path": "~/.codex/AGENTS.md",
+        "healthy": true,
+        "description": "Codex global instructions"
+      },
+      {
+        "path": "~/.codex/hooks/lean-ctx-*",
+        "healthy": true,
+        "description": "Codex lean-ctx compression hook"
+      },
+      {
+        "path": "~/.copilot/mcp-config.json",
+        "healthy": true,
+        "description": "Copilot global MCP config"
+      },
+      {
+        "path": "~/.copilot/config.json",
+        "healthy": true,
+        "description": "Copilot plugin registry"
+      },
+      {
+        "path": "~/Library/Application Support/Code/User/prompts/shrey-junior.instructions.md",
+        "healthy": true,
+        "description": "VS Code prompt overlay"
+      },
+      {
+        "path": "~/Library/Application Support/Code/User/mcp.json",
+        "healthy": true,
+        "description": "VS Code MCP registry"
+      },
+      {
+        "path": "~/AGENTS.md, ~/CLAUDE.md",
+        "healthy": true,
+        "description": "No junk files in home directory"
+      }
+    ],
+    "optimizationLayers": [
+      {
+        "name": "code-review-graph",
+        "savings": "8x on structural queries",
+        "claude": true,
+        "codex": true,
+        "copilot": true
+      },
+      {
+        "name": "lean-ctx",
+        "savings": "89-99% shell compression",
+        "claude": true,
+        "codex": true,
+        "copilot": true
+      },
+      {
+        "name": "context-mode",
+        "savings": "98% tool output sandbox",
+        "claude": true,
+        "codex": false,
+        "copilot": false
+      },
+      {
+        "name": "token-efficient rules",
+        "savings": "10-20% output reduction",
+        "claude": true,
+        "codex": true,
+        "copilot": false
+      },
+      {
+        "name": "ccusage",
+        "savings": "visibility (monitoring)",
+        "claude": true,
+        "codex": false,
+        "copilot": false
+      }
+    ],
+    "setupPhases": [
+      {
+        "phase": "Phase 1 — Core",
+        "items": [
+          {
+            "name": "code-review-graph",
+            "description": "Graph-based structural code search (22 MCP tools)",
+            "location": "MCP server + per-project graph",
+            "active": true
+          },
+          {
+            "name": "planning orchestration layer",
+            "description": "Multi-agent planning and review coordination",
+            "location": "Planner instructions + skill inventory",
+            "active": true
+          },
+          {
+            "name": "execution orchestration layer",
+            "description": "Multi-agent execution coordination",
+            "location": "Execution config + instruction contract",
+            "active": true
+          },
+          {
+            "name": "ai-setup script",
+            "description": "One-command per-project setup",
+            "location": "~/.local/bin/ai-setup",
+            "active": true
+          }
+        ]
+      },
+      {
+        "phase": "Phase 2 — Token Optimization",
+        "items": [
+          {
+            "name": "lean-ctx",
+            "description": "Shell output compression (89-99% savings)",
+            "location": "~/.zshrc aliases + Codex hook + Copilot MCP",
+            "active": true
+          },
+          {
+            "name": "repomix",
+            "description": "Codebase-to-summary (70% reduction)",
+            "location": "Per-project .repomix-output.xml",
+            "active": true
+          },
+          {
+            "name": "context-mode",
+            "description": "Tool output sandboxing (98% savings)",
+            "location": "Claude Code MCP server",
+            "active": true
+          },
+          {
+            "name": "Copilot CLI",
+            "description": "Terminal AI agent with MCP support",
+            "location": "~/.copilot/mcp-config.json",
+            "active": true
+          }
+        ]
+      },
+      {
+        "phase": "Phase 3 — Capability Expansion",
+        "items": [
+          {
+            "name": "ccusage",
+            "description": "Token usage visibility",
+            "location": "Claude Code MCP server",
+            "active": true
+          },
+          {
+            "name": "Token-efficient rules",
+            "description": "5 output verbosity rules",
+            "location": "CLAUDE.md + AGENTS.md",
+            "active": true
+          },
+          {
+            "name": "Agent skills (154 total)",
+            "description": "Skill inventory under ~/.agents/skills/",
+            "location": "~/.agents/skills/",
+            "active": true
+          },
+          {
+            "name": "Copilot plugins (5)",
+            "description": "Installed Copilot plugin registry",
+            "location": "~/.copilot/installed-plugins/",
+            "active": true
+          }
+        ]
+      }
+    ],
+    "guidance": [
+      {
+        "id": "high-token-usage",
+        "section": "usage",
+        "priority": "optional",
+        "group": "optional-optimizations",
+        "severity": "info",
+        "message": "High token usage detected",
+        "impact": "Can reduce token spend and broaden context planning quality on larger tasks.",
+        "reason": "Large machine-level usage suggests broad tasks where wider context planning may help.",
+        "hintCommand": "kiwi-control plan \"<task>\" --expand"
+      }
+    ],
+    "setupSummary": {
+      "installedTools": {
+        "readyCount": 9,
+        "totalCount": 9
+      },
+      "healthyConfigs": {
+        "readyCount": 11,
+        "totalCount": 11
+      },
+      "activeTokenLayers": [
+        "code-review-graph",
+        "lean-ctx",
+        "context-mode",
+        "token-efficient rules",
+        "ccusage"
+      ],
+      "readyRuntimes": {
+        "planning": true,
+        "execution": true,
+        "assistant": true
+      }
+    }
+  },
+  "repo": {
+    "initialized": true,
+    "repoMode": "initialized",
+    "graphReady": true,
+    "repomixOutputReady": true,
+    "assistantWiringReady": true,
+    "gitignoreReady": true,
+    "instructionFilesReady": true
+  },
+  "summary": {
+    "status": "ready",
+    "detail": "Machine and repo setup surfaces needed for this profile are already aligned.",
+    "actionableRequiredCount": 0,
+    "blockedRequiredCount": 0
+  },
+  "steps": [
+    {
+      "id": "global-cli",
+      "title": "Install Kiwi CLI globally",
+      "scope": "machine",
+      "required": true,
+      "status": "ready",
+      "detail": "Global Kiwi CLI wrappers, aliases, and bootstrap defaults are already installed.",
+      "recommendedCommand": "kiwi-control setup install global-cli"
+    },
+    {
+      "id": "global-preferences",
+      "title": "Apply global AI preferences",
+      "scope": "machine",
+      "required": true,
+      "status": "ready",
+      "detail": "Global Codex and Claude preference surfaces look healthy.",
+      "recommendedCommand": "kiwi-control setup repair global-preferences"
+    },
+    {
+      "id": "repo-contract",
+      "title": "Sync repo contract",
+      "scope": "repo",
+      "required": true,
+      "status": "ready",
+      "detail": "Repo-local contract and primary instruction files are already present.",
+      "recommendedCommand": "kiwi-control setup init"
+    },
+    {
+      "id": "repo-assistant-wiring",
+      "title": "Wire repo assistant compatibility files",
+      "scope": "repo",
+      "required": true,
+      "status": "ready",
+      "detail": "Compatibility assistant wiring is already present for this repo.",
+      "recommendedCommand": "kiwi-control setup repair repo-assistant-wiring"
+    },
+    {
+      "id": "repo-graph",
+      "title": "Refresh runtime-backed repo graph",
+      "scope": "repo",
+      "required": true,
+      "status": "ready",
+      "detail": "Runtime-backed graph authority is already ready.",
+      "recommendedCommand": "kiwi-control setup repair repo-graph"
+    },
+    {
+      "id": "repo-hygiene",
+      "title": "Align repo hygiene outputs",
+      "scope": "repo",
+      "required": true,
+      "status": "ready",
+      "detail": "Supported setup artifacts are already covered by .gitignore.",
+      "recommendedCommand": "kiwi-control setup repair repo-hygiene"
+    },
+    {
+      "id": "lean-ctx",
+      "title": "Initialize lean-ctx",
+      "scope": "machine",
+      "required": false,
+      "status": "ready",
+      "detail": "lean-ctx already has active compression signals.",
+      "recommendedCommand": "kiwi-control setup repair lean-ctx"
+    },
+    {
+      "id": "repomix",
+      "title": "Generate repomix output",
+      "scope": "repo",
+      "required": false,
+      "status": "ready",
+      "detail": "repomix output already exists for this repo.",
+      "recommendedCommand": "kiwi-control setup repair repomix"
+    }
+  ],
+  "notes": [
+    "Machine setup is machine-global and non-canonical. Repo runtime authority stays in runtime SQLite and repo-local derived outputs.",
+    "Detected ai-setup is treated as a compatibility helper, not as runtime authority."
+  ]
+}
