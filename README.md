@@ -2,8 +2,13 @@
 
 Kiwi Control is a local-first, repo-first control plane for coding agents. It keeps workflow authority inside the repository, exposes a practical CLI for day-to-day work, and ships a Tauri desktop app for visibility, validation, and review.
 
-![Kiwi Control Overview](./docs/media/kiwi-overview.png)
-![Kiwi Control Graph](./docs/media/kiwi-graph.png)
+## Demo video
+
+[![Kiwi Control live demo](./docs/media/kiwi-demo-video.png)](./output/demo/2026-04-14-video-final/final/kiwi-control-demo-complete-github.mov)
+
+- Full demo: [kiwi-control-demo-complete-github.mov](./output/demo/2026-04-14-video-final/final/kiwi-control-demo-complete-github.mov)
+- Short demo: [kiwi-control-demo-short.mov](./output/demo/2026-04-14-video-final/final/kiwi-control-demo-short.mov)
+- Real terminal run: [kiwi-control-terminal-real-run.mov](./output/demo/2026-04-14-video-final/final/kiwi-control-terminal-real-run.mov)
 
 ## Quick links
 
