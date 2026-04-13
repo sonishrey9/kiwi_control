@@ -1664,14 +1664,7 @@ async function loadDesktopRuntimeInfo(): Promise<void> {
 }
 
 function shouldAutoInstallBundledCli(runtimeInfo: DesktopRuntimeInfo | null): boolean {
-  return Boolean(
-    platformMode === "macos"
-    && runtimeInfo
-    && runtimeInfo.runtimeMode === "installed-user"
-    && runtimeInfo.cli.bundledInstallerAvailable
-    && !runtimeInfo.cli.installed
-    && runtimeInfo.cli.verificationStatus === "not-run"
-  );
+  return false;
 }
 
 function queueDefaultCliInstallIfNeeded(): void {
@@ -1699,7 +1692,7 @@ async function installBundledCli(options: { mode: "manual" | "default" } = { mod
   if (mode === "manual") {
     const confirmMessage = platformMode === "windows"
       ? "Run terminal command repair for this Windows install?\n\nKiwi expects the Windows installer to make kc available in a fresh terminal. Use this repair step only if that install-time setup did not complete."
-      : "Retry terminal command setup for this machine?\n\nKiwi auto-attempts kc setup on first launch for installed macOS desktop builds. It may ask for administrator approval to finish system-wide setup.";
+      : "Retry terminal command setup for this macOS install?\n\nKiwi expects the macOS pkg installer to make kc available in a fresh terminal. Use this repair step only if that installer-owned setup did not complete.";
     const confirmed = window.confirm(confirmMessage);
     if (!confirmed) {
       return;

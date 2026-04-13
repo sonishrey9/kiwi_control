@@ -333,7 +333,7 @@ fn get_desktop_runtime_info(app: AppHandle) -> Result<DesktopRuntimeInfo, String
                     )
                 } else {
                     String::from(
-                        "Kiwi auto-attempts terminal commands on first launch for installed desktop builds. If setup does not complete, use the retry action in the app."
+                        "Kiwi expects the macOS pkg installer to enable terminal commands during install. If a fresh terminal still cannot find kc, use the retry action in the app."
                     )
                 }
             } else {

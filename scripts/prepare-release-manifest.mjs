@@ -97,12 +97,34 @@ const platformBundles = [
   },
   {
     platform: "macos",
+    arch: "aarch64",
+    artifactType: "desktop-pkg",
+    description: "Primary macOS installer package with installer-owned CLI setup",
+    fileName: `${artifactPrefix}-${version}-macos-aarch64.pkg`,
+    localBuildCommand: "npm run ui:desktop:build",
+    bundlePath: "apps/sj-ui/src-tauri/target/release/bundle/pkg",
+    packagingStrategy: "copy-bundle-file",
+    checksumAlgorithm: "sha256"
+  },
+  {
+    platform: "macos",
     arch: "x64",
     artifactType: "desktop-dmg",
     description: "Signed or notarized macOS disk image when release signing is configured",
     fileName: `${artifactPrefix}-${version}-macos-x64.dmg`,
     localBuildCommand: "npm run ui:desktop:build",
     bundlePath: "apps/sj-ui/src-tauri/target/release/bundle/dmg",
+    packagingStrategy: "copy-bundle-file",
+    checksumAlgorithm: "sha256"
+  },
+  {
+    platform: "macos",
+    arch: "x64",
+    artifactType: "desktop-pkg",
+    description: "Primary macOS installer package with installer-owned CLI setup",
+    fileName: `${artifactPrefix}-${version}-macos-x64.pkg`,
+    localBuildCommand: "npm run ui:desktop:build",
+    bundlePath: "apps/sj-ui/src-tauri/target/release/bundle/pkg",
     packagingStrategy: "copy-bundle-file",
     checksumAlgorithm: "sha256"
   },
@@ -160,6 +182,7 @@ const manifest = {
     uiWeb: `${artifactPrefix}-ui-web-\${version}-\${os}-\${arch}.tar.gz`,
     desktopAppBundle: `${artifactPrefix}-\${version}-\${os}-\${arch}.app.tar.gz`,
     desktopDmg: `${artifactPrefix}-\${version}-\${os}-\${arch}.dmg`,
+    desktopPkg: `${artifactPrefix}-\${version}-\${os}-\${arch}.pkg`,
     desktopNsis: `${artifactPrefix}-\${version}-windows-\${arch}-setup.exe`,
     desktopMsi: `${artifactPrefix}-\${version}-windows-\${arch}.msi`,
     desktopAppImage: `${artifactPrefix}-\${version}-linux-\${arch}.AppImage`
@@ -207,7 +230,7 @@ const manifest = {
       releaseTagFormat: "v<version>",
       notes: [
         "Attach the staged CLI bundle, runtime bundle, UI web bundle, desktop bundles, checksums, and release manifest.",
-        "The CLI bundle includes install.sh and install.ps1 for end-user local installs, but the primary desktop release path should point users to DMG or Windows installers first.",
+        "The CLI bundle includes install.sh and install.ps1 for end-user local installs, but the primary desktop release path should point users to the macOS pkg or Windows setup EXE first.",
         "Do not claim signed desktop trust until signing and notarization steps were completed for that release."
       ]
     }
@@ -220,6 +243,7 @@ const manifest = {
       "TAURI_SIGNING_PRIVATE_KEY",
       "TAURI_SIGNING_PRIVATE_KEY_PASSWORD",
       "APPLE_SIGNING_IDENTITY",
+      "APPLE_INSTALLER_SIGNING_IDENTITY",
       "APPLE_CERTIFICATE",
       "APPLE_CERTIFICATE_PASSWORD",
       "APPLE_API_ISSUER",
@@ -241,7 +265,7 @@ const manifest = {
   trustChecklist: {
     manualSteps: [
       "Run the local verification commands before packaging.",
-      "Sign and notarize macOS bundles before marking them trusted.",
+      "Sign and notarize macOS app, dmg, and pkg installers before marking them trusted.",
       "Apply Windows code signing before publishing MSI artifacts.",
       "Publish SHA256 checksums alongside the release manifest.",
       "Only enable updater distribution after desktop signing inputs are configured."

@@ -18,6 +18,7 @@
     "test:installer:bundled-cli:windows": "node scripts/verify-bundled-cli-install.mjs --platform windows --scope machine",
     "test:installer:cli-enable:macos": "node scripts/verify-installed-cli-enable-flow.mjs --platform macos",
     "test:installer:cli-enable:windows": "node scripts/verify-installed-cli-enable-flow.mjs --platform windows",
+    "test:installer:pkg:macos": "node scripts/verify-macos-pkg-install.mjs",
     "media:generate": "node scripts/generate-product-media.mjs",
     "test:core:features": "bash scripts/test-core-features.sh",
     "test:cli:features": "bash scripts/test-cli-features.sh",

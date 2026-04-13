@@ -5,7 +5,7 @@ import { promises as fs } from "node:fs";
 import { loadLocalEnv } from "./load-local-env.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const REQUIRED_ARTIFACT_KINDS = ["macosDmg", "macosAppTarball", "windowsNsis", "windowsMsi"];
+const REQUIRED_ARTIFACT_KINDS = ["macosPkg", "macosAppTarball", "windowsNsis", "windowsMsi"];
 
 loadLocalEnv();
 const args = parseArgs(process.argv.slice(2));
@@ -73,7 +73,7 @@ async function verifyLocalSite(siteDir, { downloadsUrl, requireReady }) {
     ...missingPhrase(downloadsHtml, "Public hosting does not replace signing proof")
   ];
   const platformSplitMissing = [
-    ...missingPhrase(indexHtml, "macOS default CLI path is already proven"),
+    ...missingPhrase(indexHtml, "macOS pkg installer is the intended default path"),
     ...missingPhrase(downloadsHtml, "setup EXE is the intended default Windows path"),
     ...missingPhrase(installHtml, "proof is still pending on a real Windows host"),
     ...missingPhrase(downloadsHtml, "Windows CLI bundle is not published yet. Use the desktop installer path for now.")
@@ -154,7 +154,7 @@ async function verifyRemoteSite({ siteUrl, downloadsUrl, requireReady }) {
     ...missingPhrase(downloadsHtml, "Public hosting does not replace signing proof")
   ];
   const platformSplitMissing = [
-    ...missingPhrase(siteHtml, "macOS default CLI path is already proven"),
+    ...missingPhrase(siteHtml, "macOS pkg installer is the intended default path"),
     ...missingPhrase(downloadsHtml, "setup EXE is the intended default Windows path"),
     ...missingPhrase(installHtml, "proof is still pending on a real Windows host"),
     ...missingPhrase(downloadsHtml, "Windows CLI bundle is not published yet. Use the desktop installer path for now.")

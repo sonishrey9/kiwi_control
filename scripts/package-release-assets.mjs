@@ -53,7 +53,8 @@ for (const desktopArtifact of desktopArtifacts) {
     }
     await packageDirectory({
       sourceDir,
-      outputPath: desktopTargetFile
+      outputPath: desktopTargetFile,
+      preserveRootDirectory: true
     });
     createdAssets.push(desktopArtifact.fileName);
     continue;
@@ -120,7 +121,7 @@ function renderTemplateArtifactName(template, platformValue, archValue) {
   return template.replaceAll("${os}", platformValue).replaceAll("${arch}", archValue);
 }
 
-async function packageDirectory({ sourceDir, outputPath }) {
+async function packageDirectory({ sourceDir, outputPath, preserveRootDirectory = false }) {
   const sourceStats = await stat(sourceDir).catch(() => null);
   if (!sourceStats?.isDirectory()) {
     throw new Error(`Missing source directory for release packaging: ${sourceDir}`);
@@ -129,13 +130,17 @@ async function packageDirectory({ sourceDir, outputPath }) {
   await mkdir(path.dirname(outputPath), { recursive: true });
   await rm(outputPath, { force: true });
 
+  const archiveArgs = preserveRootDirectory
+    ? ["-C", path.dirname(sourceDir), path.basename(sourceDir)]
+    : ["-C", sourceDir, "."];
+
   if (outputPath.endsWith(".zip")) {
-    runArchiveCommand("tar", ["-a", "-cf", outputPath, "-C", sourceDir, "."]);
+    runArchiveCommand("tar", ["-a", "-cf", outputPath, ...archiveArgs]);
     return;
   }
 
   if (outputPath.endsWith(".tar.gz")) {
-    runArchiveCommand("tar", ["-czf", outputPath, "-C", sourceDir, "."]);
+    runArchiveCommand("tar", ["-czf", outputPath, ...archiveArgs]);
     return;
   }
 

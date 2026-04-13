@@ -73,7 +73,8 @@ function buildExpectations(bundleRoot, platform) {
     case "macos":
       return [
         { id: "macos-app-bundle", required: true, directory: path.join(bundleRoot, "macos"), predicate: (name, _fullPath, isDirectory) => isDirectory && name.endsWith(".app") },
-        { id: "macos-dmg", required: true, directory: path.join(bundleRoot, "dmg"), predicate: (name, _fullPath, isDirectory) => !isDirectory && name.endsWith(".dmg") }
+        { id: "macos-dmg", required: true, directory: path.join(bundleRoot, "dmg"), predicate: (name, _fullPath, isDirectory) => !isDirectory && name.endsWith(".dmg") },
+        { id: "macos-pkg-installer", required: true, directory: path.join(bundleRoot, "pkg"), predicate: (name, _fullPath, isDirectory) => !isDirectory && name.endsWith(".pkg") }
       ];
     case "windows":
       return [
@@ -97,6 +98,7 @@ function filterExpectations(expectations, bundleSpec) {
   return expectations.filter((entry) => {
     if (requested.has("app") && entry.id === "macos-app-bundle") return true;
     if (requested.has("dmg") && entry.id === "macos-dmg") return true;
+    if (requested.has("pkg") && entry.id === "macos-pkg-installer") return true;
     if (requested.has("nsis") && entry.id === "windows-nsis-installer") return true;
     if (requested.has("msi") && entry.id === "windows-msi-installer") return true;
     if (requested.has("appimage") && entry.id === "linux-appimage") return true;
@@ -107,6 +109,9 @@ function filterExpectations(expectations, bundleSpec) {
 async function findArtifact(expectation) {
   const entries = await fs.readdir(expectation.directory, { withFileTypes: true }).catch(() => []);
   for (const entry of entries) {
+    if (entry.name === ".DS_Store" || entry.name.startsWith("._")) {
+      continue;
+    }
     const fullPath = path.join(expectation.directory, entry.name);
     if (expectation.predicate(entry.name, fullPath, entry.isDirectory())) {
       return fullPath;

@@ -1,0 +1,86 @@
+#!/bin/bash
+set -euo pipefail
+
+TARGET_ROOT="${3:-/}"
+APP_PATH="${TARGET_ROOT%/}/Applications/__APP_NAME__"
+CLI_INSTALLER="$APP_PATH/Contents/Resources/desktop/cli-bundle/install.sh"
+BUNDLED_NODE="$APP_PATH/Contents/Resources/desktop/node/node"
+GLOBAL_HOME="${TARGET_ROOT%/}/Library/Application Support/Kiwi Control"
+PATH_BIN="${TARGET_ROOT%/}/usr/local/bin"
+RESULT_PATH="$GLOBAL_HOME/desktop-cli-install.json"
+
+mkdir -p "$PATH_BIN" "$GLOBAL_HOME"
+
+if [[ ! -x "$CLI_INSTALLER" ]]; then
+  echo "Kiwi Control pkg install error: bundled CLI installer not found at $CLI_INSTALLER" >&2
+  exit 1
+fi
+
+export KIWI_CONTROL_INSTALL_SCOPE="__INSTALL_SCOPE__"
+export KIWI_CONTROL_INSTALL_ROOT="$GLOBAL_HOME"
+export KIWI_CONTROL_PATH_BIN="$PATH_BIN"
+export KIWI_CONTROL_RESULT_PATH="$RESULT_PATH"
+
+if [[ -x "$BUNDLED_NODE" ]]; then
+  export KIWI_CONTROL_NODE_ABSOLUTE="$BUNDLED_NODE"
+fi
+
+/bin/bash "$CLI_INSTALLER"
+
+VERIFY_COMMAND="$(printf 'export PATH=%q:$PATH; resolved=\"$(command -v kc)\"; if [[ -z \"$resolved\" ]]; then exit 1; fi; printf \"%%s\\n\" \"$resolved\"; kc --help >/dev/null' "$PATH_BIN")"
+VERIFY_RESULT="$(/bin/zsh -lc "$VERIFY_COMMAND" 2>&1)" || VERIFY_STATUS=$?
+VERIFY_STATUS="${VERIFY_STATUS:-0}"
+
+VERIFICATION_STATE="passed"
+VERIFICATION_DETAIL="Terminal commands are enabled system-wide."
+VERIFICATION_COMMAND_PATH="$(printf '%s\n' "$VERIFY_RESULT" | tail -n 1)"
+
+if [[ "$VERIFY_STATUS" -ne 0 ]]; then
+  VERIFICATION_STATE="failed"
+  VERIFICATION_DETAIL="$(printf '%s\n' "$VERIFY_RESULT" | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g' | sed 's/^ //; s/ $//')"
+  VERIFICATION_COMMAND_PATH=""
+fi
+
+JSON_NODE="$BUNDLED_NODE"
+if [[ ! -x "$JSON_NODE" ]]; then
+  JSON_NODE="$(command -v node || true)"
+fi
+
+if [[ -n "$JSON_NODE" && -x "$JSON_NODE" ]]; then
+  "$JSON_NODE" - "$RESULT_PATH" "$GLOBAL_HOME" "$PATH_BIN" "$VERIFICATION_STATE" "$VERIFICATION_DETAIL" "$VERIFICATION_COMMAND_PATH" <<'NODE'
+const [, , resultPath, installRoot, installBinDir, verificationStatus, verificationDetail, verificationCommandPath] = process.argv;
+const fs = require("node:fs");
+const payload = {
+  installScope: "__INSTALL_SCOPE__",
+  installRoot,
+  installBinDir,
+  installedCommandPath: `${installBinDir}/kc`,
+  verificationStatus,
+  verificationDetail,
+  verificationCommandPath: verificationCommandPath || null,
+  requiresNewTerminal: false,
+  pathChanged: false,
+  updatedAt: new Date().toISOString()
+};
+fs.writeFileSync(resultPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+NODE
+else
+  cat >"$RESULT_PATH" <<JSON
+{
+  "installScope": "__INSTALL_SCOPE__",
+  "installRoot": "$GLOBAL_HOME",
+  "installBinDir": "$PATH_BIN",
+  "installedCommandPath": "$PATH_BIN/kc",
+  "verificationStatus": "$VERIFICATION_STATE",
+  "verificationDetail": "Kiwi could not serialize the pkg install receipt because no Node runtime was available after install.",
+  "verificationCommandPath": null,
+  "requiresNewTerminal": false,
+  "pathChanged": false,
+  "updatedAt": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+}
+JSON
+fi
+
+if [[ "$VERIFICATION_STATE" != "passed" ]]; then
+  exit 1
+fi

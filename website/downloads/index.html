@@ -35,12 +35,13 @@
         <article class="panel">
           <h2>Desktop installers</h2>
           <div class="list">
+            <div><a href="/downloads/" data-download-link data-download-kind="macosPkg" data-primary-label="Download macOS pkg installer" data-unavailable-label="macOS pkg installer coming soon">macOS pkg installer coming soon</a></div>
             <div><a href="/downloads/" data-download-link data-download-kind="macosDmg" data-primary-label="Download macOS DMG" data-unavailable-label="macOS DMG coming soon">macOS DMG coming soon</a></div>
             <div><a href="/downloads/" data-download-link data-download-kind="macosAppTarball" data-primary-label="Download macOS app tarball" data-unavailable-label="macOS app tarball coming soon">macOS app tarball coming soon</a></div>
             <div><a href="/downloads/" data-download-link data-download-kind="windowsNsis" data-primary-label="Download Windows setup EXE" data-unavailable-label="Windows setup EXE coming soon">Windows setup EXE coming soon</a></div>
             <div><a href="/downloads/" data-download-link data-download-kind="windowsMsi" data-primary-label="Download Windows MSI" data-unavailable-label="Windows MSI coming soon">Windows MSI coming soon</a></div>
           </div>
-          <p class="warn">macOS default CLI setup is already proven. Windows setup EXE is the intended default Windows path for installer-time CLI setup, but it still needs real Windows-host proof. Treat MSI as secondary until it has the same proof bar.</p>
+          <p class="warn">macOS pkg is the intended default installer path for install-time CLI setup. DMG remains a secondary manual beta path. Windows setup EXE is the intended default Windows path for installer-time CLI setup, but it still needs real Windows-host proof. Treat MSI as secondary until it has the same proof bar.</p>
         </article>
 
         <article class="panel">
@@ -82,7 +83,7 @@
           <div class="eyebrow">Trust notes</div>
           <h2>Public hosting does not replace signing proof</h2>
           <div class="list">
-            <div>macOS still needs signed/notarized/stapled proof.</div>
+            <div>macOS beta builds can be tested now, but unsigned pkg or DMG installs may still require a manual first-open override until signed/notarized/stapled proof exists.</div>
             <div>Windows still needs signed installer proof on a Windows host, plus real Windows-host proof for installer-time CLI readiness.</div>
             <div>Install/PATH success and release trust are separate claims.</div>
             <div>Public hosting only changes delivery, not trust.</div>

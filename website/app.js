@@ -18,7 +18,7 @@ const selectors = {
 };
 
 const TRUST_LABELS = {
-  "local-beta-build-only": "Local beta build only. Do not treat public website availability as notarization or public trust.",
+  "local-beta-build-only": "Local beta build only. Expect manual open override on macOS until Developer ID signing and notarization are configured.",
   "signed-not-notarized": "Signed, but not notarized yet. Treat this as pre-public-release trust.",
   "signed-and-notarized": "Signed and notarized for public release.",
   "windows-runner-required": "Windows trust still requires signed installers proven on a Windows host or runner.",

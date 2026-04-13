@@ -148,6 +148,11 @@ function fallbackReleaseMetadata({ downloadsUrl, repoUrl, version }) {
       windows: "windows-runner-required"
     },
     artifacts: {
+      macosPkg: {
+        filename: "kiwi-control.pkg",
+        latestUrl: null,
+        versionedUrl: null
+      },
       macosDmg: {
         filename: "kiwi-control.dmg",
         latestUrl: null,

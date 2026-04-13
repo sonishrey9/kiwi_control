@@ -6,7 +6,7 @@ Kiwi Control has three supported usage tracks:
 - standalone CLI users
 - source contributors
 
-For the public beta, the public website is the primary install surface. GitHub Releases currently hosts the actual release assets, release notes, and release history until a different binary-hosting path is explicitly published.
+For the public beta, the public website is the primary install surface. The single-host public site publishes the actual release assets and metadata.
 
 ## Recommended path: desktop first
 
@@ -14,12 +14,12 @@ For most users on macOS and Windows:
 
 1. Open the installer-first website at [kiwi-control.kiwi-ai.in](https://kiwi-control.kiwi-ai.in/) or go directly to the public [downloads page](https://kiwi-control.kiwi-ai.in/downloads/).
 2. Download the desktop installer for your platform.
-   - macOS: `.dmg`
+   - macOS: prefer `.pkg`; `.dmg` remains secondary for manual beta testing
    - Windows: prefer `-setup.exe`; `.msi` remains secondary until it has the same CLI proof bar
 3. Install Kiwi Control like a normal desktop app.
-4. macOS: launch Kiwi Control once so the app can auto-attempt CLI setup and record whether fresh-shell verification succeeds. This default CLI path is already proven for current wording.
+4. macOS: the pkg installer is the intended default path for install-time `kc` setup.
 5. Windows: the setup EXE is the intended default path for installer-time `kc` setup, but public automatic-readiness claims stay gated on real Windows-host proof.
-6. If macOS CLI setup does not complete, use the obvious in-app terminal-command enable flow instead of editing PATH manually.
+6. If macOS installer-owned CLI setup does not complete, use the obvious in-app terminal-command repair flow instead of editing PATH manually.
 7. Use onboarding to choose a repo and initialize it if needed.
 
 ### Desktop-only path
@@ -40,9 +40,9 @@ For public downloads, trust status is release-specific. Public hosting makes the
 
 Desktop installs aim to make `kc` straightforward without manual PATH editing:
 
-1. macOS: open the app once and let Kiwi finish CLI setup inside the desktop-first flow. This path is already proven.
+1. macOS: the pkg installer should install the app and make `kc` available during install.
 2. Windows: the setup EXE is the intended installer-time `kc` path for normal users, but proof is still pending on a real Windows host.
-3. if macOS setup does not complete, use the in-app enable action
+3. if macOS installer-owned setup does not complete, use the in-app repair action
 4. if Windows setup is blocked later, use the fallback manual CLI path below
 5. keep using the same repo from desktop or CLI interchangeably after setup succeeds
 
@@ -52,8 +52,8 @@ Kiwi Control keeps the desktop app usable even if terminal command setup cannot 
 
 - Windows: the NSIS setup EXE is the intended default Windows path and should auto-enable `kc` during install; keep the public claim gated on real Windows-host proof
 - Windows MSI: treat it as a secondary packaging path until it has the same default-CLI proof as the setup EXE
-- macOS: on first launch, Kiwi installs shared command wrappers into `/usr/local/bin` after explicit administrator approval where needed
-- macOS fallback: if automatic first-launch setup is not reliable on that machine, use the one-click enable flow in the app
+- macOS: the pkg installer is the intended default path and should place `kc` into `/usr/local/bin`
+- macOS fallback: if pkg install-time setup is not reliable on that machine, use the one-click enable flow in the app
 - Kiwi verifies whether `kc` is callable from a fresh shell/process and reports the exact result
 
 If verification succeeds but your current terminal is still stale, Kiwi will tell you to open a new terminal window.

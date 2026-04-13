@@ -22,7 +22,7 @@ Current Kiwi Control beta behavior:
 - local desktop launch bridge for `kc ui`
 - desktop auto-load of the current repo after CLI launch acknowledgement
 - Windows packaging is being upgraded so the setup EXE can handle terminal command setup during install, but public “ready by default” claims still require real Windows-host proof
-- macOS installed desktop builds auto-attempt terminal command setup on first launch after explicit OS/admin approval where required, and that launch-once path is already good enough for current public wording
+- macOS pkg is the intended default path for install-time terminal command setup, while the in-app repair step remains fallback only
 
 ## What the product does not claim yet
 
@@ -32,6 +32,7 @@ Do not claim any of the following unless the current release actually includes t
 - signed Windows trust if code signing is incomplete
 - Windows post-install `kc` readiness by default if the setup EXE path has not been proven on a real Windows host
 - Windows MSI default-CLI readiness if MSI has not been separately proven to the same bar as the setup EXE
+- macOS pkg default-CLI readiness if the pkg installer path has not actually been verified for the current release
 - updater trust if updater signing is not configured and active
 - package-manager availability if Homebrew or winget are not yet published
 
@@ -68,6 +69,12 @@ Website-hosted release status and GitHub-hosted release assets do not change thi
 - macOS signed + notarized + stapled artifacts
 - Windows signed NSIS and MSI installers verified on Windows
 - published checksums and release notes that match the current artifacts
+
+Install-time CLI readiness is a separate claim from trust:
+
+- macOS pkg may make `kc` available during install even when the build is still an unsigned beta
+- unsigned beta builds may still require a manual first-open override on macOS
+- Windows installer-owned PATH success still needs separate real-host proof before it becomes a public default-ready claim
 
 ## Enterprise status
 

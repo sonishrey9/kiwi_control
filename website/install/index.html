@@ -22,7 +22,7 @@
       <section class="hero">
         <div class="eyebrow">Install guide</div>
         <div class="release-chip" data-release-badge>Public release status</div>
-        <h1>Install Kiwi Control with the desktop app first and default terminal command setup auto-attempted.</h1>
+        <h1>Install Kiwi Control with the desktop app first and installer-owned terminal command setup by default.</h1>
         <p>
           This website tracks the current public release metadata and the live installer status mirrored from the public downloads host. Install/PATH success still stays separate from release trust.
         </p>
@@ -36,8 +36,8 @@
         <article class="panel">
           <h2>Desktop install</h2>
           <div class="list">
-            <div>1. Download the macOS or Windows desktop installer from the homepage or <a href="/downloads/">all downloads</a>.</div>
-            <div>2. macOS: launch the app once. This default CLI path is already proven.</div>
+            <div>1. Download the macOS pkg or Windows setup EXE from the homepage or <a href="/downloads/">all downloads</a>.</div>
+            <div>2. macOS: the pkg installer is the intended default path for install-time <code>kc</code> setup.</div>
             <div>3. Windows: prefer the setup EXE for the normal Windows install path. Real Windows-host proof is still pending.</div>
             <div>4. Choose a repo, initialize it if needed, and keep using desktop or <code>kc</code> after the platform-specific setup succeeds.</div>
           </div>
@@ -46,9 +46,9 @@
         <article class="panel">
           <h2>Default terminal command setup</h2>
           <div class="list">
-            <div>1. macOS launch-once CLI setup is already proven for the current wording.</div>
+            <div>1. macOS pkg install is the intended default path for install-time CLI setup.</div>
             <div>2. Windows setup EXE is the intended default Windows path for installer-time CLI setup, but proof is still pending on a real Windows host.</div>
-            <div>3. If macOS launch-time setup does not complete cleanly, use the in-app terminal-command enable flow instead of editing PATH manually.</div>
+            <div>3. Current unsigned macOS beta builds may still need a manual first-open override after install until Developer ID signing and notarization are configured.</div>
             <div>4. If Windows setup is blocked later, use the fallback manual CLI path below. Keep the desktop installer as the primary path.</div>
           </div>
         </article>
@@ -82,7 +82,7 @@
 
         <article class="panel detail-panel">
           <div class="eyebrow">Manual assets</div>
-          <h2>Need MSI, the macOS app tarball, or CLI bundles?</h2>
+          <h2>Need DMG, the macOS app tarball, MSI, or CLI bundles?</h2>
           <p>
             Use <a href="/downloads/">all downloads</a> for the full public asset list. The downloads page also exposes checksums, the release manifest, and the standalone CLI bundles.
           </p>

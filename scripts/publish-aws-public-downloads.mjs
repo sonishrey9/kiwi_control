@@ -16,8 +16,14 @@ import {
 
 const URL_CHECK_ATTEMPTS = 5;
 const URL_CHECK_DELAY_MS = 3000;
-const CORE_ARTIFACT_KEYS = ["macosDmg", "macosAppTarball", "windowsNsis", "windowsMsi"];
+const CORE_ARTIFACT_KEYS = ["macosPkg", "macosAppTarball", "windowsNsis", "windowsMsi"];
 const ARTIFACT_DESCRIPTORS = {
+  macosPkg: {
+    artifactType: "desktop-pkg",
+    platform: "macos",
+    latestKey: "latest/macos/kiwi-control.pkg",
+    fallbackFilename: "kiwi-control.pkg"
+  },
   macosDmg: {
     artifactType: "desktop-dmg",
     platform: "macos",

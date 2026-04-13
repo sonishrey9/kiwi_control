@@ -4,6 +4,7 @@ import { spawn, spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadLocalEnv } from "./load-local-env.mjs";
 import { removeMacMetadataArtifacts } from "./remove-macos-metadata.mjs";
 import { prepareRuntimeSidecar } from "./prepare-runtime-sidecar.mjs";
 import { stageDesktopInstallerResources } from "./stage-cli-bundle.mjs";
@@ -16,6 +17,9 @@ const repoTargetDir = path.join(tauriRoot, "target");
 const repoBundleDir = path.join(repoTargetDir, "release", "bundle");
 const installerResourcesDir = path.join(tauriRoot, "resources", "desktop");
 const defaultReleaseConfigPath = path.join(tauriRoot, "tauri.release.conf.json");
+const workspacePackage = JSON.parse(await fs.readFile(path.join(repoRoot, "package.json"), "utf8"));
+
+loadLocalEnv({ envPath: path.join(repoRoot, ".env") });
 
 await main();
 
@@ -88,13 +92,20 @@ async function main() {
 
     if (code === 0) {
       await syncBundleArtifacts(cargoTargetDir);
+      await repairMacosBetaBundleIfNeeded();
+      await packageMacosPkgIfNeeded();
+      const verifyBundleSpec = requestedBundles
+        ? process.platform === "darwin" && !requestedBundles.split(",").includes("pkg")
+          ? `${requestedBundles},pkg`
+          : requestedBundles
+        : requestedBundles;
       const verifyArtifacts = spawnSync(
         process.execPath,
         [
           path.join(repoRoot, "scripts", "verify-release-artifacts.mjs"),
           "--platform",
           normalizePlatform(process.platform),
-          ...(requestedBundles ? ["--bundles", requestedBundles] : [])
+          ...(verifyBundleSpec ? ["--bundles", verifyBundleSpec] : [])
         ],
         {
           cwd: repoRoot,
@@ -232,6 +243,103 @@ async function syncBundleArtifacts(cargoTargetDir) {
   await fs.rm(repoBundleDir, { recursive: true, force: true });
   await fs.mkdir(path.dirname(repoBundleDir), { recursive: true });
   await fs.cp(stagedBundleDir, repoBundleDir, { recursive: true });
+  await removeMacMetadataArtifacts(repoBundleDir);
+}
+
+async function repairMacosBetaBundleIfNeeded() {
+  if (process.platform !== "darwin") {
+    return;
+  }
+
+  const hasSigningInputs = [
+    process.env.APPLE_SIGNING_IDENTITY,
+    process.env.APPLE_CERTIFICATE,
+    process.env.APPLE_CERTIFICATE_PASSWORD,
+    process.env.KEYCHAIN_PASSWORD
+  ].some((value) => Boolean(value?.trim()));
+
+  if (hasSigningInputs) {
+    return;
+  }
+
+  const appPath = path.join(repoBundleDir, "macos", "Kiwi Control.app");
+  if (!existsSync(appPath)) {
+    return;
+  }
+
+  const dmgDir = path.join(repoBundleDir, "dmg");
+  const dmgCandidates = existsSync(dmgDir)
+    ? (await fs.readdir(dmgDir))
+        .filter((entry) => entry.endsWith(".dmg"))
+        .map((entry) => path.join(dmgDir, entry))
+    : [];
+  const dmgPath = dmgCandidates[0] ?? null;
+
+  const repair = spawnSync(
+    process.execPath,
+    [
+      path.join(repoRoot, "scripts", "repair-macos-beta-bundle.mjs"),
+      "--app-path",
+      appPath,
+      ...(dmgPath ? ["--dmg-path", dmgPath] : [])
+    ],
+    {
+      cwd: repoRoot,
+      stdio: "inherit",
+      env: process.env
+    }
+  );
+
+  if (repair.error) {
+    throw repair.error;
+  }
+  if ((repair.status ?? 1) !== 0) {
+    process.exit(repair.status ?? 1);
+  }
+}
+
+async function packageMacosPkgIfNeeded() {
+  if (process.platform !== "darwin") {
+    return;
+  }
+
+  const appPath = path.join(repoBundleDir, "macos", "Kiwi Control.app");
+  if (!existsSync(appPath)) {
+    return;
+  }
+
+  const outputDir = path.join(repoBundleDir, "pkg");
+  await fs.mkdir(outputDir, { recursive: true });
+  const arch = process.arch === "arm64" ? "aarch64" : process.arch;
+  const outputPath = path.join(outputDir, `kiwi-control-${workspacePackage.version}-macos-${arch}.pkg`);
+
+  const packageResult = spawnSync(
+    process.execPath,
+    [
+      path.join(repoRoot, "scripts", "package-macos-pkg.mjs"),
+      "--app-path",
+      appPath,
+      "--output-path",
+      outputPath,
+      "--version",
+      workspacePackage.version,
+      "--identifier",
+      "in.kiwi-ai.kiwi-control.pkg"
+    ],
+    {
+      cwd: repoRoot,
+      stdio: "inherit",
+      env: process.env
+    }
+  );
+
+  if (packageResult.error) {
+    throw packageResult.error;
+  }
+  if ((packageResult.status ?? 1) !== 0) {
+    process.exit(packageResult.status ?? 1);
+  }
+
   await removeMacMetadataArtifacts(repoBundleDir);
 }
 

@@ -10,7 +10,7 @@ function repoRoot(): string {
   return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 }
 
-test("release manifest declares macOS app+dmg and Windows nsis+msi artifacts plus signing inputs", async () => {
+test("release manifest declares macOS app+dmg+pkg and Windows nsis+msi artifacts plus signing inputs", async () => {
   const root = repoRoot();
   const manifestPath = path.join(root, "dist", "release", "release-manifest.json");
   const tauriReleaseConfigPath = path.join(root, "apps", "sj-ui", "src-tauri", "tauri.release.conf.json");
@@ -32,13 +32,16 @@ test("release manifest declares macOS app+dmg and Windows nsis+msi artifacts plu
     const artifactTypes = manifest.artifacts.map((entry) => entry.artifactType);
     assert.equal(artifactTypes.includes("desktop-app"), true);
     assert.equal(artifactTypes.includes("desktop-dmg"), true);
+    assert.equal(artifactTypes.includes("desktop-pkg"), true);
     assert.equal(artifactTypes.includes("desktop-nsis"), true);
     assert.equal(artifactTypes.includes("desktop-msi"), true);
     assert.equal(manifest.artifacts.some((entry) => entry.fileName.endsWith(".app.tar.gz")), true);
     assert.equal(manifest.artifacts.some((entry) => entry.fileName.endsWith(".dmg")), true);
+    assert.equal(manifest.artifacts.some((entry) => entry.fileName.endsWith(".pkg")), true);
     assert.equal(manifest.artifacts.some((entry) => entry.fileName.endsWith("-setup.exe")), true);
     assert.equal(manifest.artifacts.some((entry) => entry.fileName.endsWith(".msi")), true);
     assert.equal(manifest.updateMetadata.signingInputs.includes("APPLE_API_KEY_PATH"), true);
+    assert.equal(manifest.updateMetadata.signingInputs.includes("APPLE_INSTALLER_SIGNING_IDENTITY"), true);
     assert.equal(manifest.updateMetadata.signingInputs.includes("WINDOWS_CERTIFICATE_PFX_B64"), true);
 
     const tauriReleaseConfig = JSON.parse(await fs.readFile(tauriReleaseConfigPath, "utf8")) as {
@@ -174,6 +177,7 @@ test("Cloudflare download publisher emits stable latest and versioned URLs", asy
     version: "0.2.0-beta.1",
     channel: "beta",
     artifacts: [
+      { artifactType: "desktop-pkg", platform: "macos", fileName: "kiwi-control-0.2.0-beta.1-macos-aarch64.pkg" },
       { artifactType: "desktop-dmg", platform: "macos", fileName: "kiwi-control-0.2.0-beta.1-macos-aarch64.dmg" },
       { artifactType: "desktop-app", platform: "macos", fileName: "kiwi-control-0.2.0-beta.1-macos-aarch64.app.tar.gz" },
       { artifactType: "desktop-nsis", platform: "windows", fileName: "kiwi-control-0.2.0-beta.1-windows-x64-setup.exe" },
@@ -224,6 +228,7 @@ test("Cloudflare download publisher emits stable latest and versioned URLs", asy
     manifestUrl: string;
     trust: { macos: string; windows: string };
     artifacts: {
+      macosPkg: { latestUrl: string; versionedUrl: string };
       macosDmg: { latestUrl: string; versionedUrl: string };
       windowsNsis: { latestUrl: string };
       cliWindows: { latestUrl: string };
@@ -234,6 +239,8 @@ test("Cloudflare download publisher emits stable latest and versioned URLs", asy
   assert.equal(downloads.manifestUrl, "https://downloads.example.com/latest/release-manifest.json");
   assert.equal(downloads.trust.macos, "signed-and-notarized");
   assert.equal(downloads.trust.windows, "signed-installers");
+  assert.equal(downloads.artifacts.macosPkg.latestUrl, "https://downloads.example.com/latest/macos/kiwi-control.pkg");
+  assert.equal(downloads.artifacts.macosPkg.versionedUrl, "https://downloads.example.com/releases/v0.2.0-beta.1/kiwi-control-0.2.0-beta.1-macos-aarch64.pkg");
   assert.equal(downloads.artifacts.macosDmg.latestUrl, "https://downloads.example.com/latest/macos/kiwi-control.dmg");
   assert.equal(downloads.artifacts.macosDmg.versionedUrl, "https://downloads.example.com/releases/v0.2.0-beta.1/kiwi-control-0.2.0-beta.1-macos-aarch64.dmg");
   assert.equal(downloads.artifacts.windowsNsis.latestUrl, "https://downloads.example.com/latest/windows/kiwi-control-setup.exe");
@@ -250,6 +257,7 @@ test("Cloudflare download publisher supports metadata-only mode for site deploys
     version: "0.2.0-beta.1",
     channel: "beta",
     artifacts: [
+      { artifactType: "desktop-pkg", platform: "macos", fileName: "kiwi-control-0.2.0-beta.1-macos-aarch64.pkg" },
       { artifactType: "desktop-dmg", platform: "macos", fileName: "kiwi-control-0.2.0-beta.1-macos-aarch64.dmg" },
       { artifactType: "desktop-app", platform: "macos", fileName: "kiwi-control-0.2.0-beta.1-macos-aarch64.app.tar.gz" },
       { artifactType: "desktop-nsis", platform: "windows", fileName: "kiwi-control-0.2.0-beta.1-windows-x64-setup.exe" },
@@ -287,11 +295,13 @@ test("Cloudflare download publisher supports metadata-only mode for site deploys
   const downloads = JSON.parse(await fs.readFile(path.join(publishRoot, "downloads.json"), "utf8")) as {
     publicReleaseReady: boolean;
     artifacts: {
+      macosPkg: { latestUrl: string };
       macosDmg: { latestUrl: string };
       windowsNsis: { latestUrl: string };
     };
   };
   assert.equal(downloads.publicReleaseReady, true);
+  assert.equal(downloads.artifacts.macosPkg.latestUrl, "https://downloads.example.com/latest/macos/kiwi-control.pkg");
   assert.equal(downloads.artifacts.macosDmg.latestUrl, "https://downloads.example.com/latest/macos/kiwi-control.dmg");
   assert.equal(downloads.artifacts.windowsNsis.latestUrl, "https://downloads.example.com/latest/windows/kiwi-control-setup.exe");
 });
@@ -306,12 +316,14 @@ test("Cloudflare download publisher keeps readiness false until the full desktop
     version: "0.2.0-beta.1",
     channel: "beta",
     artifacts: [
+      { artifactType: "desktop-pkg", platform: "macos", fileName: "kiwi-control-0.2.0-beta.1-macos-aarch64.pkg" },
       { artifactType: "desktop-dmg", platform: "macos", fileName: "kiwi-control-0.2.0-beta.1-macos-aarch64.dmg" },
       { artifactType: "desktop-app", platform: "macos", fileName: "kiwi-control-0.2.0-beta.1-macos-aarch64.app.tar.gz" }
     ]
   };
   await fs.writeFile(path.join(publishRoot, "release-manifest.json"), JSON.stringify(manifest, null, 2));
   await fs.writeFile(path.join(publishRoot, "SHA256SUMS.txt"), "hash  kiwi-control-0.2.0-beta.1-macos-aarch64.dmg\n");
+  await fs.writeFile(path.join(publishRoot, "kiwi-control-0.2.0-beta.1-macos-aarch64.pkg"), "pkg");
   await fs.writeFile(path.join(publishRoot, "kiwi-control-0.2.0-beta.1-macos-aarch64.dmg"), "dmg");
   await fs.writeFile(path.join(publishRoot, "kiwi-control-0.2.0-beta.1-macos-aarch64.app.tar.gz"), "app");
 
@@ -331,6 +343,7 @@ test("Cloudflare download publisher keeps readiness false until the full desktop
   const downloads = JSON.parse(await fs.readFile(path.join(publishRoot, "downloads.json"), "utf8")) as {
     publicReleaseReady: boolean;
     artifacts: {
+      macosPkg: { latestUrl: string | null };
       macosDmg: { latestUrl: string };
       windowsNsis: { latestUrl: string | null };
       windowsMsi: { latestUrl: string | null };
@@ -338,6 +351,7 @@ test("Cloudflare download publisher keeps readiness false until the full desktop
   };
 
   assert.equal(downloads.publicReleaseReady, false);
+  assert.equal(downloads.artifacts.macosPkg.latestUrl, "https://downloads.example.com/latest/macos/kiwi-control.pkg");
   assert.equal(downloads.artifacts.macosDmg.latestUrl, "https://downloads.example.com/latest/macos/kiwi-control.dmg");
   assert.equal(downloads.artifacts.windowsNsis.latestUrl, null);
   assert.equal(downloads.artifacts.windowsMsi.latestUrl, null);
@@ -353,6 +367,7 @@ test("GitHub release metadata generator publishes only truthfully available asse
     version: "0.2.0-beta.2",
     channel: "beta",
     artifacts: [
+      { artifactType: "desktop-pkg", platform: "macos", arch: "aarch64", fileName: "kiwi-control-0.2.0-beta.2-macos-aarch64.pkg" },
       { artifactType: "desktop-dmg", platform: "macos", arch: "aarch64", fileName: "kiwi-control-0.2.0-beta.2-macos-aarch64.dmg" },
       { artifactType: "desktop-app", platform: "macos", arch: "aarch64", fileName: "kiwi-control-0.2.0-beta.2-macos-aarch64.app.tar.gz" },
       { artifactType: "desktop-nsis", platform: "windows", arch: "x64", fileName: "kiwi-control-0.2.0-beta.2-windows-x64-setup.exe" },
@@ -469,6 +484,11 @@ test("Pages staging writes same-origin release metadata and strips AppleDouble s
         windows: "windows-runner-required"
       },
       artifacts: {
+        macosPkg: {
+          filename: "kiwi-control-0.2.0-beta.1-macos-aarch64.pkg",
+          latestUrl: "https://downloads.example.com/latest/macos/kiwi-control.pkg",
+          versionedUrl: "https://downloads.example.com/releases/v0.2.0-beta.1/kiwi-control-0.2.0-beta.1-macos-aarch64.pkg"
+        },
         macosDmg: {
           filename: "kiwi-control-0.2.0-beta.1-macos-aarch64.dmg",
           latestUrl: "https://downloads.example.com/latest/macos/kiwi-control.dmg",

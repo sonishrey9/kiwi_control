@@ -29,7 +29,7 @@
           <div class="release-chip" data-release-badge>Public release status</div>
           <h1>Kiwi Control is live on the web. Use this site for the current desktop release and install status.</h1>
           <p class="hero-text">
-            This website is the public entrypoint for Kiwi Control. The macOS default CLI path is already proven, Windows setup EXE is prepared for installer-time CLI setup but still pending real Windows-host proof, and the latest release status is always reflected here.
+            This website is the public entrypoint for Kiwi Control. The macOS pkg installer is the intended default path for install-time CLI setup, Windows setup EXE remains the primary Windows installer path, and the latest release status is always reflected here.
           </p>
           <p class="recommendation" data-recommended-banner>Use the downloads page for the current release status and the exact verification commands once installers are published.</p>
           <div class="release-links">
@@ -44,8 +44,8 @@
               <span class="download-platform">macOS</span>
             </div>
             <h2 data-download-heading>macOS desktop release</h2>
-            <p>Use the current public release metadata to download the latest macOS installer when it is published.</p>
-            <a class="button button-primary" href="/downloads/" data-download-link data-download-kind="macosDmg" data-primary-label="Download for macOS" data-unavailable-label="Public release coming soon">View macOS release status</a>
+            <p>Use the current public release metadata to download the latest macOS pkg installer when it is published. DMG stays secondary for manual beta testing.</p>
+            <a class="button button-primary" href="/downloads/" data-download-link data-download-kind="macosPkg" data-primary-label="Download .pkg for macOS" data-unavailable-label="Public release coming soon">View macOS release status</a>
           </article>
 
           <article class="download-card" data-download-card data-platform="windows">
@@ -86,7 +86,7 @@
         <article class="panel">
           <h2>Desktop first, CLI default-on</h2>
           <p>
-            Kiwi Control is still designed for desktop-first install. macOS has a proven launch-once CLI path. Windows setup EXE is the intended default Windows path for installer-time <code>kc</code> setup, but that path is still waiting for real Windows-host verification.
+            Kiwi Control is still designed for desktop-first install. On macOS the pkg installer is now the intended default path for install-time <code>kc</code> setup, with DMG kept as a secondary beta path. Windows setup EXE remains the intended default Windows path, but that path is still waiting for real Windows-host verification.
           </p>
         </article>
         <article class="panel">

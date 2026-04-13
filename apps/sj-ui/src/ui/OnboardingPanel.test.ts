@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { buildOnboardingPanelModel } from "./OnboardingPanel.js";
 
-test("onboarding shows choose-repo first and does not offer manual cli setup before the default attempt runs", () => {
+test("onboarding shows choose-repo first and keeps installer repair secondary before a repo is chosen", () => {
   const model = buildOnboardingPanelModel({
     runtimeInfo: {
       appVersion: "0.2.0-beta.1",
@@ -19,7 +19,7 @@ test("onboarding shows choose-repo first and does not offer manual cli setup bef
         installed: false,
         installedCommandPath: null,
         verificationStatus: "not-run",
-        verificationDetail: "Kiwi auto-attempts terminal command setup by default on installed desktop builds and records whether fresh-shell verification succeeds.",
+        verificationDetail: "The macOS pkg installer should normally finish terminal command setup during install.",
         verificationCommandPath: null,
         requiresNewTerminal: false
       }
@@ -32,7 +32,7 @@ test("onboarding shows choose-repo first and does not offer manual cli setup bef
   assert.ok(model);
   assert.equal(model?.actions.some((action) => action.id === "choose-repo"), true);
   assert.equal(model?.actions.some((action) => action.id === "install-cli"), false);
-  assert.match(model?.intro ?? "", /default CLI path is already proven/i);
+  assert.match(model?.intro ?? "", /macOS pkg installer is the intended default path/i);
   assert.equal(model?.actions[0]?.id, "choose-repo");
 });
 
@@ -62,7 +62,7 @@ test("onboarding describes successful cli setup without implying trust or option
   });
 
   assert.ok(model);
-  assert.match(model?.cliStatus ?? "", /Enabled after desktop setup · verified/i);
+  assert.match(model?.cliStatus ?? "", /Enabled during macOS pkg install · verified/i);
   assert.doesNotMatch(model?.cliStatus ?? "", /trust/i);
   assert.doesNotMatch(model?.cliStatus ?? "", /optional later/i);
 });
@@ -96,6 +96,36 @@ test("windows onboarding expects installer-time cli setup and exposes one-click 
   assert.match(model?.intro ?? "", /real Windows-host proof is still pending/i);
   assert.equal(model?.actions.some((action) => action.id === "install-cli"), true);
   assert.match(model?.actions.find((action) => action.id === "install-cli")?.label ?? "", /Enable terminal commands now/i);
+});
+
+test("macOS onboarding exposes repair when installer-owned cli setup has not completed for an open repo", () => {
+  const model = buildOnboardingPanelModel({
+    runtimeInfo: {
+      appVersion: "0.2.0-beta.1",
+      buildSource: "installed-bundle",
+      runtimeMode: "installed-user",
+      cli: {
+        bundledInstallerAvailable: true,
+        bundledNodePath: "/Applications/Kiwi Control.app/Contents/Resources/desktop/node/node",
+        installBinDir: "/usr/local/bin",
+        installRoot: "/Library/Application Support/Kiwi Control",
+        installScope: "machine",
+        installed: false,
+        installedCommandPath: null,
+        verificationStatus: "not-run",
+        verificationDetail: "The macOS pkg installer should normally finish terminal command setup during install.",
+        verificationCommandPath: null,
+        requiresNewTerminal: false
+      }
+    },
+    platform: "macos",
+    targetRoot: "/tmp/repo",
+    repoMode: "healthy"
+  });
+
+  assert.ok(model);
+  assert.equal(model?.actions.some((action) => action.id === "install-cli"), true);
+  assert.match(model?.cliStatus ?? "", /macOS pkg installer should normally finish terminal command setup during install/i);
 });
 
 test("onboarding shows init action for an uninitialized repo", () => {
@@ -252,5 +282,5 @@ test("onboarding offers a retry action when default terminal command setup faile
   assert.ok(model);
   assert.equal(model?.actions.some((action) => action.id === "install-cli"), true);
   assert.match(model?.actions.find((action) => action.id === "install-cli")?.label ?? "", /Retry terminal command setup/);
-  assert.match(model?.cliStatus ?? "", /Default terminal command setup did not complete/i);
+  assert.match(model?.cliStatus ?? "", /Installer-owned terminal command setup did not complete/i);
 });

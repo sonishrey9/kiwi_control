@@ -31,6 +31,12 @@ Desktop artifact build:
 npm run ui:desktop:build
 ```
 
+macOS pkg verification:
+
+```bash
+npm run test:installer:pkg:macos
+```
+
 Release artifact build:
 
 ```bash
@@ -93,6 +99,8 @@ Current public naming patterns include:
 - `kiwi-control-cli-${version}-windows-x64.zip`
 - `kiwi-control-${version}-macos-aarch64.app.tar.gz`
 - `kiwi-control-${version}-macos-x64.app.tar.gz`
+- `kiwi-control-${version}-macos-aarch64.pkg`
+- `kiwi-control-${version}-macos-x64.pkg`
 - `kiwi-control-${version}-macos-aarch64.dmg`
 - `kiwi-control-${version}-macos-x64.dmg`
 - `kiwi-control-${version}-windows-x64-setup.exe`
@@ -102,6 +110,7 @@ Current public naming patterns include:
 Current source bundle output roots:
 
 - `apps/sj-ui/src-tauri/target/release/bundle/macos/Kiwi Control.app`
+- `apps/sj-ui/src-tauri/target/release/bundle/pkg/`
 - `apps/sj-ui/src-tauri/target/release/bundle/dmg/`
 - `apps/sj-ui/src-tauri/target/release/bundle/nsis/`
 - `apps/sj-ui/src-tauri/target/release/bundle/msi/`
@@ -126,6 +135,7 @@ Official Tauri signing and notarization inputs used by this repo:
 
 - macOS signing:
   - `APPLE_SIGNING_IDENTITY`
+  - `APPLE_INSTALLER_SIGNING_IDENTITY`
   - `APPLE_CERTIFICATE`
   - `APPLE_CERTIFICATE_PASSWORD`
   - `KEYCHAIN_PASSWORD`
@@ -155,6 +165,8 @@ Official Tauri signing and notarization inputs used by this repo:
 - `/downloads/` should be a real public route backed by `/data/latest-release.json`
 - `/data/latest-release.json` must mirror `SITE_URL/latest/downloads.json`
 - do not set `publicReleaseReady=true` until the four core desktop latest URLs, checksums URL, and manifest URL are all live on the public AWS host
+- macOS primary installer should be `.pkg`
+- macOS DMG should remain secondary/manual unless it reaches the same default-ready proof bar
 
 ## Trust rules
 
@@ -169,6 +181,7 @@ Official Tauri signing and notarization inputs used by this repo:
 ## Platform caveats
 
 - macOS `.app` and `.dmg` artifacts can be built locally on macOS in this repo.
+- macOS `.pkg` artifacts should be built locally on macOS in this repo and should own installer-time `kc` setup by default.
 - A real signed and notarized macOS release still depends on Apple signing material being present in the environment.
 - Windows NSIS and MSI packaging is wired in repo and CI, but real signed Windows installers must be built on Windows with the signing certificate available there.
 - This macOS environment should not claim signed Windows installer output.
