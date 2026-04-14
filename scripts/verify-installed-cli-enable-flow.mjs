@@ -161,7 +161,10 @@ async function verifyWindowsRealMachinePath() {
     cwd: path.dirname(installerPath),
     encoding: "utf8"
   });
-  assert.equal(installResult.status, 0, installResult.stderr || installResult.stdout);
+  if ((installResult.status ?? 1) !== 0) {
+    const detail = await readWindowsInstallFailureDetail(installResult);
+    assert.equal(installResult.status, 0, detail);
+  }
 
   const receiptPath = await findWindowsCliReceipt();
   if (receiptPath) {
@@ -231,6 +234,30 @@ async function findWindowsCliReceipt() {
     }
   }
   return null;
+}
+
+async function readWindowsInstallFailureDetail(result) {
+  const details = [
+    `Windows NSIS installer exited with status ${result.status ?? "unknown"}.`,
+    result.stderr?.trim() ? `stderr:\n${result.stderr.trim()}` : "",
+    result.stdout?.trim() ? `stdout:\n${result.stdout.trim()}` : ""
+  ].filter(Boolean);
+
+  const hookLogPath = path.join(os.tmpdir(), "kiwi-control-nsis-hook.log");
+  const hookLog = await fs.readFile(hookLogPath, "utf8").catch(() => "");
+  if (hookLog.trim()) {
+    details.push(`hook log:\n${hookLog.trim()}`);
+  }
+
+  const receiptPath = await findWindowsCliReceipt();
+  if (receiptPath) {
+    const receipt = await fs.readFile(receiptPath, "utf8").catch(() => "");
+    if (receipt.trim()) {
+      details.push(`receipt ${receiptPath}:\n${receipt.trim()}`);
+    }
+  }
+
+  return details.join("\n\n");
 }
 
 async function findWindowsDesktopInstallDir() {

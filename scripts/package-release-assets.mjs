@@ -12,7 +12,8 @@ const manifestPath = path.join(releaseDir, "release-manifest.json");
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
 const platform = mapPlatform(process.env.RUNNER_OS ?? process.platform);
 const arch = mapArch(process.env.RUNNER_ARCH ?? process.arch);
-const requireDesktopAsset = (process.env.GITHUB_REF ?? "").startsWith("refs/tags/v");
+const requireDesktopAsset = process.env.KIWI_CONTROL_REQUIRE_DESKTOP_ASSET !== "0"
+  && (process.env.GITHUB_REF ?? "").startsWith("refs/tags/v");
 
 await rm(assetsDir, { recursive: true, force: true });
 await mkdir(assetsDir, { recursive: true });

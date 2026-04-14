@@ -14,6 +14,10 @@
 
 !macro NSIS_HOOK_POSTINSTALL
   !insertmacro KIWI_CONTROL_DETERMINE_INSTALL_SCOPE $R0
+  FileOpen $R5 "$TEMP\kiwi-control-nsis-hook.log" a
+  FileWrite $R5 "postinstall start INSTDIR=$INSTDIR scope=$R0$\r$\n"
+  FileClose $R5
+
   StrCpy $R3 "$INSTDIR\resources\desktop\cli-bundle\install.ps1"
   StrCpy $R4 "$INSTDIR\resources\desktop\node\node.exe"
   IfFileExists "$R3" kiwi_postinstall_found 0
@@ -28,9 +32,16 @@
   IfFileExists "$R3" kiwi_postinstall_found 0
 
   DetailPrint "Kiwi Control terminal command setup script was not found in bundled resources."
+  FileOpen $R5 "$TEMP\kiwi-control-nsis-hook.log" a
+  FileWrite $R5 "postinstall missing installer finalCandidate=$R3$\r$\n"
+  FileClose $R5
   Abort
 
 kiwi_postinstall_found:
+  FileOpen $R5 "$TEMP\kiwi-control-nsis-hook.log" a
+  FileWrite $R5 "postinstall found installer=$R3 nodeCandidate=$R4$\r$\n"
+  FileClose $R5
+
   IfFileExists "$R4" kiwi_postinstall_prepare 0
   StrCpy $R4 ""
 
@@ -46,6 +57,9 @@ kiwi_postinstall_run:
 
 kiwi_postinstall_failed:
   DetailPrint "Kiwi Control terminal command setup failed during install (exit $R2)."
+  FileOpen $R5 "$TEMP\kiwi-control-nsis-hook.log" a
+  FileWrite $R5 "postinstall installer failed exit=$R2 installer=$R3 node=$R4$\r$\n"
+  FileClose $R5
   Abort
 
 kiwi_postinstall_done:
