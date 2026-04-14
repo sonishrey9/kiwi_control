@@ -47,10 +47,11 @@ test("release manifest declares macOS app+dmg+pkg and Windows nsis+msi artifacts
     const tauriReleaseConfig = JSON.parse(await fs.readFile(tauriReleaseConfigPath, "utf8")) as {
       bundle?: { windows?: { nsis?: { installerHooks?: string | null } } };
     };
-    assert.equal(tauriReleaseConfig.bundle?.windows?.nsis?.installerHooks, "windows/hooks.nsh");
+    assert.equal(tauriReleaseConfig.bundle?.windows?.nsis?.installerHooks, "./windows/hooks.nsh");
     const nsisHooks = await fs.readFile(nsisHooksPath, "utf8");
     assert.match(nsisHooks, /NSIS_HOOK_POSTINSTALL/);
     assert.match(nsisHooks, /NSIS_HOOK_PREUNINSTALL/);
+    assert.match(nsisHooks, /resources\\desktop\\cli-bundle\\install\.ps1/);
   } finally {
     if (previousManifest == null) {
       await fs.rm(manifestPath, { force: true });
