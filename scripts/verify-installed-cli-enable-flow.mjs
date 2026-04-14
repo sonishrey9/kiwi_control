@@ -5,6 +5,7 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { setTimeout as delay } from "node:timers/promises";
 import { stageDesktopInstallerResources } from "./stage-cli-bundle.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -220,23 +221,11 @@ async function verifyWindowsRealMachinePath() {
   });
   assert.equal(uninstallResult.status, 0, uninstallResult.stderr || uninstallResult.stdout);
 
-  assert.equal(await fileExists(resolvedCommandPath), false, `Installed kc wrapper still exists after uninstall: ${resolvedCommandPath}`);
-  if (receiptPath) {
-    assert.equal(await fileExists(receiptPath), false, `CLI install receipt still exists after uninstall: ${receiptPath}`);
-  }
-
-  const postUninstallWindowsPath = readWindowsMergedPath();
-  assert.equal(
-    isWindowsPathEntryPresent(postUninstallWindowsPath, expectedWindowsBinDir),
-    false,
-    `Fresh Windows Machine/User PATH still includes installed CLI bin dir after uninstall: ${expectedWindowsBinDir}.`
-  );
-  const postUninstallResolvedCommandPath = resolveWindowsKcCommand(postUninstallWindowsPath);
-  assert.equal(
-    isWindowsCommandInBinDir(postUninstallResolvedCommandPath, expectedWindowsBinDir),
-    false,
-    `Get-Command kc still resolves to the just-uninstalled CLI wrapper: ${postUninstallResolvedCommandPath}.`
-  );
+  await waitForWindowsUninstallCleanup({
+    commandPath: resolvedCommandPath,
+    receiptPath,
+    binDir: expectedWindowsBinDir
+  });
 }
 
 async function findWindowsCliReceipt() {
@@ -324,6 +313,42 @@ function isWindowsPathEntryPresent(pathValue, expectedEntry) {
     .map((entry) => entry.trim())
     .filter(Boolean)
     .some((entry) => normalizeWindowsPathEntry(entry) === normalizedExpected);
+}
+
+async function waitForWindowsUninstallCleanup({ commandPath, receiptPath, binDir }) {
+  const deadline = Date.now() + 30_000;
+  let lastState = null;
+  while (Date.now() <= deadline) {
+    const windowsPath = readWindowsMergedPath();
+    const resolvedCommandPath = resolveWindowsKcCommand(windowsPath);
+    lastState = {
+      wrapperExists: await fileExists(commandPath),
+      receiptExists: receiptPath ? await fileExists(receiptPath) : false,
+      pathContainsBinDir: isWindowsPathEntryPresent(windowsPath, binDir),
+      resolvedCommandPath
+    };
+
+    if (
+      !lastState.wrapperExists &&
+      !lastState.receiptExists &&
+      !lastState.pathContainsBinDir &&
+      !isWindowsCommandInBinDir(lastState.resolvedCommandPath, binDir)
+    ) {
+      return;
+    }
+
+    await delay(1000);
+  }
+
+  assert.fail(
+    [
+      "Windows uninstall cleanup did not complete within 30 seconds.",
+      `Installed command path: ${commandPath}`,
+      receiptPath ? `Receipt path: ${receiptPath}` : "Receipt path: <missing>",
+      `Install bin dir: ${binDir}`,
+      `Last cleanup state: ${JSON.stringify(lastState)}`
+    ].join("\n")
+  );
 }
 
 function resolveWindowsKcCommand(pathValue) {

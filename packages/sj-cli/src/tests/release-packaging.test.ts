@@ -207,11 +207,12 @@ test("installed-app Windows verifier checks uninstall cleanup for the installed 
   const root = repoRoot();
   const verifierSource = await fs.readFile(path.join(root, "scripts", "verify-installed-cli-enable-flow.mjs"), "utf8");
 
-  assert.match(verifierSource, /Installed kc wrapper still exists after uninstall/);
-  assert.match(verifierSource, /CLI install receipt still exists after uninstall/);
-  assert.match(verifierSource, /Fresh Windows Machine\/User PATH still includes installed CLI bin dir after uninstall/);
-  assert.match(verifierSource, /resolveWindowsKcCommand\(postUninstallWindowsPath\)/);
-  assert.match(verifierSource, /isWindowsCommandInBinDir\(postUninstallResolvedCommandPath, expectedWindowsBinDir\)/);
+  assert.match(verifierSource, /import \{ setTimeout as delay \} from "node:timers\/promises"/);
+  assert.match(verifierSource, /waitForWindowsUninstallCleanup\(\{/);
+  assert.match(verifierSource, /const deadline = Date\.now\(\) \+ 30_000/);
+  assert.match(verifierSource, /wrapperExists: await fileExists\(commandPath\)/);
+  assert.match(verifierSource, /pathContainsBinDir: isWindowsPathEntryPresent\(windowsPath, binDir\)/);
+  assert.match(verifierSource, /Windows uninstall cleanup did not complete within 30 seconds/);
   assert.doesNotMatch(
     verifierSource,
     /if \(Get-Command kc -ErrorAction SilentlyContinue\) \{ exit 1 \}/
