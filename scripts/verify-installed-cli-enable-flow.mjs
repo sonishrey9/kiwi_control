@@ -167,11 +167,13 @@ async function verifyWindowsRealMachinePath() {
   }
 
   const receiptPath = await findWindowsCliReceipt();
+  let receiptPayload = null;
   if (receiptPath) {
-    const payload = JSON.parse(await fs.readFile(receiptPath, "utf8"));
-    assert.match(payload.installScope, /^(machine|user)$/);
-    assert.match(String(payload.installBinDir ?? ""), /Kiwi Control|\.kiwi-control/i);
-    assert.equal(payload.verificationStatus, "passed");
+    receiptPayload = JSON.parse(await fs.readFile(receiptPath, "utf8"));
+    assert.match(receiptPayload.installScope, /^(machine|user)$/);
+    assert.match(String(receiptPayload.installBinDir ?? ""), /Kiwi Control|\.kiwi-control/i);
+    assert.equal(receiptPayload.verificationStatus, "passed");
+    assert.ok(await fileExists(String(receiptPayload.installedCommandPath ?? "")), `Installed kc wrapper was not found at ${receiptPayload.installedCommandPath ?? "<missing>"}.`);
   } else {
     console.warn("Windows installer did not leave a CLI receipt; continuing with live kc --help verification.");
   }
@@ -193,9 +195,17 @@ async function verifyWindowsRealMachinePath() {
   assert.equal(powerShellResult.status, 0, powerShellResult.stderr || powerShellResult.stdout);
   const resolvedCommandPath = powerShellResult.stdout.trim().split(/\r?\n/).at(-1) ?? "";
   assert.match(resolvedCommandPath, /\\kc\.cmd$/i);
+  assert.ok(await fileExists(resolvedCommandPath), `PowerShell resolved kc to ${resolvedCommandPath}, but that wrapper does not exist.`);
 
+  const windowsPath = readWindowsMergedPath();
+  const expectedWindowsBinDir = String(receiptPayload?.installBinDir ?? path.dirname(resolvedCommandPath));
+  assert.ok(
+    isWindowsPathEntryPresent(windowsPath, expectedWindowsBinDir),
+    `Fresh Windows Machine/User PATH does not include installed CLI bin dir ${expectedWindowsBinDir}.`
+  );
   const cmdResult = spawnSync("cmd.exe", ["/d", "/c", "kc --help"], {
     cwd: repoRoot,
+    env: withWindowsPathEnv(process.env, windowsPath),
     encoding: "utf8"
   });
   assert.equal(cmdResult.status, 0, cmdResult.stderr || cmdResult.stdout);
@@ -274,6 +284,45 @@ async function findWindowsDesktopInstallDir() {
     }
   }
   return null;
+}
+
+function readWindowsMergedPath() {
+  const result = spawnSync("powershell.exe", [
+    "-NoProfile",
+    "-Command",
+    "$machine = [Environment]::GetEnvironmentVariable('Path', 'Machine'); " +
+      "$user = [Environment]::GetEnvironmentVariable('Path', 'User'); " +
+      "Write-Output ((@($machine, $user) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join ';')"
+  ], {
+    cwd: repoRoot,
+    encoding: "utf8"
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  return result.stdout.trim().split(/\r?\n/).at(-1) ?? "";
+}
+
+function withWindowsPathEnv(baseEnv, pathValue) {
+  const nextEnv = { ...baseEnv };
+  for (const key of Object.keys(nextEnv)) {
+    if (key.toLowerCase() === "path") {
+      delete nextEnv[key];
+    }
+  }
+  nextEnv.Path = pathValue;
+  return nextEnv;
+}
+
+function isWindowsPathEntryPresent(pathValue, expectedEntry) {
+  const normalizedExpected = normalizeWindowsPathEntry(expectedEntry);
+  return pathValue
+    .split(";")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .some((entry) => normalizeWindowsPathEntry(entry) === normalizedExpected);
+}
+
+function normalizeWindowsPathEntry(value) {
+  return path.win32.normalize(String(value).trim()).replace(/[\\/]+$/, "").toLowerCase();
 }
 
 function shellQuote(value) {

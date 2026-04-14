@@ -188,6 +188,21 @@ test("bundled CLI installer exposes machine-scope Windows scaffolding", async ()
   }
 });
 
+test("installed-app Windows verifier gives cmd.exe a fresh merged PATH", async () => {
+  const root = repoRoot();
+  const verifierSource = await fs.readFile(path.join(root, "scripts", "verify-installed-cli-enable-flow.mjs"), "utf8");
+
+  assert.match(verifierSource, /function readWindowsMergedPath\(\)/);
+  assert.match(verifierSource, /GetEnvironmentVariable\('Path', 'Machine'\)/);
+  assert.match(verifierSource, /GetEnvironmentVariable\('Path', 'User'\)/);
+  assert.match(verifierSource, /isWindowsPathEntryPresent\(windowsPath, expectedWindowsBinDir\)/);
+  assert.match(verifierSource, /env: withWindowsPathEnv\(process\.env, windowsPath\)/);
+  assert.doesNotMatch(
+    verifierSource,
+    /spawnSync\("cmd\.exe", \["\/d", "\/c", "kc --help"\], \{\s*cwd: repoRoot,\s*encoding: "utf8"\s*\}\)/s
+  );
+});
+
 test("Cloudflare download publisher emits stable latest and versioned URLs", async () => {
   const root = repoRoot();
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-cloudflare-publish-"));
