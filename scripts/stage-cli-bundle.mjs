@@ -508,10 +508,11 @@ if ($InstallScope -eq "machine") {
 
 $VerificationScript = "$machine = [Environment]::GetEnvironmentVariable('Path', 'Machine'); " +
   "$user = [Environment]::GetEnvironmentVariable('Path', 'User'); " +
-  "$env:Path = @($machine, $user) -join ';'; " +
-  "$command = Get-Command kc -ErrorAction Stop; " +
-  "& $command.Source --help | Out-Null; " +
-  "Write-Output $command.Source"
+	  "$env:Path = @($machine, $user) -join ';'; " +
+	  "$command = Get-Command kc -ErrorAction Stop; " +
+	  "$commandPath = $command.Source; " +
+	  "& $commandPath --help | Out-Null; " +
+	  "Write-Output $commandPath"
 
 try {
   $VerificationOutput = & powershell.exe -NoProfile -Command $VerificationScript 2>&1 | Out-String

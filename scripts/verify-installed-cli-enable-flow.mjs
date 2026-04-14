@@ -179,12 +179,13 @@ async function verifyWindowsRealMachinePath() {
   const powerShellResult = spawnSync("powershell.exe", [
     "-NoProfile",
     "-Command",
-    "$machine = [Environment]::GetEnvironmentVariable('Path', 'Machine'); " +
+      "$machine = [Environment]::GetEnvironmentVariable('Path', 'Machine'); " +
       "$user = [Environment]::GetEnvironmentVariable('Path', 'User'); " +
       "$env:Path = @($machine, $user) -join ';'; " +
       "$command = Get-Command kc -ErrorAction Stop; " +
-      "& $command.Source --help | Out-Null; " +
-      "Write-Output $command.Source"
+      "$commandPath = $command.Source; " +
+      "& $commandPath --help | Out-Null; " +
+      "Write-Output $commandPath"
   ], {
     cwd: repoRoot,
     encoding: "utf8"

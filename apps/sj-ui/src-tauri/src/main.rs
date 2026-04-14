@@ -1862,8 +1862,9 @@ fn verify_windows_cli_command(
          $user = [Environment]::GetEnvironmentVariable('Path', 'User'); \
          $env:Path = @($machine, $user) -join ';'; \
          $command = Get-Command kc -ErrorAction Stop; \
-         & $command.Source --help | Out-Null; \
-         Write-Output $command.Source"
+         $commandPath = $command.Source; \
+         & $commandPath --help | Out-Null; \
+         Write-Output $commandPath"
     );
     let output = Command::new("powershell.exe")
         .arg("-NoProfile")

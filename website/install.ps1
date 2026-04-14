@@ -52,8 +52,9 @@ try {
 `$user = [Environment]::GetEnvironmentVariable('Path', 'User')
 `$env:Path = @(`$machine, `$user, `$env:Path) -join ';'
 `$command = Get-Command kc -ErrorAction Stop
-& `$command.Source --help | Out-Null
-Write-Output `$command.Source
+`$commandPath = `$command.Source
+& `$commandPath --help | Out-Null
+Write-Output `$commandPath
 "@
 
   $resolvedCommand = powershell.exe -NoProfile -Command $verificationScript
