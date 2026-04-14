@@ -1,6 +1,6 @@
 const REPO_URL = "https://github.com/sonishrey9/kiwi-control-backup";
 const RELEASE_METADATA_URL = "/data/latest-release.json";
-const DEFAULT_VERSION = "0.2.0-beta.1";
+const DEFAULT_VERSION = "0.2.0-beta.4";
 
 const selectors = {
   version: "[data-release-version]",
