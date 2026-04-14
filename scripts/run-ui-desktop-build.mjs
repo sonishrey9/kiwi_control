@@ -236,18 +236,47 @@ function defaultBundleForPlatform() {
 
 async function resolveReleaseConfigPath() {
   const extraConfigPath = process.env.KIWI_CONTROL_TAURI_EXTRA_CONFIG?.trim();
-  if (!extraConfigPath) {
+  const baseConfig = JSON.parse(await fs.readFile(defaultReleaseConfigPath, "utf8"));
+  const merged = extraConfigPath
+    ? deepMerge(baseConfig, JSON.parse(await fs.readFile(extraConfigPath, "utf8")))
+    : baseConfig;
+  const windowsCompatibleVersion = process.platform === "win32"
+    ? toWindowsInstallerVersion(merged.version)
+    : merged.version;
+  const needsGeneratedConfig = Boolean(extraConfigPath) || windowsCompatibleVersion !== merged.version;
+
+  if (!needsGeneratedConfig) {
     return defaultReleaseConfigPath;
   }
 
   const mergedPath = path.join(await resolveCargoTargetDir(), "release-config", "tauri.release.merged.json");
   await fs.mkdir(path.dirname(mergedPath), { recursive: true });
-  const merged = deepMerge(
-    JSON.parse(await fs.readFile(defaultReleaseConfigPath, "utf8")),
-    JSON.parse(await fs.readFile(extraConfigPath, "utf8"))
-  );
+  if (windowsCompatibleVersion !== merged.version) {
+    console.log(`Using Windows Installer compatible app version ${windowsCompatibleVersion} for desktop bundling.`);
+    merged.version = windowsCompatibleVersion;
+  }
   await fs.writeFile(mergedPath, `${JSON.stringify(merged, null, 2)}\n`, "utf8");
   return mergedPath;
+}
+
+function toWindowsInstallerVersion(version) {
+  const match = String(version).match(/^(\d+)\.(\d+)\.(\d+)(?:-[A-Za-z]+\.?(\d+)?)?$/);
+  if (!match) {
+    return version;
+  }
+
+  const [, major, minor, patch, prereleaseNumber] = match;
+  if (!prereleaseNumber) {
+    return version;
+  }
+
+  const patchNumber = Number(patch);
+  const prereleasePatch = Number(prereleaseNumber);
+  if (!Number.isInteger(prereleasePatch) || prereleasePatch < 0 || prereleasePatch > 65535) {
+    return `${major}.${minor}.${patch}`;
+  }
+
+  return `${major}.${minor}.${patchNumber === 0 ? prereleasePatch : patchNumber}`;
 }
 
 function deepMerge(left, right) {

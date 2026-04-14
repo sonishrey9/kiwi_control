@@ -1,6 +1,6 @@
 {
   "name": "shrey-junior",
-  "version": "0.2.0-beta.8",
+  "version": "0.2.0-beta.9",
   "type": "module",
   "description": "Installable CLI for the Kiwi Control repo-first control plane",
   "bin": {
@@ -18,6 +18,6 @@
     "smoke": "npm run build && bash ../../scripts/smoke-test.sh"
   },
   "dependencies": {
-    "@shrey-junior/sj-core": "0.2.0-beta.8"
+    "@shrey-junior/sj-core": "0.2.0-beta.9"
   }
 }
