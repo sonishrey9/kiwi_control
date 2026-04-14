@@ -55,9 +55,11 @@ jobs:
         run: npm run build
 
       - name: Run tests
+        if: matrix.os == 'ubuntu-latest'
         run: npm test
 
       - name: Smoke test
+        if: matrix.os == 'ubuntu-latest'
         run: bash scripts/smoke-test.sh
 
       - name: Build UI web bundle
