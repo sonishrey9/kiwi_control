@@ -39,7 +39,18 @@ const fallbackRelease = {
     macos: "local-beta-build-only",
     windows: "windows-runner-required"
   },
-  artifacts: {}
+  artifacts: {
+    macosPkg: { filename: "kiwi-control.pkg", latestUrl: null, versionedUrl: null },
+    macosDmg: { filename: "kiwi-control.dmg", latestUrl: null, versionedUrl: null },
+    macosAppTarball: { filename: "kiwi-control.app.tar.gz", latestUrl: null, versionedUrl: null },
+    windowsNsis: { filename: "kiwi-control-setup.exe", latestUrl: null, versionedUrl: null },
+    windowsMsi: { filename: "kiwi-control.msi", latestUrl: null, versionedUrl: null },
+    cliMacos: { filename: "kiwi-control-cli.tar.gz", latestUrl: null, versionedUrl: null },
+    cliMacosAarch64: { filename: "kiwi-control-cli-macos-aarch64.tar.gz", latestUrl: null, versionedUrl: null },
+    cliMacosX64: { filename: "kiwi-control-cli-macos-x64.tar.gz", latestUrl: null, versionedUrl: null },
+    cliLinux: { filename: "kiwi-control-cli-linux-x64.tar.gz", latestUrl: null, versionedUrl: null },
+    cliWindows: { filename: "kiwi-control-cli.zip", latestUrl: null, versionedUrl: null }
+  }
 };
 
 init();

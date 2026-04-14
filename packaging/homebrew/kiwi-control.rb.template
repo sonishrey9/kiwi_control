@@ -1,10 +1,10 @@
 class KiwiControl < Formula
   desc "Kiwi Control CLI for repo-first local control of coding agents"
-  homepage "https://github.com/OWNER/kiwi-control"
-  url "https://github.com/OWNER/kiwi-control/releases/download/v__VERSION__/kiwi-control-cli-__VERSION__-darwin-arm64.tar.gz"
-  sha256 "__SHA256__"
+  homepage "https://github.com/sonishrey9/kiwi-control"
   version "__VERSION__"
   depends_on "node@22"
+
+__URL_BLOCKS__
 
   def install
     libexec.install Dir["*"]
@@ -13,6 +13,6 @@ class KiwiControl < Formula
   end
 
   test do
-    system "#{bin}/kiwi-control", "specialists", "--json"
+    system "#{bin}/kc", "--help"
   end
 end

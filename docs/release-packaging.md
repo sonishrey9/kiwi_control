@@ -20,8 +20,11 @@ npm run build
 npm test
 bash scripts/smoke-test.sh
 npm run release:manifest
+npm run release:package-assets
 npm run release:checksums
 npm run release:trust -- --platform macos --json
+npm run release:trust -- --platform windows --json
+npm run release:homebrew -- --downloads-json dist/release/publish/downloads.json --output-dir dist/release/homebrew
 export SITE_URL="https://kiwi-control.kiwi-ai.in"
 node scripts/stage-pages-site.mjs --output-dir dist/site
 ```
@@ -131,6 +134,20 @@ The intended public beta path is:
 macOS pkg is the intended default beta installer path for install-time terminal command setup. The desktop app still keeps repair/remediation available if installer-owned setup does not complete, and DMG remains a secondary manual beta path.
 Partial publication is allowed. If only the macOS installer set and the macOS CLI bundle are live, keep `publicReleaseReady=false` and leave Windows asset URLs null.
 
+The public wrapper installers are staged with the website:
+
+- `https://kiwi-control.kiwi-ai.in/install.sh`
+- `https://kiwi-control.kiwi-ai.in/install.ps1`
+
+Both wrappers install the standalone CLI bundle and verify `kc --help`. They do not install desktop by default. The optional desktop path must only proceed when the relevant desktop artifact URL is non-null in `latest-release.json`.
+
+Homebrew output is scaffold-only in this repository:
+
+- `npm run release:homebrew -- --downloads-json dist/release/publish/downloads.json --output-dir dist/release/homebrew`
+- generated Formula installs the CLI only
+- generated Cask points at the real macOS pkg when it exists
+- do not document `brew install` as live until those generated files are published in a separate public tap repository
+
 ## Signing inputs
 
 Official Tauri signing and notarization inputs used by this repo:
@@ -181,6 +198,7 @@ Official Tauri signing and notarization inputs used by this repo:
 - do not claim Homebrew or winget availability unless those channels are actually published
 - do not hide the Node 22+ requirement for the standalone beta CLI bundle
 - the standalone CLI bundle installs `kiwi-control` and `kc` only; it does not install the desktop app
+- do not claim Windows EXE/MSI availability while `windowsNsis.latestUrl` and `windowsMsi.latestUrl` are null
 
 ## Platform caveats
 

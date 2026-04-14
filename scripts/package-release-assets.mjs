@@ -108,18 +108,7 @@ function requireArtifact(manifestPayload, criteria) {
 }
 
 function collectCliArtifacts(manifestPayload, criteria) {
-  const currentCliArtifact = requireArtifact(manifestPayload, {
-    artifactType: "cli",
-    platform: criteria.platform,
-    arch: criteria.arch
-  });
-  const additionalCliArtifacts = criteria.platform === "macos"
-    ? manifestPayload.artifacts.filter(
-        (candidate) => candidate.artifactType === "cli" && candidate.platform === "windows"
-      )
-    : [];
-
-  return [...new Map([currentCliArtifact, ...additionalCliArtifacts].map((artifact) => [artifact.fileName, artifact])).values()];
+  return manifestPayload.artifacts.filter((artifact) => artifact.artifactType === "cli");
 }
 
 function findDesktopArtifacts(manifestPayload, criteria) {

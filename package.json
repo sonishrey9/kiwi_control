@@ -37,6 +37,7 @@
     "site:ensure:aws": "node scripts/ensure-aws-public-site.mjs",
     "release:publish:aws": "node scripts/publish-aws-public-downloads.mjs",
     "release:downloads:github": "node scripts/generate-github-release-downloads.mjs",
+    "release:homebrew": "node scripts/generate-homebrew-tap.mjs",
     "release:verify-artifacts": "node scripts/verify-release-artifacts.mjs",
     "release:verify:public-downloads": "node scripts/verify-public-download-surface.mjs",
     "release:trust": "node scripts/verify-release-trust.mjs",

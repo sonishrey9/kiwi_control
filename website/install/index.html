@@ -36,9 +36,9 @@
         <article class="panel">
           <h2>Desktop install</h2>
           <div class="list">
-            <div>1. Download the macOS pkg or Windows setup EXE from the homepage or <a href="/downloads/">all downloads</a>.</div>
+            <div>1. Download the macOS pkg from the homepage or <a href="/downloads/">all downloads</a>.</div>
             <div>2. macOS: the pkg installer is the intended default path for install-time <code>kc</code> setup.</div>
-            <div>3. Windows: prefer the setup EXE for the normal Windows install path. Real Windows-host proof is still pending.</div>
+            <div>3. Windows: EXE/MSI desktop installers are not live yet. Use the PowerShell CLI bootstrap for <code>kc</code>.</div>
             <div>4. Choose a repo, initialize it if needed, and keep using desktop or <code>kc</code> after the platform-specific setup succeeds.</div>
           </div>
         </article>
@@ -47,9 +47,9 @@
           <h2>Default terminal command setup</h2>
           <div class="list">
             <div>1. macOS pkg install is the intended default path for install-time CLI setup.</div>
-            <div>2. Windows setup EXE is the intended default Windows path for installer-time CLI setup, but proof is still pending on a real Windows host.</div>
+            <div>2. Windows setup EXE is the intended default Windows path once it exists, but proof is still pending on a real Windows host.</div>
             <div>3. Current unsigned macOS beta builds may still need a manual first-open override after install until Developer ID signing and notarization are configured.</div>
-            <div>4. If Windows setup is blocked later, use the fallback manual CLI path below. Keep the desktop installer as the primary path.</div>
+            <div>4. If Windows desktop setup is blocked, use the wrapper CLI path below. Keep Windows desktop unavailable until EXE/MSI are published.</div>
           </div>
         </article>
 
@@ -114,25 +114,23 @@
         </article>
 
         <article class="panel detail-panel">
-          <div class="eyebrow">macOS CLI fallback</div>
-          <h2>Published curl install for the standalone CLI</h2>
+          <div class="eyebrow">CLI bootstrap</div>
+          <h2>Published wrapper install for the standalone CLI</h2>
           <p>
-            This installs the standalone CLI bundle only. It does not install the desktop app.
+            This installs the standalone CLI bundle only, chooses the correct OS bundle, and verifies <code>kc --help</code>.
           </p>
-          <pre><code>tmpdir="$(mktemp -d)"
-archive_url="$(curl -fsSL https://kiwi-control.kiwi-ai.in/data/latest-release.json | node -e 'let json=\"\"; process.stdin.on(\"data\", (chunk) => json += chunk); process.stdin.on(\"end\", () => { const meta = JSON.parse(json); const url = meta.artifacts?.cliMacos?.latestUrl; if (!url) { console.error(\"macOS CLI bundle is not published yet. Use the desktop installer path for now.\"); process.exit(1); } process.stdout.write(url); });')"
-curl -fsSL "$archive_url" -o "$tmpdir/kiwi-control-cli.tar.gz"
-tar -xzf "$tmpdir/kiwi-control-cli.tar.gz" -C "$tmpdir"
-"$tmpdir/install.sh"</code></pre>
+          <pre><code>curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash</code></pre>
+          <div>Windows PowerShell bootstrap:</div>
+          <pre><code>irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex</code></pre>
         </article>
 
         <article class="panel detail-panel">
           <div class="eyebrow">Windows fallback</div>
-          <h2>Secondary manual CLI path</h2>
+          <h2>Windows CLI path</h2>
           <p>
-            Fallback only. The desktop installer remains primary. Use this path only if the Windows installer flow is blocked and only after the Windows CLI bundle is published on this site.
+            Windows desktop EXE/MSI are not live yet. The PowerShell bootstrap installs the CLI only and says so if a desktop install is requested.
           </p>
-          <pre><code>$meta = Invoke-RestMethod "https://kiwi-control.kiwi-ai.in/data/latest-release.json"; if (-not $meta.artifacts.cliWindows.latestUrl) { throw "Windows CLI bundle is not published yet. Use the desktop installer path for now." }; $zip = Join-Path $env:TEMP "kiwi-control-cli.zip"; $dir = Join-Path $env:TEMP "kiwi-control-cli"; Invoke-WebRequest $meta.artifacts.cliWindows.latestUrl -OutFile $zip; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; Expand-Archive $zip -DestinationPath $dir -Force; &amp; (Join-Path $dir "install.ps1"); Get-Command kc; kc --help</code></pre>
+          <pre><code>irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex</code></pre>
         </article>
       </section>
 

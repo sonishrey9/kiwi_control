@@ -54,9 +54,31 @@ const ARTIFACT_DESCRIPTORS = {
     latestKey: "latest/macos/kiwi-control-cli.tar.gz",
     fallbackFilename: "kiwi-control-cli.tar.gz"
   },
+  cliMacosAarch64: {
+    artifactType: "cli",
+    platform: "macos",
+    arch: "aarch64",
+    latestKey: "latest/macos/aarch64/kiwi-control-cli.tar.gz",
+    fallbackFilename: "kiwi-control-cli-macos-aarch64.tar.gz"
+  },
+  cliMacosX64: {
+    artifactType: "cli",
+    platform: "macos",
+    arch: "x64",
+    latestKey: "latest/macos/x64/kiwi-control-cli.tar.gz",
+    fallbackFilename: "kiwi-control-cli-macos-x64.tar.gz"
+  },
+  cliLinux: {
+    artifactType: "cli",
+    platform: "linux",
+    arch: "x64",
+    latestKey: "latest/linux/kiwi-control-cli.tar.gz",
+    fallbackFilename: "kiwi-control-cli-linux-x64.tar.gz"
+  },
   cliWindows: {
     artifactType: "cli",
     platform: "windows",
+    arch: "x64",
     latestKey: "latest/windows/kiwi-control-cli.zip",
     fallbackFilename: "kiwi-control-cli.zip"
   }
@@ -295,7 +317,8 @@ async function resolveArtifact({ manifest, publishRoot, descriptor, metadataOnly
   const manifestArtifact = resolveOptionalManifestArtifact({
     manifest,
     artifactType: descriptor.artifactType,
-    platform: descriptor.platform
+    platform: descriptor.platform,
+    arch: descriptor.arch
   });
 
   if (!manifestArtifact) {
@@ -332,13 +355,16 @@ async function resolveArtifact({ manifest, publishRoot, descriptor, metadataOnly
   return null;
 }
 
-function resolveOptionalManifestArtifact({ manifest, artifactType, platform }) {
+function resolveOptionalManifestArtifact({ manifest, artifactType, platform, arch }) {
   return manifest.artifacts
     .filter((entry) => {
       if (entry.artifactType !== artifactType) {
         return false;
       }
       if (platform && entry.platform !== platform) {
+        return false;
+      }
+      if (arch && entry.arch !== arch) {
         return false;
       }
       return true;

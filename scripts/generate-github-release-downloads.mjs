@@ -172,6 +172,10 @@ function buildDownloadsPayload({
   windowsTrust
 }) {
   const artifactDescriptors = {
+    macosPkg: {
+      filename: "kiwi-control.pkg",
+      candidates: findManifestAssets(manifest, "desktop-pkg", "macos")
+    },
     macosDmg: {
       filename: "kiwi-control.dmg",
       candidates: findManifestAssets(manifest, "desktop-dmg", "macos")
@@ -192,9 +196,21 @@ function buildDownloadsPayload({
       filename: "kiwi-control-cli.tar.gz",
       candidates: findManifestAssets(manifest, "cli", "macos")
     },
+    cliMacosAarch64: {
+      filename: "kiwi-control-cli-macos-aarch64.tar.gz",
+      candidates: findManifestAssets(manifest, "cli", "macos", "aarch64")
+    },
+    cliMacosX64: {
+      filename: "kiwi-control-cli-macos-x64.tar.gz",
+      candidates: findManifestAssets(manifest, "cli", "macos", "x64")
+    },
+    cliLinux: {
+      filename: "kiwi-control-cli-linux-x64.tar.gz",
+      candidates: findManifestAssets(manifest, "cli", "linux", "x64")
+    },
     cliWindows: {
       filename: "kiwi-control-cli.zip",
-      candidates: findManifestAssets(manifest, "cli", "windows")
+      candidates: findManifestAssets(manifest, "cli", "windows", "x64")
     }
   };
 
@@ -254,9 +270,13 @@ function selectPublishedArtifact(filename, candidates, assetUrls) {
   };
 }
 
-function findManifestAssets(manifest, artifactType, platform) {
+function findManifestAssets(manifest, artifactType, platform, arch) {
   return manifest.artifacts
-    .filter((artifact) => artifact.artifactType === artifactType && artifact.platform === platform)
+    .filter((artifact) => (
+      artifact.artifactType === artifactType
+      && artifact.platform === platform
+      && (!arch || artifact.arch === arch)
+    ))
     .sort((left, right) => archPriority(left.arch) - archPriority(right.arch));
 }
 

@@ -15,6 +15,13 @@ export function buildAwsEnv(overrides = {}) {
     ...overrides
   };
 
+  if (env.AWS_PROFILE) {
+    delete env.AWS_ACCESS_KEY_ID;
+    delete env.AWS_SECRET_ACCESS_KEY;
+    delete env.AWS_SESSION_TOKEN;
+    delete env.AWS_SECRET;
+  }
+
   if (!env.AWS_SECRET_ACCESS_KEY && env.AWS_SECRET) {
     env.AWS_SECRET_ACCESS_KEY = env.AWS_SECRET;
   }
@@ -91,6 +98,15 @@ export function inferContentType(filePath) {
   }
   if (fileName.endsWith(".txt")) {
     return "text/plain; charset=utf-8";
+  }
+  if (fileName.endsWith(".sh")) {
+    return "text/x-shellscript; charset=utf-8";
+  }
+  if (fileName.endsWith(".ps1")) {
+    return "text/plain; charset=utf-8";
+  }
+  if (fileName.endsWith(".rb")) {
+    return "text/x-ruby; charset=utf-8";
   }
   if (fileName.endsWith(".xml")) {
     return "application/xml; charset=utf-8";

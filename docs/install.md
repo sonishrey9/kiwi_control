@@ -10,16 +10,15 @@ For the public beta, the public website is the primary install surface. The sing
 
 ## Recommended path: desktop first
 
-For most users on macOS and Windows:
+For most desktop users on macOS:
 
 1. Open the installer-first website at [kiwi-control.kiwi-ai.in](https://kiwi-control.kiwi-ai.in/) or go directly to the public [downloads page](https://kiwi-control.kiwi-ai.in/downloads/).
-2. Download the desktop installer for your platform.
+2. Download the macOS desktop installer.
    - macOS: prefer `.pkg`; `.dmg` remains secondary for manual beta testing
-   - Windows: prefer `-setup.exe`; `.msi` remains secondary until it has the same CLI proof bar
 3. Install Kiwi Control like a normal desktop app.
 4. macOS: the pkg installer is the intended default path for install-time `kc` setup.
-5. Windows: the setup EXE is the intended default path for installer-time `kc` setup, but public automatic-readiness claims stay gated on real Windows-host proof.
-6. If macOS installer-owned CLI setup does not complete, use the obvious in-app terminal-command repair flow instead of editing PATH manually.
+5. Windows: EXE/MSI desktop installers are not live yet. Use the Windows CLI bootstrap below if you only need `kc`.
+6. If macOS installer-owned CLI setup does not complete, use the in-app terminal-command repair flow or the CLI bootstrap below.
 7. Use onboarding to choose a repo and initialize it if needed.
 
 ### Desktop-only path
@@ -41,17 +40,17 @@ For public downloads, trust status is release-specific. Public hosting makes the
 Desktop installs aim to make `kc` straightforward without manual PATH editing:
 
 1. macOS: the pkg installer should install the app and make `kc` available during install.
-2. Windows: the setup EXE is the intended installer-time `kc` path for normal users, but proof is still pending on a real Windows host.
+2. Windows: EXE/MSI desktop installers are not live yet, so the public wrapper installs the CLI only.
 3. if macOS installer-owned setup does not complete, use the in-app repair action
-4. if Windows setup is blocked later, use the fallback manual CLI path below
+4. if Windows desktop setup is blocked later, use the CLI bootstrap below
 5. keep using the same repo from desktop or CLI interchangeably after setup succeeds
 
 ### Default terminal commands
 
 Kiwi Control keeps the desktop app usable even if terminal command setup cannot complete, but the post-install behavior is intentionally platform-specific:
 
-- Windows: the NSIS setup EXE is the intended default Windows path and should auto-enable `kc` during install; keep the public claim gated on real Windows-host proof
-- Windows MSI: treat it as a secondary packaging path until it has the same default-CLI proof as the setup EXE
+- Windows: the NSIS setup EXE is not published yet; keep Windows desktop availability unavailable until a real Windows artifact exists
+- Windows MSI: keep it unavailable until it has the same default-CLI proof as the setup EXE
 - macOS: the pkg installer is the intended default path and should place `kc` into `/usr/local/bin`
 - macOS fallback: if pkg install-time setup is not reliable on that machine, use the one-click enable flow in the app
 - Kiwi verifies whether `kc` is callable from a fresh shell/process and reports the exact result
@@ -65,25 +64,31 @@ If verification succeeds but your current terminal is still stale, Kiwi will tel
 - Node.js 22 or newer when you are installing the standalone beta CLI bundle yourself
 
 The beta CLI bundle is still Node-backed. That is an intentional beta constraint, not a hidden runtime dependency.
-Homebrew and winget are not published for this beta yet. Use the published installer or CLI bundle links on the public site instead.
+Homebrew tap files are scaffolded for maintainers but not published as a public tap yet. Winget is not published for this beta. Use the published wrapper installers or CLI bundle links on the public site instead.
 
-### Install from public downloads
+### Quick CLI install from public wrappers
 
-1. Download the matching Kiwi Control CLI bundle from the public [downloads page](https://kiwi-control.kiwi-ai.in/downloads/) or the corresponding GitHub release page.
-2. Extract it.
-3. Run the included installer.
+These wrapper installers install the standalone CLI bundle only. They install `kiwi-control` and `kc`, verify `kc --help`, and do not install the desktop app unless you explicitly pass the desktop option and a real desktop artifact exists for that OS.
 
 On macOS or Linux:
 
 ```bash
-./install.sh
+curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash
 ```
 
 On Windows:
 
 ```powershell
-.\install.ps1
+irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex
 ```
+
+Optional macOS desktop opt-in, only when the macOS pkg URL is published:
+
+```bash
+curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash -s -- --desktop
+```
+
+Optional Windows desktop opt-in remains honest: because Windows EXE/MSI are not live yet, this prints that the Windows desktop installer is not published yet and still leaves a working CLI install.
 
 After install, the public commands are:
 
@@ -106,33 +111,9 @@ Get-Command kc
 kc --help
 ```
 
-### macOS curl install path
+### Manual CLI bundle path
 
-This path installs the standalone CLI bundle only. It does not install the desktop app.
-
-```bash
-tmpdir="$(mktemp -d)"
-archive_url="$(curl -fsSL https://kiwi-control.kiwi-ai.in/data/latest-release.json | node -e 'let json=\"\"; process.stdin.on(\"data\", (chunk) => json += chunk); process.stdin.on(\"end\", () => { const meta = JSON.parse(json); const url = meta.artifacts?.cliMacos?.latestUrl; if (!url) { console.error(\"macOS CLI bundle is not published yet. Use the desktop installer path for now.\"); process.exit(1); } process.stdout.write(url); });')"
-curl -fsSL "$archive_url" -o "$tmpdir/kiwi-control-cli.tar.gz"
-tar -xzf "$tmpdir/kiwi-control-cli.tar.gz" -C "$tmpdir"
-"$tmpdir/install.sh"
-```
-
-### Windows fallback CLI path
-
-Fallback only. Keep the desktop installer as the primary path. Use this only if the Windows installer flow is blocked and only after the Windows CLI bundle is published on the public site.
-
-PowerShell metadata-driven fallback:
-
-```powershell
-$meta = Invoke-RestMethod "https://kiwi-control.kiwi-ai.in/data/latest-release.json"; if (-not $meta.artifacts.cliWindows.latestUrl) { throw "Windows CLI bundle is not published yet. Use the desktop installer path for now." }; $zip = Join-Path $env:TEMP "kiwi-control-cli.zip"; $dir = Join-Path $env:TEMP "kiwi-control-cli"; Invoke-WebRequest $meta.artifacts.cliWindows.latestUrl -OutFile $zip; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; Expand-Archive $zip -DestinationPath $dir -Force; & (Join-Path $dir "install.ps1"); Get-Command kc; kc --help
-```
-
-`curl.exe` variant:
-
-```powershell
-$meta = Invoke-RestMethod "https://kiwi-control.kiwi-ai.in/data/latest-release.json"; if (-not $meta.artifacts.cliWindows.latestUrl) { throw "Windows CLI bundle is not published yet. Use the desktop installer path for now." }; $zip = Join-Path $env:TEMP "kiwi-control-cli.zip"; $dir = Join-Path $env:TEMP "kiwi-control-cli"; curl.exe -L $meta.artifacts.cliWindows.latestUrl -o $zip; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; Expand-Archive $zip -DestinationPath $dir -Force; & (Join-Path $dir "install.ps1"); Get-Command kc; kc --help
-```
+Use the public [downloads page](https://kiwi-control.kiwi-ai.in/downloads/) if you need to inspect or manually extract a CLI bundle. The wrapper path above is preferred because it chooses the correct bundle, installs `kc`, and verifies `kc --help`.
 
 ### First CLI flow
 

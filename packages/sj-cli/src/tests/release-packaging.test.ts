@@ -688,7 +688,7 @@ test("Pages staging falls back to SITE_URL when DOWNLOADS_URL is unset", async (
   }
 });
 
-test("release asset packager includes the Windows CLI zip on macOS builders", async (t) => {
+test("release asset packager includes all public CLI bundles on macOS builders", async (t) => {
   if (process.platform !== "darwin") {
     t.skip("macOS-only cross-packaging verification");
     return;
@@ -728,6 +728,7 @@ test("release asset packager includes the Windows CLI zip on macOS builders", as
       channel: "beta",
       artifacts: [
         { artifactType: "cli", platform: "macos", arch: "aarch64", fileName: "kiwi-control-cli-0.2.0-beta.1-macos-aarch64.tar.gz" },
+        { artifactType: "cli", platform: "linux", arch: "x64", fileName: "kiwi-control-cli-0.2.0-beta.1-linux-x64.tar.gz" },
         { artifactType: "cli", platform: "windows", arch: "x64", fileName: "kiwi-control-cli-0.2.0-beta.1-windows-x64.zip" },
         { artifactType: "runtime", sourcePath: "packages/sj-core/dist/runtime", fileName: "kiwi-control-runtime-0.2.0-beta.1-${os}-${arch}.tar.gz" },
         { artifactType: "ui-web", sourcePath: "apps/sj-ui/dist", fileName: "kiwi-control-ui-web-0.2.0-beta.1-${os}-${arch}.tar.gz" }
@@ -743,7 +744,9 @@ test("release asset packager includes the Windows CLI zip on macOS builders", as
     assert.equal(result.status, 0, result.stderr || result.stdout);
     const payload = JSON.parse(result.stdout) as { createdAssets: string[] };
     assert.equal(payload.createdAssets.includes("kiwi-control-cli-0.2.0-beta.1-macos-aarch64.tar.gz"), true);
+    assert.equal(payload.createdAssets.includes("kiwi-control-cli-0.2.0-beta.1-linux-x64.tar.gz"), true);
     assert.equal(payload.createdAssets.includes("kiwi-control-cli-0.2.0-beta.1-windows-x64.zip"), true);
+    await fs.access(path.join(assetsDir, "kiwi-control-cli-0.2.0-beta.1-linux-x64.tar.gz"));
     await fs.access(path.join(assetsDir, "kiwi-control-cli-0.2.0-beta.1-windows-x64.zip"));
   } finally {
     await fs.rm(assetsDir, { recursive: true, force: true });
@@ -758,6 +761,108 @@ test("release asset packager includes the Windows CLI zip on macOS builders", as
 
     await fs.writeFile(manifestPath, await fs.readFile(manifestBackupPath, "utf8"), "utf8");
     await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("public wrapper installers are CLI-first and metadata-driven", async () => {
+  const root = repoRoot();
+  const installSh = await fs.readFile(path.join(root, "website", "install.sh"), "utf8");
+  const installPs1 = await fs.readFile(path.join(root, "website", "install.ps1"), "utf8");
+
+  assert.match(installSh, /latest-release\.json/);
+  assert.match(installSh, /cliMacosAarch64/);
+  assert.match(installSh, /cliMacosX64/);
+  assert.match(installSh, /cliLinux/);
+  assert.match(installSh, /\$KC_PATH" --help/);
+  assert.match(installSh, /Kiwi Control Desktop is not published for Linux/);
+  assert.match(installSh, /CLI install remains complete/);
+
+  assert.match(installPs1, /latest-release\.json/);
+  assert.match(installPs1, /cliWindows\.latestUrl/);
+  assert.match(installPs1, /Expand-Archive/);
+  assert.match(installPs1, /Get-Command kc/);
+  assert.match(installPs1, /--help/);
+  assert.match(installPs1, /Windows desktop installer is not published yet/);
+});
+
+test("Homebrew generator emits scaffold-only formula and cask from published metadata", async () => {
+  const root = repoRoot();
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-homebrew-"));
+  const publishRoot = path.join(tempDir, "publish");
+  const outputDir = path.join(tempDir, "homebrew");
+  await fs.mkdir(publishRoot, { recursive: true });
+
+  const downloadsPayload = {
+    version: "0.2.0-beta.9",
+    artifacts: {
+      cliMacosAarch64: {
+        filename: "kiwi-control-cli-0.2.0-beta.9-macos-aarch64.tar.gz",
+        latestUrl: "https://downloads.example.com/latest/macos/aarch64/kiwi-control-cli.tar.gz",
+        versionedUrl: "https://downloads.example.com/releases/v0.2.0-beta.9/kiwi-control-cli-0.2.0-beta.9-macos-aarch64.tar.gz"
+      },
+      cliLinux: {
+        filename: "kiwi-control-cli-0.2.0-beta.9-linux-x64.tar.gz",
+        latestUrl: "https://downloads.example.com/latest/linux/kiwi-control-cli.tar.gz",
+        versionedUrl: "https://downloads.example.com/releases/v0.2.0-beta.9/kiwi-control-cli-0.2.0-beta.9-linux-x64.tar.gz"
+      },
+      macosPkg: {
+        filename: "kiwi-control-0.2.0-beta.9-macos-aarch64.pkg",
+        latestUrl: "https://downloads.example.com/latest/macos/kiwi-control.pkg",
+        versionedUrl: "https://downloads.example.com/releases/v0.2.0-beta.9/kiwi-control-0.2.0-beta.9-macos-aarch64.pkg"
+      },
+      windowsNsis: {
+        filename: "kiwi-control-setup.exe",
+        latestUrl: null,
+        versionedUrl: null
+      },
+      windowsMsi: {
+        filename: "kiwi-control.msi",
+        latestUrl: null,
+        versionedUrl: null
+      }
+    }
+  };
+  const downloadsJsonPath = path.join(publishRoot, "downloads.json");
+  await fs.writeFile(downloadsJsonPath, JSON.stringify(downloadsPayload, null, 2), "utf8");
+  for (const artifact of Object.values(downloadsPayload.artifacts)) {
+    if (artifact.latestUrl) {
+      await fs.writeFile(path.join(publishRoot, artifact.filename), `fixture:${artifact.filename}`, "utf8");
+    }
+  }
+
+  const result = spawnSync(process.execPath, [
+    path.join(root, "scripts", "generate-homebrew-tap.mjs"),
+    "--downloads-json",
+    downloadsJsonPath,
+    "--output-dir",
+    outputDir
+  ], {
+    cwd: root,
+    encoding: "utf8"
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const payload = JSON.parse(result.stdout) as { scaffoldOnly: boolean; formula: string; cask: string | null };
+  assert.equal(payload.scaffoldOnly, true);
+  assert.equal(payload.cask?.endsWith("Casks/kiwi-control.rb"), true);
+
+  const formula = await fs.readFile(path.join(outputDir, "Formula", "kiwi-control.rb"), "utf8");
+  const cask = await fs.readFile(path.join(outputDir, "Casks", "kiwi-control.rb"), "utf8");
+  const readme = await fs.readFile(path.join(outputDir, "README.md"), "utf8");
+
+  assert.match(formula, /on_macos/);
+  assert.match(formula, /on_arm/);
+  assert.match(formula, /on_linux/);
+  assert.match(formula, /system "#\{bin\}\/kc", "--help"/);
+  assert.match(cask, /cask "kiwi-control"/);
+  assert.match(cask, /pkg "kiwi-control-0\.2\.0-beta\.9-macos-aarch64\.pkg"/);
+  assert.match(readme, /scaffold-only/);
+  assert.match(readme, /no tap repository is published/);
+
+  const rubyAvailable = spawnSync("ruby", ["-v"], { encoding: "utf8" }).status === 0;
+  if (rubyAvailable) {
+    assert.equal(spawnSync("ruby", ["-c", path.join(outputDir, "Formula", "kiwi-control.rb")], { encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("ruby", ["-c", path.join(outputDir, "Casks", "kiwi-control.rb")], { encoding: "utf8" }).status, 0);
   }
 });
 

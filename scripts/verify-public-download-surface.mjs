@@ -76,7 +76,10 @@ async function verifyLocalSite(siteDir, { downloadsUrl, requireReady }) {
     ...missingPhrase(indexHtml, "macOS pkg installer is the intended default path"),
     ...missingPhrase(downloadsHtml, "setup EXE is the intended default Windows path"),
     ...missingPhrase(installHtml, "proof is still pending on a real Windows host"),
-    ...missingPhrase(downloadsHtml, "Windows CLI bundle is not published yet. Use the desktop installer path for now.")
+    ...missingPhrase(downloadsHtml, "curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash"),
+    ...missingPhrase(downloadsHtml, "irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex"),
+    ...missingPhrase(downloadsHtml, expectedWindowsCliPhrase(metadata)),
+    ...missingPhrase(downloadsHtml, expectedWindowsDesktopPhrase(metadata))
   ];
   const invalidReleaseReadyMetadata = releaseReady ? validateReleaseReadyMetadata(metadata) : [];
   const renderedLinkIssues = validateRenderedLinks(downloadsHtml, metadata);
@@ -157,7 +160,10 @@ async function verifyRemoteSite({ siteUrl, downloadsUrl, requireReady }) {
     ...missingPhrase(siteHtml, "macOS pkg installer is the intended default path"),
     ...missingPhrase(downloadsHtml, "setup EXE is the intended default Windows path"),
     ...missingPhrase(installHtml, "proof is still pending on a real Windows host"),
-    ...missingPhrase(downloadsHtml, "Windows CLI bundle is not published yet. Use the desktop installer path for now.")
+    ...missingPhrase(downloadsHtml, "curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash"),
+    ...missingPhrase(downloadsHtml, "irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex"),
+    ...missingPhrase(downloadsHtml, expectedWindowsCliPhrase(metadata)),
+    ...missingPhrase(downloadsHtml, expectedWindowsDesktopPhrase(metadata))
   ];
   const invalidReleaseReadyMetadata = releaseReady ? validateReleaseReadyMetadata(metadata) : [];
   const renderedLinkIssues = validateRenderedLinks(downloadsHtml, metadata);
@@ -274,6 +280,18 @@ function missingPhrase(content, phrase) {
 
 function containsPhrase(content, phrase) {
   return content.includes(phrase) ? [phrase] : [];
+}
+
+function expectedWindowsCliPhrase(metadata) {
+  return metadata.artifacts?.cliWindows?.latestUrl
+    ? "Windows PowerShell bootstrap"
+    : "Windows CLI bundle coming soon";
+}
+
+function expectedWindowsDesktopPhrase(metadata) {
+  return metadata.artifacts?.windowsNsis?.latestUrl || metadata.artifacts?.windowsMsi?.latestUrl
+    ? "Download Windows setup EXE"
+    : "Windows desktop installer is not published yet";
 }
 
 function validateReleaseReadyMetadata(metadata) {

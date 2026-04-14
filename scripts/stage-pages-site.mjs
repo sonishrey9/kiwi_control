@@ -178,6 +178,21 @@ function fallbackReleaseMetadata({ downloadsUrl, repoUrl, version }) {
         latestUrl: null,
         versionedUrl: null
       },
+      cliMacosAarch64: {
+        filename: "kiwi-control-cli-macos-aarch64.tar.gz",
+        latestUrl: null,
+        versionedUrl: null
+      },
+      cliMacosX64: {
+        filename: "kiwi-control-cli-macos-x64.tar.gz",
+        latestUrl: null,
+        versionedUrl: null
+      },
+      cliLinux: {
+        filename: "kiwi-control-cli-linux-x64.tar.gz",
+        latestUrl: null,
+        versionedUrl: null
+      },
       cliWindows: {
         filename: "kiwi-control-cli.zip",
         latestUrl: null,

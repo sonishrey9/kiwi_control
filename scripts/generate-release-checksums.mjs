@@ -53,6 +53,7 @@ function parseArgs(argv) {
 function defaultCandidateRoots() {
   return [
     path.join("dist", "release", "cli-bundle"),
+    path.join("dist", "release", "assets"),
     path.join("dist", "release", "release-manifest.json"),
     path.join("packages", "sj-core", "dist", "runtime"),
     path.join("apps", "sj-ui", "dist"),

@@ -39,17 +39,26 @@ Most agent tooling either hides workflow logic in an editor integration or centr
 For most users, the fastest path is:
 
 1. Download Kiwi Control from the [installer-first website](https://kiwi-control.kiwi-ai.in/) or the public [downloads page](https://kiwi-control.kiwi-ai.in/downloads/).
-2. Install the desktop app for macOS or Windows.
+2. Install the desktop app for macOS. Windows desktop installers are not live yet.
 3. macOS: prefer the beta `.pkg` installer. It is the intended default path for install-time `kc` setup. The `.dmg` remains a secondary manual beta path.
-4. Windows: the setup EXE is the intended default path for installer-time `kc` setup, but public automatic-readiness claims stay gated on real Windows-host proof.
+4. Windows: use the CLI bootstrap for `kc` until real Windows EXE/MSI desktop artifacts are built and published.
 5. If the current unsigned macOS beta build is blocked by Gatekeeper, use a manual first-open override, then continue testing normally.
 6. Choose a repo and initialize it if needed.
 7. Keep using the app, or use `kc` too after the platform-specific setup succeeds.
 
 ### CLI path
 
-The standalone CLI bundle remains available from the public downloads page when it is actually published.
-It installs `kiwi-control` and `kc` only. It does not install the desktop app. If Kiwi Control Desktop is already installed on the machine, `kc ui` can launch or attach to it.
+The standalone CLI wrapper installers are the fastest terminal path:
+
+```bash
+curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash
+```
+
+```powershell
+irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex
+```
+
+They install `kiwi-control` and `kc` only, then verify `kc --help`. They do not install the desktop app unless a desktop option is explicitly requested and a real artifact exists for that OS. If Kiwi Control Desktop is already installed on the machine, `kc ui` can launch or attach to it.
 
 After install:
 
@@ -58,7 +67,7 @@ kiwi-control --help
 kc status
 ```
 
-See [docs/install.md](./docs/install.md) for the detailed desktop, CLI, macOS curl-install, and contributor paths.
+See [docs/install.md](./docs/install.md) for the detailed desktop, CLI wrapper, and contributor paths.
 
 ## First repo flow
 
@@ -90,8 +99,9 @@ kc ui
 - the public AWS-hosted site is the source of truth for installable artifacts and release metadata
 - the website is installer-first and release-aware
 - macOS `.pkg` is the primary beta installer and `.dmg` is the secondary manual fallback
-- Windows setup EXE remains the intended primary installer path; MSI stays secondary until it reaches the same proof bar
+- Windows setup EXE remains the intended primary installer path, but EXE/MSI artifacts are not live yet
 - Windows and macOS are the primary desktop install targets
+- Homebrew formula/cask output is scaffolded for a future tap, not published as a live `brew install` path
 - signing and notarization status must be checked release by release
 - internal package names such as `sj-core`, `sj-cli`, and `sj-ui` remain implementation details
 

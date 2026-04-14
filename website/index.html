@@ -29,7 +29,7 @@
           <div class="release-chip" data-release-badge>Public release status</div>
           <h1>Kiwi Control is live on the web. Use this site for the current desktop release and install status.</h1>
           <p class="hero-text">
-            This website is the public entrypoint for Kiwi Control. The macOS pkg installer is the intended default path for install-time CLI setup, Windows setup EXE remains the primary Windows installer path, and the latest release status is always reflected here.
+            This website is the public entrypoint for Kiwi Control. The macOS pkg installer is the intended default path for install-time CLI setup, the CLI wrappers are live for terminal installs, and Windows desktop EXE/MSI remain unavailable until real Windows artifacts are published.
           </p>
           <p class="recommendation" data-recommended-banner>Use the downloads page for the current release status and the exact verification commands once installers are published.</p>
           <div class="release-links">
@@ -53,7 +53,7 @@
               <span class="download-platform">Windows</span>
             </div>
             <h2 data-download-heading>Windows desktop release</h2>
-            <p>Use the current public release metadata to download the latest Windows installer when it is published.</p>
+            <p>Windows desktop EXE/MSI are not live yet. Use the PowerShell CLI bootstrap while Windows desktop proof remains pending.</p>
             <a class="button button-primary" href="/downloads/" data-download-link data-download-kind="windowsNsis" data-primary-label="Download for Windows" data-unavailable-label="Public release coming soon">View Windows release status</a>
           </article>
         </div>
@@ -86,10 +86,10 @@
         <article class="panel">
           <h2>Desktop first, CLI default-on</h2>
           <p>
-            Kiwi Control is still designed for desktop-first install. On macOS the pkg installer is now the intended default path for install-time <code>kc</code> setup, with DMG kept as a secondary beta path. Windows setup EXE remains the intended default Windows path, but that path is still waiting for real Windows-host verification.
+            Kiwi Control is still designed for desktop-first install where a desktop artifact exists. On macOS the pkg installer is now the intended default path for install-time <code>kc</code> setup, with DMG kept as a secondary beta path. Windows setup EXE remains the intended default Windows path later, but EXE/MSI artifacts are not live yet.
           </p>
           <p>
-            The standalone CLI bundle installs <code>kiwi-control</code> and <code>kc</code> only. It does not install the desktop app. If Kiwi Control Desktop is already installed, <code>kc ui</code> can launch or attach to it.
+            The standalone CLI wrapper installs <code>kiwi-control</code> and <code>kc</code> only, then verifies <code>kc --help</code>. It does not install the desktop app unless explicitly requested and a real desktop artifact exists.
           </p>
         </article>
         <article class="panel">
@@ -104,11 +104,11 @@
           <div class="eyebrow">What will appear here</div>
           <h2>Planned public install flow</h2>
           <div class="list">
-            <div>1. Download the desktop installer for macOS or Windows.</div>
+            <div>1. Download the macOS desktop installer where available.</div>
             <div>2. macOS: prefer the pkg installer for install-time CLI setup. DMG remains the secondary manual beta path.</div>
-            <div>3. Windows: prefer the setup EXE for the normal installer path. Real Windows-host proof is still pending.</div>
-            <div>4. If you only want the CLI, use the published CLI bundle or the macOS curl path on the install guide. That CLI path does not install the desktop app.</div>
-            <div>5. If Windows setup is blocked later, use the fallback manual CLI path on the downloads page. Desktop installer remains primary.</div>
+            <div>3. Windows: keep EXE/MSI unavailable until the setup artifacts are built and published on a Windows host.</div>
+            <div>4. If you only want the CLI, use <code>curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash</code>.</div>
+            <div>5. Windows CLI users can run <code>irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex</code>.</div>
           </div>
           <p class="detail-link-row">
             <a href="/downloads/">Open downloads status</a>
