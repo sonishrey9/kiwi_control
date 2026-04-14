@@ -28,7 +28,6 @@
   IfFileExists "$R3" kiwi_postinstall_found 0
 
   DetailPrint "Kiwi Control terminal command setup script was not found in bundled resources."
-  MessageBox MB_ICONSTOP|MB_OK "Kiwi Control could not find its bundled terminal command setup script. Setup will stop so the desktop app and kc do not drift."
   Abort
 
 kiwi_postinstall_found:
@@ -47,7 +46,6 @@ kiwi_postinstall_run:
 
 kiwi_postinstall_failed:
   DetailPrint "Kiwi Control terminal command setup failed during install (exit $R2)."
-  MessageBox MB_ICONSTOP|MB_OK "Kiwi Control could not finish terminal command setup during install. Setup will stop so the desktop app and kc do not drift."
   Abort
 
 kiwi_postinstall_done:

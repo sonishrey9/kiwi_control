@@ -52,6 +52,7 @@ test("release manifest declares macOS app+dmg+pkg and Windows nsis+msi artifacts
     assert.match(nsisHooks, /NSIS_HOOK_POSTINSTALL/);
     assert.match(nsisHooks, /NSIS_HOOK_PREUNINSTALL/);
     assert.match(nsisHooks, /resources\\desktop\\cli-bundle\\install\.ps1/);
+    assert.doesNotMatch(nsisHooks, /MessageBox/);
   } finally {
     if (previousManifest == null) {
       await fs.rm(manifestPath, { force: true });
