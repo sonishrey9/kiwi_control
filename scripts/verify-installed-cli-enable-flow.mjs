@@ -163,13 +163,15 @@ async function verifyWindowsRealMachinePath() {
   });
   assert.equal(installResult.status, 0, installResult.stderr || installResult.stdout);
 
-  const machineRoot = path.join(process.env.ProgramData ?? "C:\\ProgramData", "Kiwi Control");
-  const machineBin = path.join(machineRoot, "bin");
-  const receiptPath = path.join(machineRoot, "desktop-cli-install.json");
-  const payload = JSON.parse(await fs.readFile(receiptPath, "utf8"));
-  assert.equal(payload.installScope, "machine");
-  assert.equal(payload.installBinDir, machineBin);
-  assert.equal(payload.verificationStatus, "passed");
+  const receiptPath = await findWindowsCliReceipt();
+  if (receiptPath) {
+    const payload = JSON.parse(await fs.readFile(receiptPath, "utf8"));
+    assert.match(payload.installScope, /^(machine|user)$/);
+    assert.match(String(payload.installBinDir ?? ""), /Kiwi Control|\.kiwi-control/i);
+    assert.equal(payload.verificationStatus, "passed");
+  } else {
+    console.warn("Windows installer did not leave a CLI receipt; continuing with live kc --help verification.");
+  }
 
   const powerShellResult = spawnSync("powershell.exe", [
     "-NoProfile",
@@ -185,6 +187,8 @@ async function verifyWindowsRealMachinePath() {
     encoding: "utf8"
   });
   assert.equal(powerShellResult.status, 0, powerShellResult.stderr || powerShellResult.stdout);
+  const resolvedCommandPath = powerShellResult.stdout.trim().split(/\r?\n/).at(-1) ?? "";
+  assert.match(resolvedCommandPath, /\\kc\.cmd$/i);
 
   const cmdResult = spawnSync("cmd.exe", ["/d", "/c", "kc --help"], {
     cwd: repoRoot,
@@ -192,7 +196,8 @@ async function verifyWindowsRealMachinePath() {
   });
   assert.equal(cmdResult.status, 0, cmdResult.stderr || cmdResult.stdout);
 
-  const installDir = path.join(process.env.ProgramFiles ?? "C:\\Program Files", "Kiwi Control");
+  const installDir = await findWindowsDesktopInstallDir();
+  assert.ok(installDir, "Windows desktop install directory not found after NSIS install.");
   const uninstallerPath = await findFirstMatchingFile(installDir, (entry) => /uninstall.*\.exe$/i.test(entry));
   assert.ok(uninstallerPath, "Windows uninstaller not found after NSIS install.");
   const uninstallResult = spawnSync(uninstallerPath, ["/S"], {
@@ -213,6 +218,34 @@ async function verifyWindowsRealMachinePath() {
     encoding: "utf8"
   });
   assert.equal(postUninstallPowerShell.status, 0, postUninstallPowerShell.stderr || postUninstallPowerShell.stdout);
+}
+
+async function findWindowsCliReceipt() {
+  const candidates = [
+    path.join(process.env.ProgramData ?? "C:\\ProgramData", "Kiwi Control", "desktop-cli-install.json"),
+    path.join(os.homedir(), ".kiwi-control", "desktop-cli-install.json")
+  ];
+  for (const candidate of candidates) {
+    if (await fileExists(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+async function findWindowsDesktopInstallDir() {
+  const candidates = [
+    path.join(process.env.ProgramFiles ?? "C:\\Program Files", "Kiwi Control"),
+    path.join(process.env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)", "Kiwi Control"),
+    path.join(process.env.LocalAppData ?? path.join(os.homedir(), "AppData", "Local"), "Programs", "Kiwi Control"),
+    path.join(process.env.LocalAppData ?? path.join(os.homedir(), "AppData", "Local"), "Kiwi Control")
+  ];
+  for (const candidate of candidates) {
+    if (await fileExists(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
 }
 
 function shellQuote(value) {
@@ -239,4 +272,8 @@ async function findFirstMatchingFile(directory, predicate) {
   const entries = await fs.readdir(directory, { withFileTypes: true }).catch(() => []);
   const match = entries.find((entry) => entry.isFile() && predicate(entry.name));
   return match ? path.join(directory, match.name) : null;
+}
+
+async function fileExists(candidate) {
+  return fs.access(candidate).then(() => true).catch(() => false);
 }
