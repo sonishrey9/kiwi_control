@@ -240,10 +240,11 @@ async function resolveReleaseConfigPath() {
   const merged = extraConfigPath
     ? deepMerge(baseConfig, JSON.parse(await fs.readFile(extraConfigPath, "utf8")))
     : baseConfig;
+  const publicVersion = workspacePackage.version ?? merged.version;
   const windowsCompatibleVersion = process.platform === "win32"
-    ? toWindowsInstallerVersion(merged.version)
+    ? toWindowsInstallerVersion(publicVersion)
     : merged.version;
-  const needsGeneratedConfig = Boolean(extraConfigPath) || windowsCompatibleVersion !== merged.version;
+  const needsGeneratedConfig = Boolean(extraConfigPath) || windowsCompatibleVersion !== publicVersion;
 
   if (!needsGeneratedConfig) {
     return defaultReleaseConfigPath;
@@ -251,7 +252,7 @@ async function resolveReleaseConfigPath() {
 
   const mergedPath = path.join(await resolveCargoTargetDir(), "release-config", "tauri.release.merged.json");
   await fs.mkdir(path.dirname(mergedPath), { recursive: true });
-  if (windowsCompatibleVersion !== merged.version) {
+  if (windowsCompatibleVersion !== publicVersion) {
     console.log(`Using Windows Installer compatible app version ${windowsCompatibleVersion} for desktop bundling.`);
     merged.version = windowsCompatibleVersion;
   }
