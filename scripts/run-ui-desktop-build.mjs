@@ -70,14 +70,14 @@ async function main() {
   const child = spawn(npmExecutable, ["run", "tauri:build", "-w", "@shrey-junior/sj-ui", ...tauriArgs], {
     cwd: repoRoot,
     stdio: "inherit",
-    env: {
+    env: sanitizeChildEnv({
       ...process.env,
       KIWI_CONTROL_CLI: cliEntrypoint,
       SHREY_JUNIOR_CLI: cliEntrypoint,
       CARGO_TARGET_DIR: cargoTargetDir,
       COPYFILE_DISABLE: "1",
       COPY_EXTENDED_ATTRIBUTES_DISABLE: "1"
-    }
+    })
   });
 
   cleanupInterval = setInterval(() => {
@@ -268,6 +268,21 @@ function normalizePlatform(value) {
     default:
       return value;
   }
+}
+
+function sanitizeChildEnv(env) {
+  return Object.fromEntries(
+    Object.entries(env)
+      .filter(([key, value]) => (
+        typeof key === "string"
+        && key.length > 0
+        && !key.startsWith("=")
+        && !key.includes("=")
+        && !key.includes("\0")
+        && value !== undefined
+      ))
+      .map(([key, value]) => [key, String(value)])
+  );
 }
 
 function extractRequestedBundles(args) {
