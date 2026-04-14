@@ -47,7 +47,7 @@ Release artifact build:
 npm run ui:desktop:build:release
 npm run release:verify-artifacts
 npm run release:trust -- --platform macos --json
-node scripts/generate-github-release-downloads.mjs --publish-root dist/release/publish --repo owner/repo --release-tag v0.2.0-beta.6 --release-json /path/to/release.json
+node scripts/generate-github-release-downloads.mjs --publish-root dist/release/publish --repo owner/repo --release-tag v0.2.0-beta.7 --release-json /path/to/release.json
 ```
 
 AWS publication:
@@ -59,7 +59,7 @@ node scripts/publish-aws-public-downloads.mjs \
   --publish-root dist/release/publish \
   --site-url "$SITE_URL" \
   --bucket "$AWS_PUBLIC_BUCKET" \
-  --release-tag v0.2.0-beta.6 \
+  --release-tag v0.2.0-beta.7 \
   --macos-trust-json dist/release/publish/release-trust-macos.json \
   --windows-trust-json dist/release/publish/release-trust-windows.json
 ```

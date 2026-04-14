@@ -1,6 +1,6 @@
 {
   "name": "kiwi-control-workspace",
-  "version": "0.2.0-beta.6",
+  "version": "0.2.0-beta.7",
   "private": true,
   "type": "module",
   "description": "Kiwi Control workspace for a repo-first local control plane",

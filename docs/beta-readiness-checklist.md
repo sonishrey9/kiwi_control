@@ -1,4 +1,4 @@
-# Kiwi Control 0.2.0-beta.6 Readiness Checklist
+# Kiwi Control 0.2.0-beta.7 Readiness Checklist
 
 This checklist is for a local-first public beta. It is intentionally honest about what is install-ready, what is source-ready, and what still remains manual before public release.
 

@@ -63,22 +63,33 @@ async function main() {
   await killRunningDesktopBundles(cargoTargetDir);
   await fs.rm(cargoTargetDir, { recursive: true, force: true });
 
-  const npmExecutable = process.platform === "win32" ? "npm.cmd" : "npm";
   const tauriArgs = await withDefaultDesktopBundleArgs(process.argv.slice(2));
   const requestedBundles = extractRequestedBundles(tauriArgs);
   let cleanupInterval = null;
-  const child = spawn(npmExecutable, ["run", "tauri:build", "-w", "@shrey-junior/sj-ui", ...tauriArgs], {
-    cwd: repoRoot,
-    stdio: "inherit",
-    env: sanitizeChildEnv({
-      ...process.env,
-      KIWI_CONTROL_CLI: cliEntrypoint,
-      SHREY_JUNIOR_CLI: cliEntrypoint,
-      CARGO_TARGET_DIR: cargoTargetDir,
-      COPYFILE_DISABLE: "1",
-      COPY_EXTENDED_ATTRIBUTES_DISABLE: "1"
-    })
+  const childEnv = sanitizeChildEnv({
+    ...process.env,
+    KIWI_CONTROL_CLI: cliEntrypoint,
+    SHREY_JUNIOR_CLI: cliEntrypoint,
+    CARGO_TARGET_DIR: cargoTargetDir,
+    COPYFILE_DISABLE: "1",
+    COPY_EXTENDED_ATTRIBUTES_DISABLE: "1"
   });
+  const child = process.platform === "win32"
+    ? spawn(
+        process.env.ComSpec || "cmd.exe",
+        ["/d", "/s", "/c", buildWindowsCommand(["npm", "run", "tauri:build", "-w", "@shrey-junior/sj-ui", ...tauriArgs])],
+        {
+          cwd: repoRoot,
+          stdio: "inherit",
+          env: childEnv,
+          windowsVerbatimArguments: true
+        }
+      )
+    : spawn("npm", ["run", "tauri:build", "-w", "@shrey-junior/sj-ui", ...tauriArgs], {
+        cwd: repoRoot,
+        stdio: "inherit",
+        env: childEnv
+      });
 
   cleanupInterval = setInterval(() => {
     void removeMacMetadataArtifacts(cargoTargetDir).catch(() => null);
@@ -283,6 +294,17 @@ function sanitizeChildEnv(env) {
       ))
       .map(([key, value]) => [key, String(value)])
   );
+}
+
+function buildWindowsCommand(args) {
+  return args
+    .map((value) => {
+      if (/^[A-Za-z0-9_./:@=-]+$/.test(value)) {
+        return value;
+      }
+      return `"${String(value).replace(/"/g, '\\"')}"`;
+    })
+    .join(" ");
 }
 
 function extractRequestedBundles(args) {

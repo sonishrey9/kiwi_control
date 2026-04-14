@@ -13,7 +13,7 @@ Make Kiwi Control a real local product without giving up the repo-first model.
 - desktop app title: `Kiwi Control`
 - installed-user docs should lead with `kiwi-control` and `kc`, not `npm run ...`
 
-This is a visible rebrand only for `0.2.0-beta.6`. Repo-local schema and artifact IDs remain `shrey-junior/*` for compatibility.
+This is a visible rebrand only for `0.2.0-beta.7`. Repo-local schema and artifact IDs remain `shrey-junior/*` for compatibility.
 
 ## Compatibility note
 
