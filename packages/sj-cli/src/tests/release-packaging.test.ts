@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 function repoRoot(): string {
   return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -153,7 +153,7 @@ test("bundled CLI installer supports machine-scope macOS verification", () => {
   assert.match(result.stdout, /requires a macOS host/i);
 });
 
-test("bundled CLI installer exposes machine-scope Windows scaffolding", () => {
+test("bundled CLI installer exposes machine-scope Windows scaffolding", async () => {
   const root = repoRoot();
   const result = spawnSync(process.execPath, [
     path.join(root, "scripts", "verify-bundled-cli-install.mjs"),
@@ -167,6 +167,25 @@ test("bundled CLI installer exposes machine-scope Windows scaffolding", () => {
   });
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.match(result.stdout, /verification passed for Windows/i);
+
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-windows-cli-scaffold-"));
+  try {
+    const { stageCliBundle } = await import(pathToFileURL(path.join(root, "scripts", "stage-cli-bundle.mjs")).href) as {
+      stageCliBundle: (options: { repoRoot: string; bundlePath: string; version: string }) => Promise<string>;
+    };
+    const bundlePath = path.join(tempDir, "cli-bundle");
+    await stageCliBundle({ repoRoot: root, bundlePath, version: "0.2.0-test.0" });
+    const installPs1 = await fs.readFile(path.join(bundlePath, "install.ps1"), "utf8");
+
+    assert.doesNotMatch(installPs1, /\$VerificationScript = "\$machine/);
+    assert.doesNotMatch(installPs1, /"\$env:Path = @\(\$machine, \$user\) -join/);
+    assert.match(installPs1, /\$VerificationScript = '\$machine = \[Environment\]::GetEnvironmentVariable\(''Path'', ''Machine''\); '/);
+    assert.match(installPs1, /'\$env:Path = @\(\$machine, \$user\) -join '';''; '/);
+    assert.match(installPs1, /'\$commandPath = \$command\.Source; '/);
+    assert.match(installPs1, /'& \$commandPath --help \| Out-Null; '/);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
 });
 
 test("Cloudflare download publisher emits stable latest and versioned URLs", async () => {
