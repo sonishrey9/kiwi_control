@@ -203,6 +203,21 @@ test("installed-app Windows verifier gives cmd.exe a fresh merged PATH", async (
   );
 });
 
+test("installed-app Windows verifier checks uninstall cleanup for the installed command only", async () => {
+  const root = repoRoot();
+  const verifierSource = await fs.readFile(path.join(root, "scripts", "verify-installed-cli-enable-flow.mjs"), "utf8");
+
+  assert.match(verifierSource, /Installed kc wrapper still exists after uninstall/);
+  assert.match(verifierSource, /CLI install receipt still exists after uninstall/);
+  assert.match(verifierSource, /Fresh Windows Machine\/User PATH still includes installed CLI bin dir after uninstall/);
+  assert.match(verifierSource, /resolveWindowsKcCommand\(postUninstallWindowsPath\)/);
+  assert.match(verifierSource, /isWindowsCommandInBinDir\(postUninstallResolvedCommandPath, expectedWindowsBinDir\)/);
+  assert.doesNotMatch(
+    verifierSource,
+    /if \(Get-Command kc -ErrorAction SilentlyContinue\) \{ exit 1 \}/
+  );
+});
+
 test("Cloudflare download publisher emits stable latest and versioned URLs", async () => {
   const root = repoRoot();
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-cloudflare-publish-"));

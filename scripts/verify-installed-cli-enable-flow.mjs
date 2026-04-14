@@ -220,18 +220,23 @@ async function verifyWindowsRealMachinePath() {
   });
   assert.equal(uninstallResult.status, 0, uninstallResult.stderr || uninstallResult.stdout);
 
-  const postUninstallPowerShell = spawnSync("powershell.exe", [
-    "-NoProfile",
-    "-Command",
-    "$machine = [Environment]::GetEnvironmentVariable('Path', 'Machine'); " +
-      "$user = [Environment]::GetEnvironmentVariable('Path', 'User'); " +
-      "$env:Path = @($machine, $user) -join ';'; " +
-      "if (Get-Command kc -ErrorAction SilentlyContinue) { exit 1 }"
-  ], {
-    cwd: repoRoot,
-    encoding: "utf8"
-  });
-  assert.equal(postUninstallPowerShell.status, 0, postUninstallPowerShell.stderr || postUninstallPowerShell.stdout);
+  assert.equal(await fileExists(resolvedCommandPath), false, `Installed kc wrapper still exists after uninstall: ${resolvedCommandPath}`);
+  if (receiptPath) {
+    assert.equal(await fileExists(receiptPath), false, `CLI install receipt still exists after uninstall: ${receiptPath}`);
+  }
+
+  const postUninstallWindowsPath = readWindowsMergedPath();
+  assert.equal(
+    isWindowsPathEntryPresent(postUninstallWindowsPath, expectedWindowsBinDir),
+    false,
+    `Fresh Windows Machine/User PATH still includes installed CLI bin dir after uninstall: ${expectedWindowsBinDir}.`
+  );
+  const postUninstallResolvedCommandPath = resolveWindowsKcCommand(postUninstallWindowsPath);
+  assert.equal(
+    isWindowsCommandInBinDir(postUninstallResolvedCommandPath, expectedWindowsBinDir),
+    false,
+    `Get-Command kc still resolves to the just-uninstalled CLI wrapper: ${postUninstallResolvedCommandPath}.`
+  );
 }
 
 async function findWindowsCliReceipt() {
@@ -319,6 +324,27 @@ function isWindowsPathEntryPresent(pathValue, expectedEntry) {
     .map((entry) => entry.trim())
     .filter(Boolean)
     .some((entry) => normalizeWindowsPathEntry(entry) === normalizedExpected);
+}
+
+function resolveWindowsKcCommand(pathValue) {
+  const result = spawnSync("powershell.exe", [
+    "-NoProfile",
+    "-Command",
+    "$command = Get-Command kc -ErrorAction SilentlyContinue; if ($command) { Write-Output $command.Source }"
+  ], {
+    cwd: repoRoot,
+    env: withWindowsPathEnv(process.env, pathValue),
+    encoding: "utf8"
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  return result.stdout.trim().split(/\r?\n/).at(-1) ?? "";
+}
+
+function isWindowsCommandInBinDir(commandPath, binDir) {
+  if (!commandPath.trim()) {
+    return false;
+  }
+  return normalizeWindowsPathEntry(path.dirname(commandPath)) === normalizeWindowsPathEntry(binDir);
 }
 
 function normalizeWindowsPathEntry(value) {
