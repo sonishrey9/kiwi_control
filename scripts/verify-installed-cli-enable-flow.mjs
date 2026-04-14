@@ -355,7 +355,7 @@ function resolveWindowsKcCommand(pathValue) {
   const result = spawnSync("powershell.exe", [
     "-NoProfile",
     "-Command",
-    "$command = Get-Command kc -ErrorAction SilentlyContinue; if ($command) { Write-Output $command.Source }"
+    "$command = Get-Command kc -ErrorAction SilentlyContinue; if ($command) { Write-Output $command.Source }; exit 0"
   ], {
     cwd: repoRoot,
     env: withWindowsPathEnv(process.env, pathValue),

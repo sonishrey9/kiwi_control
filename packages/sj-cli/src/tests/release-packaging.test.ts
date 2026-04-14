@@ -212,6 +212,7 @@ test("installed-app Windows verifier checks uninstall cleanup for the installed 
   assert.match(verifierSource, /const deadline = Date\.now\(\) \+ 30_000/);
   assert.match(verifierSource, /wrapperExists: await fileExists\(commandPath\)/);
   assert.match(verifierSource, /pathContainsBinDir: isWindowsPathEntryPresent\(windowsPath, binDir\)/);
+  assert.match(verifierSource, /if \(\$command\) \{ Write-Output \$command\.Source \}; exit 0/);
   assert.match(verifierSource, /Windows uninstall cleanup did not complete within 30 seconds/);
   assert.doesNotMatch(
     verifierSource,
