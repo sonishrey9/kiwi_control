@@ -1123,6 +1123,7 @@ let lastReadyStateSignal:
     }
   | null = null;
 let lastRenderProbeFingerprint = "";
+let renderProbeWriteQueue: Promise<void> = Promise.resolve();
 let readyStateTimer: number | null = null;
 let commandState: CommandState = {
   activeCommand: null,
@@ -1767,19 +1768,7 @@ async function handleLaunchRequest(request: LaunchRequestPayload): Promise<void>
 
   if (attachableCurrentState) {
     await logUiEvent("ui-launch-request-attached", request.requestId, request.targetRoot, currentState.loadState.source);
-    await setActiveRepoTarget(currentTargetRoot, currentState.executionState.revision);
-    bridgeNoteElement.textContent = buildBridgeNote(currentState, "cli");
-    noteReadyState(buildFinalReadyDetail(currentState));
-    renderState(currentState);
-    await acknowledgeLaunchRequest(
-      request.requestId,
-      currentTargetRoot,
-      isSnapshotLoadSource(currentState.loadState.source) ? "hydrating" : "ready",
-      isSnapshotLoadSource(currentState.loadState.source)
-        ? `Already attached to ${currentTargetRoot}. Fresh repo-local state is still hydrating.`
-        : `Already attached to ${currentTargetRoot}. Kiwi reused the active runtime-backed desktop session.`,
-      currentState.executionState.revision
-    );
+    await loadAndRenderTarget(request.targetRoot, "cli", request.requestId);
     return;
   }
 
@@ -1897,6 +1886,8 @@ async function loadAndRenderTarget(
   } finally {
     isLoadingRepoState = false;
     currentLoadSource = null;
+    reportRenderProbe(currentState);
+    renderState(currentState);
 
     if (!isRefreshingFreshRepoState) {
       await flushQueuedLaunchRequest(requestId);
@@ -3525,9 +3516,13 @@ function reportRenderProbe(state: RepoControlState): void {
   }
 
   lastRenderProbeFingerprint = fingerprint;
-  void invoke("write_render_probe", { payload }).catch(() => {
-    // Probe reporting is opt-in and must never affect the product flow.
-  });
+  renderProbeWriteQueue = renderProbeWriteQueue
+    .catch(() => undefined)
+    .then(() => invoke("write_render_probe", { payload }))
+    .then(() => undefined)
+    .catch(() => {
+      // Probe reporting is opt-in and must never affect the product flow.
+    });
 }
 
 interface RenderActionPayload {
@@ -3560,10 +3555,10 @@ async function consumePendingRenderAction(): Promise<void> {
     }
     if (action.actionType === "click-view" && action.view) {
       const nextView = normalizeRenderProbeView(action.view);
-      const button = nextView
-        ? railNavElement.querySelector<HTMLElement>(`[data-view="${escapeSelectorValue(nextView)}"]`)
-        : null;
-      button?.click();
+      if (nextView && setActiveView(nextView)) {
+        renderState(currentState);
+        scheduleMachineHydrationForView(activeView, false);
+      }
       return;
     }
     if (action.actionType === "focus-view" && action.view) {
@@ -3583,7 +3578,7 @@ async function consumePendingRenderAction(): Promise<void> {
     if (action.actionType === "switch-view" && action.view) {
       const nextView = normalizeRenderProbeView(action.view);
       if (nextView && setActiveView(nextView)) {
-        scheduleRenderState();
+        renderState(currentState);
         scheduleMachineHydrationForView(activeView, false);
       }
       return;
@@ -3595,7 +3590,7 @@ async function consumePendingRenderAction(): Promise<void> {
         activeLogTab = "history";
       }
       syncInspectorOpenState();
-      scheduleRenderState();
+      renderState(currentState);
       return;
     }
     if (action.actionType === "set-main-scroll" && typeof action.y === "number") {
@@ -3611,10 +3606,8 @@ async function consumePendingRenderAction(): Promise<void> {
         railNavElement.style.minHeight = "108px";
         railNavElement.style.flex = "0 0 108px";
       }
-      window.requestAnimationFrame(() => {
-        railNavElement.scrollTop = scrollTarget;
-        reportRenderProbe(currentState);
-      });
+      railNavElement.scrollTop = scrollTarget;
+      reportRenderProbe(currentState);
       return;
     }
   } catch {

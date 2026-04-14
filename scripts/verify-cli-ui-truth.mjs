@@ -76,7 +76,8 @@ async function main() {
   steps.push(await runCliStep("prepare-recovery", ["prepare", task, "--target", targetRoot], outputRoot));
   const recoveredStatus = await runCliJsonStep("status-recovered", ["status", "--json", "--target", targetRoot], outputRoot);
   assert.equal(recoveredStatus.payload.executionState.lifecycle, "packet-created");
-  const recoveredUi = await waitForUiState(targetRoot, "recovered", outputRoot, "packet-created", sharedDesktopBridge);
+  await killExistingKiwiProcesses();
+  const recoveredUi = await verifyUiLaunch(targetRoot, "recovered", outputRoot, "packet-created", null);
   steps.push(recoveredUi.step);
 
   const summary = {
@@ -217,8 +218,11 @@ async function verifyUiLaunch(targetRoot, label, outputRoot, expectedLifecycle, 
     (payload) =>
       payload?.targetRoot === targetRoot
       && payload?.executionState === expectedLifecycle
-      && payload?.mounted === true
-      && payload?.bootVisible === false
+      && payload?.loadPhase !== "opening"
+      && Array.isArray(payload?.visibleSections)
+      && payload.visibleSections.includes("overview-primary-hero")
+      && Array.isArray(payload?.visibleCommands)
+      && payload.visibleCommands.includes("validate")
   );
   assert.equal(probe.targetRoot, targetRoot);
   assert.equal(probe.executionState, expectedLifecycle);
@@ -258,8 +262,11 @@ async function waitForUiState(targetRoot, label, outputRoot, expectedLifecycle, 
     (payload) =>
       payload?.targetRoot === targetRoot
       && payload?.executionState === expectedLifecycle
-      && payload?.mounted === true
-      && payload?.bootVisible === false
+      && payload?.loadPhase !== "opening"
+      && Array.isArray(payload?.visibleSections)
+      && payload.visibleSections.includes("overview-primary-hero")
+      && Array.isArray(payload?.visibleCommands)
+      && payload.visibleCommands.includes("validate")
   );
   await fs.writeFile(path.join(outputRoot, `render-probe-${label}.json`), `${JSON.stringify(probe, null, 2)}\n`, "utf8");
 

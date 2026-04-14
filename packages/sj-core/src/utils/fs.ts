@@ -145,7 +145,7 @@ export function isIgnoredArtifactName(name: string): boolean {
 }
 
 function formatManagedFileMarker(kind: "FILE-START" | "FILE-END", name: string): string {
-  if (name.endsWith(".yaml") || name.endsWith(".yml")) {
+  if (name.endsWith(".yaml") || name.endsWith(".yml") || name.endsWith(".sh")) {
     return `# ${MANAGED_PREFIX}:${kind} ${name}`;
   }
 
