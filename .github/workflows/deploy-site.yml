@@ -2,21 +2,6 @@ name: Deploy Site
 
 on:
   workflow_dispatch:
-  push:
-    branches: ["main"]
-    paths:
-      - "website/**"
-      - "scripts/aws-public-common.mjs"
-      - "scripts/ensure-aws-public-site.mjs"
-      - "scripts/publish-aws-public-site.mjs"
-      - "scripts/publish-aws-public-downloads.mjs"
-      - "scripts/run-ui-desktop-build.mjs"
-      - "scripts/stage-pages-site.mjs"
-      - "scripts/verify-public-download-surface.mjs"
-      - ".github/workflows/deploy-site.yml"
-      - ".github/workflows/ci.yml"
-      - ".github/workflows/release.yml"
-      - "package.json"
 
 concurrency:
   group: deploy-site-production
