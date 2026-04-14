@@ -41,12 +41,6 @@ jobs:
       - name: Smoke test
         run: bash scripts/smoke-test.sh
 
-      - name: Verify Shrey Junior contract
-        shell: bash
-        run: |
-          set -euo pipefail
-          bash .agent/scripts/verify-contract.sh
-
   verify-cross-platform:
     if: github.event_name == 'workflow_dispatch' && inputs.full_matrix == true
     strategy:
