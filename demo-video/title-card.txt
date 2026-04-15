@@ -1,0 +1,5 @@
+Kiwi Control
+
+Repo-first control for Claude Code workflows
+
+Real repo. Real setup. Real task. Measured A/B proof.

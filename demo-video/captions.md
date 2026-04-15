@@ -1,0 +1,21 @@
+# Caption Suggestions
+
+- `Kiwi Control keeps agent workflow state inside the repo`
+- `Repo B is a real Vite + React + TypeScript app`
+- `kc status: current repo state`
+- `kc guide: next useful step`
+- `kc graph build: repo structure refreshed`
+- `kc pack status: selected context policy`
+- `kc review: review-oriented handoff`
+- `Claude Code still writes the code`
+- `Kiwi frames the work before Claude starts`
+- `Same task, same machine, two repo runs`
+- `Direct Claude JSON usage data`
+- `Repo A: Claude directly`
+- `Repo B: Kiwi workflow first`
+- `37.3% lower Claude cost on this measured task`
+- `24.3% fewer Claude turns on this measured task`
+- `59.0% lower Claude wall-clock time on this measured task`
+- `One measured run, not a universal benchmark`
+- `Raw logs and metrics are linked on /proof/`
+- `Download the beta at kiwi-control.kiwi-ai.in/downloads`

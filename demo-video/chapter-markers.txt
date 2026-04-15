@@ -1,0 +1,7 @@
+00:00 What Kiwi Control is
+00:15 Real repo + Kiwi setup
+00:45 Status, guide, graph, pack, review
+01:20 Claude Code in the workflow
+02:00 Working Markdown Notes Organizer
+02:40 Measured A/B proof
+03:15 Proof page and downloads
