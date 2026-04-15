@@ -291,7 +291,7 @@ function expectedWindowsCliPhrase(metadata) {
 function expectedWindowsDesktopPhrase(metadata) {
   return metadata.artifacts?.windowsNsis?.latestUrl || metadata.artifacts?.windowsMsi?.latestUrl
     ? "Download Windows setup EXE"
-    : "Windows desktop installer is not published yet";
+    : "Windows setup EXE coming soon";
 }
 
 function validateReleaseReadyMetadata(metadata) {

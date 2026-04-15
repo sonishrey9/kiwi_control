@@ -629,11 +629,39 @@ test("public download verifier fails when a not-ready site is treated as release
   const root = repoRoot();
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-pages-verify-required-"));
   const outputDir = path.join(tempDir, "dist-site");
+  const downloadsJsonPath = path.join(tempDir, "downloads.json");
+  await fs.writeFile(
+    downloadsJsonPath,
+    JSON.stringify({
+      tagName: "v0.2.0-beta.test",
+      version: "0.2.0-beta.test",
+      channel: "beta",
+      publicReleaseReady: false,
+      releaseNotesUrl: null,
+      sourceUrl: null,
+      checksumsUrl: null,
+      manifestUrl: null,
+      trust: {
+        macos: "local-beta-build-only",
+        windows: "windows-runner-required"
+      },
+      artifacts: {
+        macosPkg: { filename: "kiwi-control.pkg", latestUrl: null, versionedUrl: null },
+        macosAppTarball: { filename: "kiwi-control.app.tar.gz", latestUrl: null, versionedUrl: null },
+        windowsNsis: { filename: "kiwi-control-setup.exe", latestUrl: null, versionedUrl: null },
+        windowsMsi: { filename: "kiwi-control.msi", latestUrl: null, versionedUrl: null },
+        cliWindows: { filename: "kiwi-control-cli.zip", latestUrl: null, versionedUrl: null }
+      }
+    }, null, 2),
+    "utf8"
+  );
 
   const stageResult = spawnSync(process.execPath, [
     path.join(root, "scripts", "stage-pages-site.mjs"),
     "--output-dir",
-    outputDir
+    outputDir,
+    "--downloads-json",
+    downloadsJsonPath
   ], {
     cwd: root,
     encoding: "utf8"

@@ -41,7 +41,7 @@
             <div><a href="/downloads/" data-download-link data-download-kind="windowsNsis" data-primary-label="Download Windows setup EXE" data-unavailable-label="Windows setup EXE coming soon">Windows setup EXE coming soon</a></div>
             <div><a href="/downloads/" data-download-link data-download-kind="windowsMsi" data-primary-label="Download Windows MSI" data-unavailable-label="Windows MSI coming soon">Windows MSI coming soon</a></div>
           </div>
-          <p class="warn">macOS pkg is the intended default installer path for install-time CLI setup. DMG remains a secondary manual beta path. Windows setup EXE is the intended default Windows path once published, but Windows EXE/MSI are not live yet. Treat MSI as secondary until it has the same proof bar.</p>
+          <p class="warn">macOS pkg is the intended default installer path for install-time CLI setup. DMG remains a secondary manual beta path. Windows setup EXE is the intended default Windows path for this beta. Windows MSI is available as a secondary manual path while signing proof remains incomplete.</p>
         </article>
 
         <article class="panel">
@@ -81,7 +81,7 @@
             <div>macOS: launch the app once, then run <code>command -v kc</code></div>
             <div>macOS: run <code>kc --help</code>. If blocked, the app already shows retry/remediation.</div>
             <div>Windows CLI: run the PowerShell bootstrap, then run <code>Get-Command kc</code></div>
-            <div>Windows CLI: run <code>kc --help</code> from a fresh shell. Windows desktop proof remains pending.</div>
+            <div>Windows desktop: after installing the setup EXE, run <code>Get-Command kc</code> and <code>kc --help</code> from a fresh shell.</div>
           </div>
         </article>
 
@@ -91,7 +91,7 @@
           <div class="list">
             <div>macOS beta builds can be tested now, but unsigned pkg or DMG installs may still require a manual first-open override until signed/notarized/stapled proof exists.</div>
             <div>If Finder says Apple could not verify the pkg, Control-click it and choose <code>Open</code>, or go to <code>System Settings &gt; Privacy &amp; Security</code> and click <code>Open Anyway</code>.</div>
-            <div>Windows still needs signed installer proof on a Windows host, plus real Windows-host proof for installer-time CLI readiness.</div>
+            <div>Windows installers are published for this beta, but signing proof is still incomplete.</div>
             <div>Install/PATH success and release trust are separate claims.</div>
             <div>Public hosting only changes delivery, not trust.</div>
           </div>
@@ -125,9 +125,9 @@
 
         <article class="panel detail-panel">
           <div class="eyebrow">Windows fallback</div>
-          <h2>Windows desktop availability</h2>
+          <h2>Windows CLI-only fallback</h2>
           <p>
-            Windows setup EXE is the intended default Windows path once it exists, but Windows EXE/MSI are not live yet.
+            Windows setup EXE and MSI links are live for this beta. Use the PowerShell bootstrap only when you want the standalone CLI without installing the desktop app.
           </p>
           <div class="list">
             <div>Use the Windows PowerShell bootstrap for CLI-only installs:</div>
@@ -139,7 +139,7 @@
       <footer class="site-footer">
         <div>
           <strong>Created by Shrey Soni</strong>
-          <span>The public website is live now; macOS open-source beta installers are published while broader release trust and Windows proof remain pending.</span>
+          <span>The public website is live now; macOS and Windows open-source beta installers are published while broader release signing trust remains pending.</span>
         </div>
         <div class="footer-links">
           <a href="/install/">Install guide</a>
