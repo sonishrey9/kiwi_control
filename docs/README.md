@@ -4,6 +4,9 @@ These are the main public-facing docs for Kiwi Control.
 
 ## Public user docs
 
+- [How Kiwi Control works](./how-kiwi-control-works.md)
+- [Architecture diagrams](./architecture-diagrams.md)
+- [Architecture FAQ](./architecture-faq.md)
 - [Install](./install.md)
 - [Desktop-first validation checklist](./desktop-first-validation-checklist.md)
 - [Beta limitations](./beta-limitations.md)
@@ -26,6 +29,12 @@ For external contributors, start at the repo root:
 ## Maintainer and internal docs
 
 Kiwi Control also contains deeper architecture and implementation docs. Those are intended for maintainers and contributors who need product internals, not for first-time installers.
+
+Architecture and lifecycle docs:
+
+- [Architecture](./architecture.md)
+- [Technical architecture](./technical-architecture.md)
+- [Repo lifecycle](./repo-lifecycle.md)
 
 Maintainer-oriented audits added during the current hardening pass:
 

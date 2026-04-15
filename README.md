@@ -2,6 +2,25 @@
 
 Kiwi Control is a local-first, repo-first control plane for coding agents. It keeps workflow authority inside the repository, exposes a practical CLI for day-to-day work, and ships a Tauri desktop app for visibility, validation, and review.
 
+## Architecture in one page
+
+Kiwi Control is not an AI agent and does not replace Claude Code, Codex, Cursor, or Copilot. It is the control plane those tools can read before they start spending context on a repo.
+
+The system is split into three main implementation surfaces:
+
+- `packages/sj-core` derives repo-local truth: context selection, repo intelligence, graph and review packs, validation, workflow state, checkpoints, handoffs, and token/usage guidance.
+- `packages/sj-cli` exposes that truth through commands such as `kc status`, `kc guide`, `kc graph`, `kc pack`, `kc review`, and `kc check`.
+- `apps/sj-ui` is the Tauri desktop surface that visualizes the same repo-local state instead of inventing hidden UI-only state.
+
+The durable contract lives in the repository, primarily in `.agent/`, alongside trusted human-facing authority such as `AGENTS.md`, `CLAUDE.md`, README, docs, and Copilot instruction surfaces. That is why Kiwi Control is local-first and repo-first: open-source users can inspect what it wrote, diff it, and decide whether the guidance is trustworthy.
+
+The token-efficiency story is architectural, not magic. Kiwi Control narrows the working set, points agents at relevant files, preserves continuity through checkpoints and handoffs, and turns review/check/pack state into structured context. That can reduce wasted wandering, but it is not a universal savings guarantee.
+
+- Public architecture page: [kiwi-control.kiwi-ai.in/architecture](https://kiwi-control.kiwi-ai.in/architecture/)
+- Detailed internals: [docs/how-kiwi-control-works.md](./docs/how-kiwi-control-works.md)
+- Mermaid diagrams: [docs/architecture-diagrams.md](./docs/architecture-diagrams.md)
+- Architecture FAQ: [docs/architecture-faq.md](./docs/architecture-faq.md)
+
 ## Measured proof
 
 Kiwi Control now has one controlled public A/B proof run using the same Markdown Notes Organizer task on the same machine.
@@ -47,9 +66,11 @@ Measured on one controlled greenfield A/B run of the same task using direct Clau
 ## Quick links
 
 - Website: [kiwi-control.kiwi-ai.in](https://kiwi-control.kiwi-ai.in/)
+- Architecture: [kiwi-control.kiwi-ai.in/architecture](https://kiwi-control.kiwi-ai.in/architecture/)
 - Demo / Proof: [kiwi-control.kiwi-ai.in/proof](https://kiwi-control.kiwi-ai.in/proof/)
 - Downloads: [kiwi-control.kiwi-ai.in/downloads](https://kiwi-control.kiwi-ai.in/downloads/)
 - Install guide: [docs/install.md](./docs/install.md)
+- How Kiwi Control works: [docs/how-kiwi-control-works.md](./docs/how-kiwi-control-works.md)
 - Generated artifact policy: [docs/generated-artifacts.md](./docs/generated-artifacts.md)
 - Support: [SUPPORT.md](./SUPPORT.md)
 - Security: [SECURITY.md](./SECURITY.md)
@@ -158,7 +179,7 @@ See [docs/beta-limitations.md](./docs/beta-limitations.md) for the current beta 
 - `configs/`, `prompts/`, `templates/` — canonical product authority
 - `.agent/` — generated repo-local state and continuity artifacts
 
-For a deeper architectural view, read [ARCHITECTURE.md](./ARCHITECTURE.md).
+For a deeper architectural view, read [docs/how-kiwi-control-works.md](./docs/how-kiwi-control-works.md), [docs/architecture-diagrams.md](./docs/architecture-diagrams.md), and [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Development
 

@@ -1,5 +1,7 @@
 # Architecture
 
+For a public, diagram-driven explanation of the current system, also see [How Kiwi Control Works](./how-kiwi-control-works.md), [Architecture Diagrams](./architecture-diagrams.md), and [Architecture FAQ](./architecture-faq.md).
+
 ## Goal
 
 `shrey-junior` is a thin compiler from canonical repo-local control data into native instruction surfaces for:

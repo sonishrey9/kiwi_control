@@ -23,6 +23,8 @@ Recommended public routes:
   - product landing page
 - `/downloads/`
   - human-friendly latest download page backed by `/data/latest-release.json`
+- `/architecture/`
+  - public explanation of the repo-first architecture, CLI/core/UI split, FAQ, and contact paths
 - `/install/`
   - install guide and release-channel explanation
 - `/beta/`

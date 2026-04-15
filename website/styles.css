@@ -300,6 +300,160 @@ p {
   box-shadow: var(--shadow);
 }
 
+.architecture-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
+  gap: 22px;
+  align-items: stretch;
+}
+
+.architecture-system-card,
+.architecture-highlight,
+.architecture-card,
+.command-matrix > div,
+.faq-list details {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.architecture-system-card {
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  padding: 22px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(19, 34, 54, 0.94), rgba(8, 14, 24, 0.96));
+}
+
+.architecture-node {
+  padding: 13px 15px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(7, 14, 24, 0.9);
+  color: var(--text);
+  font-weight: 800;
+}
+
+.architecture-node.is-user,
+.architecture-node.is-agent {
+  border-color: rgba(255, 194, 124, 0.35);
+}
+
+.architecture-node.is-core,
+.architecture-node.is-repo {
+  border-color: var(--border-strong);
+}
+
+.architecture-arrow {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.architecture-highlight {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  gap: 20px;
+  padding: 24px;
+  margin-bottom: 24px;
+  border-color: var(--border-strong);
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(14, 27, 43, 0.98), rgba(8, 14, 24, 0.96));
+}
+
+.architecture-highlight > div:first-child {
+  display: grid;
+  gap: 12px;
+}
+
+.architecture-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+.architecture-card {
+  display: grid;
+  gap: 10px;
+  padding: 20px;
+  border-radius: 20px;
+}
+
+.architecture-card h3,
+.command-matrix strong {
+  margin: 0;
+  color: var(--text);
+}
+
+.lifecycle-strip {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid var(--border-strong);
+  background: rgba(8, 14, 24, 0.82);
+}
+
+.lifecycle-strip span {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  padding: 9px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--accent-strong);
+  background: rgba(126, 231, 214, 0.08);
+  font-weight: 800;
+}
+
+.lifecycle-strip-compact {
+  align-content: start;
+}
+
+.command-matrix {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.command-matrix > div {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border-radius: 18px;
+}
+
+.command-matrix span {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.faq-list {
+  display: grid;
+  gap: 12px;
+}
+
+.faq-list details {
+  padding: 18px;
+  border-radius: 18px;
+}
+
+.faq-list summary {
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.faq-list p {
+  margin-top: 10px;
+}
+
 .proof-highlight-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
@@ -531,6 +685,8 @@ code {
 
 @media (max-width: 900px) {
   .hero-download,
+  .architecture-hero,
+  .architecture-highlight,
   .hero-proof,
   .proof-highlight-grid {
     grid-template-columns: 1fr;

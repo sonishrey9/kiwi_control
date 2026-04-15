@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kiwi Control Architecture</title>
+    <meta
+      name="description"
+      content="How Kiwi Control works: repo-first architecture, CLI, core engine, desktop UI, graph and review surfaces, FAQs, and contact paths."
+    />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <div class="shell">
+      <nav class="nav">
+        <div class="brand">Kiwi Control</div>
+        <div class="nav-links">
+          <a href="/">Home</a>
+          <a href="/architecture/">Architecture</a>
+          <a href="/proof/">Demo / Proof</a>
+          <a href="/downloads/">Downloads</a>
+          <a href="/install/">Install guide</a>
+          <a href="/support/">Support</a>
+        </div>
+      </nav>
+
+      <section class="hero architecture-hero">
+        <div class="hero-copy">
+          <div class="eyebrow">Architecture</div>
+          <h1>Kiwi Control is the repo-local control plane around your coding agents.</h1>
+          <p class="hero-text">
+            It does not replace Claude Code, Codex, Cursor, or Copilot. It gives them a structured repo map, current state, review guidance, validation expectations, and continuity artifacts before they start spending context.
+          </p>
+          <p class="recommendation">
+            The repository stays the source of truth. The CLI and desktop app read the same repo-local contract.
+          </p>
+          <div class="cta-row">
+            <a class="button button-primary" href="/proof/">See measured proof</a>
+            <a class="button" href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/how-kiwi-control-works.md">Read internals</a>
+            <a class="button" href="#faq">Architecture FAQ</a>
+          </div>
+        </div>
+
+        <div class="architecture-system-card">
+          <div class="architecture-node is-user">Developer</div>
+          <div class="architecture-arrow">uses</div>
+          <div class="architecture-node is-cli">kc CLI</div>
+          <div class="architecture-arrow">derives</div>
+          <div class="architecture-node is-core">sj-core</div>
+          <div class="architecture-arrow">writes / reads</div>
+          <div class="architecture-node is-repo">repo-local .agent/ state</div>
+          <div class="architecture-arrow">guides</div>
+          <div class="architecture-node is-agent">Claude Code, Codex, Cursor, Copilot</div>
+        </div>
+      </section>
+
+      <section class="architecture-highlight">
+        <div>
+          <div class="eyebrow">Why this matters</div>
+          <h2>Agent waste usually starts before implementation.</h2>
+          <p>
+            When an agent starts in a real repo without a working set, authority order, phase state, or validation map, it has to discover all of that with expensive broad reads. Kiwi Control makes those answers explicit and inspectable.
+          </p>
+        </div>
+        <div class="proof-highlight-stats">
+          <div class="proof-stat">
+            <span class="proof-stat-value">Local</span>
+            <span class="proof-stat-label">Repo-owned contract, no cloud-required control plane</span>
+          </div>
+          <div class="proof-stat">
+            <span class="proof-stat-value">Graph</span>
+            <span class="proof-stat-label">Repo map, impact, decision, history, and review surfaces</span>
+          </div>
+          <div class="proof-stat">
+            <span class="proof-stat-value">Honest</span>
+            <span class="proof-stat-label">Efficiency proof is measured on one controlled run, not universal</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="proof-section">
+        <div class="section-header">
+          <div class="eyebrow">System overview</div>
+          <h2>Four surfaces, one repo-local truth.</h2>
+        </div>
+        <div class="architecture-grid">
+          <article class="architecture-card">
+            <h3>Repo authority</h3>
+            <p>README, AGENTS.md, CLAUDE.md, Copilot instructions, docs, and `.agent/` files define the portable working contract.</p>
+          </article>
+          <article class="architecture-card">
+            <h3>Core engine</h3>
+            <p>`packages/sj-core` derives context, graph artifacts, review packs, workflow state, checks, and token guidance.</p>
+          </article>
+          <article class="architecture-card">
+            <h3>CLI surface</h3>
+            <p>`packages/sj-cli` exposes the engine through `kc status`, `guide`, `graph`, `pack`, `review`, and `check`.</p>
+          </article>
+          <article class="architecture-card">
+            <h3>Desktop surface</h3>
+            <p>`apps/sj-ui` is a Tauri app that visualizes the same repo-local state and runtime bridge output.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="proof-section">
+        <div class="section-header">
+          <div class="eyebrow">Repo lifecycle</div>
+          <h2>From unknown repo to structured agent workflow.</h2>
+        </div>
+        <div class="lifecycle-strip">
+          <span>kc init</span>
+          <span>kc status</span>
+          <span>kc guide</span>
+          <span>kc graph build</span>
+          <span>kc pack status</span>
+          <span>kc review</span>
+          <span>kc check</span>
+          <span>checkpoint / handoff</span>
+        </div>
+        <div class="details-layout">
+          <article class="panel detail-panel">
+            <div class="eyebrow">Before agent work</div>
+            <h2>Context becomes deliberate.</h2>
+            <p>
+              Kiwi Control reads repo authority, classifies project shape, selects context within a budget, and records active role hints so an agent can start with a practical map instead of raw discovery.
+            </p>
+          </article>
+          <article class="panel detail-panel">
+            <div class="eyebrow">During review</div>
+            <h2>Risk becomes visible.</h2>
+            <p>
+              Review and graph outputs turn the current repo state into concrete files, modules, validations, and next steps. The agent still reasons, but it has fewer blind alleys.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="proof-section">
+        <div class="section-header">
+          <div class="eyebrow">Command map</div>
+          <h2>The main surfaces line up with the repo lifecycle.</h2>
+        </div>
+        <div class="command-matrix">
+          <div><strong>status</strong><span>Current repo-local continuity, authority, readiness, and target state.</span></div>
+          <div><strong>guide</strong><span>What to read next, what command to consider, and which specialist or pack fits.</span></div>
+          <div><strong>graph</strong><span>Repo map, dependency, impact, history, decision, and review graph artifacts.</span></div>
+          <div><strong>pack</strong><span>Scoped MCP/tool/context guidance, not fake universal tool access.</span></div>
+          <div><strong>review</strong><span>Risk-ordered review context and likely missing validation guidance.</span></div>
+          <div><strong>check</strong><span>Repo-local contract validation and workflow expectation checks.</span></div>
+        </div>
+      </section>
+
+      <section class="proof-section">
+        <div class="section-header">
+          <div class="eyebrow">Token efficiency</div>
+          <h2>Lower waste comes from better starting context.</h2>
+          <p>
+            Kiwi Control helps agents avoid repeated rediscovery by making repo authority, selected files, graph hints, validation expectations, and handoff state explicit. The measured proof shows this helped on one controlled task. It is not a guarantee for every repo or every model.
+          </p>
+        </div>
+        <div class="architecture-grid">
+          <article class="architecture-card">
+            <h3>Narrower first read</h3>
+            <p>Context selection ranks files before an agent reads broad sections of the repo.</p>
+          </article>
+          <article class="architecture-card">
+            <h3>Less repeated setup</h3>
+            <p>Checkpoints, handoffs, and current-focus state preserve continuity across interruptions.</p>
+          </article>
+          <article class="architecture-card">
+            <h3>Review before drift</h3>
+            <p>Review packs and checks push attention toward risk and validation before a patch grows sideways.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="proof-section">
+        <div class="section-header">
+          <div class="eyebrow">Open-source internals</div>
+          <h2>Inspect the architecture directly.</h2>
+        </div>
+        <div class="evidence-grid">
+          <article class="evidence-card">
+            <h3>Architecture docs</h3>
+            <div class="detail-link-row">
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/how-kiwi-control-works.md">How Kiwi works</a>
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/architecture-diagrams.md">Mermaid diagrams</a>
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/technical-architecture.md">Technical architecture</a>
+            </div>
+          </article>
+          <article class="evidence-card">
+            <h3>Implementation roots</h3>
+            <div class="detail-link-row">
+              <a href="https://github.com/sonishrey9/kiwi_control/tree/main/packages/sj-core">sj-core</a>
+              <a href="https://github.com/sonishrey9/kiwi_control/tree/main/packages/sj-cli">sj-cli</a>
+              <a href="https://github.com/sonishrey9/kiwi_control/tree/main/apps/sj-ui">sj-ui</a>
+            </div>
+          </article>
+          <article class="evidence-card">
+            <h3>Measured proof</h3>
+            <div class="detail-link-row">
+              <a href="/proof/">Proof page</a>
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/proof/ab-run-2026-04-15/comparison-report.md">Comparison report</a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="proof-section" id="faq">
+        <div class="section-header">
+          <div class="eyebrow">FAQ</div>
+          <h2>Common architecture questions.</h2>
+        </div>
+        <div class="faq-list">
+          <details open>
+            <summary>Is Kiwi Control an AI agent?</summary>
+            <p>No. Kiwi Control is a control plane. Claude Code, Codex, Cursor, Copilot, or a human still perform the implementation work.</p>
+          </details>
+          <details>
+            <summary>Does it replace Claude Code or Codex?</summary>
+            <p>No. It is designed to give those tools structured repo context and continuity before they start work.</p>
+          </details>
+          <details>
+            <summary>How does it reduce wasted token usage?</summary>
+            <p>It narrows the initial working set, preserves handoff state, and points review toward risky files. The public proof is one controlled measured run, not a universal benchmark.</p>
+          </details>
+          <details>
+            <summary>Does it work locally?</summary>
+            <p>Yes. The durable contract lives inside the repository, primarily under `.agent/`, with CLI and desktop surfaces reading that state.</p>
+          </details>
+          <details>
+            <summary>What is still beta?</summary>
+            <p>Installer signing trust is release-specific, Homebrew and winget are not live install paths, and some usage/advisory views depend on local tool availability.</p>
+          </details>
+        </div>
+      </section>
+
+      <section class="proof-section proof-cta">
+        <div class="section-header">
+          <div class="eyebrow">Questions</div>
+          <h2>Ask about the internals, proof, or release path.</h2>
+          <p>
+            Use GitHub for reproducible issues, LinkedIn for direct product questions, or email Shrey if you need a deeper architecture conversation.
+          </p>
+        </div>
+        <div class="cta-row">
+          <a class="button button-primary" href="https://github.com/sonishrey9/kiwi_control/issues">Open a GitHub issue</a>
+          <a class="button" href="https://www.linkedin.com/in/shreykumarsoni/">Reach Shrey on LinkedIn</a>
+          <a class="button" href="mailto:sonishrey9@gmail.com">Email Shrey</a>
+        </div>
+      </section>
+
+      <footer class="site-footer">
+        <div>
+          <strong>Created by Shrey Soni</strong>
+          <span>Kiwi Control is local-first, repo-first, and built to make coding-agent work easier to inspect.</span>
+        </div>
+        <div class="footer-links">
+          <a href="/proof/">Demo / Proof</a>
+          <a href="/downloads/">Downloads</a>
+          <a href="/support/">Support</a>
+          <a href="https://github.com/sonishrey9/kiwi_control">GitHub</a>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>
