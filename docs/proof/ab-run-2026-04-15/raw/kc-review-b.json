@@ -1,0 +1,100 @@
+{
+  "artifactType": "kiwi-control/review-pack",
+  "version": 1,
+  "generatedAt": "2026-04-15T09:12:54.622Z",
+  "summary": "Review eslint.config.js first across 17 changed file(s), 2 ranked file target(s), and 0 ranked module target(s).",
+  "source": "working-tree",
+  "baseRef": null,
+  "task": null,
+  "changedFiles": [
+    ".agent/",
+    ".github/",
+    ".gitignore",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "README.md",
+    "ab-output/",
+    "eslint.config.js",
+    "index.html",
+    "package-lock.json",
+    "package.json",
+    "public/",
+    "src/",
+    "tsconfig.app.json",
+    "tsconfig.json",
+    "tsconfig.node.json",
+    "vite.config.ts"
+  ],
+  "rankedFiles": [
+    {
+      "file": "eslint.config.js",
+      "moduleGroup": "eslint.config.js",
+      "score": 55,
+      "reasons": [
+        "changed file",
+        "changed-area cluster"
+      ],
+      "touches": 0,
+      "failures": 0
+    },
+    {
+      "file": "vite.config.ts",
+      "moduleGroup": "vite.config.ts",
+      "score": 55,
+      "reasons": [
+        "changed file",
+        "changed-area cluster"
+      ],
+      "touches": 0,
+      "failures": 0
+    }
+  ],
+  "rankedModules": [],
+  "impactChains": [],
+  "repeatedTouchAreas": [],
+  "failureLinkedAreas": [],
+  "likelyMissingValidation": [
+    "No changed test detected alongside .github/.",
+    "No changed test detected alongside .gitignore.",
+    "No changed test detected alongside ab-output/.",
+    "No changed test detected alongside eslint.config.js.",
+    "Run kiwi-control check after editing eslint.config.js.",
+    "No changed test detected alongside index.html.",
+    "No changed test detected alongside package-lock.json.",
+    "Run kiwi-control check after editing package-lock.json.",
+    "No changed test detected alongside package.json.",
+    "Run kiwi-control check after editing package.json."
+  ],
+  "reviewOrder": [
+    {
+      "kind": "file",
+      "target": "eslint.config.js",
+      "reason": "changed file"
+    },
+    {
+      "kind": "file",
+      "target": "vite.config.ts",
+      "reason": "changed file"
+    }
+  ],
+  "reviewerHandoff": {
+    "summary": "Review eslint.config.js first, then the highest-risk changed modules.",
+    "readFirst": [
+      ".agent/context/review-pack.json",
+      ".agent/state/review-graph.json",
+      ".agent/state/impact-map.json",
+      ".agent/state/history-graph.json",
+      ".agent/state/decision-graph.json"
+    ]
+  },
+  "codingToolHandoff": {
+    "summary": "Use the review pack with the runtime state and task pack before modifying risky areas.",
+    "readFirst": [
+      ".agent/context/review-pack.json",
+      ".agent/context/task-pack.json",
+      ".agent/state/execution-state.json",
+      ".agent/state/execution-events.ndjson",
+      ".agent/context/review-context-pack.json"
+    ]
+  }
+}

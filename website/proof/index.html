@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kiwi Control Demo / Proof</title>
+    <meta
+      name="description"
+      content="Measured Kiwi Control proof from one controlled greenfield A/B run using direct Claude JSON usage data."
+    />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <div class="shell">
+      <nav class="nav">
+        <div class="brand">Kiwi Control</div>
+        <div class="nav-links">
+          <a href="/">Home</a>
+          <a href="/downloads/">Downloads</a>
+          <a href="/install/">Install guide</a>
+          <a href="/proof/">Demo / Proof</a>
+          <a href="/support/">Support</a>
+        </div>
+      </nav>
+
+      <section class="hero hero-proof">
+        <div class="hero-copy">
+          <div class="eyebrow">Measured proof</div>
+          <div class="release-chip" data-release-badge>Latest release</div>
+          <h1>One controlled build task is enough to show how Kiwi Control changes agent workflow quality.</h1>
+          <p class="hero-text">
+            This proof page is built around one controlled greenfield A/B run of the same task on the same machine. Repo A used Claude Code directly. Repo B used Kiwi Control before implementation. Both runs captured direct Claude JSON usage data.
+          </p>
+          <p class="recommendation">
+            This is measured proof for one controlled run, not a universal benchmark.
+          </p>
+          <div class="cta-row">
+            <a class="button button-primary" href="https://github.com/sonishrey9/kiwi_control/blob/main/output/demo/2026-04-14-video-final/final/kiwi-control-demo-complete-github.mov?raw=1">Watch full demo</a>
+            <a class="button" href="#evidence">Inspect raw evidence</a>
+            <a class="button" href="/downloads/">Try Kiwi Control</a>
+          </div>
+        </div>
+        <div class="proof-poster">
+          <img src="/media/kiwi-demo-video.png" alt="Kiwi Control demo poster" />
+        </div>
+      </section>
+
+      <section class="proof-highlight">
+        <div class="proof-highlight-grid">
+          <div class="proof-stat">
+            <span class="proof-stat-value">37.3%</span>
+            <span class="proof-stat-label">lower Claude cost</span>
+          </div>
+          <div class="proof-stat">
+            <span class="proof-stat-value">24.3%</span>
+            <span class="proof-stat-label">fewer Claude turns</span>
+          </div>
+          <div class="proof-stat">
+            <span class="proof-stat-value">59.0%</span>
+            <span class="proof-stat-label">lower Claude wall-clock time</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="proof-section">
+        <div class="section-header">
+          <div class="eyebrow">Watch the demo</div>
+          <h2>Video-first product proof</h2>
+          <p>The current launch surface links to the actual demo edits already tracked in the repo. No embedded video is claimed where a browser-safe player is not guaranteed.</p>
+        </div>
+        <div class="video-grid">
+          <article class="video-card video-card-primary">
+            <img src="/media/kiwi-demo-video.png" alt="Kiwi Control full demo poster" />
+            <div class="video-copy">
+              <h3>Full walkthrough</h3>
+              <p>The full product and workflow walkthrough used for the current demo pass.</p>
+              <div class="detail-link-row">
+                <a href="https://github.com/sonishrey9/kiwi_control/blob/main/output/demo/2026-04-14-video-final/final/kiwi-control-demo-complete-github.mov?raw=1">Watch full demo</a>
+                <a href="https://github.com/sonishrey9/kiwi_control/blob/main/output/demo/2026-04-14-video-final/final/kiwi-control-demo-final-github.mov?raw=1">Watch edited version</a>
+              </div>
+            </div>
+          </article>
+          <article class="video-card">
+            <img src="/media/kiwi-graph.png" alt="Kiwi graph view screenshot" />
+            <div class="video-copy">
+              <h3>Short demo</h3>
+              <p>A shorter cut for launch sharing.</p>
+              <div class="detail-link-row">
+                <a href="https://github.com/sonishrey9/kiwi_control/blob/main/output/demo/2026-04-14-video-final/final/kiwi-control-demo-short.mov?raw=1">Watch short demo</a>
+              </div>
+            </div>
+          </article>
+          <article class="video-card">
+            <img src="/media/kiwi-machine.png" alt="Kiwi machine view screenshot" />
+            <div class="video-copy">
+              <h3>Terminal-heavy run</h3>
+              <p>The version that shows the terminal flow more directly.</p>
+              <div class="detail-link-row">
+                <a href="https://github.com/sonishrey9/kiwi_control/blob/main/output/demo/2026-04-14-video-final/final/kiwi-control-terminal-real-run.mov?raw=1">Watch terminal run</a>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="proof-section">
+        <div class="section-header">
+          <div class="eyebrow">Measured A/B results</div>
+          <h2>Repo A vs Repo B on the same task</h2>
+          <p>Absolute values are shown below. Lower is better for every metric in this table.</p>
+        </div>
+        <div class="metric-grid">
+          <article class="metric-card">
+            <h3>Claude cost (USD)</h3>
+            <div class="metric-row"><span>Repo A</span><div class="metric-track"><span class="metric-fill metric-fill-a" style="width: 100%"></span></div><strong>1.386074</strong></div>
+            <div class="metric-row"><span>Repo B</span><div class="metric-track"><span class="metric-fill metric-fill-b" style="width: 62.7%"></span></div><strong>0.869697</strong></div>
+          </article>
+          <article class="metric-card">
+            <h3>Claude turns</h3>
+            <div class="metric-row"><span>Repo A</span><div class="metric-track"><span class="metric-fill metric-fill-a" style="width: 100%"></span></div><strong>37</strong></div>
+            <div class="metric-row"><span>Repo B</span><div class="metric-track"><span class="metric-fill metric-fill-b" style="width: 75.7%"></span></div><strong>28</strong></div>
+          </article>
+          <article class="metric-card">
+            <h3>Output tokens</h3>
+            <div class="metric-row"><span>Repo A</span><div class="metric-track"><span class="metric-fill metric-fill-a" style="width: 100%"></span></div><strong>27,974</strong></div>
+            <div class="metric-row"><span>Repo B</span><div class="metric-track"><span class="metric-fill metric-fill-b" style="width: 39.2%"></span></div><strong>10,958</strong></div>
+          </article>
+          <article class="metric-card">
+            <h3>Cache read tokens</h3>
+            <div class="metric-row"><span>Repo A</span><div class="metric-track"><span class="metric-fill metric-fill-a" style="width: 100%"></span></div><strong>1,301,005</strong></div>
+            <div class="metric-row"><span>Repo B</span><div class="metric-track"><span class="metric-fill metric-fill-b" style="width: 84.6%"></span></div><strong>1,100,949</strong></div>
+          </article>
+          <article class="metric-card">
+            <h3>Cache creation tokens</h3>
+            <div class="metric-row"><span>Repo A</span><div class="metric-track"><span class="metric-fill metric-fill-a" style="width: 100%"></span></div><strong>153,617</strong></div>
+            <div class="metric-row"><span>Repo B</span><div class="metric-track"><span class="metric-fill metric-fill-b" style="width: 65.1%"></span></div><strong>99,989</strong></div>
+          </article>
+          <article class="metric-card">
+            <h3>Claude wall-clock time</h3>
+            <div class="metric-row"><span>Repo A</span><div class="metric-track"><span class="metric-fill metric-fill-a" style="width: 100%"></span></div><strong>432s</strong></div>
+            <div class="metric-row"><span>Repo B</span><div class="metric-track"><span class="metric-fill metric-fill-b" style="width: 41.0%"></span></div><strong>177s</strong></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="proof-section">
+        <div class="section-header">
+          <div class="eyebrow">Methodology</div>
+          <h2>How we measured it</h2>
+        </div>
+        <div class="method-grid">
+          <div>
+            <strong>Same task</strong>
+            <p>Both repos implemented the same Markdown Notes Organizer scope on the same stack.</p>
+          </div>
+          <div>
+            <strong>Same machine</strong>
+            <p>Both runs happened sequentially on the same laptop and local filesystem.</p>
+          </div>
+          <div>
+            <strong>Repo A</strong>
+            <p>Claude Code only, with no Kiwi workflow help before implementation.</p>
+          </div>
+          <div>
+            <strong>Repo B</strong>
+            <p>Kiwi Control status, guide, graph, pack, and review were captured before implementation.</p>
+          </div>
+          <div>
+            <strong>Direct usage data</strong>
+            <p>Claude metrics came from Claude’s own JSON output. `ccusage` was not installed.</p>
+          </div>
+          <div>
+            <strong>Scope of claim</strong>
+            <p>This is one measured controlled run, not a universal benchmark.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="proof-section" id="evidence">
+        <div class="section-header">
+          <div class="eyebrow">Inspect raw evidence</div>
+          <h2>Everything linked here is source-controlled</h2>
+        </div>
+        <div class="evidence-grid">
+          <article class="evidence-card">
+            <h3>Comparison bundle</h3>
+            <div class="detail-link-row">
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/proof/ab-run-2026-04-15/README.md">Proof bundle README</a>
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/proof/ab-run-2026-04-15/comparison-report.md">Comparison report</a>
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/proof/ab-run-2026-04-15/comparison-summary.json">Comparison summary JSON</a>
+            </div>
+          </article>
+          <article class="evidence-card">
+            <h3>Per-repo metrics</h3>
+            <div class="detail-link-row">
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/proof/ab-run-2026-04-15/repo-a-metrics.json">Repo A metrics</a>
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/proof/ab-run-2026-04-15/repo-b-metrics.json">Repo B metrics</a>
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/proof/ab-run-2026-04-15/comparison-table.md">Markdown table</a>
+            </div>
+          </article>
+          <article class="evidence-card">
+            <h3>Raw Claude JSON</h3>
+            <div class="detail-link-row">
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/proof/ab-run-2026-04-15/raw/claude-run-a.json">Repo A initial run</a>
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/proof/ab-run-2026-04-15/raw/claude-run-b.json">Repo B initial run</a>
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/proof/ab-run-2026-04-15/raw/claude-fix-b.json">Repo B repair run</a>
+            </div>
+          </article>
+          <article class="evidence-card">
+            <h3>Repo B Kiwi outputs</h3>
+            <div class="detail-link-row">
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/proof/ab-run-2026-04-15/raw/kc-status-b.json">Status</a>
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/proof/ab-run-2026-04-15/raw/kc-guide-b.json">Guide</a>
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/proof/ab-run-2026-04-15/raw/kc-graph-build-b.json">Graph build</a>
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/proof/ab-run-2026-04-15/raw/kc-review-b.json">Review</a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="proof-section proof-cta">
+        <div class="section-header">
+          <div class="eyebrow">Try Kiwi Control</div>
+          <h2>Inspect the proof, then install the live beta.</h2>
+          <p>The proof page is here to make the product claims falsifiable. The downloads page is where you verify the current release surface.</p>
+        </div>
+        <div class="cta-row">
+          <a class="button button-primary" href="/downloads/">Open downloads</a>
+          <a class="button" href="/install/">Read install guide</a>
+          <a class="button" href="/support/">Support</a>
+        </div>
+      </section>
+
+      <footer class="site-footer">
+        <div>
+          <strong>Created by Shrey Soni</strong>
+          <span>Measured proof, raw evidence, and live release links now live together on the same public surface.</span>
+        </div>
+        <div class="footer-links">
+          <a href="/downloads/">Downloads</a>
+          <a href="/install/">Install guide</a>
+          <a href="/proof/">Demo / Proof</a>
+          <a href="/support/">Support</a>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

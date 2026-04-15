@@ -2,6 +2,40 @@
 
 Kiwi Control is a local-first, repo-first control plane for coding agents. It keeps workflow authority inside the repository, exposes a practical CLI for day-to-day work, and ships a Tauri desktop app for visibility, validation, and review.
 
+## Measured proof
+
+Kiwi Control now has one controlled public A/B proof run using the same Markdown Notes Organizer task on the same machine.
+
+Method summary:
+
+- Repo A: Claude Code directly, with no Kiwi workflow help before implementation
+- Repo B: Kiwi Control status, guide, graph, pack, and review before implementation
+- direct Claude JSON usage data captured for both runs
+- one measured run, not a universal benchmark
+
+Headline result from that run:
+
+- `37.3%` lower Claude cost
+- `24.3%` fewer Claude turns
+- `59.0%` lower Claude wall-clock time
+
+Measured values:
+
+| Metric | Repo A without Kiwi | Repo B with Kiwi |
+|---|---:|---:|
+| Claude invocations | 3 | 2 |
+| Claude turns | 37 | 28 |
+| Claude cost (USD) | 1.386074 | 0.869697 |
+| Output tokens | 27974 | 10958 |
+| Cache read tokens | 1301005 | 1100949 |
+| Cache creation tokens | 153617 | 99989 |
+| Claude wall-clock seconds | 432 | 177 |
+
+Measured on one controlled greenfield A/B run of the same task using direct Claude JSON usage data. This is useful product proof, not a universal benchmark.
+
+- Demo / Proof page: [kiwi-control.kiwi-ai.in/proof](https://kiwi-control.kiwi-ai.in/proof/)
+- Raw proof bundle: [docs/proof/ab-run-2026-04-15](./docs/proof/ab-run-2026-04-15/README.md)
+
 ## Demo video
 
 [![Kiwi Control live demo](./docs/media/kiwi-demo-video.png)](./output/demo/2026-04-14-video-final/final/kiwi-control-demo-complete-github.mov)
@@ -13,6 +47,7 @@ Kiwi Control is a local-first, repo-first control plane for coding agents. It ke
 ## Quick links
 
 - Website: [kiwi-control.kiwi-ai.in](https://kiwi-control.kiwi-ai.in/)
+- Demo / Proof: [kiwi-control.kiwi-ai.in/proof](https://kiwi-control.kiwi-ai.in/proof/)
 - Downloads: [kiwi-control.kiwi-ai.in/downloads](https://kiwi-control.kiwi-ai.in/downloads/)
 - Install guide: [docs/install.md](./docs/install.md)
 - Generated artifact policy: [docs/generated-artifacts.md](./docs/generated-artifacts.md)
@@ -39,9 +74,9 @@ Most agent tooling either hides workflow logic in an editor integration or centr
 For most users, the fastest path is:
 
 1. Download Kiwi Control from the [installer-first website](https://kiwi-control.kiwi-ai.in/) or the public [downloads page](https://kiwi-control.kiwi-ai.in/downloads/).
-2. Install the desktop app for macOS. Windows desktop installers are not live yet.
+2. Install the desktop app for macOS or Windows from the public downloads surface.
 3. macOS: prefer the beta `.pkg` installer. It is the intended default path for install-time `kc` setup. The `.dmg` remains a secondary manual beta path.
-4. Windows: use the CLI bootstrap for `kc` until real Windows EXE/MSI desktop artifacts are built and published.
+4. Windows: prefer the setup EXE for the desktop path. The MSI is available as a secondary manual path for the current beta.
 5. If the current unsigned macOS beta build is blocked by Gatekeeper, use a manual first-open override, then continue testing normally.
 6. Choose a repo and initialize it if needed.
 7. Keep using the app, or use `kc` too after the platform-specific setup succeeds.
@@ -99,7 +134,7 @@ kc ui
 - the public AWS-hosted site is the source of truth for installable artifacts and release metadata
 - the website is installer-first and release-aware
 - macOS `.pkg` is the primary beta installer and `.dmg` is the secondary manual fallback
-- Windows setup EXE remains the intended primary installer path, but EXE/MSI artifacts are not live yet
+- Windows setup EXE is the intended primary Windows installer path for the current beta, with MSI available as a secondary manual path
 - Windows and macOS are the primary desktop install targets
 - Homebrew formula/cask output is scaffolded for a future tap, not published as a live `brew install` path
 - signing and notarization status must be checked release by release

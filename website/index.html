@@ -6,7 +6,7 @@
     <title>Kiwi Control</title>
     <meta
       name="description"
-      content="Kiwi Control public website. Open-source beta macOS installers are live now, with the pkg installer as the primary beta path and honest trust caveats preserved."
+      content="Kiwi Control public website. Live installers, measured proof, and raw evidence for the current beta."
     />
     <link rel="stylesheet" href="/styles.css" />
     <script src="/app.js" defer></script>
@@ -16,35 +16,38 @@
       <nav class="nav">
         <div class="brand">Kiwi Control</div>
         <div class="nav-links">
+          <a href="/downloads/">Downloads</a>
+          <a href="/proof/">Demo / Proof</a>
           <a href="/install/">Install guide</a>
           <a href="/beta/">Beta notes</a>
           <a href="/support/">Support</a>
-          <a href="/downloads/">All downloads</a>
         </div>
       </nav>
 
       <section class="hero hero-download">
         <div class="hero-copy">
           <div class="eyebrow">Public website</div>
-          <div class="release-chip" data-release-badge>Public release status</div>
-          <h1>Kiwi Control is live on the web. Use this site for the current desktop release and install status.</h1>
+          <div class="release-chip" data-release-badge>Latest release</div>
+          <h1>Kiwi Control is live with installers, measured proof, and raw evidence on one public surface.</h1>
           <p class="hero-text">
-            This website is the public entrypoint for Kiwi Control. The macOS pkg installer is the intended default path for install-time CLI setup, the CLI wrappers are live for terminal installs, and Windows desktop EXE/MSI remain unavailable until real Windows artifacts are published.
+            The current beta ships macOS and Windows desktop installers, CLI wrappers, release metadata, and a measured A/B proof page. The proof is useful because it is concrete, but it is still one controlled run, not a universal benchmark.
           </p>
-          <p class="recommendation" data-recommended-banner>Use the downloads page for the current release status and the exact verification commands once installers are published.</p>
+          <p class="recommendation" data-recommended-banner>Choose the installer that matches your desktop OS, then open the proof page to inspect the measured workflow evidence behind the product pitch.</p>
           <div class="release-links">
-            <a href="/beta/">Beta notes</a>
-            <a href="https://github.com/sonishrey9/kiwi-control-backup/releases" data-release-source>GitHub</a>
+            <a href="/proof/">Open the proof page</a>
+            <a href="/downloads/">See all downloads</a>
+            <a href="https://github.com/sonishrey9/kiwi_control" data-release-source>GitHub</a>
           </div>
         </div>
 
         <div class="download-grid">
-          <article class="download-card" data-download-card data-platform="macos">
+          <article class="download-card is-recommended" data-download-card data-platform="macos">
             <div class="download-card-top">
               <span class="download-platform">macOS</span>
+              <span class="download-recommended">Primary beta path</span>
             </div>
             <h2 data-download-heading>macOS desktop release</h2>
-            <p>Use the current public release metadata to download the latest macOS pkg installer when it is published. DMG stays secondary for manual beta testing.</p>
+            <p>Use the pkg installer for the intended install-time <code>kc</code> setup path. DMG remains a secondary manual beta path.</p>
             <a class="button button-primary" href="/downloads/" data-download-link data-download-kind="macosPkg" data-primary-label="Download .pkg for macOS" data-unavailable-label="Public release coming soon">View macOS release status</a>
           </article>
 
@@ -53,9 +56,40 @@
               <span class="download-platform">Windows</span>
             </div>
             <h2 data-download-heading>Windows desktop release</h2>
-            <p>Windows desktop EXE/MSI are not live yet. Use the PowerShell CLI bootstrap while Windows desktop proof remains pending.</p>
+            <p>Use the setup EXE as the intended Windows installer path for this beta. MSI is available as a secondary manual path while signing proof remains incomplete.</p>
             <a class="button button-primary" href="/downloads/" data-download-link data-download-kind="windowsNsis" data-primary-label="Download for Windows" data-unavailable-label="Public release coming soon">View Windows release status</a>
           </article>
+        </div>
+      </section>
+
+      <section class="proof-highlight">
+        <div class="proof-highlight-grid">
+          <div class="proof-highlight-copy">
+            <div class="eyebrow">Measured A/B proof</div>
+            <h2>On one controlled greenfield run, the Kiwi-assisted workflow finished with lower measured Claude usage and lower wall-clock time.</h2>
+            <p>
+              Repo A used Claude Code directly. Repo B used Kiwi Control status, guide, graph, pack, and review first. Both runs built the same Markdown Notes Organizer task on the same machine with direct Claude JSON usage data captured from the CLI.
+            </p>
+            <p class="warn">Measured on one controlled greenfield A/B run of the same task using direct Claude JSON usage data. This is useful product proof, not a universal benchmark.</p>
+            <div class="detail-link-row">
+              <a href="/proof/">See the charts and methodology</a>
+              <a href="https://github.com/sonishrey9/kiwi_control/blob/main/docs/proof/ab-run-2026-04-15/comparison-report.md">Read the raw report</a>
+            </div>
+          </div>
+          <div class="proof-highlight-stats">
+            <div class="proof-stat">
+              <span class="proof-stat-value">37.3%</span>
+              <span class="proof-stat-label">lower Claude cost</span>
+            </div>
+            <div class="proof-stat">
+              <span class="proof-stat-value">24.3%</span>
+              <span class="proof-stat-label">fewer Claude turns</span>
+            </div>
+            <div class="proof-stat">
+              <span class="proof-stat-value">59.0%</span>
+              <span class="proof-stat-label">lower Claude wall-clock time</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -70,7 +104,7 @@
         </div>
         <div>
           <strong>Next stop</strong>
-          <span>Open the <a href="/downloads/">downloads page</a> for the current public release status and exact verification commands.</span>
+          <span>Inspect the <a href="/proof/">proof page</a>, then use the <a href="/downloads/">downloads page</a> for the live installer surface.</span>
         </div>
       </section>
 
@@ -80,13 +114,13 @@
           <div class="list">
             <div>1. The public website is live now.</div>
             <div>2. `/downloads/` is the single public installer entrypoint.</div>
-            <div>3. Release metadata on this host tells you whether installers are live yet.</div>
+            <div>3. `/proof/` is the measured product-proof surface.</div>
           </div>
         </article>
         <article class="panel">
-          <h2>Desktop first, CLI default-on</h2>
+          <h2>Desktop first, CLI available</h2>
           <p>
-            Kiwi Control is still designed for desktop-first install where a desktop artifact exists. On macOS the pkg installer is now the intended default path for install-time <code>kc</code> setup, with DMG kept as a secondary beta path. Windows setup EXE remains the intended default Windows path later, but EXE/MSI artifacts are not live yet.
+            Kiwi Control is designed for desktop-first install where a desktop artifact exists. On macOS the pkg installer is the intended default path for install-time <code>kc</code> setup, with DMG kept as a secondary beta path. On Windows the setup EXE is the intended installer path for the current beta, with MSI available as a secondary manual option.
           </p>
           <p>
             The standalone CLI wrapper installs <code>kiwi-control</code> and <code>kc</code> only, then verifies <code>kc --help</code>. It does not install the desktop app unless explicitly requested and a real desktop artifact exists.
@@ -94,24 +128,23 @@
         </article>
         <article class="panel">
           <h2>Trust still matters</h2>
-          <p class="warn">Public hosting does not equal public trust. macOS still needs signed/notarized/stapled proof, and Windows still needs signed installer proof plus real Windows-host proof before we call installer-time CLI readiness fully automatic.</p>
-          <p class="warn">If macOS shows an “Apple could not verify” warning for the unsigned beta pkg, use the install guide for the exact bypass steps: Control-click the pkg and choose Open, or go to Privacy &amp; Security and click Open Anyway.</p>
+          <p class="warn">Public hosting does not equal signing trust. macOS still needs signed/notarized/stapled proof and Windows installers are still unsigned for this beta.</p>
+          <p class="warn">Install/PATH success and release signing trust are separate claims. The proof page and downloads page keep those boundaries explicit.</p>
         </article>
       </section>
 
       <section class="details-layout">
         <article class="panel detail-panel">
-          <div class="eyebrow">What will appear here</div>
-          <h2>Planned public install flow</h2>
+          <div class="eyebrow">What to do next</div>
+          <h2>Try the live product surface</h2>
           <div class="list">
-            <div>1. Download the macOS desktop installer where available.</div>
-            <div>2. macOS: prefer the pkg installer for install-time CLI setup. DMG remains the secondary manual beta path.</div>
-            <div>3. Windows: keep EXE/MSI unavailable until the setup artifacts are built and published on a Windows host.</div>
-            <div>4. If you only want the CLI, use <code>curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash</code>.</div>
-            <div>5. Windows CLI users can run <code>irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex</code>.</div>
+            <div>1. Open the proof page to inspect the measured A/B run and raw artifacts.</div>
+            <div>2. Download the installer that matches your OS from the downloads page.</div>
+            <div>3. Use the install guide for the exact desktop and CLI verification steps.</div>
           </div>
           <p class="detail-link-row">
-            <a href="/downloads/">Open downloads status</a>
+            <a href="/proof/">Open proof</a>
+            <a href="/downloads/">Open downloads</a>
             <a href="/install/">Read install guide</a>
           </p>
         </article>
@@ -121,7 +154,7 @@
           <h2>Release readiness stays explicit</h2>
           <div class="list">
             <div>This website always reflects the current public release status.</div>
-            <div>`/downloads/` exposes the release status, checksums, and verification commands.</div>
+            <div>The proof page ties product claims back to measured artifacts.</div>
             <div data-trust-platform="macos">macOS trust status is still release-specific.</div>
             <div data-trust-platform="windows">Windows trust status is still release-specific.</div>
           </div>
@@ -135,12 +168,13 @@
       <footer class="site-footer">
         <div>
           <strong>Created by Shrey Soni</strong>
-          <span>Kiwi Control stays local-first and repo-first while the public website tracks open-source beta installer readiness honestly.</span>
+          <span>Kiwi Control now has one public proof surface, one public downloads surface, and one consistent install story.</span>
         </div>
         <div class="footer-links">
+          <a href="/proof/">Demo / Proof</a>
+          <a href="/downloads/">Downloads</a>
           <a href="https://github.com/sonishrey9">GitHub</a>
           <a href="https://www.linkedin.com/in/shreykumarsoni/">LinkedIn</a>
-          <a href="mailto:sonishrey9@gmail.com">sonishrey9@gmail.com</a>
           <a href="/support/">Support</a>
         </div>
       </footer>

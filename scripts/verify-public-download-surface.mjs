@@ -73,9 +73,9 @@ async function verifyLocalSite(siteDir, { downloadsUrl, requireReady }) {
     ...missingPhrase(downloadsHtml, "Public hosting does not replace signing proof")
   ];
   const platformSplitMissing = [
-    ...missingPhrase(indexHtml, "macOS pkg installer is the intended default path"),
+    ...missingPhrase(indexHtml, "pkg installer is the intended default path"),
     ...missingPhrase(downloadsHtml, "setup EXE is the intended default Windows path"),
-    ...missingPhrase(installHtml, "proof is still pending on a real Windows host"),
+    ...missingPhrase(installHtml, "Windows setup EXE is the intended default Windows path for this beta"),
     ...missingPhrase(downloadsHtml, "curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash"),
     ...missingPhrase(downloadsHtml, "irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex"),
     ...missingPhrase(downloadsHtml, expectedWindowsCliPhrase(metadata)),
@@ -157,9 +157,9 @@ async function verifyRemoteSite({ siteUrl, downloadsUrl, requireReady }) {
     ...missingPhrase(downloadsHtml, "Public hosting does not replace signing proof")
   ];
   const platformSplitMissing = [
-    ...missingPhrase(siteHtml, "macOS pkg installer is the intended default path"),
+    ...missingPhrase(siteHtml, "pkg installer is the intended default path"),
     ...missingPhrase(downloadsHtml, "setup EXE is the intended default Windows path"),
-    ...missingPhrase(installHtml, "proof is still pending on a real Windows host"),
+    ...missingPhrase(installHtml, "Windows setup EXE is the intended default Windows path for this beta"),
     ...missingPhrase(downloadsHtml, "curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash"),
     ...missingPhrase(downloadsHtml, "irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex"),
     ...missingPhrase(downloadsHtml, expectedWindowsCliPhrase(metadata)),

@@ -1,0 +1,150 @@
+{
+  "label": "A",
+  "repoPath": "/Volumes/shrey ssd/my ssd-playground/test-A",
+  "claudeInvocations": 3,
+  "directUsageAvailable": true,
+  "totalCostUsd": 1.38607425,
+  "totalTurns": 37,
+  "totalInputTokens": 33,
+  "totalOutputTokens": 27974,
+  "totalCacheReadTokens": 1301005,
+  "totalCacheCreationTokens": 153617,
+  "totalWallClockSec": 432,
+  "permissionDenials": 7,
+  "shellCommandCount": 22,
+  "broadSearchCount": 0,
+  "rootFilesCreated": 65,
+  "productFileCount": 13,
+  "testsPassed": true,
+  "buildPassed": true,
+  "appServed": true,
+  "kiwiUsed": false,
+  "kiwiOutputs": 0,
+  "metricsSource": "direct Claude JSON usage + proxy metrics",
+  "directMetrics": [
+    {
+      "repo": "A",
+      "startEpochSec": 1776244189,
+      "endEpochSec": 1776244235,
+      "wallClockSec": 46,
+      "sessionId": "5ebd51a5-58c0-411d-86ba-34fc25cc93de",
+      "numTurns": 7,
+      "totalCostUsd": 0.24416729999999998,
+      "usage": {
+        "input_tokens": 8,
+        "cache_creation_input_tokens": 40198,
+        "cache_read_input_tokens": 233036,
+        "output_tokens": 1566,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 40198,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "",
+        "iterations": [],
+        "speed": "standard"
+      },
+      "modelUsage": {
+        "claude-sonnet-4-6": {
+          "inputTokens": 8,
+          "outputTokens": 1566,
+          "cacheReadInputTokens": 233036,
+          "cacheCreationInputTokens": 40198,
+          "webSearchRequests": 0,
+          "costUSD": 0.24416729999999998,
+          "contextWindow": 200000,
+          "maxOutputTokens": 32000
+        }
+      },
+      "resultPreview": "I can't run the build in this environment, but the fix is correct. Here's a summary:\n\n---\n\n**File changed: `vite.config.ts`**\n\n**What changed:** Replaced the two-line header:\n```ts\n/// <reference types=\"vitest\" />\nimport { defineConfig } from 'vite'\n```\nwith:\n```ts\nimport { defineConfig } from 'vitest/config'\n```\n\n**Why:** `npm run build` runs `tsc -b && vite build`. The `tsc -b` step was failing because the `test` field isn't part of Vite's own `UserConfig` type — the triple-slash `/// <reference types=\"vitest\" />` directive is supposed to augment it, but can fail under `tsc -b`'s project-reference mode. Importing `defineConfig` from `vitest/config` instead gives you Vitest's re-export that already has `TestConfig` merged into the type, making the `test` block valid with no hack needed. Product behavior is identical — `vitest/config` re-exports Vite's plugin system unchanged."
+    },
+    {
+      "repo": "A",
+      "startEpochSec": 1776243998,
+      "endEpochSec": 1776244142,
+      "wallClockSec": 144,
+      "sessionId": "1ec74d66-3bb6-4929-b594-1b58bddae279",
+      "numTurns": 12,
+      "totalCostUsd": 0.41254094999999996,
+      "usage": {
+        "input_tokens": 10,
+        "cache_creation_input_tokens": 51189,
+        "cache_read_input_tokens": 359924,
+        "output_tokens": 7505,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 51189,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "",
+        "iterations": [],
+        "speed": "standard"
+      },
+      "modelUsage": {
+        "claude-sonnet-4-6": {
+          "inputTokens": 10,
+          "outputTokens": 7505,
+          "cacheReadInputTokens": 359924,
+          "cacheCreationInputTokens": 51189,
+          "webSearchRequests": 0,
+          "costUSD": 0.41254094999999996,
+          "contextWindow": 200000,
+          "maxOutputTokens": 32000
+        }
+      },
+      "terminalReason": "completed",
+      "stopReason": "end_turn",
+      "resultPreview": "`★ Insight ─────────────────────────────────────`\nThe `setupFiles` array runs before every test file, making the mock available globally. Since `LocalStorageMock` is a class, each call to `this.store = {}` in `clear()` correctly rebinds the property on the same instance — which is why the test's `beforeEach(() => localStorage.clear())` properly isolates each test without needing to reinstall the mock.\n`─────────────────────────────────────────────────`\n\n---\n\n**Files changed:**\n\n| File | What & Why |\n|------|------------|\n| `src/test-setup.ts` | **Created.** Installs a complete `LocalStorageMock` on `globalThis.localStorage`. Implements all Storage interface methods (`getItem`, `setItem`, `removeItem`, `clear`, `key`, `length`). This is the root fix — the test environment was resolving to a partial/non-functional `localStorage`. |\n| `vite.config.ts` | **Added `setupFiles: ['./src/test-setup.ts']`** so Vitest loads the mock before every test file runs. No other changes to existing config. |\n\nThe `store.ts` and `store.test.ts` are untouched — the implementation was correct; only the test environment config was missing."
+    },
+    {
+      "repo": "A",
+      "startEpochSec": 1776243693,
+      "endEpochSec": 1776243935,
+      "wallClockSec": 242,
+      "sessionId": "2bd197ec-18fc-4c7f-9dc9-fef344a5ae2d",
+      "numTurns": 18,
+      "totalCostUsd": 0.7293660000000001,
+      "usage": {
+        "input_tokens": 15,
+        "cache_creation_input_tokens": 62230,
+        "cache_read_input_tokens": 708045,
+        "output_tokens": 18903,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 62230,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "",
+        "iterations": [],
+        "speed": "standard"
+      },
+      "modelUsage": {
+        "claude-sonnet-4-6": {
+          "inputTokens": 15,
+          "outputTokens": 18903,
+          "cacheReadInputTokens": 708045,
+          "cacheCreationInputTokens": 62230,
+          "webSearchRequests": 0,
+          "costUSD": 0.7293660000000001,
+          "contextWindow": 200000,
+          "maxOutputTokens": 32000
+        }
+      },
+      "terminalReason": "completed",
+      "stopReason": "end_turn",
+      "resultPreview": "The shell needs approval for those commands. Here are the commands to run:\n\n```bash\ncd \"/Volumes/shrey ssd/my ssd-playground/test-A\"\nnpm test           # runs vitest run\nnpm run build      # tsc -b && vite build\n```\n\n`★ Insight ─────────────────────────────────────`\n**localStorage in tests**: Because the test environment is `jsdom`, the real `localStorage` API is available. No mocking is needed — `localStorage.clear()` in `beforeEach` gives each test a clean slate. This is simpler and more faithful to runtime behavior than a hand-rolled mock.\n\n**`/// <reference types=\"vitest\" />`**: This triple-slash directive tells TypeScript about the `test` field that Vitest injects into Vite's config type. Without it, `defineConfig({ test: ... })` would be a TypeScript error since the base Vite type doesn't include `test`.\n`─────────────────────────────────────────────────`\n\n---\n\n**Files changed:**\n\n| File | Action |\n|---|---|\n| `src/store.ts` | Created — pure functions: `createNote`, `updateNote`, `deleteNote`, `filterByTag`, `searchNotes`, `getAllTags`, `loadNotes`, `saveNotes` |\n| `src/store.test.ts` | Created — 20 Vitest tests covering all store functions + localStorage persistence |\n| `src"
+    }
+  ]
+}
