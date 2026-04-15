@@ -34,6 +34,8 @@ cd "/Volumes/shrey ssd/my ssd-playground/test-A"
 - `proof-summary.md` - measured A/B claims and source links
 - `chapter-markers.txt` - timeline markers
 - `title-card.txt` - opening card copy
+- `asset-manifest.json` - machine-readable bundle index
+- `verification.md` - evidence and claim check
 
 ## Honesty Constraints
 

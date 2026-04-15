@@ -1,0 +1,50 @@
+{
+  "createdFor": "Kiwi Control public demo video",
+  "primaryDemoRepo": "/Volumes/shrey ssd/my ssd-playground/test-B",
+  "comparisonRepo": "/Volumes/shrey ssd/my ssd-playground/test-A",
+  "publicProofPage": "https://kiwi-control.kiwi-ai.in/proof/",
+  "measuredRun": {
+    "scope": "one controlled greenfield A/B run of the same Markdown Notes Organizer task",
+    "dataSource": "direct Claude JSON usage data",
+    "universalBenchmark": false
+  },
+  "requiredAssets": [
+    "README.md",
+    "shot-list.md",
+    "script.md",
+    "commands.md",
+    "captions.md",
+    "proof-summary.md"
+  ],
+  "optionalAssets": [
+    "title-card.txt",
+    "chapter-markers.txt"
+  ],
+  "proofInputs": {
+    "comparisonReport": "docs/proof/ab-run-2026-04-15/comparison-report.md",
+    "comparisonSummary": "docs/proof/ab-run-2026-04-15/comparison-summary.json",
+    "repoAMetrics": "docs/proof/ab-run-2026-04-15/repo-a-metrics.json",
+    "repoBMetrics": "docs/proof/ab-run-2026-04-15/repo-b-metrics.json",
+    "repoBKiwiOutputs": "docs/proof/ab-run-2026-04-15/raw/kc-*.json"
+  },
+  "measuredValues": {
+    "repoA": {
+      "claudeInvocations": 3,
+      "claudeTurns": 37,
+      "costUsd": 1.386074,
+      "outputTokens": 27974,
+      "cacheReadTokens": 1301005,
+      "cacheCreationTokens": 153617,
+      "claudeWallClockSeconds": 432
+    },
+    "repoB": {
+      "claudeInvocations": 2,
+      "claudeTurns": 28,
+      "costUsd": 0.869697,
+      "outputTokens": 10958,
+      "cacheReadTokens": 1100949,
+      "cacheCreationTokens": 99989,
+      "claudeWallClockSeconds": 177
+    }
+  }
+}
