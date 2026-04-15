@@ -369,12 +369,18 @@ p {
   grid-column: span 2;
 }
 
-.video-card img {
+.video-card img,
+.proof-video {
   width: 100%;
   max-height: 280px;
   object-fit: cover;
   border-radius: 16px;
   border: 1px solid var(--border);
+  background: #050912;
+}
+
+.video-card-primary .proof-video {
+  max-height: 520px;
 }
 
 .video-copy {
