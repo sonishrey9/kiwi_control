@@ -1,6 +1,6 @@
 [package]
 name = "sj-ui"
-version = "0.2.0-beta.15"
+version = "0.2.0-beta.16"
 edition = "2021"
 
 [build-dependencies]
