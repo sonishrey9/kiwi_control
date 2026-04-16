@@ -18,16 +18,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "22"
           cache: npm
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v rustup >/dev/null 2>&1; then
+            rustup toolchain install stable --profile minimal --no-self-update
+            rustup default stable
+          else
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+          cargo --version
+          rustc --version
 
       - name: Install dependencies
         run: npm ci
@@ -53,16 +64,27 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "22"
           cache: npm
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v rustup >/dev/null 2>&1; then
+            rustup toolchain install stable --profile minimal --no-self-update
+            rustup default stable
+          else
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+          cargo --version
+          rustc --version
 
       - name: Install dependencies
         run: npm ci
@@ -89,7 +111,7 @@ jobs:
           npm run test:installer:cli-enable:windows
 
       - name: Upload Tauri bundles
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kiwi-control-desktop-${{ matrix.os }}
           path: apps/sj-ui/src-tauri/target/release/bundle

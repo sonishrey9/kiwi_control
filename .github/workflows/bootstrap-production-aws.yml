@@ -23,10 +23,10 @@ jobs:
       SITE_URL: ${{ vars.SITE_URL }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "22"
 
@@ -48,7 +48,7 @@ jobs:
           exit "${missing}"
 
       - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ env.AWS_INFRA_OIDC_ROLE_ARN }}
@@ -66,7 +66,7 @@ jobs:
             --output dist/release/aws-public-site.json
 
       - name: Upload bootstrap summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: aws-public-site-summary
           path: dist/release/aws-public-site.json
