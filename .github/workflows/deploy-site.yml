@@ -20,6 +20,9 @@ jobs:
       AWS_OIDC_ROLE_ARN: ${{ vars.AWS_OIDC_ROLE_ARN }}
       AWS_PUBLIC_BUCKET: ${{ vars.AWS_PUBLIC_BUCKET }}
       AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
       DOWNLOADS_URL: ${{ vars.DOWNLOADS_URL }}
       REPO_URL: ${{ vars.REPO_URL }}
       SITE_URL: ${{ vars.SITE_URL }}
@@ -39,7 +42,6 @@ jobs:
           missing=0
           for var_name in \
             AWS_CLOUDFRONT_DISTRIBUTION_ID \
-            AWS_OIDC_ROLE_ARN \
             AWS_PUBLIC_BUCKET \
             AWS_REGION \
             REPO_URL \
@@ -49,14 +51,29 @@ jobs:
               missing=1
             fi
           done
+          if [ -z "${AWS_OIDC_ROLE_ARN:-}" ] && { [ -z "${AWS_ACCESS_KEY_ID:-}" ] || [ -z "${AWS_SECRET_ACCESS_KEY:-}" ]; }; then
+            echo "Missing AWS publish auth. Configure AWS_OIDC_ROLE_ARN or the existing AWS access key pair in the production environment." >&2
+            missing=1
+          fi
           exit "${missing}"
 
       - name: Configure AWS credentials via OIDC
+        if: env.AWS_OIDC_ROLE_ARN != ''
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           role-session-name: kiwi-control-site-publish
+          mask-aws-account-id: true
+
+      - name: Configure AWS credentials via existing production secrets
+        if: env.AWS_OIDC_ROLE_ARN == ''
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
           mask-aws-account-id: true
 
       - name: Stage production site
