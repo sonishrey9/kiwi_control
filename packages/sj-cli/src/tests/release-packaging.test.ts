@@ -779,7 +779,7 @@ test("release asset packager only emits the CLI bundle for the current runner pl
   const manifestBackupPath = path.join(tempDir, "release-manifest.json");
   const assetsBackupPath = path.join(tempDir, "assets");
   const cliBundleBackupPath = path.join(tempDir, "cli-bundle");
-  const previousManifest = await fs.readFile(manifestPath, "utf8");
+  const previousManifest = await fs.readFile(manifestPath, "utf8").catch(() => null);
   const hadAssetsDir = await fs.stat(assetsDir).then(() => true).catch(() => false);
   const hadCliBundleDir = await fs.stat(cliBundleDir).then(() => true).catch(() => false);
 
@@ -789,7 +789,9 @@ test("release asset packager only emits the CLI bundle for the current runner pl
   if (hadCliBundleDir) {
     await fs.cp(cliBundleDir, cliBundleBackupPath, { recursive: true });
   }
-  await fs.writeFile(manifestBackupPath, previousManifest, "utf8");
+  if (previousManifest != null) {
+    await fs.writeFile(manifestBackupPath, previousManifest, "utf8");
+  }
 
   try {
     await fs.rm(assetsDir, { recursive: true, force: true });
@@ -839,7 +841,11 @@ test("release asset packager only emits the CLI bundle for the current runner pl
       await fs.cp(cliBundleBackupPath, cliBundleDir, { recursive: true });
     }
 
-    await fs.writeFile(manifestPath, await fs.readFile(manifestBackupPath, "utf8"), "utf8");
+    if (previousManifest == null) {
+      await fs.rm(manifestPath, { force: true });
+    } else {
+      await fs.writeFile(manifestPath, await fs.readFile(manifestBackupPath, "utf8"), "utf8");
+    }
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });

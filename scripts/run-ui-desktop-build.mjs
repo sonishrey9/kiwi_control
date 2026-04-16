@@ -74,8 +74,16 @@ async function main() {
     COPYFILE_DISABLE: "1",
     COPY_EXTENDED_ATTRIBUTES_DISABLE: "1"
   });
-  const npmExecutable = process.platform === "win32" ? "npm.cmd" : "npm";
-  const child = spawn(npmExecutable, ["run", "tauri:build", "-w", "@shrey-junior/sj-ui", ...tauriArgs], {
+  const npmCliPath = process.env.npm_execpath?.trim();
+  const npmCommand = process.platform === "win32" && npmCliPath
+    ? process.execPath
+    : process.platform === "win32"
+      ? "npm.cmd"
+      : "npm";
+  const npmArgs = process.platform === "win32" && npmCliPath
+    ? [npmCliPath, "run", "tauri:build", "-w", "@shrey-junior/sj-ui", ...tauriArgs]
+    : ["run", "tauri:build", "-w", "@shrey-junior/sj-ui", ...tauriArgs];
+  const child = spawn(npmCommand, npmArgs, {
         cwd: repoRoot,
         stdio: "inherit",
         env: childEnv
