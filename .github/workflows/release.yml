@@ -435,7 +435,6 @@ jobs:
           set -euo pipefail
           missing=0
           for var_name in \
-            AWS_CLOUDFRONT_DISTRIBUTION_ID \
             AWS_PUBLIC_BUCKET \
             AWS_REGION \
             REPO_URL \
@@ -479,10 +478,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          downloads_url="${DOWNLOADS_URL:-$SITE_URL}"
           node scripts/stage-pages-site.mjs \
             --downloads-json dist/release/site-input/downloads.json \
-            --downloads-url "${downloads_url}" \
+            --downloads-url "${SITE_URL}" \
             --require-downloads-json \
             --repo-url "${REPO_URL}" \
             --output-dir dist/site
@@ -491,27 +489,29 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          downloads_url="${DOWNLOADS_URL:-$SITE_URL}"
           node scripts/verify-public-download-surface.mjs \
             --site-dir dist/site \
-            --downloads-url "${downloads_url}"
+            --downloads-url "${SITE_URL}"
 
       - name: Publish website to AWS
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/publish-aws-public-site.mjs \
-            --site-dir dist/site \
-            --site-url "${SITE_URL}" \
-            --bucket "${AWS_PUBLIC_BUCKET}" \
-            --distribution-id "${AWS_CLOUDFRONT_DISTRIBUTION_ID}"
+          publish_args=(
+            --site-dir dist/site
+            --site-url "${SITE_URL}"
+            --bucket "${AWS_PUBLIC_BUCKET}"
+          )
+          if [ -n "${AWS_CLOUDFRONT_DISTRIBUTION_ID:-}" ]; then
+            publish_args+=(--distribution-id "${AWS_CLOUDFRONT_DISTRIBUTION_ID}")
+          fi
+          node scripts/publish-aws-public-site.mjs "${publish_args[@]}"
 
       - name: Verify public download surface
         shell: bash
         run: |
           set -euo pipefail
-          downloads_url="${DOWNLOADS_URL:-$SITE_URL}"
           node scripts/verify-public-download-surface.mjs \
             --site-url "${SITE_URL%/}" \
-            --downloads-url "${downloads_url%/}" \
+            --downloads-url "${SITE_URL%/}" \
             --require-ready
