@@ -2,6 +2,63 @@
 
 Kiwi Control is a local-first, repo-first control plane for coding agents. It keeps workflow authority inside the repository, exposes a practical CLI for day-to-day work, and ships a Tauri desktop app for visibility, validation, and review.
 
+## Quickstart
+
+Use the desktop installer first if you want the full app. Use the wrapper install if you only want the CLI.
+
+Desktop-first public beta:
+
+1. Open [kiwi-control.kiwi-ai.in/downloads](https://kiwi-control.kiwi-ai.in/downloads/).
+2. Install the desktop app for your OS.
+3. Verify `kc` in a fresh shell.
+4. Open a repo and run the first commands below.
+
+CLI-only wrapper install:
+
+The standalone CLI bundle still requires Node.js `22+`.
+
+```bash
+curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash
+```
+
+```powershell
+irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex
+```
+
+Verify install:
+
+```bash
+kiwi-control --help
+kc --help
+command -v kc
+```
+
+```powershell
+kiwi-control --help
+kc --help
+Get-Command kc
+```
+
+First repo flow:
+
+```bash
+cd /path/to/repo
+kc init
+kc status
+kc guide
+kc graph build
+kc pack status
+kc review
+kc check
+kc ui
+```
+
+`kiwi-control` and `kc` point to the same CLI. Most day-to-day examples use `kc`.
+
+- Install guide: [docs/install.md](./docs/install.md)
+- Command guide: [docs/command-guide.md](./docs/command-guide.md)
+- Public install page: [kiwi-control.kiwi-ai.in/install](https://kiwi-control.kiwi-ai.in/install/)
+
 ## Architecture in one page
 
 Kiwi Control is not an AI agent and does not replace Claude Code, Codex, Cursor, or Copilot. It is the control plane those tools can read before they start spending context on a repo.
@@ -70,6 +127,7 @@ Measured on one controlled greenfield A/B run of the same task using direct Clau
 - Demo / Proof: [kiwi-control.kiwi-ai.in/proof](https://kiwi-control.kiwi-ai.in/proof/)
 - Downloads: [kiwi-control.kiwi-ai.in/downloads](https://kiwi-control.kiwi-ai.in/downloads/)
 - Install guide: [docs/install.md](./docs/install.md)
+- Command guide: [docs/command-guide.md](./docs/command-guide.md)
 - How Kiwi Control works: [docs/how-kiwi-control-works.md](./docs/how-kiwi-control-works.md)
 - Generated artifact policy: [docs/generated-artifacts.md](./docs/generated-artifacts.md)
 - Support: [SUPPORT.md](./SUPPORT.md)
@@ -123,7 +181,7 @@ kiwi-control --help
 kc status
 ```
 
-See [docs/install.md](./docs/install.md) for the detailed desktop, CLI wrapper, and contributor paths.
+See [docs/install.md](./docs/install.md) for the detailed desktop, CLI wrapper, and contributor paths, and [docs/command-guide.md](./docs/command-guide.md) for the first-run command flow.
 
 ## First repo flow
 
@@ -131,8 +189,11 @@ See [docs/install.md](./docs/install.md) for the detailed desktop, CLI wrapper, 
 cd /path/to/repo
 kc init
 kc status
-kc check
 kc guide
+kc graph build
+kc pack status
+kc review
+kc check
 ```
 
 Continue work:

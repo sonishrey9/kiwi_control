@@ -17,6 +17,7 @@
         <div class="brand">Kiwi Control</div>
         <div class="nav-links">
           <a href="/downloads/">Downloads</a>
+          <a href="/commands/">Command guide</a>
           <a href="/architecture/">Architecture</a>
           <a href="/proof/">Demo / Proof</a>
           <a href="/install/">Install guide</a>
@@ -91,6 +92,43 @@
               <span class="proof-stat-label">lower Claude wall-clock time</span>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section class="proof-section">
+        <div class="section-header">
+          <div class="eyebrow">Get started now</div>
+          <h2>Install, verify, and run the first useful commands.</h2>
+          <p>The install guide covers download paths. The command guide covers exactly what to run after that.</p>
+        </div>
+        <div class="grid">
+          <article class="panel">
+            <h2>CLI wrapper install</h2>
+            <pre><code>curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash</code></pre>
+            <div>Windows PowerShell:</div>
+            <pre><code>irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex</code></pre>
+          </article>
+          <article class="panel">
+            <h2>Verify install</h2>
+            <pre><code>kiwi-control --help
+kc --help
+command -v kc</code></pre>
+            <div>Windows PowerShell:</div>
+            <pre><code>Get-Command kc</code></pre>
+          </article>
+          <article class="panel">
+            <h2>First repo flow</h2>
+            <pre><code>kc init
+kc status
+kc guide
+kc graph build
+kc review
+kc ui</code></pre>
+          </article>
+        </div>
+        <div class="detail-link-row">
+          <a href="/install/">Open install guide</a>
+          <a href="/commands/">Open command guide</a>
         </div>
       </section>
 
@@ -197,6 +235,7 @@
         </div>
         <div class="footer-links">
           <a href="/proof/">Demo / Proof</a>
+          <a href="/commands/">Command guide</a>
           <a href="/architecture/">Architecture</a>
           <a href="/downloads/">Downloads</a>
           <a href="https://github.com/sonishrey9">GitHub</a>

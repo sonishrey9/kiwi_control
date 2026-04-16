@@ -683,6 +683,26 @@ code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+pre {
+  margin: 0;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: rgba(6, 11, 18, 0.96);
+  overflow-x: auto;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+pre code {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-strong);
+  line-height: 1.6;
+  white-space: pre;
+}
+
 @media (max-width: 900px) {
   .hero-download,
   .architecture-hero,

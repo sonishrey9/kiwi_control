@@ -8,6 +8,7 @@ These are the main public-facing docs for Kiwi Control.
 - [Architecture diagrams](./architecture-diagrams.md)
 - [Architecture FAQ](./architecture-faq.md)
 - [Install](./install.md)
+- [Command guide](./command-guide.md)
 - [Desktop-first validation checklist](./desktop-first-validation-checklist.md)
 - [Beta limitations](./beta-limitations.md)
 - [Release packaging](./release-packaging.md)

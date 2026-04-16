@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Install Kiwi Control</title>
+    <meta
+      name="description"
+      content="Exact Kiwi Control install commands for desktop and CLI-only paths, with verification steps, first-run commands, and troubleshooting."
+    />
     <link rel="stylesheet" href="/styles.css" />
     <script src="/app.js" defer></script>
   </head>
@@ -12,139 +16,177 @@
       <nav class="nav">
         <div class="brand">Kiwi Control</div>
         <div class="nav-links">
-          <a href="/">Download</a>
-          <a href="/architecture/">Architecture</a>
+          <a href="/">Home</a>
+          <a href="/downloads/">Downloads</a>
+          <a href="/install/">Install guide</a>
+          <a href="/commands/">Command guide</a>
           <a href="/proof/">Demo / Proof</a>
-          <a href="/beta/">Beta</a>
           <a href="/support/">Support</a>
-          <a href="/downloads/">All downloads</a>
         </div>
       </nav>
 
       <section class="hero">
         <div class="eyebrow">Install guide</div>
         <div class="release-chip" data-release-badge>Public release status</div>
-        <h1>Install Kiwi Control with the desktop app first and installer-owned terminal command setup by default.</h1>
-        <p>
-          This website tracks the current public release metadata and the live installer status mirrored from the public downloads host. Install/PATH success still stays separate from release trust.
+        <h1>Install Kiwi Control with the fastest real path for your machine.</h1>
+        <p class="hero-text">
+          Desktop install is the recommended path on macOS and Windows. The CLI wrappers are the fastest CLI-only path on macOS, Linux, and Windows. The standalone CLI bundle still requires Node.js 22+.
         </p>
         <div class="cta-row">
-          <a class="button button-primary" href="/">Back to downloads</a>
-          <a class="button" href="/downloads/">Open all release assets</a>
+          <a class="button button-primary" href="/downloads/">Open downloads</a>
+          <a class="button" href="/commands/">Open command guide</a>
         </div>
       </section>
 
       <section class="grid">
         <article class="panel">
-          <h2>Desktop install</h2>
+          <h2>macOS desktop</h2>
           <div class="list">
-            <div>1. Download the macOS pkg from the homepage or <a href="/downloads/">all downloads</a>.</div>
-            <div>2. macOS: the pkg installer is the intended default path for install-time <code>kc</code> setup.</div>
-            <div>3. Windows: setup EXE and MSI are live for this beta. Prefer the setup EXE for desktop install.</div>
-            <div>4. Choose a repo, initialize it if needed, and keep using desktop or <code>kc</code> after the platform-specific setup succeeds.</div>
+            <div>1. Download the macOS pkg from <a href="/downloads/">downloads</a>.</div>
+            <div>2. Use the pkg first. The dmg is the secondary manual beta path.</div>
+            <div>3. Open a fresh terminal window after install.</div>
           </div>
+          <pre><code>command -v kc
+kc --help
+kc ui</code></pre>
         </article>
 
         <article class="panel">
-          <h2>Default terminal command setup</h2>
+          <h2>Windows desktop</h2>
           <div class="list">
-            <div>1. macOS pkg install is the intended default path for install-time CLI setup.</div>
-            <div>2. Windows setup EXE is the intended default Windows path for this beta. MSI remains a secondary manual path.</div>
-            <div>3. Current unsigned macOS beta builds may still need a manual first-open override after install until Developer ID signing and notarization are configured.</div>
-            <div>4. If you only want the CLI, use the wrapper CLI path below instead of the desktop installer.</div>
+            <div>1. Download the Windows setup EXE from <a href="/downloads/">downloads</a>.</div>
+            <div>2. Windows setup EXE is the intended default Windows path for this beta. The MSI is the secondary manual path.</div>
+            <div>3. Open a fresh PowerShell window after install.</div>
           </div>
+          <pre><code>Get-Command kc
+kc --help
+kc ui</code></pre>
         </article>
 
         <article class="panel">
-          <h2>macOS unsigned beta bypass</h2>
-          <div class="list">
-            <div>1. If Finder says Apple could not verify the pkg, locate the downloaded <code>.pkg</code> in Finder.</div>
-            <div>2. Control-click the pkg and choose <code>Open</code>.</div>
-            <div>3. If macOS still blocks it, open <code>System Settings &gt; Privacy &amp; Security</code> and click <code>Open Anyway</code>.</div>
-            <div>4. Only do this for the unsigned beta downloaded from the Kiwi Control site or after you verify its checksum.</div>
-          </div>
-        </article>
-
-        <article class="panel">
-          <h2>Latest release metadata</h2>
-          <div class="list">
-            <div>Current version: <strong data-release-version>0.2.0-beta.15</strong></div>
-            <div><a href="https://github.com/sonishrey9/kiwi_control/releases/latest" data-release-notes>Release notes</a></div>
-            <div><a href="https://github.com/sonishrey9/kiwi_control/releases/latest" data-release-checksums>Checksums</a></div>
-            <div><a href="https://github.com/sonishrey9/kiwi_control/releases/latest" data-release-manifest>Release manifest</a></div>
-            <div><a href="https://github.com/sonishrey9/kiwi_control/releases" data-release-source>GitHub</a></div>
-          </div>
+          <h2>CLI-only path</h2>
+          <p>Use this when you want the CLI without installing the desktop app. The wrappers install <code>kiwi-control</code> and <code>kc</code> only.</p>
+          <pre><code>curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash</code></pre>
+          <div>Windows PowerShell:</div>
+          <pre><code>irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex</code></pre>
         </article>
       </section>
 
       <section class="details-layout">
         <article class="panel detail-panel">
-          <div class="eyebrow">Fresh shell checks</div>
-          <h2>Verify terminal commands after enablement</h2>
+          <div class="eyebrow">Prerequisites</div>
+          <h2>Know what each path needs.</h2>
           <div class="list">
-            <div>macOS: <code>command -v kc</code></div>
-            <div>macOS: <code>kc --help</code></div>
-            <div>Windows: <code>Get-Command kc</code></div>
-            <div>Windows: <code>kc --help</code></div>
+            <div>Desktop install does not require Node.js.</div>
+            <div>The standalone CLI bundle requires Node.js <strong>22+</strong>.</div>
+            <div>Linux is CLI-only in the current public beta.</div>
+            <div>Homebrew and winget are not live install paths yet.</div>
           </div>
-          <p data-release-fallback hidden>
-            If release metadata is unavailable in your browser session, Kiwi falls back to the most recently mirrored website metadata until the downloads host refresh completes.
-          </p>
         </article>
 
         <article class="panel detail-panel">
-          <div class="eyebrow">Gatekeeper help</div>
-          <h2>What the macOS warning actually means</h2>
-          <p>
-            This beta warning means the pkg is unsigned or not notarized yet. It does not mean Kiwi Control proved the installer is trusted. Treat it as an unsigned technical-user beta and verify the checksum before bypassing Gatekeeper.
-          </p>
+          <div class="eyebrow">Desktop vs CLI</div>
+          <h2>They are related, but not identical.</h2>
+          <div class="list">
+            <div>Desktop install is the recommended path when a desktop artifact exists.</div>
+            <div>The wrapper install is the clean fallback when you only want the CLI.</div>
+            <div>If the desktop app is already installed, <code>kc ui</code> can launch or attach to it.</div>
+          </div>
         </article>
 
         <article class="panel detail-panel">
-          <div class="eyebrow">Manual assets</div>
-          <h2>Need DMG, the macOS app tarball, MSI, or CLI bundles?</h2>
-          <p>
-            Use <a href="/downloads/">all downloads</a> for the full public asset list. The downloads page also exposes checksums, the release manifest, and the standalone CLI bundles.
-          </p>
-          <p>
-            The standalone CLI bundle installs <code>kiwi-control</code> and <code>kc</code> only. It does not install the desktop app. If Kiwi Control Desktop is already installed, <code>kc ui</code> can launch or attach to it.
-          </p>
-          <p class="detail-link-row">
-            <a href="/downloads/">Open downloads</a>
-            <a href="/support/">Support</a>
-          </p>
+          <div class="eyebrow">Optional desktop from wrappers</div>
+          <h2>The wrappers can request desktop install too.</h2>
+          <pre><code>curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash -s -- --desktop</code></pre>
+          <div>Windows PowerShell:</div>
+          <pre><code>&amp; ([scriptblock]::Create((irm https://kiwi-control.kiwi-ai.in/install.ps1))) -Desktop</code></pre>
+          <p>These only proceed when the relevant desktop artifact is actually published.</p>
         </article>
+      </section>
 
-        <article class="panel detail-panel">
-          <div class="eyebrow">CLI bootstrap</div>
-          <h2>Published wrapper install for the standalone CLI</h2>
-          <p>
-            This installs the standalone CLI bundle only, chooses the correct OS bundle, and verifies <code>kc --help</code>.
-          </p>
-          <pre><code>curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash</code></pre>
-          <div>Windows PowerShell bootstrap:</div>
-          <pre><code>irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex</code></pre>
-        </article>
+      <section class="proof-section">
+        <div class="section-header">
+          <div class="eyebrow">Verify install</div>
+          <h2>Run these commands before you start repo work.</h2>
+        </div>
+        <div class="grid">
+          <article class="panel">
+            <h2>macOS or Linux</h2>
+            <pre><code>kiwi-control --help
+kc --help
+command -v kc</code></pre>
+          </article>
+          <article class="panel">
+            <h2>Windows PowerShell</h2>
+            <pre><code>kiwi-control --help
+kc --help
+Get-Command kc</code></pre>
+          </article>
+          <article class="panel">
+            <h2>Open the app</h2>
+            <pre><code>kc ui</code></pre>
+            <p>If the desktop app is installed, this should launch or attach to it.</p>
+          </article>
+        </div>
+      </section>
 
-        <article class="panel detail-panel">
-          <div class="eyebrow">Windows fallback</div>
-          <h2>Windows CLI path</h2>
-          <p>
-            Windows setup EXE and MSI are live for this beta. The PowerShell bootstrap remains the CLI-only path when you do not want the desktop app.
-          </p>
-          <pre><code>irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex</code></pre>
-        </article>
+      <section class="proof-section">
+        <div class="section-header">
+          <div class="eyebrow">First repo setup</div>
+          <h2>These are the first commands most users should run.</h2>
+        </div>
+        <pre><code>cd /path/to/repo
+kc init
+kc status
+kc guide
+kc graph build
+kc pack status
+kc review
+kc check
+kc ui</code></pre>
+        <div class="detail-link-row">
+          <a href="/commands/">See what each command does</a>
+        </div>
+      </section>
+
+      <section class="proof-section" id="troubleshooting">
+        <div class="section-header">
+          <div class="eyebrow">Troubleshooting</div>
+          <h2>Common install problems and the fastest recovery.</h2>
+        </div>
+        <div class="faq-list">
+          <details open>
+            <summary>`kc` command not found</summary>
+            <p>Open a fresh terminal or fresh PowerShell window first. If it is still missing, use the CLI wrapper install for your OS.</p>
+          </details>
+          <details>
+            <summary>Desktop app installed but CLI missing</summary>
+            <p>The desktop app and CLI are separate install surfaces. The wrapper install is the safe fallback when terminal command setup did not complete.</p>
+          </details>
+          <details>
+            <summary>Windows PATH not refreshed yet</summary>
+            <p>Close the current PowerShell window, open a fresh one, then run <code>Get-Command kc</code> and <code>kc --help</code>.</p>
+          </details>
+          <details>
+            <summary>macOS first-open trust warning</summary>
+            <p>Control-click the downloaded pkg and choose <code>Open</code>, or go to <code>System Settings &gt; Privacy &amp; Security</code> and choose <code>Open Anyway</code>. That is a beta trust caveat, not proof of signed trust.</p>
+          </details>
+          <details>
+            <summary>Difference between desktop and CLI</summary>
+            <p>Desktop install is the full app path. The wrapper installers are CLI-only by default. Both can coexist on the same machine.</p>
+          </details>
+        </div>
       </section>
 
       <footer class="site-footer">
         <div>
           <strong>Created by Shrey Soni</strong>
-          <span>Kiwi Control keeps the install path desktop-first, splits Windows and macOS setup honestly, and keeps trust claims release-specific.</span>
+          <span>Install first, verify `kc`, then use the command guide for the first repo workflow.</span>
         </div>
         <div class="footer-links">
-          <a href="/beta/">Beta</a>
+          <a href="/downloads/">Downloads</a>
+          <a href="/commands/">Command guide</a>
           <a href="/support/">Support</a>
-          <a href="https://github.com/sonishrey9/kiwi_control">GitHub</a>
         </div>
       </footer>
     </div>

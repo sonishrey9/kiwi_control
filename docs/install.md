@@ -1,74 +1,34 @@
 # Install Kiwi Control
 
-Kiwi Control has three supported usage tracks:
+This guide is the source of truth for installing Kiwi Control and getting to the first useful commands without guessing.
 
-- desktop users
-- standalone CLI users
-- source contributors
+The fastest path depends on what you want:
 
-For the public beta, the public website is the primary install surface. The single-host public site publishes the actual release assets and metadata.
+- desktop app on macOS or Windows: use the published desktop installer first
+- CLI only on macOS, Linux, or Windows: use the wrapper install script
+- source contributor: build from this repo
 
-## Recommended path: desktop first
+## Quickstart
 
-For most desktop users on macOS:
+### Fastest desktop path
 
-1. Open the installer-first website at [kiwi-control.kiwi-ai.in](https://kiwi-control.kiwi-ai.in/) or go directly to the public [downloads page](https://kiwi-control.kiwi-ai.in/downloads/).
-2. Download the macOS desktop installer.
-   - macOS: prefer `.pkg`; `.dmg` remains secondary for manual beta testing
-3. Install Kiwi Control like a normal desktop app.
-4. macOS: the pkg installer is the intended default path for install-time `kc` setup.
-5. Windows: EXE/MSI desktop installers are not live yet. Use the Windows CLI bootstrap below if you only need `kc`.
-6. If macOS installer-owned CLI setup does not complete, use the in-app terminal-command repair flow or the CLI bootstrap below.
-7. Use onboarding to choose a repo and initialize it if needed.
+1. Open [kiwi-control.kiwi-ai.in/downloads](https://kiwi-control.kiwi-ai.in/downloads/).
+2. Install the desktop app for your OS.
+3. Verify `kc` from a fresh shell.
+4. Open or clone a repo.
+5. Run the first repo commands:
 
-### Desktop-only path
+```bash
+kc init
+kc status
+kc guide
+kc graph build
+kc pack status
+kc review
+kc ui
+```
 
-This is the default path Kiwi should optimize for:
-
-1. install the desktop app
-2. open the app
-3. choose a repo
-4. initialize the repo if Kiwi asks
-5. start working
-
-You do not need `kc` for basic desktop usage.
-
-For public downloads, trust status is release-specific. Public hosting makes the artifacts reachable, not trusted. The release notes, `SHA256SUMS.txt`, and release manifest say whether the macOS DMG was signed/notarized and whether the Windows installer was signed on a Windows runner.
-
-### Desktop + CLI path
-
-Desktop installs aim to make `kc` straightforward without manual PATH editing:
-
-1. macOS: the pkg installer should install the app and make `kc` available during install.
-2. Windows: EXE/MSI desktop installers are not live yet, so the public wrapper installs the CLI only.
-3. if macOS installer-owned setup does not complete, use the in-app repair action
-4. if Windows desktop setup is blocked later, use the CLI bootstrap below
-5. keep using the same repo from desktop or CLI interchangeably after setup succeeds
-
-### Default terminal commands
-
-Kiwi Control keeps the desktop app usable even if terminal command setup cannot complete, but the post-install behavior is intentionally platform-specific:
-
-- Windows: the NSIS setup EXE is not published yet; keep Windows desktop availability unavailable until a real Windows artifact exists
-- Windows MSI: keep it unavailable until it has the same default-CLI proof as the setup EXE
-- macOS: the pkg installer is the intended default path and should place `kc` into `/usr/local/bin`
-- macOS fallback: if pkg install-time setup is not reliable on that machine, use the one-click enable flow in the app
-- Kiwi verifies whether `kc` is callable from a fresh shell/process and reports the exact result
-
-If verification succeeds but your current terminal is still stale, Kiwi will tell you to open a new terminal window.
-
-## Standalone CLI users
-
-### Prerequisites
-
-- Node.js 22 or newer when you are installing the standalone beta CLI bundle yourself
-
-The beta CLI bundle is still Node-backed. That is an intentional beta constraint, not a hidden runtime dependency.
-Homebrew tap files are scaffolded for maintainers but not published as a public tap yet. Winget is not published for this beta. Use the published wrapper installers or CLI bundle links on the public site instead.
-
-### Quick CLI install from public wrappers
-
-These wrapper installers install the standalone CLI bundle only. They install `kiwi-control` and `kc`, verify `kc --help`, and do not install the desktop app unless you explicitly pass the desktop option and a real desktop artifact exists for that OS.
+### Fastest CLI-only path
 
 On macOS or Linux:
 
@@ -76,107 +36,289 @@ On macOS or Linux:
 curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash
 ```
 
-On Windows:
+On Windows PowerShell:
 
 ```powershell
 irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex
 ```
 
-Optional macOS desktop opt-in, only when the macOS pkg URL is published:
+Then verify:
+
+```bash
+kiwi-control --help
+kc --help
+command -v kc
+```
+
+On Windows PowerShell:
+
+```powershell
+kiwi-control --help
+kc --help
+Get-Command kc
+```
+
+## Choose your install path
+
+## Desktop-first install
+
+The desktop app is the recommended path when a desktop artifact exists for your OS.
+
+### macOS
+
+Use the `.pkg` installer first. The `.dmg` is a secondary manual beta path.
+
+What the `.pkg` path is intended to do:
+
+- install Kiwi Control Desktop
+- make `kc` available during install
+- let you keep using the desktop app even if you never touch the CLI again
+
+Verify after install from a new terminal window:
+
+```bash
+command -v kc
+kc --help
+kc ui
+```
+
+### Windows
+
+Use the setup EXE first. The MSI is a secondary manual path for the current beta.
+
+What the setup EXE path is intended to do:
+
+- install Kiwi Control Desktop
+- make `kc` available for a fresh PowerShell or cmd session
+- keep MSI available as the secondary path while signing proof remains incomplete
+
+Verify after install from a fresh PowerShell window:
+
+```powershell
+Get-Command kc
+kc --help
+kc ui
+```
+
+### Linux
+
+The public beta does not currently publish a Linux desktop installer. Use the CLI-only path below.
+
+## CLI-only install
+
+The wrapper installers install the standalone CLI bundle only. They install:
+
+- `kiwi-control`
+- `kc`
+
+They do not install the desktop app unless you explicitly request desktop install and a real desktop artifact exists for that OS.
+
+### Prerequisites for the standalone CLI bundle
+
+- Node.js `22+`
+- macOS or Linux for `install.sh`
+- Windows PowerShell for `install.ps1`
+
+The standalone beta CLI bundle is still Node-backed. That requirement is real and should be called out plainly.
+
+### macOS or Linux
+
+```bash
+curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash
+```
+
+Optional macOS desktop opt-in through the wrapper, only when the macOS pkg URL is published:
 
 ```bash
 curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash -s -- --desktop
 ```
 
-Optional Windows desktop opt-in remains honest: because Windows EXE/MSI are not live yet, this prints that the Windows desktop installer is not published yet and still leaves a working CLI install.
+### Windows PowerShell
 
-After install, the public commands are:
+```powershell
+irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex
+```
 
-- `kiwi-control`
-- `kc`
+Optional desktop opt-in through the PowerShell wrapper:
 
-The standalone CLI bundle installs only those terminal commands. It does not install Kiwi Control Desktop. If Kiwi Control Desktop is already installed, `kc ui` can launch or attach to it.
+```powershell
+& ([scriptblock]::Create((irm https://kiwi-control.kiwi-ai.in/install.ps1))) -Desktop
+```
 
-Fresh terminal verification:
+## Verify that install worked
+
+## Verify the commands
+
+On macOS or Linux:
 
 ```bash
-command -v kc
+kiwi-control --help
 kc --help
+command -v kc
 ```
 
 On Windows PowerShell:
+
+```powershell
+kiwi-control --help
+kc --help
+Get-Command kc
+```
+
+## Verify the desktop bridge
+
+If Kiwi Control Desktop is installed, this should launch or attach to it:
+
+```bash
+kc ui
+```
+
+On Windows PowerShell:
+
+```powershell
+kc ui
+```
+
+## First repo flow
+
+## New repo or repo not initialized yet
+
+```bash
+cd /path/to/repo
+kc init
+kc status
+kc guide
+kc graph build
+kc pack status
+kc review
+kc check
+kc ui
+```
+
+## Existing initialized repo
+
+```bash
+cd /path/to/repo
+kc status
+kc guide
+kc graph status
+kc graph build
+kc pack status
+kc review
+kc check
+kc ui
+```
+
+## What those commands do
+
+- `kc init`: create the repo-local Kiwi Control contract when the repo is not initialized yet
+- `kc status`: show current repo state and readiness
+- `kc guide`: show the next useful files, commands, and workflow hints
+- `kc graph build`: refresh repo intelligence artifacts
+- `kc pack status`: show the currently selected pack guidance
+- `kc review`: build review-oriented guidance from the current repo state
+- `kc check`: validate repo-local contract and workflow assumptions
+- `kc ui`: open or attach the desktop app
+
+For a broader command reference, see [docs/command-guide.md](./command-guide.md).
+
+## Common install and first-run problems
+
+## `kc` command not found
+
+What to do:
+
+1. Open a fresh terminal or fresh PowerShell window.
+2. Run the verify commands again.
+3. If the desktop app is installed but `kc` is still missing, use the CLI-only wrapper install.
+
+macOS or Linux:
+
+```bash
+curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash
+```
+
+Windows PowerShell:
+
+```powershell
+irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex
+```
+
+## Desktop app installed but CLI missing
+
+The desktop app and CLI are related but not identical install surfaces.
+
+- desktop install is the recommended path for app users
+- the wrapper installers are the clean fallback when terminal command setup did not complete
+
+If the app is already installed, `kc ui` can still be useful after the CLI wrapper finishes.
+
+## Windows PATH not refreshed yet
+
+If `kc` is not found right after install:
+
+1. close the current PowerShell or cmd window
+2. open a fresh PowerShell window
+3. run:
 
 ```powershell
 Get-Command kc
 kc --help
 ```
 
-### Manual CLI bundle path
+If it still fails, run the PowerShell wrapper install again.
 
-Use the public [downloads page](https://kiwi-control.kiwi-ai.in/downloads/) if you need to inspect or manually extract a CLI bundle. The wrapper path above is preferred because it chooses the correct bundle, installs `kc`, and verifies `kc --help`.
+## macOS first-open trust warning
 
-### First CLI flow
+This beta may still show an unsigned or not-yet-notarized trust warning on macOS.
 
-```bash
-cd /path/to/repo
-kc init
-kc status
-kc check
-kc guide
-```
+If Finder blocks the `.pkg`:
 
-## Source contributors
+1. locate the downloaded `.pkg` in Finder
+2. Control-click it
+3. choose `Open`
+4. if needed, go to `System Settings > Privacy & Security` and choose `Open Anyway`
 
-### Prerequisites
+That is a beta trust caveat, not proof that the installer is fully trusted.
 
-- Node.js 22+
-- npm 10+
-- Rust/Cargo for desktop builds
-- platform-native desktop toolchain
+## Difference between `kiwi-control` and `kc`
 
-Platform notes:
+They point at the same CLI.
 
-- macOS: Xcode command line tools
-- Windows: Visual Studio C++ build tools
-- Linux: WebKitGTK and related Tauri native dependencies
+- `kiwi-control` is the full command name
+- `kc` is the short daily-use alias
 
-### Exact contributor commands
+## How to use Kiwi with Claude Code, Codex, or Cursor
 
-```bash
-npm install
-npm run build
-npm test
-bash scripts/smoke-test.sh
-npm run ui:dev
-```
+The practical pattern is:
 
-Desktop production build:
+1. install Kiwi Control
+2. run the first repo commands
+3. give your coding agent the repo after Kiwi has already surfaced context and workflow state
+
+Good first commands before deeper agent work:
 
 ```bash
-npm run ui:desktop:build
+kc status --json
+kc guide --json
+kc graph build --json
+kc pack status --json
+kc review --json
 ```
 
-## macOS external volume caveat
+## Unsupported or not-yet-live install paths
 
-On some external macOS volumes, AppleDouble `._*` files can appear inside the working tree or `.git` and break Git pack indexes.
+These are not public install paths right now:
 
-If that happens, run:
+- Homebrew install
+- winget install
+- Linux desktop installer
 
-```bash
-npm run clean:macos-sidecars
-```
-
-If Git pack errors continue, move the repo to internal storage before retrying heavy Git operations.
-
-## Compatibility note
-
-This beta keeps public naming stable while internal implementation names remain:
-
-- public commands: `kiwi-control`, `kc`
-- internal packages: `sj-core`, `sj-cli`, `sj-ui`
+Do not document them as live until they are actually published.
 
 ## Related docs
 
+- [Command guide](./command-guide.md)
 - [Beta limitations](./beta-limitations.md)
 - [Release packaging](./release-packaging.md)
 - [Support](../SUPPORT.md)

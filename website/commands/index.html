@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kiwi Control Commands</title>
+    <meta
+      name="description"
+      content="Exact Kiwi Control commands to run after install: verify kc, initialize a repo, build graph state, review, check, and open the desktop app."
+    />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <div class="shell">
+      <nav class="nav">
+        <div class="brand">Kiwi Control</div>
+        <div class="nav-links">
+          <a href="/">Home</a>
+          <a href="/downloads/">Downloads</a>
+          <a href="/install/">Install guide</a>
+          <a href="/commands/">Command guide</a>
+          <a href="/proof/">Demo / Proof</a>
+          <a href="/support/">Support</a>
+        </div>
+      </nav>
+
+      <section class="hero">
+        <div class="eyebrow">Command guide</div>
+        <h1>Run Kiwi Control without guessing what comes next.</h1>
+        <p class="hero-text">
+          `kiwi-control` and `kc` point to the same CLI. Most people use `kc` for daily work. Start with the install verify commands, then run the first repo flow below.
+        </p>
+        <div class="cta-row">
+          <a class="button button-primary" href="/install/">Install first</a>
+          <a class="button" href="/downloads/">Open downloads</a>
+          <a class="button" href="#troubleshooting">Troubleshooting</a>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h2>Verify install</h2>
+          <pre><code>kiwi-control --help
+kc --help</code></pre>
+          <p>Then verify that `kc` is actually on your path.</p>
+          <pre><code>command -v kc</code></pre>
+          <div>Windows PowerShell:</div>
+          <pre><code>Get-Command kc</code></pre>
+        </article>
+
+        <article class="panel">
+          <h2>First repo flow</h2>
+          <pre><code>cd /path/to/repo
+kc init
+kc status
+kc guide
+kc graph build
+kc pack status
+kc review
+kc check
+kc ui</code></pre>
+        </article>
+
+        <article class="panel">
+          <h2>Already initialized repo</h2>
+          <pre><code>cd /path/to/repo
+kc status
+kc guide
+kc graph status
+kc graph build
+kc pack status
+kc review
+kc check
+kc ui</code></pre>
+        </article>
+      </section>
+
+      <section class="proof-section">
+        <div class="section-header">
+          <div class="eyebrow">What to run</div>
+          <h2>Core commands</h2>
+        </div>
+        <div class="command-matrix">
+          <div><strong>kc init</strong><span>Initialize the repo-local Kiwi contract when a repo is not set up yet.</span></div>
+          <div><strong>kc status</strong><span>Show current repo state, readiness, and the next recommended action.</span></div>
+          <div><strong>kc guide</strong><span>Show what to read or run next for the current repo and task shape.</span></div>
+          <div><strong>kc graph status</strong><span>Show graph freshness and repo-intelligence status.</span></div>
+          <div><strong>kc graph build</strong><span>Refresh the repo-intelligence artifacts.</span></div>
+          <div><strong>kc pack status</strong><span>Show the active pack guidance and capability lane.</span></div>
+          <div><strong>kc review</strong><span>Build review-oriented guidance from repo state and current diff.</span></div>
+          <div><strong>kc check</strong><span>Validate the repo-local contract and workflow assumptions.</span></div>
+          <div><strong>kc ui</strong><span>Launch or attach to the Kiwi desktop app.</span></div>
+          <div><strong>kc next</strong><span>Ask Kiwi for the next useful action in the current repo state.</span></div>
+          <div><strong>kc validate</strong><span>Run task-oriented validation flow for the current repo state.</span></div>
+          <div><strong>kc checkpoint &quot;ready for review&quot;</strong><span>Record a milestone before handoff or push discussion.</span></div>
+        </div>
+      </section>
+
+      <section class="details-layout">
+        <article class="panel detail-panel">
+          <div class="eyebrow">JSON-first</div>
+          <h2>Use these when another agent needs structured output.</h2>
+          <pre><code>kc status --json
+kc guide --json
+kc graph build --json
+kc pack status --json
+kc review --json
+kc check --json</code></pre>
+          <p>These are the cleanest starting points before deeper Claude Code, Codex, or Cursor work.</p>
+        </article>
+
+        <article class="panel detail-panel">
+          <div class="eyebrow">Desktop vs CLI</div>
+          <h2>The app and the CLI are related, but not identical.</h2>
+          <div class="list">
+            <div>The desktop app is the recommended path when you want the full Kiwi surface.</div>
+            <div>The wrapper installers install the CLI bundle only by default.</div>
+            <div>If the desktop app is already installed, <code>kc ui</code> can launch or attach to it.</div>
+            <div>You do not need the CLI for basic desktop-only usage.</div>
+          </div>
+        </article>
+
+        <article class="panel detail-panel">
+          <div class="eyebrow">With coding agents</div>
+          <h2>How to use Kiwi with Claude Code, Codex, or Cursor.</h2>
+          <div class="list">
+            <div>1. Install Kiwi Control.</div>
+            <div>2. Run <code>kc status</code>, <code>kc guide</code>, <code>kc graph build</code>, and <code>kc review</code>.</div>
+            <div>3. Start the coding-agent work from that repo state instead of raw repo exploration.</div>
+          </div>
+        </article>
+      </section>
+
+      <section class="proof-section" id="troubleshooting">
+        <div class="section-header">
+          <div class="eyebrow">Troubleshooting</div>
+          <h2>Fix the common install and first-run problems fast.</h2>
+        </div>
+        <div class="faq-list">
+          <details open>
+            <summary>`kc` command not found</summary>
+            <p>Open a fresh terminal or fresh PowerShell window first. If `kc` is still missing, run the wrapper install again from the install page.</p>
+          </details>
+          <details>
+            <summary>Desktop app installed but CLI missing</summary>
+            <p>The desktop app and CLI are separate install surfaces. The wrapper install is the clean fallback when terminal command setup did not complete.</p>
+          </details>
+          <details>
+            <summary>Windows PATH not refreshed yet</summary>
+            <p>Close the current PowerShell window, open a fresh one, then run <code>Get-Command kc</code> and <code>kc --help</code>.</p>
+          </details>
+          <details>
+            <summary>macOS first-open trust warning</summary>
+            <p>That is a beta trust warning, not proof of installer trust. Control-click the pkg and choose <code>Open</code>, or use <code>System Settings &gt; Privacy &amp; Security</code> and choose <code>Open Anyway</code>.</p>
+          </details>
+          <details>
+            <summary>What is the difference between `kiwi-control` and `kc`?</summary>
+            <p>They point to the same CLI. `kiwi-control` is the full name. `kc` is the short alias.</p>
+          </details>
+        </div>
+      </section>
+
+      <section class="proof-section proof-cta">
+        <div class="section-header">
+          <div class="eyebrow">Next step</div>
+          <h2>Install, verify, then open a repo.</h2>
+          <p>The install page covers the exact download and wrapper paths. This page covers what to run right after that.</p>
+        </div>
+        <div class="cta-row">
+          <a class="button button-primary" href="/install/">Open install guide</a>
+          <a class="button" href="/downloads/">Open downloads</a>
+          <a class="button" href="/support/">Support</a>
+        </div>
+      </section>
+
+      <footer class="site-footer">
+        <div>
+          <strong>Created by Shrey Soni</strong>
+          <span>The goal here is simple: install Kiwi Control, verify it, run the first commands, and get back to real repo work.</span>
+        </div>
+        <div class="footer-links">
+          <a href="/install/">Install guide</a>
+          <a href="/downloads/">Downloads</a>
+          <a href="/proof/">Demo / Proof</a>
+          <a href="/support/">Support</a>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>
