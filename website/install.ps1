@@ -24,6 +24,7 @@ $base = $BaseUrl.TrimEnd("/")
 $metadataUrl = "$base/data/latest-release.json"
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("kiwi-control-bootstrap-" + [System.Guid]::NewGuid().ToString("N"))
 $zipPath = Join-Path $tempRoot "kiwi-control-cli.zip"
+$runtimePath = Join-Path $tempRoot "kiwi-control-runtime.tar.gz"
 $bundleDir = Join-Path $tempRoot "bundle"
 
 New-Item -ItemType Directory -Force -Path $bundleDir | Out-Null
@@ -32,6 +33,7 @@ try {
   Write-Host "Fetching Kiwi Control release metadata"
   $metadata = Invoke-RestMethod -Uri $metadataUrl
   $cliUrl = $metadata.artifacts.cliWindows.latestUrl
+  $runtimeUrl = if ($metadata.artifacts.runtimeWindows.latestUrl) { $metadata.artifacts.runtimeWindows.latestUrl } else { $null }
   if ([string]::IsNullOrWhiteSpace($cliUrl)) {
     throw "Windows CLI bundle is not published yet. Windows desktop availability remains separate."
   }
@@ -43,6 +45,17 @@ try {
   $bundleInstaller = Get-ChildItem -Path $bundleDir -Filter "install.ps1" -Recurse | Select-Object -First 1
   if (-not $bundleInstaller) {
     throw "Downloaded CLI bundle did not contain install.ps1."
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace($runtimeUrl)) {
+    $runtimeDir = Join-Path $bundleInstaller.Directory.FullName "node_modules/@shrey-junior/sj-core/dist/runtime"
+    New-Item -ItemType Directory -Force -Path $runtimeDir | Out-Null
+    Write-Host "Downloading Kiwi Control runtime bundle for Windows"
+    Invoke-WebRequest -Uri $runtimeUrl -OutFile $runtimePath
+    & tar -xzf $runtimePath -C $runtimeDir
+    if ($LASTEXITCODE -ne 0) {
+      throw "Kiwi Control install error: failed to unpack the Windows runtime bundle."
+    }
   }
 
   & $bundleInstaller.FullName -InstallScope $InstallScope

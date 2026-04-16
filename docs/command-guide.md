@@ -258,7 +258,7 @@ irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex
 
 ## I only want the CLI
 
-Use the wrapper installers. They install the CLI bundle only by default.
+Use the wrapper installers. They install the CLI bundle and hydrate the matching runtime bundle for the current OS by default.
 
 ## I only installed the desktop app
 

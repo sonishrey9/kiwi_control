@@ -91,6 +91,7 @@ trap cleanup EXIT
 
 METADATA_PATH="$TMPDIR/latest-release.json"
 ARCHIVE_PATH="$TMPDIR/kiwi-control-cli.tar.gz"
+RUNTIME_ARCHIVE_PATH="$TMPDIR/kiwi-control-runtime.tar.gz"
 BUNDLE_DIR="$TMPDIR/bundle"
 mkdir -p "$BUNDLE_DIR"
 
@@ -120,6 +121,29 @@ process.exit(1);
 NODE
 )"
 
+RUNTIME_URL="$(
+  node - "$METADATA_PATH" "$PLATFORM" "$ARCH" <<'NODE'
+const fs = require("node:fs");
+const [metadataPath, platform, arch] = process.argv.slice(2);
+const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
+const artifacts = metadata.artifacts ?? {};
+
+const keys = platform === "macos"
+  ? (arch === "aarch64" ? ["runtimeMacosAarch64", "runtimeMacos"] : ["runtimeMacosX64", "runtimeMacos"])
+  : platform === "linux"
+    ? ["runtimeLinux"]
+    : [];
+
+for (const key of keys) {
+  const url = artifacts[key]?.latestUrl;
+  if (url) {
+    process.stdout.write(url);
+    process.exit(0);
+  }
+}
+NODE
+)"
+
 echo "Downloading Kiwi Control CLI bundle for $PLATFORM/$ARCH"
 curl -fsSL "$CLI_URL" -o "$ARCHIVE_PATH"
 tar -xzf "$ARCHIVE_PATH" -C "$BUNDLE_DIR"
@@ -128,6 +152,15 @@ BUNDLE_INSTALLER="$(find "$BUNDLE_DIR" -maxdepth 3 -type f -name install.sh -pri
 if [[ -z "$BUNDLE_INSTALLER" ]]; then
   echo "Kiwi Control install error: downloaded CLI bundle did not contain install.sh." >&2
   exit 1
+fi
+
+if [[ -n "$RUNTIME_URL" ]]; then
+  BUNDLE_ROOT="$(cd "$(dirname "$BUNDLE_INSTALLER")" && pwd)"
+  RUNTIME_DIR="$BUNDLE_ROOT/node_modules/@shrey-junior/sj-core/dist/runtime"
+  mkdir -p "$RUNTIME_DIR"
+  echo "Downloading Kiwi Control runtime bundle for $PLATFORM/$ARCH"
+  curl -fsSL "$RUNTIME_URL" -o "$RUNTIME_ARCHIVE_PATH"
+  tar -xzf "$RUNTIME_ARCHIVE_PATH" -C "$RUNTIME_DIR"
 fi
 
 bash "$BUNDLE_INSTALLER"

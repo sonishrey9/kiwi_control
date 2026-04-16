@@ -172,7 +172,7 @@ curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash
 irm https://kiwi-control.kiwi-ai.in/install.ps1 | iex
 ```
 
-They install `kiwi-control` and `kc` only, then verify `kc --help`. They do not install the desktop app unless a desktop option is explicitly requested and a real artifact exists for that OS. If Kiwi Control Desktop is already installed on the machine, `kc ui` can launch or attach to it.
+They install `kiwi-control` and `kc`, hydrate the matching runtime bundle for the current OS, and then verify `kc --help`. They do not install the desktop app unless a desktop option is explicitly requested and a real artifact exists for that OS. If Kiwi Control Desktop is already installed on the machine, `kc ui` can launch or attach to it.
 
 After install:
 

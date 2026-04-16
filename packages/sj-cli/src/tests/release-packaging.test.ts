@@ -769,12 +769,7 @@ test("Pages staging falls back to SITE_URL when DOWNLOADS_URL is unset", async (
   }
 });
 
-test("release asset packager includes all public CLI bundles on macOS builders", async (t) => {
-  if (process.platform !== "darwin") {
-    t.skip("macOS-only cross-packaging verification");
-    return;
-  }
-
+test("release asset packager only emits the CLI bundle for the current runner platform", async () => {
   const root = repoRoot();
   const releaseDir = path.join(root, "dist", "release");
   const manifestPath = path.join(releaseDir, "release-manifest.json");
@@ -819,16 +814,20 @@ test("release asset packager includes all public CLI bundles on macOS builders",
 
     const result = spawnSync(process.execPath, [path.join(root, "scripts", "package-release-assets.mjs")], {
       cwd: root,
-      encoding: "utf8"
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        RUNNER_OS: "Linux",
+        RUNNER_ARCH: "X64"
+      }
     });
 
     assert.equal(result.status, 0, result.stderr || result.stdout);
     const payload = JSON.parse(result.stdout) as { createdAssets: string[] };
-    assert.equal(payload.createdAssets.includes("kiwi-control-cli-0.2.0-beta.1-macos-aarch64.tar.gz"), true);
     assert.equal(payload.createdAssets.includes("kiwi-control-cli-0.2.0-beta.1-linux-x64.tar.gz"), true);
-    assert.equal(payload.createdAssets.includes("kiwi-control-cli-0.2.0-beta.1-windows-x64.zip"), true);
+    assert.equal(payload.createdAssets.includes("kiwi-control-cli-0.2.0-beta.1-macos-aarch64.tar.gz"), false);
+    assert.equal(payload.createdAssets.includes("kiwi-control-cli-0.2.0-beta.1-windows-x64.zip"), false);
     await fs.access(path.join(assetsDir, "kiwi-control-cli-0.2.0-beta.1-linux-x64.tar.gz"));
-    await fs.access(path.join(assetsDir, "kiwi-control-cli-0.2.0-beta.1-windows-x64.zip"));
   } finally {
     await fs.rm(assetsDir, { recursive: true, force: true });
     if (hadAssetsDir) {
@@ -854,16 +853,155 @@ test("public wrapper installers are CLI-first and metadata-driven", async () => 
   assert.match(installSh, /cliMacosAarch64/);
   assert.match(installSh, /cliMacosX64/);
   assert.match(installSh, /cliLinux/);
+  assert.match(installSh, /runtimeMacosAarch64/);
+  assert.match(installSh, /runtimeMacosX64/);
+  assert.match(installSh, /runtimeLinux/);
+  assert.match(installSh, /kiwi-control-runtime\.tar\.gz/);
   assert.match(installSh, /\$KC_PATH" --help/);
   assert.match(installSh, /Kiwi Control Desktop is not published for Linux/);
   assert.match(installSh, /CLI install remains complete/);
 
   assert.match(installPs1, /latest-release\.json/);
   assert.match(installPs1, /cliWindows\.latestUrl/);
+  assert.match(installPs1, /runtimeWindows\.latestUrl/);
   assert.match(installPs1, /Expand-Archive/);
+  assert.match(installPs1, /tar -xzf/);
   assert.match(installPs1, /Get-Command kc/);
   assert.match(installPs1, /--help/);
   assert.match(installPs1, /Windows desktop installer is not published yet/);
+});
+
+test("public install wrapper hydrates the matching runtime bundle before kc init", async (t) => {
+  if (process.platform === "win32") {
+    t.skip("POSIX installer regression runs on macOS/Linux hosts only.");
+    return;
+  }
+
+  const root = repoRoot();
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiwi-public-install-runtime-"));
+  const bundlePath = path.join(tempDir, "cli-bundle");
+  const publishRoot = path.join(tempDir, "publish");
+  const homeDir = path.join(tempDir, "home");
+  const binDir = path.join(tempDir, "bin");
+  const repoDir = path.join(tempDir, "repo");
+  await fs.mkdir(publishRoot, { recursive: true });
+  await fs.mkdir(homeDir, { recursive: true });
+  await fs.mkdir(binDir, { recursive: true });
+  await fs.mkdir(repoDir, { recursive: true });
+
+  try {
+    const { stageCliBundle } = await import(pathToFileURL(path.join(root, "scripts", "stage-cli-bundle.mjs")).href) as {
+      stageCliBundle: (options: { repoRoot: string; bundlePath: string; version: string }) => Promise<string>;
+    };
+    await stageCliBundle({ repoRoot: root, bundlePath, version: "0.2.0-test.0" });
+
+    const stagedRuntimeDir = path.join(bundlePath, "node_modules", "@shrey-junior", "sj-core", "dist", "runtime");
+    await fs.rm(path.join(stagedRuntimeDir, "bin", "kiwi-control-runtime"), { force: true });
+    await fs.writeFile(path.join(stagedRuntimeDir, "bin", "kiwi-control-runtime.exe"), "wrong-host-runtime", "utf8");
+
+    const cliArchivePath = path.join(publishRoot, "kiwi-control-cli.tar.gz");
+    const runtimeArchivePath = path.join(publishRoot, "kiwi-control-runtime.tar.gz");
+    assert.equal(spawnSync("tar", ["-czf", cliArchivePath, "-C", bundlePath, "."], { cwd: root }).status, 0);
+    assert.equal(
+      spawnSync(
+        "tar",
+        ["-czf", runtimeArchivePath, "-C", path.join(root, "packages", "sj-core", "dist", "runtime"), "."],
+        { cwd: root }
+      ).status,
+      0
+    );
+
+    const platform = process.platform === "darwin" ? "macos" : "linux";
+    const arch = process.arch === "arm64" ? "aarch64" : "x64";
+    const metadata = {
+      version: "0.2.0-test.0",
+      artifacts: platform === "macos"
+        ? {
+            cliMacosAarch64: arch === "aarch64"
+              ? {
+                  filename: "kiwi-control-cli-0.2.0-test.0-macos-aarch64.tar.gz",
+                  latestUrl: "__SITE__/latest/macos/aarch64/kiwi-control-cli.tar.gz",
+                  versionedUrl: "__SITE__/releases/v0.2.0-test.0/kiwi-control-cli-0.2.0-test.0-macos-aarch64.tar.gz"
+                }
+              : null,
+            cliMacosX64: arch === "x64"
+              ? {
+                  filename: "kiwi-control-cli-0.2.0-test.0-macos-x64.tar.gz",
+                  latestUrl: "__SITE__/latest/macos/x64/kiwi-control-cli.tar.gz",
+                  versionedUrl: "__SITE__/releases/v0.2.0-test.0/kiwi-control-cli-0.2.0-test.0-macos-x64.tar.gz"
+                }
+              : null,
+            runtimeMacosAarch64: arch === "aarch64"
+              ? {
+                  filename: "kiwi-control-runtime-0.2.0-test.0-macos-aarch64.tar.gz",
+                  latestUrl: "__SITE__/latest/macos/aarch64/kiwi-control-runtime.tar.gz",
+                  versionedUrl: "__SITE__/releases/v0.2.0-test.0/kiwi-control-runtime-0.2.0-test.0-macos-aarch64.tar.gz"
+                }
+              : null,
+            runtimeMacosX64: arch === "x64"
+              ? {
+                  filename: "kiwi-control-runtime-0.2.0-test.0-macos-x64.tar.gz",
+                  latestUrl: "__SITE__/latest/macos/x64/kiwi-control-runtime.tar.gz",
+                  versionedUrl: "__SITE__/releases/v0.2.0-test.0/kiwi-control-runtime-0.2.0-test.0-macos-x64.tar.gz"
+                }
+              : null
+          }
+        : {
+            cliLinux: {
+              filename: "kiwi-control-cli-0.2.0-test.0-linux-x64.tar.gz",
+              latestUrl: "__SITE__/latest/linux/kiwi-control-cli.tar.gz",
+              versionedUrl: "__SITE__/releases/v0.2.0-test.0/kiwi-control-cli-0.2.0-test.0-linux-x64.tar.gz"
+            },
+            runtimeLinux: {
+              filename: "kiwi-control-runtime-0.2.0-test.0-linux-x64.tar.gz",
+              latestUrl: "__SITE__/latest/linux/kiwi-control-runtime.tar.gz",
+              versionedUrl: "__SITE__/releases/v0.2.0-test.0/kiwi-control-runtime-0.2.0-test.0-linux-x64.tar.gz"
+            }
+          }
+    };
+
+    const latestDir = platform === "macos"
+      ? path.join(publishRoot, "latest", "macos", arch)
+      : path.join(publishRoot, "latest", "linux");
+    await fs.mkdir(latestDir, { recursive: true });
+    await fs.copyFile(cliArchivePath, path.join(latestDir, "kiwi-control-cli.tar.gz"));
+    await fs.copyFile(runtimeArchivePath, path.join(latestDir, "kiwi-control-runtime.tar.gz"));
+
+    const { child, siteUrl } = await startStaticReleaseServer(publishRoot, metadata);
+    try {
+      const install = spawnSync("/bin/bash", [path.join(root, "website", "install.sh")], {
+        cwd: repoDir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          HOME: homeDir,
+          KIWI_CONTROL_HOME: path.join(homeDir, ".kiwi-control"),
+          KIWI_CONTROL_PATH_BIN: binDir,
+          KIWI_CONTROL_DOWNLOAD_BASE_URL: siteUrl
+        }
+      });
+
+      assert.equal(install.status, 0, install.stderr || install.stdout);
+
+      const init = spawnSync(path.join(binDir, "kc"), ["init"], {
+        cwd: repoDir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          HOME: homeDir,
+          KIWI_CONTROL_HOME: path.join(homeDir, ".kiwi-control"),
+          KIWI_CONTROL_PATH_BIN: binDir
+        }
+      });
+
+      assert.equal(init.status, 0, init.stderr || init.stdout);
+      assert.match(init.stdout, /created: \.agent\/project\.yaml/);
+    } finally {
+      await stopChildProcess(child);
+    }
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
 });
 
 test("Homebrew generator emits scaffold-only formula and cask from published metadata", async () => {
@@ -1018,6 +1156,124 @@ server.listen(0, "127.0.0.1", () => {
       }
       settled = true;
       reject(new Error(stderr || `downloads metadata server exited with code ${code ?? "unknown"}`));
+    });
+  });
+
+  return {
+    child: server,
+    siteUrl: `http://127.0.0.1:${port}`
+  };
+}
+
+async function startStaticReleaseServer(root: string, releaseMetadata: object) {
+  const server = spawn(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      `import http from "node:http";
+import path from "node:path";
+import { promises as fs } from "node:fs";
+
+const root = process.env.STATIC_ROOT;
+const payload = JSON.parse(process.env.RELEASE_METADATA ?? "{}");
+
+function replaceSiteUrl(value, siteUrl) {
+  if (Array.isArray(value)) {
+    return value.map((entry) => replaceSiteUrl(entry, siteUrl));
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, replaceSiteUrl(entry, siteUrl)]));
+  }
+  if (typeof value === "string") {
+    return value.replaceAll("__SITE__", siteUrl);
+  }
+  return value;
+}
+
+function contentType(filePath) {
+  if (filePath.endsWith(".json")) return "application/json";
+  if (filePath.endsWith(".zip")) return "application/zip";
+  if (filePath.endsWith(".tar.gz")) return "application/gzip";
+  return "application/octet-stream";
+}
+
+const server = http.createServer(async (request, response) => {
+  const requestUrl = request.url ?? "/";
+  if (requestUrl === "/data/latest-release.json") {
+    const address = server.address();
+    const siteUrl = typeof address === "object" && address ? \`http://127.0.0.1:\${address.port}\` : "http://127.0.0.1";
+    response.setHeader("content-type", "application/json");
+    response.end(JSON.stringify(replaceSiteUrl(payload, siteUrl)));
+    return;
+  }
+
+  const localPath = path.join(root, requestUrl.replace(/^\\/+/, ""));
+  try {
+    const content = await fs.readFile(localPath);
+    response.setHeader("content-type", contentType(localPath));
+    response.end(content);
+  } catch {
+    response.statusCode = 404;
+    response.end("not found");
+  }
+});
+
+server.listen(0, "127.0.0.1", () => {
+  const address = server.address();
+  if (!address || typeof address === "string") {
+    console.error("invalid-address");
+    process.exit(1);
+    return;
+  }
+  console.log(address.port);
+});`
+    ],
+    {
+      cwd: root,
+      env: {
+        ...process.env,
+        STATIC_ROOT: root,
+        RELEASE_METADATA: JSON.stringify(releaseMetadata)
+      },
+      stdio: ["ignore", "pipe", "pipe"]
+    }
+  );
+
+  const port = await new Promise<number>((resolve, reject) => {
+    let stderr = "";
+    let settled = false;
+
+    server.stderr?.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    server.stdout?.on("data", (chunk) => {
+      if (settled) {
+        return;
+      }
+      const value = Number(chunk.toString().trim().split(/\r?\n/)[0]);
+      if (!Number.isFinite(value)) {
+        return;
+      }
+      settled = true;
+      resolve(value);
+    });
+
+    server.on("error", (error) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      reject(error);
+    });
+
+    server.on("exit", (code) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      reject(new Error(stderr || `static release server exited with code ${code ?? "unknown"}`));
     });
   });
 

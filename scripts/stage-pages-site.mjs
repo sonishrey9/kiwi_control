@@ -188,13 +188,38 @@ function fallbackReleaseMetadata({ downloadsUrl, repoUrl, version }) {
         latestUrl: null,
         versionedUrl: null
       },
+      runtimeMacos: {
+        filename: "kiwi-control-runtime.tar.gz",
+        latestUrl: null,
+        versionedUrl: null
+      },
+      runtimeMacosAarch64: {
+        filename: "kiwi-control-runtime-macos-aarch64.tar.gz",
+        latestUrl: null,
+        versionedUrl: null
+      },
+      runtimeMacosX64: {
+        filename: "kiwi-control-runtime-macos-x64.tar.gz",
+        latestUrl: null,
+        versionedUrl: null
+      },
       cliLinux: {
         filename: "kiwi-control-cli-linux-x64.tar.gz",
         latestUrl: null,
         versionedUrl: null
       },
+      runtimeLinux: {
+        filename: "kiwi-control-runtime-linux-x64.tar.gz",
+        latestUrl: null,
+        versionedUrl: null
+      },
       cliWindows: {
         filename: "kiwi-control-cli.zip",
+        latestUrl: null,
+        versionedUrl: null
+      },
+      runtimeWindows: {
+        filename: "kiwi-control-runtime-windows-x64.tar.gz",
         latestUrl: null,
         versionedUrl: null
       }

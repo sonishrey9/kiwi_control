@@ -4,6 +4,9 @@ name: Shrey Junior Contract
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   verify-repo-contract:
     runs-on: ubuntu-latest

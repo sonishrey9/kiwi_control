@@ -106,7 +106,7 @@ The public beta does not currently publish a Linux desktop installer. Use the CL
 
 ## CLI-only install
 
-The wrapper installers install the standalone CLI bundle only. They install:
+The wrapper installers install the standalone CLI bundle plus the matching runtime bundle for the current OS. They install:
 
 - `kiwi-control`
 - `kc`

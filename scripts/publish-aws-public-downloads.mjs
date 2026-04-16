@@ -68,6 +68,26 @@ const ARTIFACT_DESCRIPTORS = {
     latestKey: "latest/macos/x64/kiwi-control-cli.tar.gz",
     fallbackFilename: "kiwi-control-cli-macos-x64.tar.gz"
   },
+  runtimeMacos: {
+    artifactType: "runtime",
+    platform: "macos",
+    latestKey: "latest/macos/kiwi-control-runtime.tar.gz",
+    fallbackFilename: "kiwi-control-runtime.tar.gz"
+  },
+  runtimeMacosAarch64: {
+    artifactType: "runtime",
+    platform: "macos",
+    arch: "aarch64",
+    latestKey: "latest/macos/aarch64/kiwi-control-runtime.tar.gz",
+    fallbackFilename: "kiwi-control-runtime-macos-aarch64.tar.gz"
+  },
+  runtimeMacosX64: {
+    artifactType: "runtime",
+    platform: "macos",
+    arch: "x64",
+    latestKey: "latest/macos/x64/kiwi-control-runtime.tar.gz",
+    fallbackFilename: "kiwi-control-runtime-macos-x64.tar.gz"
+  },
   cliLinux: {
     artifactType: "cli",
     platform: "linux",
@@ -75,12 +95,26 @@ const ARTIFACT_DESCRIPTORS = {
     latestKey: "latest/linux/kiwi-control-cli.tar.gz",
     fallbackFilename: "kiwi-control-cli-linux-x64.tar.gz"
   },
+  runtimeLinux: {
+    artifactType: "runtime",
+    platform: "linux",
+    arch: "x64",
+    latestKey: "latest/linux/kiwi-control-runtime.tar.gz",
+    fallbackFilename: "kiwi-control-runtime-linux-x64.tar.gz"
+  },
   cliWindows: {
     artifactType: "cli",
     platform: "windows",
     arch: "x64",
     latestKey: "latest/windows/kiwi-control-cli.zip",
     fallbackFilename: "kiwi-control-cli.zip"
+  },
+  runtimeWindows: {
+    artifactType: "runtime",
+    platform: "windows",
+    arch: "x64",
+    latestKey: "latest/windows/kiwi-control-runtime.tar.gz",
+    fallbackFilename: "kiwi-control-runtime-windows-x64.tar.gz"
   }
 };
 
@@ -314,12 +348,12 @@ function firstNonEmpty(...values) {
 }
 
 async function resolveArtifact({ manifest, publishRoot, descriptor, metadataOnly, required }) {
-  const manifestArtifact = resolveOptionalManifestArtifact({
+  const manifestArtifact = materializeManifestArtifact(resolveOptionalManifestArtifact({
     manifest,
     artifactType: descriptor.artifactType,
     platform: descriptor.platform,
     arch: descriptor.arch
-  });
+  }), descriptor);
 
   if (!manifestArtifact) {
     if (required) {
@@ -361,15 +395,30 @@ function resolveOptionalManifestArtifact({ manifest, artifactType, platform, arc
       if (entry.artifactType !== artifactType) {
         return false;
       }
-      if (platform && entry.platform !== platform) {
+      if (platform && entry.platform && entry.platform !== platform) {
         return false;
       }
-      if (arch && entry.arch !== arch) {
+      if (arch && entry.arch && entry.arch !== arch) {
         return false;
       }
       return true;
     })
     .sort((left, right) => archPriority(left.arch) - archPriority(right.arch))[0] ?? null;
+}
+
+function materializeManifestArtifact(artifact, descriptor) {
+  if (!artifact) {
+    return null;
+  }
+
+  return {
+    ...artifact,
+    fileName: renderTemplateArtifactName(
+      artifact.fileName,
+      descriptor.platform ?? artifact.platform ?? "linux",
+      descriptor.arch ?? artifact.arch ?? "x64"
+    )
+  };
 }
 
 function buildDownloadsPayload({

@@ -204,13 +204,33 @@ function buildDownloadsPayload({
       filename: "kiwi-control-cli-macos-x64.tar.gz",
       candidates: findManifestAssets(manifest, "cli", "macos", "x64")
     },
+    runtimeMacos: {
+      filename: "kiwi-control-runtime.tar.gz",
+      candidates: findManifestAssets(manifest, "runtime", "macos")
+    },
+    runtimeMacosAarch64: {
+      filename: "kiwi-control-runtime-macos-aarch64.tar.gz",
+      candidates: findManifestAssets(manifest, "runtime", "macos", "aarch64")
+    },
+    runtimeMacosX64: {
+      filename: "kiwi-control-runtime-macos-x64.tar.gz",
+      candidates: findManifestAssets(manifest, "runtime", "macos", "x64")
+    },
     cliLinux: {
       filename: "kiwi-control-cli-linux-x64.tar.gz",
       candidates: findManifestAssets(manifest, "cli", "linux", "x64")
     },
+    runtimeLinux: {
+      filename: "kiwi-control-runtime-linux-x64.tar.gz",
+      candidates: findManifestAssets(manifest, "runtime", "linux", "x64")
+    },
     cliWindows: {
       filename: "kiwi-control-cli.zip",
       candidates: findManifestAssets(manifest, "cli", "windows", "x64")
+    },
+    runtimeWindows: {
+      filename: "kiwi-control-runtime-windows-x64.tar.gz",
+      candidates: findManifestAssets(manifest, "runtime", "windows", "x64")
     }
   };
 
@@ -274,10 +294,22 @@ function findManifestAssets(manifest, artifactType, platform, arch) {
   return manifest.artifacts
     .filter((artifact) => (
       artifact.artifactType === artifactType
-      && artifact.platform === platform
-      && (!arch || artifact.arch === arch)
+      && (!platform || !artifact.platform || artifact.platform === platform)
+      && (!arch || !artifact.arch || artifact.arch === arch)
     ))
+    .map((artifact) => ({
+      ...artifact,
+      fileName: renderTemplateArtifactName(
+        artifact.fileName,
+        platform ?? artifact.platform ?? "linux",
+        arch ?? artifact.arch ?? "x64"
+      )
+    }))
     .sort((left, right) => archPriority(left.arch) - archPriority(right.arch));
+}
+
+function renderTemplateArtifactName(template, platformValue, archValue) {
+  return template.replaceAll("${os}", platformValue).replaceAll("${arch}", archValue);
 }
 
 function archPriority(arch) {

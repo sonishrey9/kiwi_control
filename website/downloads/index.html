@@ -61,7 +61,7 @@
         <article class="panel">
           <h2>Optional CLI bundles</h2>
           <p>
-            Desktop install stays primary. These bundles remain optional for users who explicitly want the standalone CLI path. They install <code>kiwi-control</code> and <code>kc</code> only. They do not install the desktop app.
+            Desktop install stays primary. These bundles remain optional for users who explicitly want the standalone CLI path. The wrapper installers stage <code>kiwi-control</code>, <code>kc</code>, and the matching runtime bundle for the current OS. They do not install the desktop app.
           </p>
           <p>
             If Kiwi Control Desktop is already installed, <code>kc ui</code> can launch or attach to it. Homebrew tap files are scaffolded for maintainers but not published as a live tap yet. Winget is not published for this beta.
@@ -104,7 +104,7 @@
           <div class="eyebrow">CLI bootstrap</div>
           <h2>Published wrapper install for the standalone CLI</h2>
           <p>
-            These wrappers install the standalone CLI bundle only, then verify <code>kc --help</code>. They do not install the desktop app unless you explicitly request a desktop install and the artifact exists for that OS.
+            These wrappers install the standalone CLI bundle, hydrate the matching runtime bundle for the current OS, and then verify <code>kc --help</code>. They do not install the desktop app unless you explicitly request a desktop install and the artifact exists for that OS.
           </p>
           <pre><code>curl -fsSL https://kiwi-control.kiwi-ai.in/install.sh | bash</code></pre>
           <div>Windows PowerShell bootstrap:</div>

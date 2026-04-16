@@ -109,7 +109,18 @@ function requireArtifact(manifestPayload, criteria) {
 }
 
 function collectCliArtifacts(manifestPayload, criteria) {
-  return manifestPayload.artifacts.filter((artifact) => artifact.artifactType === "cli");
+  return manifestPayload.artifacts.filter((artifact) => {
+    if (artifact.artifactType !== "cli") {
+      return false;
+    }
+    if (artifact.platform !== criteria.platform) {
+      return false;
+    }
+    if (artifact.arch !== criteria.arch) {
+      return false;
+    }
+    return true;
+  });
 }
 
 function findDesktopArtifacts(manifestPayload, criteria) {
