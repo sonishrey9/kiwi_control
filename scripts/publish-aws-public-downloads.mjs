@@ -461,6 +461,10 @@ function surfaceArtifact(siteUrl, tagName, descriptor, artifact) {
   };
 }
 
+function renderTemplateArtifactName(template, platformValue, archValue) {
+  return template.replaceAll("${os}", platformValue).replaceAll("${arch}", archValue);
+}
+
 async function buildArtifactUploadPlan({ publishRoot, tagName, siteUrl, artifacts, metadataOnly }) {
   const versionedEntries = [];
   const excludeNames = new Set([
