@@ -7,15 +7,17 @@ on:
       - "v*"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   package:
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -206,17 +208,18 @@ jobs:
           path: dist/release/release-manifest.json
           if-no-files-found: error
 
-  publish:
+  publish-release-assets:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: package
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       contents: write
+      id-token: write
     env:
-      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_OIDC_ROLE_ARN: ${{ vars.AWS_OIDC_ROLE_ARN }}
       AWS_PUBLIC_BUCKET: ${{ vars.AWS_PUBLIC_BUCKET }}
-      REPO_URL: ${{ vars.REPO_URL }}
-      ROUTE53_HOSTED_ZONE_ID: ${{ secrets.ROUTE53_HOSTED_ZONE_ID }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
       SITE_URL: ${{ vars.SITE_URL }}
     steps:
       - uses: actions/checkout@v4
@@ -225,39 +228,39 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Validate required publish inputs
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Validate required release publish inputs
+        shell: bash
         run: |
+          set -euo pipefail
           missing=0
           for var_name in \
+            AWS_OIDC_ROLE_ARN \
+            AWS_PUBLIC_BUCKET \
             AWS_REGION \
-            AWS_ACCESS_KEY_ID \
-            AWS_SECRET_ACCESS_KEY \
-            REPO_URL \
             SITE_URL; do
             if [ -z "${!var_name:-}" ]; then
-              echo "Missing required publish input: ${var_name}" >&2
+              echo "Missing required release publish input: ${var_name}" >&2
               missing=1
             fi
           done
           exit "${missing}"
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          role-session-name: kiwi-control-release-publish
+          mask-aws-account-id: true
 
       - uses: actions/download-artifact@v4
         with:
           path: dist/release/downloads
 
       - name: Consolidate packaged assets
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p dist/release/publish
           shopt -s nullglob
           for dir in dist/release/downloads/release-assets-*; do
@@ -277,7 +280,9 @@ jobs:
       - name: Write release notes
         env:
           RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
         run: |
+          set -euo pipefail
           cat > dist/release/release-notes.md <<EOF
           Kiwi Control ${RELEASE_TAG}
 
@@ -293,7 +298,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
         run: |
+          set -euo pipefail
           release_title="Kiwi Control ${RELEASE_TAG}"
           prerelease=false
           case "${RELEASE_TAG}" in
@@ -333,52 +340,16 @@ jobs:
             --repo "${GITHUB_REPOSITORY}" \
             --clobber
 
-      - name: Ensure AWS public site infrastructure
-        run: |
-          node scripts/ensure-aws-public-site.mjs \
-            --site-url "${SITE_URL}" \
-            --output dist/release/aws-public-site.json
-
-      - name: Wait for Route 53 propagation
-        run: |
-          site_host="$(node -e "console.log(new URL(process.env.SITE_URL).hostname)")"
-          distribution_domain="$(jq -r '.distribution.domainName' dist/release/aws-public-site.json)"
-          for attempt in $(seq 1 20); do
-            if DISTRIBUTION_DOMAIN="${distribution_domain}" SITE_HOST="${site_host}" node - <<'NODE'
-          const dns = require("node:dns").promises;
-          const expected = process.env.DISTRIBUTION_DOMAIN.replace(/\.$/, "");
-          const hostname = process.env.SITE_HOST;
-          Promise.allSettled([dns.resolveCname(hostname), dns.resolve4(hostname)])
-            .then((results) => {
-              const cnames = results[0].status === "fulfilled" ? results[0].value.map((entry) => entry.replace(/\.$/, "")) : [];
-              if (cnames.includes(expected)) {
-                process.exit(0);
-              }
-              process.exit(results[1].status === "fulfilled" ? 0 : 1);
-            })
-            .catch(() => process.exit(1));
-          NODE
-            then
-              dns_ready=true
-            else
-              dns_ready=false
-            fi
-            if [ "${dns_ready}" = "true" ]; then
-              exit 0
-            fi
-            echo "Waiting for Route 53 propagation (attempt ${attempt}/20): dns_ready=${dns_ready}"
-            sleep 15
-          done
-          echo "Timed out waiting for Route 53 propagation" >&2
-          exit 1
-
       - name: Publish AWS download surface
         env:
           RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
         run: |
+          set -euo pipefail
           node scripts/publish-aws-public-downloads.mjs \
             --publish-root dist/release/publish \
             --site-url "${SITE_URL}" \
+            --bucket "${AWS_PUBLIC_BUCKET}" \
             --release-tag "${RELEASE_TAG}" \
             --macos-trust-json dist/release/publish/release-trust-macos.json \
             --windows-trust-json dist/release/publish/release-trust-windows.json \
@@ -394,25 +365,108 @@ jobs:
             --repo "${GITHUB_REPOSITORY}" \
             --clobber
 
-      - name: Stage website for AWS publish
+      - name: Upload public release metadata artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-public-metadata
+          path: |
+            dist/release/publish/downloads.json
+            dist/release/publish/SHA256SUMS.txt
+            dist/release/publish/release-manifest.json
+          if-no-files-found: error
+
+  publish-production-site:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: publish-release-assets
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID }}
+      AWS_OIDC_ROLE_ARN: ${{ vars.AWS_OIDC_ROLE_ARN }}
+      AWS_PUBLIC_BUCKET: ${{ vars.AWS_PUBLIC_BUCKET }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      DOWNLOADS_URL: ${{ vars.DOWNLOADS_URL }}
+      REPO_URL: ${{ vars.REPO_URL }}
+      SITE_URL: ${{ vars.SITE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate required production site publish inputs
+        shell: bash
         run: |
+          set -euo pipefail
+          missing=0
+          for var_name in \
+            AWS_CLOUDFRONT_DISTRIBUTION_ID \
+            AWS_OIDC_ROLE_ARN \
+            AWS_PUBLIC_BUCKET \
+            AWS_REGION \
+            REPO_URL \
+            SITE_URL; do
+            if [ -z "${!var_name:-}" ]; then
+              echo "Missing required production site publish input: ${var_name}" >&2
+              missing=1
+            fi
+          done
+          exit "${missing}"
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          role-session-name: kiwi-control-site-publish
+          mask-aws-account-id: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-public-metadata
+          path: dist/release/site-input
+
+      - name: Stage website for AWS publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          downloads_url="${DOWNLOADS_URL:-$SITE_URL}"
           node scripts/stage-pages-site.mjs \
-            --downloads-json dist/release/publish/downloads.json \
-            --downloads-url "${SITE_URL}" \
+            --downloads-json dist/release/site-input/downloads.json \
+            --downloads-url "${downloads_url}" \
             --require-downloads-json \
             --repo-url "${REPO_URL}" \
             --output-dir dist/site
 
-      - name: Publish website to AWS
+      - name: Verify staged site
+        shell: bash
         run: |
+          set -euo pipefail
+          downloads_url="${DOWNLOADS_URL:-$SITE_URL}"
+          node scripts/verify-public-download-surface.mjs \
+            --site-dir dist/site \
+            --downloads-url "${downloads_url}"
+
+      - name: Publish website to AWS
+        shell: bash
+        run: |
+          set -euo pipefail
           node scripts/publish-aws-public-site.mjs \
             --site-dir dist/site \
             --site-url "${SITE_URL}" \
-            --distribution-id "$(jq -r '.distribution.id' dist/release/aws-public-site.json)"
+            --bucket "${AWS_PUBLIC_BUCKET}" \
+            --distribution-id "${AWS_CLOUDFRONT_DISTRIBUTION_ID}"
 
       - name: Verify public download surface
+        shell: bash
         run: |
+          set -euo pipefail
+          downloads_url="${DOWNLOADS_URL:-$SITE_URL}"
           node scripts/verify-public-download-surface.mjs \
             --site-url "${SITE_URL%/}" \
-            --downloads-url "${SITE_URL%/}" \
+            --downloads-url "${downloads_url%/}" \
             --require-ready

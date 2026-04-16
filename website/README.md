@@ -4,7 +4,8 @@ This folder is the static public-beta web surface for Kiwi Control.
 
 Recommended deployment:
 
-- host on **AWS S3 + CloudFront**
+- use **GitHub Pages** for the staged static-site deployment surface
+- keep **AWS S3 + CloudFront** as the production host for `kiwi-control.kiwi-ai.in`
 - keep **Route 53** authoritative for `kiwi-ai.in`
 - publish the site hostname as a **CNAME** to the CloudFront distribution
 - keep the public website single-host on `kiwi-control.kiwi-ai.in`
@@ -12,7 +13,7 @@ Recommended deployment:
 - use `https://kiwi-control.kiwi-ai.in/latest/downloads.json` as the public machine-readable source of truth for published assets
 - only surface release notes or source links when those URLs are actually public and reachable
 
-Recommended AWS layout:
+Recommended production AWS layout:
 
 - one S3 bucket for the public site and release objects
 - one CloudFront distribution for HTTPS on `kiwi-control.kiwi-ai.in`
@@ -33,6 +34,8 @@ Recommended public routes:
   - current beta limitations and trust posture
 
 This site is intentionally static and lightweight for the public beta. Use `node scripts/stage-pages-site.mjs` to create the deployable directory with a same-origin `data/latest-release.json` file mirrored from the public downloads metadata or an explicit `downloads.json`.
+
+GitHub Pages is now the preferred secret-free site deploy target for the staged static site. Production website and release artifact hosting remain on AWS.
 
 ## Local direct deploy
 

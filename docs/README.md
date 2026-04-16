@@ -12,6 +12,7 @@ These are the main public-facing docs for Kiwi Control.
 - [Desktop-first validation checklist](./desktop-first-validation-checklist.md)
 - [Beta limitations](./beta-limitations.md)
 - [Release packaging](./release-packaging.md)
+- [Publish and deploy setup](./publish-deploy-setup.md)
 - [Generated artifacts policy](./generated-artifacts.md)
 - [Signing and release verification](../packaging/signing/README.md)
 - [Privacy policy](./privacy-policy.md)

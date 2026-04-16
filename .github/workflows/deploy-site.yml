@@ -1,150 +1,99 @@
-name: Deploy Site
+name: Publish Production Site
 
 on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy-site-production
+  group: publish-production-site
   cancel-in-progress: true
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
     env:
+      AWS_CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID }}
+      AWS_OIDC_ROLE_ARN: ${{ vars.AWS_OIDC_ROLE_ARN }}
+      AWS_PUBLIC_BUCKET: ${{ vars.AWS_PUBLIC_BUCKET }}
       AWS_REGION: ${{ vars.AWS_REGION }}
+      DOWNLOADS_URL: ${{ vars.DOWNLOADS_URL }}
       REPO_URL: ${{ vars.REPO_URL }}
-      ROUTE53_HOSTED_ZONE_ID: ${{ secrets.ROUTE53_HOSTED_ZONE_ID }}
       SITE_URL: ${{ vars.SITE_URL }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
 
-      - name: Install Linux desktop prerequisites
+      - name: Validate required publish inputs
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            pkg-config \
-            libglib2.0-dev \
-            libwebkit2gtk-4.1-dev \
-            librsvg2-dev \
-            patchelf \
-            build-essential \
-            curl \
-            wget \
-            file \
-            jq \
-            libxdo-dev \
-            libssl-dev \
-            libayatana-appindicator3-dev
-
-      - name: Validate required deploy inputs
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
+          set -euo pipefail
           missing=0
           for var_name in \
-            REPO_URL \
-            SITE_URL \
+            AWS_CLOUDFRONT_DISTRIBUTION_ID \
+            AWS_OIDC_ROLE_ARN \
+            AWS_PUBLIC_BUCKET \
             AWS_REGION \
-            AWS_ACCESS_KEY_ID \
-            AWS_SECRET_ACCESS_KEY; do
+            REPO_URL \
+            SITE_URL; do
             if [ -z "${!var_name:-}" ]; then
-              echo "Missing required deploy input: ${var_name}" >&2
+              echo "Missing required production site publish input: ${var_name}" >&2
               missing=1
             fi
           done
           exit "${missing}"
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          role-session-name: kiwi-control-site-publish
+          mask-aws-account-id: true
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Remove macOS metadata junk
-        run: node scripts/remove-macos-metadata.mjs .
-
-      - name: Build workspace
-        run: npm run build
-
-      - name: Run tests
-        run: npm test
-
-      - name: Smoke test
-        run: bash scripts/smoke-test.sh
-
-      - name: Prepare release metadata
-        run: npm run release:manifest
-
-      - name: Ensure AWS public site infrastructure
+      - name: Stage production site
+        shell: bash
         run: |
-          node scripts/ensure-aws-public-site.mjs \
-            --site-url "${SITE_URL}" \
-            --output dist/release/aws-public-site.json
-
-      - name: Stage website for AWS publish
-        run: |
+          set -euo pipefail
+          downloads_url="${DOWNLOADS_URL:-$SITE_URL}"
           node scripts/stage-pages-site.mjs \
-            --downloads-url "${SITE_URL}" \
+            --downloads-url "${downloads_url}" \
             --require-downloads-json \
+            --repo-url "${REPO_URL}" \
             --output-dir dist/site
 
-      - name: Publish website to AWS
+      - name: Verify staged site
+        shell: bash
         run: |
+          set -euo pipefail
+          downloads_url="${DOWNLOADS_URL:-$SITE_URL}"
+          node scripts/verify-public-download-surface.mjs \
+            --site-dir dist/site \
+            --downloads-url "${downloads_url}"
+
+      - name: Publish website to AWS
+        shell: bash
+        run: |
+          set -euo pipefail
           node scripts/publish-aws-public-site.mjs \
             --site-dir dist/site \
             --site-url "${SITE_URL}" \
-            --distribution-id "$(jq -r '.distribution.id' dist/release/aws-public-site.json)"
-
-      - name: Wait for DNS propagation
-        run: |
-          site_host="$(node -e "console.log(new URL(process.env.SITE_URL).hostname)")"
-          distribution_domain="$(jq -r '.distribution.domainName' dist/release/aws-public-site.json)"
-          for attempt in $(seq 1 20); do
-            if DISTRIBUTION_DOMAIN="${distribution_domain}" SITE_HOST="${site_host}" node - <<'NODE'
-          const dns = require("node:dns").promises;
-          const expected = process.env.DISTRIBUTION_DOMAIN.replace(/\.$/, "");
-          const hostname = process.env.SITE_HOST;
-          Promise.allSettled([dns.resolveCname(hostname), dns.resolve4(hostname)])
-            .then((results) => {
-              const cnames = results[0].status === "fulfilled" ? results[0].value.map((entry) => entry.replace(/\.$/, "")) : [];
-              if (cnames.includes(expected)) {
-                process.exit(0);
-              }
-              process.exit(results[1].status === "fulfilled" ? 0 : 1);
-            })
-            .catch(() => process.exit(1));
-          NODE
-            then
-              dns_ready=true
-            else
-              dns_ready=false
-            fi
-            if [ "${dns_ready}" = "true" ]; then
-              exit 0
-            fi
-            echo "Waiting for Route 53 propagation (attempt ${attempt}/20): dns_ready=${dns_ready}"
-            sleep 15
-          done
-          echo "Timed out waiting for Route 53 propagation" >&2
-          exit 1
+            --bucket "${AWS_PUBLIC_BUCKET}" \
+            --distribution-id "${AWS_CLOUDFRONT_DISTRIBUTION_ID}"
 
       - name: Verify public site and downloads surface
+        shell: bash
         run: |
+          set -euo pipefail
+          downloads_url="${DOWNLOADS_URL:-$SITE_URL}"
           node scripts/verify-public-download-surface.mjs \
             --site-url "${SITE_URL%/}" \
-            --downloads-url "${SITE_URL%/}"
+            --downloads-url "${downloads_url%/}"

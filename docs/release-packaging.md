@@ -1,5 +1,9 @@
 # Kiwi Control Release Packaging
 
+Deployment setup, GitHub Pages, and AWS OIDC configuration now live in:
+
+- [Publish and deploy setup](./publish-deploy-setup.md)
+
 ## Release goal
 
 The public beta release surface should look like a coherent Kiwi Control product:
@@ -50,7 +54,7 @@ npm run release:trust -- --platform macos --json
 node scripts/generate-github-release-downloads.mjs --publish-root dist/release/publish --repo owner/repo --release-tag v0.2.0-beta.10 --release-json /path/to/release.json
 ```
 
-AWS publication:
+AWS publication through OIDC-backed production publish:
 
 ```bash
 export SITE_URL="https://kiwi-control.kiwi-ai.in"
