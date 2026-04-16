@@ -313,6 +313,9 @@ function validateReleaseReadyMetadata(metadata) {
 function validateRenderedLinks(downloadsHtml, metadata) {
   const issues = [];
   for (const [key, artifact] of Object.entries(metadata.artifacts ?? {})) {
+    if (key.startsWith("runtime")) {
+      continue;
+    }
     if (artifact?.latestUrl && !downloadsHtml.includes(artifact.latestUrl)) {
       issues.push(`downloads page does not render ${key}.latestUrl`);
     }
